@@ -7,6 +7,7 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { saveSettings } from '@/services/storage';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -36,6 +37,7 @@ const STEPS = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const [currentStep, setCurrentStep] = useState(0);
 
   async function handleFinish() {
@@ -54,7 +56,7 @@ export default function OnboardingScreen() {
   const step = STEPS[currentStep];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <InkBackground />
       <View style={styles.container}>

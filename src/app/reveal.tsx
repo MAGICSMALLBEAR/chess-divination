@@ -10,6 +10,9 @@ import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView'
 import type { DivinationRecord } from '@/services/storage';
 import { getHistory, toggleFavorite } from '@/services/storage';
 import { getPoemById, getLevelColor, type JieYue } from '@/data/poems';
+import { playRevealSound, playFavoriteSound } from '@/services/sound';
+import { hapticSuccess } from '@/services/haptics';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -26,6 +29,7 @@ const CATEGORIES: { key: keyof JieYue; label: string; icon: string }[] = [
 
 export default function RevealScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
@@ -35,8 +39,8 @@ export default function RevealScreen() {
 
   useEffect(() => {
     loadRecord();
-    // Trigger reveal animation
-    const timer = setTimeout(() => setRevealed(true), 200);
+    // Trigger reveal animation + sound
+    const timer = setTimeout(() => { setRevealed(true); playRevealSound(); }, 200);
     return () => clearTimeout(timer);
   }, [recordId]);
 
@@ -53,6 +57,8 @@ export default function RevealScreen() {
     if (!record) return;
     const result = await toggleFavorite(record);
     setIsFav(result);
+    playFavoriteSound();
+    hapticSuccess();
     await loadRecord();
   }
 
@@ -70,7 +76,7 @@ export default function RevealScreen() {
 
   if (!record) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
         <InkBackground />
         <View style={styles.loading}>
           <Text style={styles.loadingText}>載入中...</Text>
@@ -84,7 +90,7 @@ export default function RevealScreen() {
   const levelColor = getLevelColor(poem.level);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -96,6 +102,14 @@ export default function RevealScreen() {
           <Text style={styles.title}>占卜結果</Text>
           <View style={styles.backBtn} />
         </View>
+
+        {/* 用戶問題 */}
+        {record.questionText ? (
+          <View style={styles.questionBox}>
+            <Text style={styles.questionLabel}>您的問題</Text>
+            <Text style={styles.questionText}>{record.questionText}</Text>
+          </View>
+        ) : null}
 
         {/* 抽到的棋子 */}
         <View style={styles.piecesRow}>
@@ -248,6 +262,20 @@ const styles = StyleSheet.create({
   title: { fontSize: FontSize.heading, fontWeight: '700', color: '#F5EDE0' },
   piecesRow: {
     flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md, marginBottom: Spacing.md,
+  },
+  questionBox: {
+    width: SCREEN_WIDTH - Spacing.xl * 2,
+    backgroundColor: '#1A1210', borderRadius: 12,
+    borderWidth: 1, borderColor: '#3A2F25',
+    padding: Spacing.md, marginBottom: Spacing.lg,
+  },
+  questionLabel: {
+    fontSize: FontSize.caption, color: '#C9A96E',
+    marginBottom: 4, fontWeight: '600',
+  },
+  questionText: {
+    fontSize: FontSize.body, color: '#C9B99A',
+    fontStyle: 'italic', lineHeight: 24,
   },
   pieceDisplay: {
     width: 64, height: 64, borderRadius: 32,

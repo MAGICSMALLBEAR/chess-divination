@@ -8,12 +8,14 @@ import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import type { DivinationRecord } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite } from '@/services/storage';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Spacing, FontSize } from '@/constants/theme';
 
 type TabType = 'history' | 'favorites';
 
 export default function CollectionScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const [tab, setTab] = useState<TabType>('history');
   const [history, setHistory] = useState<DivinationRecord[]>([]);
   const [favorites, setFavorites] = useState<DivinationRecord[]>([]);
@@ -62,7 +64,7 @@ export default function CollectionScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <InkBackground />
       <View style={styles.header}>
         <Text style={styles.title}>收藏記錄</Text>

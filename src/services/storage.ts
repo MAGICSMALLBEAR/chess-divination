@@ -29,6 +29,7 @@ export interface DivinationRecord {
   drawnPieceChars: string[];      // display chars
   mode: DivinationMode;
   questionCategory?: string;
+  questionText?: string;         // user's written question
   timestamp: number;
   isFavorited: boolean;
 }
@@ -194,6 +195,7 @@ export function recordFromDivination(
   pieces: ChessPiece[],
   mode: DivinationMode,
   questionCategory?: string,
+  questionText?: string,
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: poem.id,
@@ -205,6 +207,7 @@ export function recordFromDivination(
     drawnPieceChars: pieces.map(p => p.displayChar),
     mode,
     questionCategory,
+    questionText,
     timestamp: Date.now(),
     isFavorited: false,
   };

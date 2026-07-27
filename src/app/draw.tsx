@@ -2,13 +2,16 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  Dimensions,
+  Dimensions, TextInput,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ChessPiece from '@/components/ChessPiece';
 import PieceDrawAnimation from '@/components/PieceDrawAnimation';
 import { useDrawDivination } from '@/hooks/useDrawDivination';
+import { playDrawPieceSound } from '@/services/sound';
+import { hapticMedium } from '@/services/haptics';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -25,14 +28,16 @@ const QUESTION_CATEGORIES = [
 
 export default function DrawScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const {
     step, drawnPieces, selectedPoem, drawSummary,
     startDrawing, goToResult, reset,
   } = useDrawDivination();
   const [selectedCategory, setSelectedCategory] = useState('general');
+  const [questionText, setQuestionText] = useState('');
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -48,6 +53,17 @@ export default function DrawScreen() {
         {step === 'select-count' && (
           <View style={styles.content}>
             <Text style={styles.subtitle}>請問您想問什麼？</Text>
+            {/* 問題輸入框 */}
+            <TextInput
+              style={styles.questionInput}
+              placeholder="寫下您心中的疑問..."
+              placeholderTextColor="#5A4A38"
+              value={questionText}
+              onChangeText={setQuestionText}
+              multiline
+              maxLength={200}
+              textAlignVertical="top"
+            />
             {/* 問事類別 */}
             <View style={styles.categoryGrid}>
               {QUESTION_CATEGORIES.map((cat) => (
@@ -78,7 +94,7 @@ export default function DrawScreen() {
                 <TouchableOpacity
                   key={n}
                   style={styles.countBtn}
-                  onPress={() => startDrawing(n, selectedCategory)}
+                  onPress={() => { playDrawPieceSound(); hapticMedium(); startDrawing(n, selectedCategory, questionText); }}
                 >
                   <Text style={styles.countNum}>{n}</Text>
                   <Text style={styles.countLabel}>
@@ -151,6 +167,18 @@ const styles = StyleSheet.create({
     color: '#C9B99A',
     marginBottom: Spacing.md,
     marginTop: Spacing.md,
+  },
+  questionInput: {
+    width: SCREEN_WIDTH - Spacing.lg * 2,
+    backgroundColor: '#1A1210',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3A2F25',
+    padding: Spacing.md,
+    fontSize: FontSize.body,
+    color: '#F5EDE0',
+    minHeight: 80,
+    marginBottom: Spacing.md,
   },
   categoryGrid: {
     flexDirection: 'row',

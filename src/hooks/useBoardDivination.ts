@@ -7,6 +7,8 @@ import { ALL_PIECES } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
 import { selectPoem, generateDrawSummary } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
+import { playPlacePieceSound } from '@/services/sound';
+import { hapticLight } from '@/services/haptics';
 
 export interface PlacedPiece {
   piece: ChessPiece;
@@ -23,6 +25,7 @@ export function useBoardDivination() {
   const [selectedPiece, setSelectedPiece] = useState<ChessPiece | null>(null);
   const [selectedPoem, setSelectedPoem] = useState<Poem | null>(null);
   const [questionCategory, setQuestionCategory] = useState<string>('general');
+  const [questionText, setQuestionText] = useState<string>('');
 
   const availablePieces = ALL_PIECES;
   const maxPieces = 3;
@@ -41,6 +44,8 @@ export function useBoardDivination() {
 
     setPlacedPieces(prev => [...prev, { piece: selectedPiece, col, row }]);
     setSelectedPiece(null);
+    playPlacePieceSound();
+    hapticLight();
   }, [selectedPiece, placedPieces]);
 
   // 移除棋子
@@ -49,10 +54,12 @@ export function useBoardDivination() {
   }, []);
 
   // 進行占卜解讀
-  const interpret = useCallback(async (category?: string) => {
+  const interpret = useCallback(async (category?: string, text?: string) => {
     if (placedPieces.length === 0) return;
     const cat = category || questionCategory;
+    const txt = text !== undefined ? text : questionText;
     if (category) setQuestionCategory(category);
+    if (text !== undefined) setQuestionText(text);
 
     // 使用棋子順序作為順序（依放置先後）
     const pieces = placedPieces.map(pp => pp.piece);
@@ -60,7 +67,7 @@ export function useBoardDivination() {
     setSelectedPoem(poem);
 
     // 儲存記錄
-    const record = recordFromDivination(poem, pieces, 'board', cat);
+    const record = recordFromDivination(poem, pieces, 'board', cat, txt);
     const saved = await addHistory(record);
     setStep('result');
 

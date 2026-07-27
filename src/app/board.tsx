@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  Dimensions,
+  Dimensions, TextInput,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ChessBoard from '@/components/ChessBoard';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Spacing, FontSize } from '@/constants/theme';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
 
@@ -26,17 +27,19 @@ const QUESTION_CATEGORIES = [
 
 export default function BoardScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const {
     placedPieces, selectedPiece, availablePieces, maxPieces,
     selectPiece, placePieceOnBoard, removePieceFromBoard, interpret, reset,
   } = useBoardDivination();
   const [selectedCategory, setSelectedCategory] = useState('general');
+  const [questionText, setQuestionText] = useState('');
   const [showRedPieces, setShowRedPieces] = useState(true);
 
   const currentPool = showRedPieces ? ALL_RED_PIECES : ALL_BLACK_PIECES;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -65,6 +68,16 @@ export default function BoardScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* 問題輸入 */}
+        <TextInput
+          style={styles.questionInput}
+          placeholder="寫下您想問的問題..."
+          placeholderTextColor="#5A4A38"
+          value={questionText}
+          onChangeText={setQuestionText}
+          maxLength={200}
+        />
 
         {/* 棋盤 */}
         <ChessBoard
@@ -103,7 +116,7 @@ export default function BoardScreen() {
         <View style={styles.controls}>
           <TouchableOpacity
             style={[styles.interpretBtn, placedPieces.length === 0 && styles.btnDisabled]}
-            onPress={() => interpret(selectedCategory)}
+            onPress={() => interpret(selectedCategory, questionText)}
             disabled={placedPieces.length === 0}
           >
             <Text style={styles.interpretBtnText}>
@@ -143,6 +156,18 @@ const styles = StyleSheet.create({
   },
   categoryChipLabel: { fontSize: 12, color: '#8A7A60' },
   boardStyle: { marginTop: Spacing.md },
+  questionInput: {
+    width: SCREEN_WIDTH - Spacing.md * 2,
+    backgroundColor: '#1A1210',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#3A2F25',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    fontSize: FontSize.small,
+    color: '#F5EDE0',
+    marginBottom: Spacing.md,
+  },
   poolTabs: {
     flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md,
   },

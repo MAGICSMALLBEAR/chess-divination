@@ -9,6 +9,7 @@ import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
 import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, type DailyFortune } from '@/services/storage';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const PIECE_EMOJIS: Record<string, string> = {
@@ -22,6 +23,7 @@ const PIECE_NAMES: Record<string, string> = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const [dailyFortune, setDailyFortune] = useState<DailyFortune | null>(null);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* 頂部標題 */}

@@ -18,11 +18,13 @@ export function useDrawDivination() {
   const [selectedPoem, setSelectedPoem] = useState<Poem | null>(null);
   const [drawSummary, setDrawSummary] = useState('');
   const [questionCategory, setQuestionCategory] = useState<string>('general');
+  const [questionText, setQuestionText] = useState<string>('');
 
   // 開始抽棋
-  const startDrawing = useCallback((count: 1 | 2 | 3, category?: string) => {
+  const startDrawing = useCallback((count: 1 | 2 | 3, category?: string, text?: string) => {
     setPieceCount(count);
     if (category) setQuestionCategory(category);
+    if (text !== undefined) setQuestionText(text);
     setStep('drawing');
 
     // 執行抽棋
@@ -48,6 +50,7 @@ export function useDrawDivination() {
       drawnPieces,
       'draw',
       questionCategory,
+      questionText,
     );
     const saved = await addHistory(record);
     setStep('result');
@@ -78,6 +81,7 @@ export function useDrawDivination() {
     drawSummary,
     questionCategory,
     setQuestionCategory,
+    questionText,
     startDrawing,
     goToResult,
     reset,
