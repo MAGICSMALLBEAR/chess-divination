@@ -37,12 +37,33 @@ export default function ChessBoard({
   style,
 }: ChessBoardProps) {
   const boardRef = useRef<View>(null);
+  const boardLayoutRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const cols = BOARD.cols;    // 9
   const rows = BOARD.rows;    // 10
   const pieceSize = cellSize * 0.85;
 
   const boardWidth = (cols - 1) * cellSize;
   const boardHeight = (rows - 1) * cellSize;
+
+  // 將螢幕座標轉換為棋盤格子座標
+  const screenToGrid = (screenX: number, screenY: number): { col: number; row: number } | null => {
+    const { x, y, w, h } = boardLayoutRef.current;
+    const relX = screenX - x;
+    const relY = screenY - y;
+    const col = Math.round((relX - cellSize / 2) / cellSize);
+    const row = Math.round((relY - cellSize / 2) / cellSize);
+    if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
+    return { col, row };
+  };
+
+  // 測量棋盤位置
+  const measureBoard = () => {
+    if (boardRef.current && typeof (boardRef.current as any).measureInWindow === 'function') {
+      (boardRef.current as any).measureInWindow((px: number, py: number, pw: number, ph: number) => {
+        boardLayoutRef.current = { x: px, y: py, w: pw, h: ph };
+      });
+    }
+  };
 
   // 棋盤格子定位
   const getCellPosition = (col: number, row: number) => ({
@@ -65,6 +86,7 @@ export default function ChessBoard({
       {/* 棋盤 */}
       <View
         ref={boardRef}
+        onLayout={measureBoard}
         style={[
           styles.board,
           {
@@ -204,24 +226,31 @@ export default function ChessBoard({
               const isSelected = selectedPiece?.id === piece.id;
               const canSelect = !isPlaced && placedPieces.length < maxPieces;
               return (
-                <TouchableOpacity
+                <View
                   key={piece.id}
                   style={[
                     styles.availablePiece,
                     isSelected && styles.availablePieceSelected,
                   ]}
-                  onPress={() => canSelect && onSelectAvailable?.(piece)}
-                  disabled={!canSelect}
-                  activeOpacity={0.6}
                 >
                   <ChessPiece
                     piece={piece}
                     size={36}
+                    draggable={canSelect}
                     selected={isSelected}
+                    onPress={canSelect ? () => onSelectAvailable?.(piece) : undefined}
+                    onDragEnd={canSelect ? (p, x, y) => {
+                      const grid = screenToGrid(x, y);
+                      if (grid) {
+                        onPlacePiece?.(grid.col, grid.row);
+                      } else {
+                        onSelectAvailable?.(p);
+                      }
+                    } : undefined}
                   />
                   {isPlaced && <Text style={styles.placedLabel}>已放置</Text>}
                   {isSelected && <Text style={styles.selectedLabel}>已選中</Text>}
-                </TouchableOpacity>
+                </View>
               );
             })}
           </View>

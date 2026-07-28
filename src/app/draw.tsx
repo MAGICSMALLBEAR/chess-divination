@@ -12,6 +12,7 @@ import { useDrawDivination } from '@/hooks/useDrawDivination';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -44,7 +45,7 @@ export default function DrawScreen() {
         {/* 標題 */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← 返回</Text>
+            <Text style={styles.backText}>← {t('common.back')}</Text>
           </TouchableOpacity>
           <Text style={styles.title}>抽棋占卜</Text>
           <View style={styles.backBtn} />
