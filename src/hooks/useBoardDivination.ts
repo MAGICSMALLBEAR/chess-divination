@@ -9,6 +9,7 @@ import { selectPoem, generateDrawSummary } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
 import { playPlacePieceSound } from '@/services/sound';
 import { hapticLight } from '@/services/haptics';
+import { generatePositionSummary } from '@/services/position';
 
 export interface PlacedPiece {
   piece: ChessPiece;
@@ -61,13 +62,17 @@ export function useBoardDivination() {
     if (category) setQuestionCategory(category);
     if (text !== undefined) setQuestionText(text);
 
+    // 生成位置解讀
+    const positions = placedPieces.map(pp => ({ col: pp.col, row: pp.row }));
+    const positionSummary = generatePositionSummary(positions);
+
     // 使用棋子順序作為順序（依放置先後）
     const pieces = placedPieces.map(pp => pp.piece);
     const poem = selectPoem(pieces);
     setSelectedPoem(poem);
 
     // 儲存記錄
-    const record = recordFromDivination(poem, pieces, 'board', cat, txt);
+    const record = recordFromDivination(poem, pieces, 'board', cat, txt, positionSummary);
     const saved = await addHistory(record);
     setStep('result');
 

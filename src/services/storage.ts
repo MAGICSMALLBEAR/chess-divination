@@ -30,6 +30,7 @@ export interface DivinationRecord {
   mode: DivinationMode;
   questionCategory?: string;
   questionText?: string;         // user's written question
+  positionSummary?: string;      // board position interpretation summary
   timestamp: number;
   isFavorited: boolean;
 }
@@ -196,6 +197,7 @@ export function recordFromDivination(
   mode: DivinationMode,
   questionCategory?: string,
   questionText?: string,
+  positionSummary?: string,
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: poem.id,
@@ -208,6 +210,7 @@ export function recordFromDivination(
     mode,
     questionCategory,
     questionText,
+    positionSummary,
     timestamp: Date.now(),
     isFavorited: false,
   };

@@ -10,6 +10,7 @@ import ModeSelector from '@/components/ModeSelector';
 import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, type DailyFortune } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const PIECE_EMOJIS: Record<string, string> = {
@@ -53,18 +54,18 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* 頂部標題 */}
         <View style={styles.header}>
-          <Text style={styles.appName}>象棋占卜</Text>
-          <Text style={styles.tagline}>以棋問道 · 觀象知機</Text>
+          <Text style={styles.appName}>{t('home.title')}</Text>
+          <Text style={styles.tagline}>{t('home.tagline')}</Text>
         </View>
 
         {/* 每日運勢卡片 */}
         {dailyFortune && (
-          <View style={styles.dailyCard}>
-            <Text style={styles.dailyTitle}>📍 今日棋運</Text>
+          <View style={[styles.dailyCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={[styles.dailyTitle, { color: theme.gold }]}>📍 {t('home.daily')}</Text>
             <View style={styles.dailyContent}>
               <View style={styles.dailyMain}>
                 <Text style={styles.dailyLevel}>{dailyFortune.fortuneLevel}</Text>
-                <Text style={styles.dailyText}>{dailyFortune.fortuneText}</Text>
+                <Text style={[styles.dailyText, { color: theme.textSecondary }]}>{dailyFortune.fortuneText}</Text>
               </View>
               <View style={styles.dailyDetails}>
                 <View style={styles.detailItem}>

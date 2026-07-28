@@ -13,6 +13,7 @@ import { getPoemById, getLevelColor, type JieYue } from '@/data/poems';
 import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { getAIInterpretation } from '@/services/ai';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -35,6 +36,8 @@ export default function RevealScreen() {
   const [isFav, setIsFav] = useState(false);
   const [expandedCat, setExpandedCat] = useState<keyof JieYue>('general');
   const [revealed, setRevealed] = useState(false);
+  const [aiResult, setAiResult] = useState<{ interpretation: string; actionPlan: string[] } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const shareRef = useRef<ShareCardHandle>(null);
 
   useEffect(() => {
@@ -50,6 +53,14 @@ export default function RevealScreen() {
     if (found) {
       setRecord(found);
       setIsFav(found.isFavorited);
+      // 載入 AI 解讀
+      const poem = getPoemById(found.poemId);
+      setAiLoading(true);
+      try {
+        const result = await getAIInterpretation(poem, found.questionText);
+        setAiResult(result);
+      } catch {}
+      setAiLoading(false);
     }
   }
 
@@ -111,6 +122,14 @@ export default function RevealScreen() {
           </View>
         ) : null}
 
+        {/* 棋盤位置解讀 */}
+        {record.positionSummary ? (
+          <View style={[styles.positionBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={[styles.positionTitle, { color: theme.gold }]}>▎棋盤佈局解讀</Text>
+            <Text style={[styles.positionText, { color: theme.textSecondary }]}>{record.positionSummary}</Text>
+          </View>
+        ) : null}
+
         {/* 抽到的棋子 */}
         <View style={styles.piecesRow}>
           {record.drawnPieceChars.map((char, i) => (
@@ -139,10 +158,11 @@ export default function RevealScreen() {
         <Text style={styles.poemTitle}>{poem.title}</Text>
 
         {/* 籤詩本文 */}
-        <View style={styles.poemBox}>
+        <View style={[styles.poemBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           {poem.content.split('\n').map((line, i) => (
             <Text key={i} style={[
               styles.poemLine,
+              { color: theme.textPrimary },
               {
                 opacity: revealed ? 1 : 0,
                 transform: [{ translateY: revealed ? 0 : 15 }],
@@ -162,19 +182,19 @@ export default function RevealScreen() {
 
         {/* 白話解釋 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>▎白話解釋</Text>
-          <Text style={styles.bodyText}>{poem.vernacular}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎白話解釋</Text>
+          <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{poem.vernacular}</Text>
         </View>
 
         {/* 典故 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>▎典故參考</Text>
-          <Text style={styles.bodyText}>{poem.story}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎典故參考</Text>
+          <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{poem.story}</Text>
         </View>
 
         {/* 各面向詳解 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>▎各面向詳解</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎各面向詳解</Text>
           {/* 分類選擇 */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
             style={styles.catScroll} contentContainerStyle={styles.catContent}>
@@ -198,10 +218,33 @@ export default function RevealScreen() {
             ))}
           </ScrollView>
           {/* 解讀內容 */}
-          <View style={styles.catContentBox}>
-            <Text style={styles.bodyText}>{poem.jieYue[expandedCat]}</Text>
+          <View style={[styles.catContentBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{poem.jieYue[expandedCat]}</Text>
           </View>
         </View>
+
+        {/* AI 解讀 */}
+        {aiLoading && (
+          <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={[styles.sectionTitle, { color: theme.gold }]}>🤖 AI 解讀中...</Text>
+          </View>
+        )}
+        {aiResult && !aiLoading && (
+          <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={[styles.sectionTitle, { color: theme.gold }]}>🤖 AI 智慧解讀</Text>
+            <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{aiResult.interpretation}</Text>
+            {aiResult.actionPlan.length > 0 && (
+              <View style={styles.actionList}>
+                <Text style={[styles.actionTitle, { color: theme.gold }]}>建議行動</Text>
+                {aiResult.actionPlan.map((step, i) => (
+                  <Text key={i} style={[styles.actionItem, { color: theme.textSecondary }]}>
+                    {i + 1}. {step}
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* 操作按鈕 */}
         <View style={styles.actions}>
@@ -276,6 +319,17 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: FontSize.body, color: '#C9B99A',
     fontStyle: 'italic', lineHeight: 24,
+  },
+  positionBox: {
+    width: SCREEN_WIDTH - Spacing.xl * 2,
+    borderRadius: 12, borderWidth: 1,
+    padding: Spacing.md, marginBottom: Spacing.lg,
+  },
+  positionTitle: {
+    fontSize: FontSize.body, fontWeight: '600', marginBottom: Spacing.sm,
+  },
+  positionText: {
+    fontSize: FontSize.small, lineHeight: 22,
   },
   pieceDisplay: {
     width: 64, height: 64, borderRadius: 32,
@@ -368,6 +422,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 4,
   },
   homeBtnText: { fontSize: FontSize.body, color: '#8A7A60' },
+  aiBox: {
+    width: SCREEN_WIDTH - Spacing.xl * 2,
+    borderRadius: 12, borderWidth: 1,
+    padding: Spacing.md, marginBottom: Spacing.lg,
+  },
+  actionList: { marginTop: Spacing.md },
+  actionTitle: { fontSize: FontSize.small, fontWeight: '600', marginBottom: Spacing.sm },
+  actionItem: { fontSize: FontSize.body, lineHeight: 26, marginBottom: 4 },
   shareHidden: {
     position: 'absolute', top: -9999, left: -9999,
     opacity: 0, pointerEvents: 'none',
