@@ -12,11 +12,14 @@ import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import { backupData, restoreData } from '@/services/backup';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
+import { LANG_OPTIONS, type Lang } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const { t, lang, setLang } = useI18n();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameText, setNameText] = useState('');
@@ -108,6 +111,20 @@ export default function SettingsScreen() {
                   onPress={() => update('themeMode', mode)}>
                   <Text style={[styles.optionText, settings.themeMode === mode && { color: theme.gold }]}>
                     {mode === 'dark' ? '🌙 墨色' : '☀️ 宣紙'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>語言</Text>
+            <View style={styles.options}>
+              {LANG_OPTIONS.map((opt) => (
+                <TouchableOpacity key={opt.key}
+                  style={[styles.option, lang === opt.key && { borderColor: theme.gold }]}
+                  onPress={() => setLang(opt.key)}>
+                  <Text style={[styles.optionText, lang === opt.key && { color: theme.gold }]}>
+                    {opt.label}
                   </Text>
                 </TouchableOpacity>
               ))}

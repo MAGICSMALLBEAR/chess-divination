@@ -62,6 +62,24 @@ const translations: Record<string, Record<Lang, string>> = {
   'collection.noHistory': { 'zh-TW': '尚無占卜記錄', en: 'No records yet', ja: 'まだ記録がありません' },
   'collection.noFav': { 'zh-TW': '尚無收藏記錄', en: 'No favorites yet', ja: 'お気に入りはまだありません' },
 
+  // 設定(擴展)
+  'settings.personal': { 'zh-TW': '個人資訊', en: 'Personal Info', ja: '個人情報' },
+  'settings.appearance': { 'zh-TW': '外觀設定', en: 'Appearance', ja: '外観' },
+  'settings.lang': { 'zh-TW': '語言', en: 'Language', ja: '言語' },
+  'settings.preset': { 'zh-TW': '預設抽棋數量', en: 'Default Piece Count', ja: 'デフォルト駒数' },
+  'settings.experience': { 'zh-TW': '體驗設定', en: 'Experience', ja: '体験' },
+  'settings.tools': { 'zh-TW': '工具', en: 'Tools', ja: 'ツール' },
+  'settings.library': { 'zh-TW': '籤詩圖鑑', en: 'Poem Library', ja: '詩鑑' },
+  'settings.stats': { 'zh-TW': '占卜統計', en: 'Statistics', ja: '統計' },
+  'settings.data': { 'zh-TW': '資料管理', en: 'Data Management', ja: 'データ管理' },
+  'settings.about': { 'zh-TW': '關於', en: 'About', ja: 'について' },
+  'settings.userName': { 'zh-TW': '用戶名稱', en: 'User Name', ja: 'ユーザー名' },
+
+  // 引導
+  'onboarding.welcome': { 'zh-TW': '歡迎來到象棋占卜', en: 'Welcome to Chess Divination', ja: '象棋占いへようこそ' },
+  'onboarding.step1desc': { 'zh-TW': '以棋問道，觀象知機。\n從古老的象棋智慧中，\n尋找人生的方向與啟發。', en: 'Seek wisdom through chess.\nDiscover life guidance\nfrom ancient chess insights.', ja: '棋に問い、兆しを見る。\n古来の象棋の知恵から\n人生の指針を見つける。' },
+  'onboarding.step2': { 'zh-TW': '雙重占卜模式', en: 'Two Divination Modes', ja: '二つの占いモード' },
+
   // 通用
   'common.back': { 'zh-TW': '返回', en: 'Back', ja: '戻る' },
   'common.save': { 'zh-TW': '儲存', en: 'Save', ja: '保存' },
@@ -70,16 +88,27 @@ const translations: Record<string, Record<Lang, string>> = {
   'common.confirm': { 'zh-TW': '確認', en: 'Confirm', ja: '確認' },
   'common.share': { 'zh-TW': '分享', en: 'Share', ja: '共有' },
   'common.favorite': { 'zh-TW': '收藏', en: 'Favorite', ja: 'お気に入り' },
+  'common.loading': { 'zh-TW': '載入中...', en: 'Loading...', ja: '読み込み中...' },
 };
+
+// Singleton + Listener pattern
+type Listener = () => void;
+const listeners = new Set<Listener>();
 
 let currentLang: Lang = 'zh-TW';
 
 export function setLang(lang: Lang) {
   currentLang = lang;
+  listeners.forEach(fn => fn());
 }
 
 export function getLang(): Lang {
   return currentLang;
+}
+
+export function subscribe(fn: Listener): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
 }
 
 export function t(key: string): string {
