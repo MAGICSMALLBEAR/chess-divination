@@ -8,6 +8,7 @@ import {
 import type { ChessPiece as ChessPieceType } from '@/data/pieces';
 import ChessPiece from './ChessPiece';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { Spacing, FontSize, Duration } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -27,12 +28,25 @@ export default function PieceDrawAnimation({
 }: PieceDrawAnimationProps) {
   const [phase, setPhase] = useState<'shaking' | 'emerging' | 'landed'>('shaking');
   const speed = useAnimationSpeed();
+  const reducedMotion = useReducedMotion();
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const pieceScales = useRef(drawnPieces.map(() => new Animated.Value(0))).current;
   const pieceOpacities = useRef(drawnPieces.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
+    // 若偏好簡化動畫，直接跳到結果
+    if (reducedMotion) {
+      setPhase('emerging');
+      drawnPieces.forEach((_, i) => {
+        pieceScales[i].setValue(1);
+        pieceOpacities[i].setValue(1);
+      });
+      glowAnim.setValue(1);
+      setPhase('landed');
+      return;
+    }
+
     // Phase 1: 搖晃動畫
     const shakeLoop = Animated.loop(
       Animated.sequence([

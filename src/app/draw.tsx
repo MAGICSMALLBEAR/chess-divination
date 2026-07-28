@@ -56,8 +56,8 @@ export default function DrawScreen() {
             <Text style={styles.subtitle}>請問您想問什麼？</Text>
             {/* 問題輸入框 */}
             <TextInput
-              style={styles.questionInput}
-              placeholder="寫下您心中的疑問..."
+              style={[styles.questionInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
+              placeholder={t('draw.question')}
               placeholderTextColor="#5A4A38"
               value={questionText}
               onChangeText={setQuestionText}
@@ -171,15 +171,9 @@ const styles = StyleSheet.create({
   },
   questionInput: {
     width: SCREEN_WIDTH - Spacing.lg * 2,
-    backgroundColor: '#1A1210',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#3A2F25',
-    padding: Spacing.md,
-    fontSize: FontSize.body,
-    color: '#F5EDE0',
-    minHeight: 80,
-    marginBottom: Spacing.md,
+    borderRadius: 12, borderWidth: 1,
+    padding: Spacing.md, fontSize: FontSize.body,
+    minHeight: 80, marginBottom: Spacing.md,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -189,43 +183,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#231A14',
-    borderWidth: 1,
-    borderColor: '#3A2F25',
-    gap: 6,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1, gap: 6,
   },
-  categoryChipActive: {
-    borderColor: '#C9A96E',
-    backgroundColor: '#2A1F18',
-  },
-  categoryChipIcon: {
-    fontSize: 16,
-  },
-  categoryChipLabel: {
-    fontSize: FontSize.small,
-    color: '#8A7A60',
-  },
-  categoryChipLabelActive: {
-    color: '#C9A96E',
-    fontWeight: '600',
-  },
+  categoryChipActive: { borderColor: '#C9A96E' },
+  categoryChipIcon: { fontSize: 16 },
+  categoryChipLabel: { fontSize: FontSize.small },
+  categoryChipLabelActive: { color: '#C9A96E', fontWeight: '600' },
   countRow: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
   countBtn: {
     width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2) / 3,
-    backgroundColor: '#231A14',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#3A2F25',
-    padding: Spacing.md,
-    alignItems: 'center',
+    borderRadius: 16, borderWidth: 1,
+    padding: Spacing.md, alignItems: 'center',
   },
   countNum: {
     fontSize: 36,

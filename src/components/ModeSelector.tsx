@@ -25,6 +25,8 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           style={[styles.card, { width: cardWidth }]}
           onPress={() => onSelectMode('draw')}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="抽棋占卜 從32顆棋子中隨機抽取"
         >
           <View style={styles.cardInner}>
             <Text style={styles.cardIcon}>🎲</Text>
