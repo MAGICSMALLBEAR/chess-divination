@@ -9,6 +9,7 @@ import InkBackground from '@/components/InkBackground';
 import ChessBoard from '@/components/ChessBoard';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
 

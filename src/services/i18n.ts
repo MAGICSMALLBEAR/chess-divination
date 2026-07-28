@@ -38,6 +38,30 @@ const translations: Record<string, Record<Lang, string>> = {
   'settings.backup': { 'zh-TW': '備份資料', en: 'Backup Data', ja: 'データバックアップ' },
   'settings.restore': { 'zh-TW': '還原資料', en: 'Restore Data', ja: 'データ復元' },
 
+  // 棋盤
+  'board.title': { 'zh-TW': '棋盤佈局', en: 'Board Layout', ja: '棋盤配置' },
+  'board.place': { 'zh-TW': '選擇棋子放置', en: 'Select piece to place', ja: '駒を選んで配置' },
+  'board.interpret': { 'zh-TW': '解讀佈局', en: 'Interpret Layout', ja: '配置を解読' },
+  'board.reset': { 'zh-TW': '重新佈局', en: 'Reset Board', ja: '配置をリセット' },
+  'board.red': { 'zh-TW': '紅方', en: 'Red', ja: '紅' },
+  'board.black': { 'zh-TW': '黑方', en: 'Black', ja: '黒' },
+
+  // 結果頁
+  'reveal.title': { 'zh-TW': '占卜結果', en: 'Divination Result', ja: '占い結果' },
+  'reveal.question': { 'zh-TW': '您的問題', en: 'Your Question', ja: 'ご質問' },
+  'reveal.retry': { 'zh-TW': '再次抽棋', en: 'Draw Again', ja: 'もう一度引く' },
+  'reveal.retryBoard': { 'zh-TW': '重新佈局', en: 'New Layout', ja: '再配置' },
+  'reveal.home': { 'zh-TW': '回首頁', en: 'Home', ja: 'ホーム' },
+  'reveal.aiLoading': { 'zh-TW': 'AI 解讀中...', en: 'AI analyzing...', ja: 'AI解読中...' },
+  'reveal.aiTitle': { 'zh-TW': 'AI 智慧解讀', en: 'AI Interpretation', ja: 'AI智慧解読' },
+  'reveal.aiActions': { 'zh-TW': '建議行動', en: 'Suggested Actions', ja: '推奨アクション' },
+  'reveal.position': { 'zh-TW': '棋盤佈局解讀', en: 'Board Position Reading', ja: '盤面配置の解読' },
+
+  // 收藏
+  'collection.title': { 'zh-TW': '收藏記錄', en: 'Collection', ja: 'コレクション' },
+  'collection.noHistory': { 'zh-TW': '尚無占卜記錄', en: 'No records yet', ja: 'まだ記録がありません' },
+  'collection.noFav': { 'zh-TW': '尚無收藏記錄', en: 'No favorites yet', ja: 'お気に入りはまだありません' },
+
   // 通用
   'common.back': { 'zh-TW': '返回', en: 'Back', ja: '戻る' },
   'common.save': { 'zh-TW': '儲存', en: 'Save', ja: '保存' },

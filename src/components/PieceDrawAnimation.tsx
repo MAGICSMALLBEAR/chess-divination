@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import type { ChessPiece as ChessPieceType } from '@/data/pieces';
 import ChessPiece from './ChessPiece';
+import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { Spacing, FontSize, Duration } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -25,6 +26,7 @@ export default function PieceDrawAnimation({
   onRedraw,
 }: PieceDrawAnimationProps) {
   const [phase, setPhase] = useState<'shaking' | 'emerging' | 'landed'>('shaking');
+  const speed = useAnimationSpeed();
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const pieceScales = useRef(drawnPieces.map(() => new Animated.Value(0))).current;
@@ -36,22 +38,22 @@ export default function PieceDrawAnimation({
       Animated.sequence([
         Animated.timing(shakeAnim, {
           toValue: 1,
-          duration: 100,
+          duration: 100 * speed,
           useNativeDriver: true,
         }),
         Animated.timing(shakeAnim, {
           toValue: -1,
-          duration: 100,
+          duration: 100 * speed,
           useNativeDriver: true,
         }),
         Animated.timing(shakeAnim, {
           toValue: 0.5,
-          duration: 80,
+          duration: 80 * speed,
           useNativeDriver: true,
         }),
         Animated.timing(shakeAnim, {
           toValue: -0.5,
-          duration: 80,
+          duration: 80 * speed,
           useNativeDriver: true,
         }),
       ]),
@@ -62,7 +64,7 @@ export default function PieceDrawAnimation({
       setPhase('emerging');
 
       // Phase 2: 棋子逐一出現（staggered）
-      const staggerDelay = 400;
+      const staggerDelay = 400 * speed;
       drawnPieces.forEach((_, i) => {
         Animated.sequence([
           Animated.delay(i * staggerDelay),
@@ -75,7 +77,7 @@ export default function PieceDrawAnimation({
             }),
             Animated.timing(pieceOpacities[i], {
               toValue: 1,
-              duration: 300,
+              duration: 300 * speed,
               useNativeDriver: true,
             }),
           ]),
@@ -84,7 +86,7 @@ export default function PieceDrawAnimation({
 
       // 光輝閃現
       Animated.sequence([
-        Animated.delay(drawnPieces.length * staggerDelay - 200),
+        Animated.delay(drawnPieces.length * staggerDelay - 200 * speed),
         Animated.spring(glowAnim, {
           toValue: 1,
           friction: 3,

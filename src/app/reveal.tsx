@@ -7,26 +7,18 @@ import {
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
+import PoemCard from '@/components/PoemCard';
 import type { DivinationRecord } from '@/services/storage';
 import { getHistory, toggleFavorite } from '@/services/storage';
-import { getPoemById, getLevelColor, type JieYue } from '@/data/poems';
+import { getPoemById } from '@/data/poems';
 import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getAIInterpretation } from '@/services/ai';
+import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const CATEGORIES: { key: keyof JieYue; label: string; icon: string }[] = [
-  { key: 'general', label: '綜合', icon: '🔮' },
-  { key: 'marriage', label: '感情', icon: '💕' },
-  { key: 'career', label: '事業', icon: '💼' },
-  { key: 'wealth', label: '財運', icon: '💰' },
-  { key: 'health', label: '健康', icon: '💪' },
-  { key: 'study', label: '學業', icon: '📚' },
-  { key: 'travel', label: '出行', icon: '✈️' },
-];
 
 export default function RevealScreen() {
   const router = useRouter();
@@ -34,17 +26,13 @@ export default function RevealScreen() {
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
-  const [expandedCat, setExpandedCat] = useState<keyof JieYue>('general');
-  const [revealed, setRevealed] = useState(false);
   const [aiResult, setAiResult] = useState<{ interpretation: string; actionPlan: string[] } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const shareRef = useRef<ShareCardHandle>(null);
 
   useEffect(() => {
     loadRecord();
-    // Trigger reveal animation + sound
-    const timer = setTimeout(() => { setRevealed(true); playRevealSound(); }, 200);
-    return () => clearTimeout(timer);
+    playRevealSound();
   }, [recordId]);
 
   async function loadRecord() {
@@ -73,8 +61,29 @@ export default function RevealScreen() {
     await loadRecord();
   }
 
-  function handleShare() {
-    shareRef.current?.share();
+  async function handleShare() {
+    // 嘗試圖片分享（原生）
+    try {
+      await shareRef.current?.share();
+      return;
+    } catch {}
+
+    // Web fallback: 使用 Web Share API 或複製到剪貼簿
+    if (poem) {
+      const shareText = `【象棋占卜】${poem.level} · ${poem.title}\n\n${poem.content.replace(/\n/g, ' ')}\n\n${poem.vernacular}\n\n以棋問道 · 觀象知機`;
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: '象棋占卜結果', text: shareText });
+          return;
+        }
+      } catch {}
+      try {
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shareText);
+          alert('已複製到剪貼簿');
+        }
+      } catch {}
+    }
   }
 
   function handleNewDraw() {
@@ -98,7 +107,6 @@ export default function RevealScreen() {
 
   // Load full poem data
   const poem = getPoemById(record.poemId);
-  const levelColor = getLevelColor(poem.level);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
@@ -110,14 +118,14 @@ export default function RevealScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← 返回</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>占卜結果</Text>
+          <Text style={styles.title}>{t('reveal.title')}</Text>
           <View style={styles.backBtn} />
         </View>
 
         {/* 用戶問題 */}
         {record.questionText ? (
           <View style={styles.questionBox}>
-            <Text style={styles.questionLabel}>您的問題</Text>
+            <Text style={styles.questionLabel}>{t('reveal.question')}</Text>
             <Text style={styles.questionText}>{record.questionText}</Text>
           </View>
         ) : null}
@@ -130,98 +138,15 @@ export default function RevealScreen() {
           </View>
         ) : null}
 
-        {/* 抽到的棋子 */}
-        <View style={styles.piecesRow}>
-          {record.drawnPieceChars.map((char, i) => (
-            <View key={i} style={styles.pieceDisplay}>
-              <Text style={[
-                styles.pieceChar,
-                { color: record.drawnPieceColors[i] === 'red' ? '#C0392B' : '#1A1210' },
-              ]}>
-                {char}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* 吉凶等級 */}
-        <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
-          <Text style={styles.levelText}>{poem.level}</Text>
-        </View>
-
-        {/* 卦名 */}
-        <Text style={styles.hexagramName}>
-          第{poem.number}籤 · {poem.hexagramName}
-        </Text>
-
-        {/* 籤題 */}
-        <Text style={styles.poemTitle}>{poem.title}</Text>
-
-        {/* 籤詩本文 */}
-        <View style={[styles.poemBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          {poem.content.split('\n').map((line, i) => (
-            <Text key={i} style={[
-              styles.poemLine,
-              { color: theme.textPrimary },
-              {
-                opacity: revealed ? 1 : 0,
-                transform: [{ translateY: revealed ? 0 : 15 }],
-              },
-            ]}>
-              {line}
-            </Text>
-          ))}
-        </View>
-
-        {/* 裝飾線 */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>✦</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* 白話解釋 */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎白話解釋</Text>
-          <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{poem.vernacular}</Text>
-        </View>
-
-        {/* 典故 */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎典故參考</Text>
-          <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{poem.story}</Text>
-        </View>
-
-        {/* 各面向詳解 */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎各面向詳解</Text>
-          {/* 分類選擇 */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}
-            style={styles.catScroll} contentContainerStyle={styles.catContent}>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.key}
-                style={[
-                  styles.catTab,
-                  expandedCat === cat.key && styles.catTabActive,
-                ]}
-                onPress={() => setExpandedCat(cat.key)}
-              >
-                <Text style={styles.catIcon}>{cat.icon}</Text>
-                <Text style={[
-                  styles.catLabel,
-                  expandedCat === cat.key && styles.catLabelActive,
-                ]}>
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          {/* 解讀內容 */}
-          <View style={[styles.catContentBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{poem.jieYue[expandedCat]}</Text>
-          </View>
-        </View>
+        {/* PoemCard：棋子 + 籤詩 + 詳解 */}
+        <PoemCard
+          poem={poem}
+          drawnPieceChars={record.drawnPieceChars}
+          isFavorited={isFav}
+          highlightedCategory={record.questionCategory || 'general'}
+          onToggleFavorite={handleToggleFavorite}
+          onShare={handleShare}
+        />
 
         {/* AI 解讀 */}
         {aiLoading && (
@@ -245,18 +170,6 @@ export default function RevealScreen() {
             )}
           </View>
         )}
-
-        {/* 操作按鈕 */}
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.favBtn} onPress={handleToggleFavorite}>
-            <Text style={styles.favBtnText}>
-              {isFav ? '❤️ 已收藏' : '🤍 收藏'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-            <Text style={styles.shareBtnText}>📤 分享</Text>
-          </TouchableOpacity>
-        </View>
 
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.newBtn} onPress={handleNewDraw}>
