@@ -8,6 +8,7 @@ import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import PoemCard from '@/components/PoemCard';
+import Spinner from '@/components/Spinner';
 import type { DivinationRecord } from '@/services/storage';
 import { getHistory, toggleFavorite } from '@/services/storage';
 import { getPoemById } from '@/data/poems';
@@ -70,7 +71,21 @@ export default function RevealScreen() {
 
     // Web fallback: 使用 Web Share API 或複製到剪貼簿
     if (poem) {
-      const shareText = `【象棋占卜】${poem.level} · ${poem.title}\n\n${poem.content.replace(/\n/g, ' ')}\n\n${poem.vernacular}\n\n以棋問道 · 觀象知機`;
+      if (!record) return;
+      const lines = poem.content.split('\n');
+      const shareText = [
+        `🏮【象棋占卜】${poem.level} · ${poem.title}`,
+        `卦：${poem.hexagramName}`,
+        ``,
+        ...lines,
+        ``,
+        `📜 ${poem.vernacular.slice(0, 80)}...`,
+        ``,
+        `🎲 抽得：${record.drawnPieceChars.join(' ')}`,
+        ``,
+        `🔗 chess-divination-app.vercel.app`,
+        `以棋問道 · 觀象知機`,
+      ].join('\n');
       try {
         if (navigator.share) {
           await navigator.share({ title: '象棋占卜結果', text: shareText });
@@ -99,7 +114,7 @@ export default function RevealScreen() {
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
         <InkBackground />
         <View style={styles.loading}>
-          <Text style={styles.loadingText}>載入中...</Text>
+          <Spinner text="載入中..." />
         </View>
       </SafeAreaView>
     );
@@ -151,7 +166,7 @@ export default function RevealScreen() {
         {/* AI 解讀 */}
         {aiLoading && (
           <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.sectionTitle, { color: theme.gold }]}>🤖 AI 解讀中...</Text>
+            <Spinner text={t('reveal.aiLoading')} size={24} />
           </View>
         )}
         {aiResult && !aiLoading && (

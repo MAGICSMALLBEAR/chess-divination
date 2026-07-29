@@ -17,6 +17,7 @@ export default function LibraryScreen() {
   const { theme } = useAppTheme();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
     let poems = ALL_POEMS;
@@ -79,7 +80,11 @@ export default function LibraryScreen() {
       {/* 詩歌列表 */}
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {filtered.map(poem => (
-          <View key={poem.id} style={[styles.card, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+          <TouchableOpacity key={poem.id}
+            style={[styles.card, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}
+            onPress={() => setExpandedId(expandedId === poem.id ? null : poem.id)}
+            activeOpacity={0.8}
+          >
             <View style={styles.cardHeader}>
               <View style={[styles.levelDot, { backgroundColor: getLevelColor(poem.level) }]}>
                 <Text style={styles.levelDotText}>{poem.level}</Text>
@@ -91,7 +96,17 @@ export default function LibraryScreen() {
             {poem.content.split('\n').map((line, i) => (
               <Text key={i} style={[styles.poemLine, { color: theme.textSecondary }]}>{line}</Text>
             ))}
-          </View>
+            {expandedId === poem.id && (
+              <View style={styles.expandedContent}>
+                <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
+                <Text style={[styles.detailText, { color: theme.textSecondary }]}>{poem.vernacular}</Text>
+                <Text style={[styles.storyText, { color: theme.textMuted }]}>{poem.story}</Text>
+              </View>
+            )}
+            <Text style={[styles.expandHint, { color: theme.textMuted }]}>
+              {expandedId === poem.id ? '▲ 收起' : '▼ 展開詳情'}
+            </Text>
+          </TouchableOpacity>
         ))}
         {filtered.length === 0 && (
           <Text style={[styles.empty, { color: theme.textMuted }]}>找不到符合的籤詩</Text>
@@ -138,5 +153,10 @@ const styles = StyleSheet.create({
   cardHex: { fontSize: FontSize.small },
   cardTitle: { fontSize: FontSize.body, fontWeight: '700', marginBottom: 8 },
   poemLine: { fontSize: FontSize.body, textAlign: 'center', lineHeight: 30, letterSpacing: 2 },
+  expandedContent: { marginTop: Spacing.sm },
+  divider: { height: 1, marginBottom: Spacing.sm },
+  detailText: { fontSize: FontSize.small, lineHeight: 22, marginBottom: Spacing.sm },
+  storyText: { fontSize: FontSize.caption, lineHeight: 20 },
+  expandHint: { fontSize: 11, textAlign: 'center', marginTop: 6 },
   empty: { textAlign: 'center', marginTop: Spacing.xxl, fontSize: FontSize.body },
 });

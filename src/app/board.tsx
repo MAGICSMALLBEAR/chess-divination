@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  Dimensions, TextInput,
+  Dimensions, TextInput, Alert,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -14,7 +14,7 @@ import { Spacing, FontSize } from '@/constants/theme';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CELL_SIZE = Math.min(36, (SCREEN_WIDTH - 60) / 10);
+const CELL_SIZE = Math.min(44, (SCREEN_WIDTH - 32) / 9);
 
 const QUESTION_CATEGORIES = [
   { key: 'general', label: '綜合', icon: '🔮' },
@@ -39,6 +39,17 @@ export default function BoardScreen() {
 
   const currentPool = showRedPieces ? ALL_RED_PIECES : ALL_BLACK_PIECES;
 
+  const handleBack = () => {
+    if (placedPieces.length > 0) {
+      Alert.alert('確定要返回嗎？', '已放置的棋子將會被清除。', [
+        { text: '取消', style: 'cancel' },
+        { text: '確定返回', style: 'destructive', onPress: () => router.back() },
+      ]);
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -46,7 +57,7 @@ export default function BoardScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* 標題 */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
             <Text style={styles.backText}>← 返回</Text>
           </TouchableOpacity>
           <Text style={styles.title}>棋盤佈局</Text>
@@ -127,6 +138,14 @@ export default function BoardScreen() {
           <TouchableOpacity style={styles.resetBtn} onPress={reset}>
             <Text style={styles.resetBtnText}>🔄 重新佈局</Text>
           </TouchableOpacity>
+          {placedPieces.length > 0 && (
+            <TouchableOpacity style={styles.undoBtn} onPress={() => {
+              const last = placedPieces[placedPieces.length - 1];
+              if (last) removePieceFromBoard(last.col, last.row);
+            }}>
+              <Text style={styles.undoBtnText}>↩️ 撤銷上一步</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -197,4 +216,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12, borderRadius: 12, alignItems: 'center',
   },
   resetBtnText: { fontSize: FontSize.body, color: '#8A7A60' },
+  undoBtn: {
+    borderWidth: 1, borderColor: '#C9A96E',
+    paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    marginTop: 4,
+  },
+  undoBtnText: { fontSize: FontSize.body, color: '#C9A96E' },
 });

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
-  TouchableOpacity, Alert,
+  TouchableOpacity, Alert, TextInput, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -20,6 +20,7 @@ export default function CollectionScreen() {
   const [tab, setTab] = useState<TabType>('history');
   const [history, setHistory] = useState<DivinationRecord[]>([]);
   const [favorites, setFavorites] = useState<DivinationRecord[]>([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     loadData();
@@ -32,7 +33,10 @@ export default function CollectionScreen() {
     setFavorites(f);
   }
 
-  const data = tab === 'history' ? history : favorites;
+  const rawData = tab === 'history' ? history : favorites;
+  const data = search.trim()
+    ? rawData.filter(r => r.poemTitle.includes(search) || r.poemContent.includes(search) || r.drawnPieceChars.join('').includes(search))
+    : rawData;
 
   async function handleDelete(id: string) {
     Alert.alert('確認刪除', '確定要刪除此記錄嗎？', [
@@ -90,6 +94,15 @@ export default function CollectionScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* 搜尋 */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="搜尋籤詩內容..."
+        placeholderTextColor="#8A7A60"
+        value={search}
+        onChangeText={setSearch}
+      />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {data.length === 0 && (
@@ -167,6 +180,11 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: '#231A14' },
   tabText: { fontSize: FontSize.small, color: '#8A7A60' },
   tabTextActive: { color: '#C9A96E', fontWeight: '600' },
+  searchInput: {
+    marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
+    backgroundColor: '#1A1210', borderRadius: 10, borderWidth: 1, borderColor: '#3A2F25',
+    paddingHorizontal: Spacing.md, paddingVertical: 8, fontSize: 14, color: '#F5EDE0',
+  },
   scroll: { flexGrow: 1, paddingHorizontal: Spacing.md, paddingBottom: 40 },
   empty: { alignItems: 'center', paddingTop: Spacing.xxl * 2 },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.md },

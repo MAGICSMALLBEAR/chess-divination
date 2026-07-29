@@ -11,6 +11,7 @@ import { getSettings, saveSettings } from '@/services/storage';
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import { backupData, restoreData } from '@/services/backup';
+import { clearHistory } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { LANG_OPTIONS, type Lang } from '@/services/i18n';
@@ -186,6 +187,14 @@ export default function SettingsScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={handleRestore}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>📥 還原資料</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => {
+            Alert.alert('清除所有歷史', '確定要清除所有占卜記錄嗎？此操作無法復原。', [
+              { text: '取消', style: 'cancel' },
+              { text: '清除', style: 'destructive', onPress: async () => { await clearHistory(); Alert.alert('已清除'); } },
+            ]);
+          }}>
+            <Text style={[styles.label, { color: '#E5746A' }]}>🗑️ 清除所有歷史</Text>
           </TouchableOpacity>
         </View>
 
