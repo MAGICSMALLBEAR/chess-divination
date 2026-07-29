@@ -292,6 +292,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 36,
     letterSpacing: 2,
+    fontFamily: 'Noto Serif TC, KaiTi, STKaiti, serif',
   },
   divider: {
     height: 1,
