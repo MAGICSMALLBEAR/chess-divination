@@ -25,6 +25,13 @@ export default function CollectionScreen() {
   const [newFolderName, setNewFolderName] = useState('');
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  }
 
   useEffect(() => {
     loadData();
@@ -210,7 +217,8 @@ export default function CollectionScreen() {
 
       {/* 歷史/收藏記錄列表 */}
       {tab !== 'folders' && (
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C9A96E" />}>
         {data.length === 0 && (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📜</Text>

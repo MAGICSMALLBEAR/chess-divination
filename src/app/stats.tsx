@@ -17,6 +17,7 @@ export default function StatsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const [records, setRecords] = useState<DivinationRecord[]>([]);
+  const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
   useEffect(() => { loadData(); }, []);
   async function loadData() {
@@ -24,21 +25,29 @@ export default function StatsScreen() {
     setRecords(h);
   }
 
-  const total = records.length;
-  const drawCount = records.filter(r => r.mode === 'draw').length;
-  const boardCount = records.filter(r => r.mode === 'board').length;
-  const favCount = records.filter(r => r.isFavorited).length;
+  // 依日期篩選
+  const filtered = (() => {
+    const now = Date.now();
+    if (dateFilter === 'week') return records.filter(r => now - r.timestamp < 7 * 86400000);
+    if (dateFilter === 'month') return records.filter(r => now - r.timestamp < 30 * 86400000);
+    return records;
+  })();
+
+  const total = filtered.length;
+  const drawCount = filtered.filter(r => r.mode === 'draw').length;
+  const boardCount = filtered.filter(r => r.mode === 'board').length;
+  const favCount = filtered.filter(r => r.isFavorited).length;
 
   // 棋子統計
   const typeCounts: Record<string, number> = {};
-  records.forEach(r => r.drawnPieceTypes.forEach(t => {
+  filtered.forEach(r => r.drawnPieceTypes.forEach(t => {
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   }));
   const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
 
   // 吉凶分佈
   const levelCounts: Record<string, number> = {};
-  records.forEach(r => {
+  filtered.forEach(r => {
     levelCounts[r.poemLevel] = (levelCounts[r.poemLevel] || 0) + 1;
   });
 
@@ -62,6 +71,19 @@ export default function StatsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* 日期篩選 */}
+        <View style={styles.filterRow}>
+          {(['all', 'week', 'month'] as const).map(f => (
+            <TouchableOpacity key={f}
+              style={[styles.filterBtn, dateFilter === f && { borderColor: '#C9A96E' }]}
+              onPress={() => setDateFilter(f)}>
+              <Text style={[styles.filterText, dateFilter === f && { color: '#C9A96E' }]}>
+                {f === 'all' ? '全部' : f === 'week' ? '本週' : '本月'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* 總覽數字 */}
         <View style={styles.overviewRow}>
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
@@ -150,4 +172,12 @@ const styles = StyleSheet.create({
   rankType: { fontSize: FontSize.body, flex: 1 },
   rankCount: { fontSize: FontSize.small },
   emptyText: { fontSize: FontSize.body, textAlign: 'center', paddingVertical: Spacing.md },
+  filterRow: {
+    flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: Spacing.md,
+  },
+  filterBtn: {
+    paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14,
+    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+  },
+  filterText: { fontSize: 13, color: '#8A7A60' },
 });
