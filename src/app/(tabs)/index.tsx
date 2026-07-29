@@ -60,7 +60,11 @@ export default function HomeScreen() {
 
         {/* 每日運勢卡片 */}
         {dailyFortune && (
-          <View style={[styles.dailyCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+          <TouchableOpacity
+            style={[styles.dailyCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}
+            onPress={() => router.push('/draw')}
+            activeOpacity={0.8}
+          >
             <Text style={[styles.dailyTitle, { color: theme.gold }]}>📍 {t('home.daily')}</Text>
             <View style={styles.dailyContent}>
               <View style={styles.dailyMain}>
@@ -89,7 +93,7 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* 模式選擇 */}

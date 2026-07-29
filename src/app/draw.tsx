@@ -1,5 +1,5 @@
 // 抽棋模式頁面
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
   Dimensions, TextInput,
@@ -13,6 +13,7 @@ import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
+import { getSettings, saveSettings } from '@/services/storage';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -36,6 +37,20 @@ export default function DrawScreen() {
   } = useDrawDivination();
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
+
+  // 讀取上次選擇的類別
+  useEffect(() => {
+    (async () => {
+      const s = await getSettings();
+      if (s.questionCategory) setSelectedCategory(s.questionCategory);
+    })();
+  }, []);
+
+  // 選擇類別時儲存偏好
+  const handleCategorySelect = async (cat: string) => {
+    setSelectedCategory(cat);
+    await saveSettings({ questionCategory: cat });
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
@@ -74,7 +89,7 @@ export default function DrawScreen() {
                     styles.categoryChip,
                     selectedCategory === cat.key && styles.categoryChipActive,
                   ]}
-                  onPress={() => setSelectedCategory(cat.key)}
+                  onPress={() => handleCategorySelect(cat.key)}
                 >
                   <Text style={styles.categoryChipIcon}>{cat.icon}</Text>
                   <Text

@@ -35,6 +35,13 @@ export interface DivinationRecord {
   isFavorited: boolean;
 }
 
+export interface Folder {
+  id: string;
+  name: string;
+  color: string;
+  recordIds: string[];
+}
+
 export interface AppSettings {
   userName: string;
   drawAnimationSpeed: 'slow' | 'normal' | 'fast';
@@ -43,6 +50,8 @@ export interface AppSettings {
   hapticEnabled: boolean;
   pieceCountPreset: 1 | 2 | 3;
   hasCompletedOnboarding: boolean;
+  questionCategory?: string;
+  folders?: Folder[];
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -158,6 +167,50 @@ export async function saveSettings(settings: Partial<AppSettings>): Promise<AppS
   const updated = { ...current, ...settings };
   await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(updated));
   return updated;
+}
+
+// ====== Folders ======
+
+const FOLDER_COLORS = ['#C9A96E', '#E5746A', '#6B9B6B', '#6B9BC6', '#C69BC6', '#C6A06B'];
+
+export async function getFolders(): Promise<Folder[]> {
+  const s = await getSettings();
+  return s.folders || [];
+}
+
+export async function addFolder(name: string): Promise<Folder> {
+  const s = await getSettings();
+  const folders = s.folders || [];
+  const folder: Folder = {
+    id: `folder-${Date.now()}`,
+    name,
+    color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
+    recordIds: [],
+  };
+  await saveSettings({ folders: [...folders, folder] });
+  return folder;
+}
+
+export async function deleteFolder(id: string): Promise<void> {
+  const s = await getSettings();
+  const folders = (s.folders || []).filter(f => f.id !== id);
+  await saveSettings({ folders });
+}
+
+export async function addToFolder(folderId: string, recordId: string): Promise<void> {
+  const s = await getSettings();
+  const folders = (s.folders || []).map(f =>
+    f.id === folderId ? { ...f, recordIds: [...new Set([...f.recordIds, recordId])] } : f
+  );
+  await saveSettings({ folders });
+}
+
+export async function removeFromFolder(folderId: string, recordId: string): Promise<void> {
+  const s = await getSettings();
+  const folders = (s.folders || []).map(f =>
+    f.id === folderId ? { ...f, recordIds: f.recordIds.filter(id => id !== recordId) } : f
+  );
+  await saveSettings({ folders });
 }
 
 // ====== Daily Fortune ======

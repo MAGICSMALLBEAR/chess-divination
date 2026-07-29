@@ -9,6 +9,7 @@ import InkBackground from '@/components/InkBackground';
 import type { DivinationRecord } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 
 type TabType = 'history' | 'favorites';
@@ -67,7 +68,7 @@ export default function CollectionScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <InkBackground />
       <View style={styles.header}>
-        <Text style={styles.title}>收藏記錄</Text>
+        <Text style={styles.title}>{t('collection.title')}</Text>
       </View>
 
       {/* Tab 切換 */}

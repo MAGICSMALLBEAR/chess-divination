@@ -9,7 +9,7 @@ import { selectPoem, generateDrawSummary } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
 import { playPlacePieceSound } from '@/services/sound';
 import { hapticLight } from '@/services/haptics';
-import { generatePositionSummary } from '@/services/position';
+import { generatePositionSummaryDeep } from '@/services/position';
 
 export interface PlacedPiece {
   piece: ChessPiece;
@@ -62,9 +62,14 @@ export function useBoardDivination() {
     if (category) setQuestionCategory(category);
     if (text !== undefined) setQuestionText(text);
 
-    // 生成位置解讀
-    const positions = placedPieces.map(pp => ({ col: pp.col, row: pp.row }));
-    const positionSummary = generatePositionSummary(positions);
+    // 生成深度位置解讀（含五行方位）
+    const placements = placedPieces.map(pp => ({
+      col: pp.col, row: pp.row,
+      wuxing: pp.piece.wuxing,
+      direction: pp.piece.direction,
+      pieceName: pp.piece.displayChar,
+    }));
+    const positionSummary = generatePositionSummaryDeep(placements);
 
     // 使用棋子順序作為順序（依放置先後）
     const pieces = placedPieces.map(pp => pp.piece);
