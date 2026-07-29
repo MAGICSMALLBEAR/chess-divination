@@ -25,6 +25,7 @@ export default function CollectionScreen() {
   const [newFolderName, setNewFolderName] = useState('');
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [pickingFolderFor, setPickingFolderFor] = useState<string | null>(null); // record id
   const [refreshing, setRefreshing] = useState(false);
 
   async function onRefresh() {
@@ -61,10 +62,9 @@ export default function CollectionScreen() {
     ]);
   }
 
-  async function handleAddToFolder(recordId: string) {
-    if (!selectedFolderId) return;
-    await addToFolder(selectedFolderId, recordId);
-    setSelectedFolderId(null);
+  async function handleAddToFolder(recordId: string, folderId: string) {
+    await addToFolder(folderId, recordId);
+    setPickingFolderFor(null);
     await loadData();
   }
 
@@ -263,6 +263,9 @@ export default function CollectionScreen() {
               <Text style={styles.cardDate}>{formatDate(record.timestamp)}</Text>
             </View>
             <View style={styles.cardRight}>
+              <TouchableOpacity onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
+                <Text style={styles.folderIcon}>📁</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => handleToggleFav(record)}>
                 <Text style={styles.favIcon}>
                   {record.isFavorited ? '❤️' : '🤍'}
@@ -272,6 +275,22 @@ export default function CollectionScreen() {
                 <Text style={styles.deleteIcon}>🗑️</Text>
               </TouchableOpacity>
             </View>
+            {/* 資料夾選擇器 */}
+            {pickingFolderFor === record.id && (
+              <View style={styles.folderPicker}>
+                <Text style={[styles.folderPickTitle, { color: theme.textSecondary }]}>加到資料夾：</Text>
+                {folders.map(f => (
+                  <TouchableOpacity key={f.id} style={styles.folderPickItem}
+                    onPress={() => handleAddToFolder(record.id, f.id)}>
+                    <View style={[styles.folderPickDot, { backgroundColor: f.color }]} />
+                    <Text style={{ color: theme.textPrimary, fontSize: 13 }}>{f.name}</Text>
+                  </TouchableOpacity>
+                ))}
+                {folders.length === 0 && (
+                  <Text style={{ color: theme.textMuted, fontSize: 12 }}>尚無資料夾，請先建立</Text>
+                )}
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -326,6 +345,16 @@ const styles = StyleSheet.create({
   cardDate: { fontSize: FontSize.caption, color: '#8A7A60', marginTop: 2 },
   cardRight: { gap: Spacing.sm, alignItems: 'center' },
   favIcon: { fontSize: 22 },
+  folderIcon: { fontSize: 18, marginBottom: 2 },
+  folderPicker: {
+    backgroundColor: '#231A14', borderRadius: 8, padding: 8, marginTop: 4,
+  },
+  folderPickTitle: { fontSize: 11, marginBottom: 4 },
+  folderPickItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 4,
+  },
+  folderPickDot: { width: 8, height: 8, borderRadius: 4 },
   deleteIcon: { fontSize: 18 },
   // Folder styles
   addFolderBtn: {

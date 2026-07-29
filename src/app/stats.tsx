@@ -9,6 +9,7 @@ import InkBackground from '@/components/InkBackground';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getHistory, type DivinationRecord } from '@/services/storage';
 import { POEM_LEVELS } from '@/data/poems';
+import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -66,7 +67,7 @@ export default function StatsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={[styles.backText, { color: theme.textSecondary }]}>← 返回</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>占卜統計</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('settings.stats')}</Text>
         <View style={{ width: 60 }} />
       </View>
 

@@ -1,5 +1,12 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m 'i18n統計 + 記錄加到資料夾功能 *)",
+      "Bash(git push *)"
+    ]
   }
 }
