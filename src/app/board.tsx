@@ -91,6 +91,13 @@ export default function BoardScreen() {
           maxLength={200}
         />
 
+        {/* 首次提示 */}
+        {placedPieces.length === 0 && !selectedPiece && (
+          <Text style={[styles.hintText, { color: theme.textMuted }]}>
+            💡 先從下方棋子庫選擇一顆棋子，再點擊棋盤上的 + 號放置
+          </Text>
+        )}
+
         {/* 棋盤 */}
         <ChessBoard
           placedPieces={placedPieces}
@@ -222,4 +229,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   undoBtnText: { fontSize: FontSize.body, color: '#C9A96E' },
+  hintText: {
+    textAlign: 'center', fontSize: 13,
+    marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
+  },
 });

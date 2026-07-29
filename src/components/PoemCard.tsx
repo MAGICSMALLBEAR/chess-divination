@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import type { Poem } from '@/data/poems';
 import { getLevelColor } from '@/data/poems';
+import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { Spacing, FontSize, Duration } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -40,6 +41,7 @@ export default function PoemCard({
   onShare,
 }: PoemCardProps) {
   const [expandedCategory, setExpandedCategory] = useState<string>(highlightedCategory);
+  const speed = useAnimationSpeed();
   const scrollAnim = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const lineAnimations = useRef(poem.content.split('\n').map(() => new Animated.Value(0))).current;
@@ -49,12 +51,12 @@ export default function PoemCard({
     Animated.sequence([
       Animated.timing(scrollAnim, {
         toValue: 1,
-        duration: Duration.reveal,
+        duration: Duration.reveal * speed,
         useNativeDriver: true,
       }),
       Animated.timing(contentOpacity, {
         toValue: 1,
-        duration: Duration.normal,
+        duration: Duration.normal * speed,
         useNativeDriver: true,
       }),
     ]).start();

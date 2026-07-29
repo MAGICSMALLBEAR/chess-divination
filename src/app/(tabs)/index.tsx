@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
 import { generateDailyFortune } from '@/services/divination';
-import { getDailyFortune, saveDailyFortune, type DailyFortune } from '@/services/storage';
+import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
@@ -26,9 +26,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const [dailyFortune, setDailyFortune] = useState<DailyFortune | null>(null);
+  const [recentRecords, setRecentRecords] = useState<DivinationRecord[]>([]);
 
   useEffect(() => {
     loadDaily();
+    loadRecent();
   }, []);
 
   async function loadDaily() {
@@ -38,6 +40,10 @@ export default function HomeScreen() {
       await saveDailyFortune(fortune);
     }
     setDailyFortune(fortune);
+  }
+  async function loadRecent() {
+    const h = await getHistory();
+    setRecentRecords(h.slice(0, 3));
   }
 
   function handleSelectMode(mode: 'draw' | 'board') {
@@ -94,6 +100,21 @@ export default function HomeScreen() {
               </View>
             </View>
           </TouchableOpacity>
+        )}
+
+        {/* 最近紀錄 */}
+        {recentRecords.length > 0 && (
+          <View style={[styles.recentSection, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={[styles.recentTitle, { color: theme.gold }]}>📜 最近占卜</Text>
+            {recentRecords.map(r => (
+              <TouchableOpacity key={r.id} style={styles.recentRow}
+                onPress={() => router.push({ pathname: '/reveal', params: { recordId: r.id, mode: r.mode } })}>
+                <Text style={[styles.recentPieces, { color: theme.textPrimary }]}>{r.drawnPieceChars.join(' ')}</Text>
+                <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{r.poemTitle}</Text>
+                <Text style={[styles.recentLevel, { color: r.poemLevel === '大吉' ? '#C9A96E' : r.poemLevel === '下下' ? '#8A7A60' : theme.textMuted }]}>{r.poemLevel}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
 
         {/* 模式選擇 */}
@@ -160,4 +181,16 @@ const styles = StyleSheet.create({
     fontSize: FontSize.small, color: '#8A7A60', textAlign: 'center',
     lineHeight: 24, fontStyle: 'italic',
   },
+  recentSection: {
+    marginHorizontal: Spacing.md, marginBottom: Spacing.md,
+    borderRadius: 12, borderWidth: 1, padding: Spacing.md,
+  },
+  recentTitle: { fontSize: FontSize.small, fontWeight: '600', marginBottom: Spacing.sm },
+  recentRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#2A1F18',
+  },
+  recentPieces: { fontSize: 18, fontWeight: '700', letterSpacing: 3, width: 60 },
+  recentPoem: { flex: 1, fontSize: FontSize.small },
+  recentLevel: { fontSize: FontSize.caption, fontWeight: '600' },
 });

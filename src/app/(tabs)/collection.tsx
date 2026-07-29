@@ -6,13 +6,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
-import type { DivinationRecord } from '@/services/storage';
-import { getHistory, getFavorites, removeHistory, toggleFavorite } from '@/services/storage';
+import type { DivinationRecord, Folder } from '@/services/storage';
+import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
 
-type TabType = 'history' | 'favorites';
+type TabType = 'history' | 'favorites' | 'folders';
 
 export default function CollectionScreen() {
   const router = useRouter();
@@ -20,7 +20,11 @@ export default function CollectionScreen() {
   const [tab, setTab] = useState<TabType>('history');
   const [history, setHistory] = useState<DivinationRecord[]>([]);
   const [favorites, setFavorites] = useState<DivinationRecord[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [search, setSearch] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
+  const [showAddFolder, setShowAddFolder] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -29,9 +33,38 @@ export default function CollectionScreen() {
   async function loadData() {
     const h = await getHistory();
     const f = await getFavorites();
+    const fl = await getFolders();
     setHistory(h);
     setFavorites(f);
+    setFolders(fl);
   }
+
+  async function handleAddFolder() {
+    if (!newFolderName.trim()) return;
+    await addFolder(newFolderName.trim());
+    setNewFolderName('');
+    setShowAddFolder(false);
+    await loadData();
+  }
+
+  async function handleDeleteFolder(id: string) {
+    Alert.alert('刪除資料夾', '確定要刪除嗎？記錄不會被刪除。', [
+      { text: '取消', style: 'cancel' },
+      { text: '刪除', style: 'destructive', onPress: async () => { await deleteFolder(id); await loadData(); } },
+    ]);
+  }
+
+  async function handleAddToFolder(recordId: string) {
+    if (!selectedFolderId) return;
+    await addToFolder(selectedFolderId, recordId);
+    setSelectedFolderId(null);
+    await loadData();
+  }
+
+  const selectedFolder = folders.find(f => f.id === selectedFolderId);
+  const folderRecords = selectedFolder
+    ? history.filter(r => selectedFolder.recordIds.includes(r.id))
+    : [];
 
   const rawData = tab === 'history' ? history : favorites;
   const data = search.trim()
@@ -93,6 +126,14 @@ export default function CollectionScreen() {
             我的收藏 ({favorites.length})
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, tab === 'folders' && styles.tabActive]}
+          onPress={() => setTab('folders')}
+        >
+          <Text style={[styles.tabText, tab === 'folders' && styles.tabTextActive]}>
+            資料夾 ({folders.length})
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* 搜尋 */}
@@ -104,6 +145,71 @@ export default function CollectionScreen() {
         onChangeText={setSearch}
       />
 
+      {/* 資料夾管理 */}
+      {tab === 'folders' && (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* 新增資料夾 */}
+          {showAddFolder ? (
+            <View style={styles.addFolderRow}>
+              <TextInput
+                style={[styles.folderInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
+                placeholder="資料夾名稱"
+                placeholderTextColor={theme.textMuted}
+                value={newFolderName}
+                onChangeText={setNewFolderName}
+                autoFocus
+              />
+              <TouchableOpacity style={styles.folderBtn} onPress={handleAddFolder}>
+                <Text style={{ color: theme.gold, fontWeight: '600' }}>新增</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowAddFolder(false)}>
+                <Text style={{ color: theme.textMuted }}>取消</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={[styles.addFolderBtn, { borderColor: theme.bgMedium }]} onPress={() => setShowAddFolder(true)}>
+              <Text style={{ color: theme.gold }}>＋ 新增資料夾</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* 資料夾列表 */}
+          {folders.length === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>📁</Text>
+              <Text style={styles.emptyText}>尚無資料夾</Text>
+              <Text style={styles.emptyHint}>建立資料夾來分類整理收藏</Text>
+            </View>
+          )}
+          {folders.map(folder => (
+            <View key={folder.id} style={[styles.folderCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+              <View style={styles.folderHeader}>
+                <View style={[styles.folderDot, { backgroundColor: folder.color }]} />
+                <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
+                <Text style={[styles.folderCount, { color: theme.textMuted }]}>{folder.recordIds.length} 筆</Text>
+                <TouchableOpacity onPress={() => handleDeleteFolder(folder.id)}>
+                  <Text style={{ color: '#E5746A', fontSize: 14 }}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
+              {/* 資料夾內記錄預覽 */}
+              {folder.recordIds.slice(0, 3).map(rid => {
+                const rec = history.find(r => r.id === rid);
+                if (!rec) return null;
+                return (
+                  <TouchableOpacity key={rid} style={styles.folderRecord}
+                    onPress={() => router.push({ pathname: '/reveal', params: { recordId: rec.id, mode: rec.mode } })}>
+                    <Text style={[styles.folderRecText, { color: theme.textSecondary }]} numberOfLines={1}>
+                      {rec.drawnPieceChars.join(' ')} · {rec.poemTitle}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* 歷史/收藏記錄列表 */}
+      {tab !== 'folders' && (
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {data.length === 0 && (
           <View style={styles.empty}>
@@ -161,6 +267,7 @@ export default function CollectionScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -212,4 +319,33 @@ const styles = StyleSheet.create({
   cardRight: { gap: Spacing.sm, alignItems: 'center' },
   favIcon: { fontSize: 22 },
   deleteIcon: { fontSize: 18 },
+  // Folder styles
+  addFolderBtn: {
+    marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
+    borderWidth: 1, borderStyle: 'dashed', borderRadius: 10,
+    padding: Spacing.md, alignItems: 'center',
+  },
+  addFolderRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
+  },
+  folderInput: {
+    flex: 1, borderRadius: 8, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 8, fontSize: 14,
+  },
+  folderBtn: { paddingHorizontal: 8 },
+  folderCard: {
+    marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
+    borderRadius: 12, borderWidth: 1, padding: Spacing.md,
+  },
+  folderHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  folderDot: { width: 10, height: 10, borderRadius: 5 },
+  folderName: { fontSize: FontSize.body, fontWeight: '600', flex: 1 },
+  folderCount: { fontSize: FontSize.caption },
+  folderRecord: {
+    marginTop: 6, paddingLeft: 18, paddingVertical: 4,
+  },
+  folderRecText: { fontSize: FontSize.small },
 });
