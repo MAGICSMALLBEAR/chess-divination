@@ -89,15 +89,15 @@ export default function StatsScreen() {
         <View style={styles.overviewRow}>
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={styles.statNum}>{total}</Text>
-            <Text style={[styles.statLabel, { color: theme.textMuted }]}>總次數</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>{t('stats.overview')}</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={styles.statNum}>{drawCount}</Text>
-            <Text style={[styles.statLabel, { color: theme.textMuted }]}>抽棋</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>{t('stats.draw')}</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={styles.statNum}>{boardCount}</Text>
-            <Text style={[styles.statLabel, { color: theme.textMuted }]}>佈局</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>{t('stats.board')}</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={styles.statNum}>{favCount}</Text>

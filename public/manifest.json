@@ -1,0 +1,22 @@
+{
+  "name": "象棋占卜 - Chinese Chess Divination",
+  "short_name": "象棋占卜",
+  "description": "以棋問道，觀象知機。從古老的象棋智慧中尋找人生方向。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0A08",
+  "theme_color": "#0D0A08",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/images/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/images/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

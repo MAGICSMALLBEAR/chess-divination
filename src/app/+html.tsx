@@ -16,7 +16,12 @@ export default function Root({ children }: { children: ReactNode }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&display=swap" rel="stylesheet" />
 
+        {/* PWA manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0D0A08" />
+
         <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+        <script dangerouslySetInnerHTML={{ __html: swScript }} />
       </head>
       <body>{children}</body>
     </html>
@@ -34,5 +39,17 @@ body {
 }
 @media (prefers-color-scheme: light) {
   body { background-color: #FFFDF7; }
+}
+`;
+
+const swScript = `
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      console.log('SW registered:', reg.scope);
+    }).catch(err => {
+      console.log('SW registration failed:', err);
+    });
+  });
 }
 `;

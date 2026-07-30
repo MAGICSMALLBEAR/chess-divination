@@ -80,6 +80,25 @@ const translations: Record<string, Record<Lang, string>> = {
   'onboarding.step1desc': { 'zh-TW': '以棋問道，觀象知機。\n從古老的象棋智慧中，\n尋找人生的方向與啟發。', en: 'Seek wisdom through chess.\nDiscover life guidance\nfrom ancient chess insights.', ja: '棋に問い、兆しを見る。\n古来の象棋の知恵から\n人生の指針を見つける。' },
   'onboarding.step2': { 'zh-TW': '雙重占卜模式', en: 'Two Divination Modes', ja: '二つの占いモード' },
 
+  // 統計
+  'stats.overview': { 'zh-TW': '總次數', en: 'Total', ja: '総回数' },
+  'stats.draw': { 'zh-TW': '抽棋', en: 'Draw', ja: '抽棋' },
+  'stats.board': { 'zh-TW': '佈局', en: 'Board', ja: '配置' },
+  'stats.fav': { 'zh-TW': '收藏', en: 'Fav', ja: 'お気に入り' },
+  'stats.levelDist': { 'zh-TW': '吉凶分佈', en: 'Fortune Distribution', ja: '吉凶分布' },
+  'stats.topPieces': { 'zh-TW': '最常抽到棋子類型', en: 'Most Drawn Pieces', ja: '最も引かれた駒' },
+  'stats.noData': { 'zh-TW': '尚無資料', en: 'No data yet', ja: 'まだデータなし' },
+  'stats.filterAll': { 'zh-TW': '全部', en: 'All', ja: '全て' },
+  'stats.filterWeek': { 'zh-TW': '本週', en: 'Week', ja: '今週' },
+  'stats.filterMonth': { 'zh-TW': '本月', en: 'Month', ja: '今月' },
+
+  // 圖鑑
+  'library.title': { 'zh-TW': '籤詩圖鑑', en: 'Poem Library', ja: '詩鑑' },
+  'library.search': { 'zh-TW': '搜尋籤詩...', en: 'Search poems...', ja: '詩を検索...' },
+  'library.all': { 'zh-TW': '全部', en: 'All', ja: '全て' },
+  'library.expand': { 'zh-TW': '展開詳情', en: 'Expand', ja: '詳細' },
+  'library.collapse': { 'zh-TW': '收起', en: 'Collapse', ja: '閉じる' },
+
   // 通用
   'common.back': { 'zh-TW': '返回', en: 'Back', ja: '戻る' },
   'common.save': { 'zh-TW': '儲存', en: 'Save', ja: '保存' },

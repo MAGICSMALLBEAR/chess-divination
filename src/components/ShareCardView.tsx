@@ -1,15 +1,11 @@
-// 分享圖片卡元件
-// 用於生成可分享的占卜結果圖片
-
+// 分享圖片卡 — 美化版
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
-import {
-  View, Text, StyleSheet, Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 
-const CARD_WIDTH = 375;
-const CARD_HEIGHT = 600;
+const CARD_WIDTH = 400;
+const CARD_HEIGHT = 620;
 
 interface ShareCardViewProps {
   poemTitle: string;
@@ -22,9 +18,7 @@ interface ShareCardViewProps {
   timestamp: number;
 }
 
-export interface ShareCardHandle {
-  share: () => Promise<void>;
-}
+export interface ShareCardHandle { share: () => Promise<void>; }
 
 const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
   function ShareCardView(props, ref) {
@@ -35,82 +29,79 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
         try {
           const uri = await viewShotRef.current?.capture?.();
           if (uri && (await Sharing.isAvailableAsync())) {
-            await Sharing.shareAsync(uri, {
-              mimeType: 'image/png',
-              dialogTitle: '象棋占卜 - 分享籤詩',
-            });
+            await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '象棋占卜 - 分享籤詩' });
           }
-        } catch (e) {
-          console.log('Share error:', e);
-        }
+        } catch {}
       },
     }));
 
     const dateStr = new Date(props.timestamp).toLocaleDateString('zh-TW', {
-      year: 'numeric', month: 'long', day: 'numeric',
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 
     const levelColor =
-      props.poemLevel === '大吉' ? '#C9A96E' :
-      props.poemLevel === '上吉' ? '#E5746A' :
-      props.poemLevel === '中吉' ? '#6B9B6B' :
-      props.poemLevel === '中平' ? '#C9B99A' : '#8A7A60';
+      props.poemLevel === '大吉' ? '#C9A96E' : props.poemLevel === '上吉' ? '#E5746A' :
+      props.poemLevel === '中吉' ? '#6B9B6B' : props.poemLevel === '中平' ? '#8A8060' : '#666';
+
+    const poems = props.poemContent.split('\n');
 
     return (
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.95 }}>
         <View style={styles.card}>
-          {/* 棋盤底色 */}
-          <View style={styles.woodBg} />
+          {/* 背景紋理 */}
+          <View style={styles.bgTop} />
+          <View style={styles.bgBottom} />
 
-          {/* 頂部飾邊 */}
-          <View style={styles.topBorder}>
-            <View style={styles.knob} />
+          {/* 頂部金色飾條 */}
+          <View style={styles.goldBar}>
+            <Text style={styles.goldBarText}>▬ ◈ 象棋占卜 ◈ ▬</Text>
           </View>
-
-          {/* 標題 */}
-          <Text style={styles.appName}>象棋占卜</Text>
-          <Text style={styles.dateText}>{dateStr}</Text>
 
           {/* 棋子展示 */}
           <View style={styles.piecesRow}>
             {props.pieceChars.map((char, i) => (
-              <View key={i} style={styles.piece}>
-                <Text style={[
-                  styles.pieceChar,
-                  { color: props.pieceColors[i] === 'red' ? '#C0392B' : '#1A1210' },
-                ]}>
+              <View key={i} style={[styles.piece, {
+                borderColor: props.pieceColors[i] === 'red' ? '#C0392B' : '#1A1210',
+              }]}>
+                <Text style={[styles.pieceChar, {
+                  color: props.pieceColors[i] === 'red' ? '#C0392B' : '#1A1210',
+                }]}>
                   {char}
                 </Text>
               </View>
             ))}
           </View>
 
-          {/* 吉凶 */}
-          <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
+          {/* 吉凶等級 */}
+          <View style={[styles.levelChip, { backgroundColor: levelColor }]}>
             <Text style={styles.levelText}>{props.poemLevel}</Text>
           </View>
 
           {/* 籤題 */}
-          <Text style={styles.poemTitle}>
-            第{props.poemHexagram}籤 · {props.poemTitle}
-          </Text>
+          <Text style={styles.poemTitle}>{props.poemTitle}</Text>
 
-          {/* 籤詩內容 */}
+          {/* 卦名 */}
+          <Text style={styles.hexagram}>{props.poemHexagram}</Text>
+
+          {/* 詩句 */}
           <View style={styles.poemBox}>
-            {props.poemContent.split('\n').map((line, i) => (
+            {poems.map((line, i) => (
               <Text key={i} style={styles.poemLine}>{line}</Text>
             ))}
           </View>
 
-          {/* 模式標記 */}
-          <Text style={styles.modeLabel}>
-            {props.mode === 'draw' ? '🎲 抽棋占卜' : '♟️ 棋盤佈局'}
-          </Text>
-
-          {/* 底部 */}
+          {/* 底部資訊 */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>以棋問道 · 觀象知機</Text>
+            <Text style={styles.footerMode}>
+              {props.mode === 'draw' ? '🎲 抽棋占卜' : '♟️ 棋盤佈局'}
+            </Text>
+            <Text style={styles.footerDate}>{dateStr}</Text>
+            <Text style={styles.footerUrl}>chess-divination-app.vercel.app</Text>
+            <Text style={styles.footerTagline}>以棋問道 · 觀象知機</Text>
           </View>
+
+          {/* 底部金條 */}
+          <View style={styles.goldBarBottom} />
         </View>
       </ViewShot>
     );
@@ -121,70 +112,65 @@ export default ShareCardView;
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    backgroundColor: '#F5EDE0',
-    borderRadius: 8,
-    overflow: 'hidden',
-    alignItems: 'center',
-    paddingTop: 0,
+    width: CARD_WIDTH, height: CARD_HEIGHT,
+    backgroundColor: '#F5EDE0', overflow: 'hidden',
   },
-  woodBg: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+  bgTop: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: CARD_HEIGHT * 0.45,
     backgroundColor: '#F5EDE0',
   },
-  topBorder: {
-    width: '100%', height: 20,
-    backgroundColor: '#8B6914',
-    alignItems: 'center', justifyContent: 'center',
+  bgBottom: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: CARD_HEIGHT * 0.55,
+    backgroundColor: '#EDE5D5',
   },
-  knob: {
-    width: 80, height: 10, backgroundColor: '#6B4F10', borderRadius: 5,
+  goldBar: {
+    backgroundColor: '#8B6914', paddingVertical: 8, alignItems: 'center',
   },
-  appName: {
-    fontSize: 20, fontWeight: '900', color: '#8B6914',
-    marginTop: 20, letterSpacing: 4,
-  },
-  dateText: {
-    fontSize: 12, color: '#8A7A60', marginTop: 4,
+  goldBarText: {
+    fontSize: 12, color: '#F5EDE0', fontWeight: '600', letterSpacing: 3,
   },
   piecesRow: {
-    flexDirection: 'row', gap: 12, marginTop: 20,
+    flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 22,
   },
   piece: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 52, height: 52, borderRadius: 26,
     backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#8B6914',
+    borderWidth: 2.5,
   },
-  pieceChar: {
-    fontSize: 24, fontWeight: '900',
+  pieceChar: { fontSize: 26, fontWeight: '900' },
+  levelChip: {
+    alignSelf: 'center', marginTop: 16,
+    paddingHorizontal: 20, paddingVertical: 5, borderRadius: 14,
   },
-  levelBadge: {
-    marginTop: 16, paddingHorizontal: 16, paddingVertical: 4, borderRadius: 12,
-  },
-  levelText: {
-    fontSize: 16, fontWeight: '700', color: '#FFFFFF',
-  },
+  levelText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
   poemTitle: {
-    fontSize: 18, fontWeight: '700', color: '#1A1210',
-    marginTop: 12,
+    fontSize: 20, fontWeight: '900', color: '#1A1210',
+    textAlign: 'center', marginTop: 14, letterSpacing: 1,
+  },
+  hexagram: {
+    fontSize: 13, color: '#8B6914', textAlign: 'center', marginTop: 4,
   },
   poemBox: {
-    width: 300, backgroundColor: '#FFFFFF', borderRadius: 12,
+    marginHorizontal: 40, marginTop: 18,
+    backgroundColor: '#FFFFFF', borderRadius: 12,
     borderWidth: 1, borderColor: '#D4C4A8',
-    padding: 20, marginTop: 16,
+    padding: 20,
   },
   poemLine: {
-    fontSize: 18, color: '#1A1210', textAlign: 'center',
-    lineHeight: 34, letterSpacing: 2,
-  },
-  modeLabel: {
-    fontSize: 12, color: '#8A7A60', marginTop: 16,
+    fontSize: 19, color: '#1A1210', textAlign: 'center',
+    lineHeight: 34, letterSpacing: 3,
   },
   footer: {
-    position: 'absolute', bottom: 20,
+    alignItems: 'center', marginTop: 16,
   },
-  footerText: {
-    fontSize: 12, color: '#8A7A60', letterSpacing: 2,
+  footerMode: { fontSize: 12, color: '#8A7A60' },
+  footerDate: { fontSize: 11, color: '#8A7A60', marginTop: 4 },
+  footerUrl: { fontSize: 10, color: '#C9A96E', marginTop: 4 },
+  footerTagline: {
+    fontSize: 12, color: '#8B6914', marginTop: 6, letterSpacing: 2, fontWeight: '600',
+  },
+  goldBarBottom: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    height: 6, backgroundColor: '#8B6914',
   },
 });
