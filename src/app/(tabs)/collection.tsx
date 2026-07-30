@@ -28,11 +28,31 @@ export default function CollectionScreen() {
   const [pickingFolderFor, setPickingFolderFor] = useState<string | null>(null); // record id
   const [refreshing, setRefreshing] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'best'>('newest');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   async function onRefresh() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  }
+
+  function toggleSelect(id: string) {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
+  }
+
+  async function batchDelete() {
+    Alert.alert('批量刪除', `確定要刪除 ${selectedIds.size} 筆記錄嗎？`, [
+      { text: '取消', style: 'cancel' },
+      { text: '刪除', style: 'destructive', onPress: async () => {
+        for (const id of selectedIds) await removeHistory(id);
+        setSelectedIds(new Set());
+        setSelectMode(false);
+        await loadData();
+      }},
+    ]);
   }
 
   useEffect(() => {
@@ -150,7 +170,7 @@ export default function CollectionScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 排序 */}
+      {/* 排序 + 批量 */}
       {tab !== 'folders' && (
         <View style={styles.sortRow}>
           {(['newest', 'oldest', 'best'] as const).map(o => (
@@ -162,6 +182,19 @@ export default function CollectionScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+          {tab === 'history' && data.length > 0 && (
+            <TouchableOpacity style={[styles.sortBtn, selectMode && { borderColor: '#E5746A' }]}
+              onPress={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}>
+              <Text style={[styles.sortText, selectMode && { color: '#E5746A' }]}>
+                {selectMode ? '取消選擇' : '批量刪除'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {selectMode && selectedIds.size > 0 && (
+            <TouchableOpacity style={[styles.sortBtn, { borderColor: '#E5746A' }]} onPress={batchDelete}>
+              <Text style={[styles.sortText, { color: '#E5746A' }]}>刪除({selectedIds.size})</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -256,10 +289,15 @@ export default function CollectionScreen() {
         {data.map((record) => (
           <TouchableOpacity
             key={record.id}
-            style={styles.card}
-            onPress={() => handleView(record)}
+            style={[styles.card, selectedIds.has(record.id) && { borderColor: '#E5746A' }]}
+            onPress={() => selectMode ? toggleSelect(record.id) : handleView(record)}
             activeOpacity={0.8}
           >
+            {selectMode && (
+              <View style={[styles.checkbox, selectedIds.has(record.id) && { backgroundColor: '#E5746A' }]}>
+                {selectedIds.has(record.id) && <Text style={{ color: '#FFF', fontSize: 12 }}>✓</Text>}
+              </View>
+            )}
             <View style={styles.cardLeft}>
               <View style={styles.piecesMini}>
                 <Text style={styles.piecesText}>
@@ -359,6 +397,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1210', borderRadius: 12,
     borderWidth: 1, borderColor: '#3A2F25',
     padding: Spacing.md, marginBottom: Spacing.sm,
+  },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#8A7A60',
+    alignItems: 'center', justifyContent: 'center', marginRight: 8,
   },
   cardLeft: { marginRight: Spacing.sm },
   piecesMini: {

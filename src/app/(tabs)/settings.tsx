@@ -188,6 +188,12 @@ export default function SettingsScreen() {
           <TouchableOpacity style={styles.row} onPress={handleRestore}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>📥 還原資料</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={async () => {
+            await update('hasCompletedOnboarding', false);
+            Alert.alert('已重置', '下次開啟App時將重新顯示引導');
+          }}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>🎓 重新觀看引導</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => {
             Alert.alert('清除所有歷史', '確定要清除所有占卜記錄嗎？此操作無法復原。', [
               { text: '取消', style: 'cancel' },
