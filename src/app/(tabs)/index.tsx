@@ -9,6 +9,7 @@ import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
 import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
+import { getStreak } from '@/services/achievements';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
 import { Spacing, FontSize } from '@/constants/theme';
@@ -27,11 +28,15 @@ export default function HomeScreen() {
   const { theme } = useAppTheme();
   const [dailyFortune, setDailyFortune] = useState<DailyFortune | null>(null);
   const [recentRecords, setRecentRecords] = useState<DivinationRecord[]>([]);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     loadDaily();
     loadRecent();
+    loadStreak();
   }, []);
+
+  async function loadStreak() { setStreak(await getStreak()); }
 
   async function loadDaily() {
     let fortune = await getDailyFortune();
@@ -62,6 +67,11 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <Text style={styles.appName}>{t('home.title')}</Text>
           <Text style={styles.tagline}>{t('home.tagline')}</Text>
+          {streak > 1 && (
+            <Text style={[styles.streakText, { color: theme.gold }]}>
+              🔥 連續 {streak} 天
+            </Text>
+          )}
         </View>
 
         {/* 每日運勢卡片 */}
@@ -162,6 +172,7 @@ const styles = StyleSheet.create({
     letterSpacing: 4, marginBottom: Spacing.xs,
   },
   tagline: { fontSize: FontSize.body, color: '#C9B99A', letterSpacing: 2 },
+  streakText: { fontSize: FontSize.small, fontWeight: '600', marginTop: 4 },
   dailyCard: {
     marginHorizontal: Spacing.md,
     backgroundColor: '#1A1210', borderRadius: 16,

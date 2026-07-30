@@ -52,6 +52,9 @@ export interface AppSettings {
   hasCompletedOnboarding: boolean;
   questionCategory?: string;
   folders?: Folder[];
+  usageDates?: string[];
+  currentStreak?: number;
+  unlockedAchievements?: string[];
 }
 
 const DEFAULT_SETTINGS: AppSettings = {

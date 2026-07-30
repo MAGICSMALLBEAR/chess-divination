@@ -17,6 +17,7 @@ import { hapticSuccess } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getAIInterpretation } from '@/services/ai';
 import { t } from '@/services/i18n';
+import { recordUsage } from '@/services/achievements';
 import { Spacing, FontSize } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -34,6 +35,7 @@ export default function RevealScreen() {
   useEffect(() => {
     loadRecord();
     playRevealSound();
+    recordUsage();
   }, [recordId]);
 
   async function loadRecord() {
