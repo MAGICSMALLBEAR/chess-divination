@@ -101,7 +101,7 @@ export const LightTheme: ThemeColors = {
   pieceBg: '#F5EDE0',
 };
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'dark' | 'light' | 'system';
 
 export function getThemeColors(mode: ThemeMode): ThemeColors {
   return mode === 'dark' ? DarkTheme : LightTheme;

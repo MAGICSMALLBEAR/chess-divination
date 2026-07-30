@@ -1,12 +1,14 @@
 // 主題管理系統
 // ThemeContext + useAppTheme hook
-// 支援 dark（墨色）和 light（宣紙）兩種模式
+// 支援 dark（墨色）、light（宣紙）和 system（跟隨系統）三種模式
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
-import type { ThemeColors, ThemeMode } from '@/constants/theme';
+import type { ThemeColors } from '@/constants/theme';
 import { getThemeColors } from '@/constants/theme';
 import { getSettings, saveSettings } from '@/services/storage';
+
+export type ThemeMode = 'dark' | 'light' | 'system';
 
 interface ThemeContextValue {
   theme: ThemeColors;
@@ -39,8 +41,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await saveSettings({ themeMode: newMode });
   }, []);
 
-  const theme = getThemeColors(mode);
-  const isDark = mode === 'dark';
+  const resolvedMode = mode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : mode;
+  const theme = getThemeColors(resolvedMode);
+  const isDark = resolvedMode === 'dark';
 
   return (
     <ThemeContext.Provider value={{ theme, mode, setMode, isDark }}>

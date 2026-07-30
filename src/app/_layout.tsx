@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThemeProvider } from '@/hooks/useAppTheme';
 
 export {
@@ -37,6 +38,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
+      <ErrorBoundary>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="draw" options={{ headerShown: false, animation: 'slide_from_right' }} />
@@ -46,6 +48,7 @@ export default function RootLayout() {
         <Stack.Screen name="library" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="stats" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

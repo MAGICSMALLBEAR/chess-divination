@@ -45,7 +45,7 @@ export interface Folder {
 export interface AppSettings {
   userName: string;
   drawAnimationSpeed: 'slow' | 'normal' | 'fast';
-  themeMode: 'dark' | 'light';
+  themeMode: 'dark' | 'light' | 'system';
   soundEnabled: boolean;
   hapticEnabled: boolean;
   pieceCountPreset: 1 | 2 | 3;

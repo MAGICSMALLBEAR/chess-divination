@@ -106,12 +106,12 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>主題模式</Text>
             <View style={styles.options}>
-              {(['dark', 'light'] as const).map((mode) => (
+              {(['dark', 'light', 'system'] as const).map((mode) => (
                 <TouchableOpacity key={mode}
                   style={[styles.option, settings.themeMode === mode && { borderColor: theme.gold }]}
                   onPress={() => update('themeMode', mode)}>
                   <Text style={[styles.optionText, settings.themeMode === mode && { color: theme.gold }]}>
-                    {mode === 'dark' ? '🌙 墨色' : '☀️ 宣紙'}
+                    {mode === 'dark' ? '🌙 墨色' : mode === 'light' ? '☀️ 宣紙' : '🔄 跟隨系統'}
                   </Text>
                 </TouchableOpacity>
               ))}
