@@ -27,6 +27,7 @@ export default function CollectionScreen() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [pickingFolderFor, setPickingFolderFor] = useState<string | null>(null); // record id
   const [refreshing, setRefreshing] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'best'>('newest');
 
   async function onRefresh() {
     setRefreshing(true);
@@ -73,7 +74,13 @@ export default function CollectionScreen() {
     ? history.filter(r => selectedFolder.recordIds.includes(r.id))
     : [];
 
-  const rawData = tab === 'history' ? history : favorites;
+  const levelRank: Record<string, number> = { '大吉': 5, '上吉': 4, '中吉': 3, '中平': 2, '下下': 1 };
+  const rawData = (tab === 'history' ? history : favorites)
+    .slice().sort((a, b) => {
+      if (sortOrder === 'newest') return b.timestamp - a.timestamp;
+      if (sortOrder === 'oldest') return a.timestamp - b.timestamp;
+      return (levelRank[b.poemLevel] || 0) - (levelRank[a.poemLevel] || 0);
+    });
   const data = search.trim()
     ? rawData.filter(r => r.poemTitle.includes(search) || r.poemContent.includes(search) || r.drawnPieceChars.join('').includes(search))
     : rawData;
@@ -142,6 +149,21 @@ export default function CollectionScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* 排序 */}
+      {tab !== 'folders' && (
+        <View style={styles.sortRow}>
+          {(['newest', 'oldest', 'best'] as const).map(o => (
+            <TouchableOpacity key={o}
+              style={[styles.sortBtn, sortOrder === o && { borderColor: '#C9A96E' }]}
+              onPress={() => setSortOrder(o)}>
+              <Text style={[styles.sortText, sortOrder === o && { color: '#C9A96E' }]}>
+                {o === 'newest' ? '最新' : o === 'oldest' ? '最早' : '最佳'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* 搜尋 */}
       <TextInput
@@ -314,6 +336,14 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: '#231A14' },
   tabText: { fontSize: FontSize.small, color: '#8A7A60' },
   tabTextActive: { color: '#C9A96E', fontWeight: '600' },
+  sortRow: {
+    flexDirection: 'row', gap: 6, marginHorizontal: Spacing.md, marginBottom: 8,
+  },
+  sortBtn: {
+    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12,
+    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+  },
+  sortText: { fontSize: 12, color: '#8A7A60' },
   searchInput: {
     marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
     backgroundColor: '#1A1210', borderRadius: 10, borderWidth: 1, borderColor: '#3A2F25',

@@ -117,6 +117,16 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* 快速抽棋 */}
+        <TouchableOpacity
+          style={[styles.quickDraw, { backgroundColor: theme.gold, borderColor: theme.gold }]}
+          onPress={() => router.push('/draw')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.quickDrawText}>🎲 快速抽一籤</Text>
+          <Text style={styles.quickDrawSub}>直接抽取 2 顆棋子獲得指引</Text>
+        </TouchableOpacity>
+
         {/* 模式選擇 */}
         <ModeSelector onSelectMode={handleSelectMode} />
 
@@ -180,6 +190,16 @@ const styles = StyleSheet.create({
   quote: {
     fontSize: FontSize.small, color: '#8A7A60', textAlign: 'center',
     lineHeight: 24, fontStyle: 'italic',
+  },
+  quickDraw: {
+    marginHorizontal: Spacing.md, marginBottom: Spacing.md,
+    borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: 'center',
+  },
+  quickDrawText: {
+    fontSize: FontSize.body, fontWeight: '700', color: '#1A1210',
+  },
+  quickDrawSub: {
+    fontSize: FontSize.caption, color: '#5A4A38', marginTop: 2,
   },
   recentSection: {
     marginHorizontal: Spacing.md, marginBottom: Spacing.md,
