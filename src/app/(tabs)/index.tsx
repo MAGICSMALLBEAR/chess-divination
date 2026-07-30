@@ -71,7 +71,17 @@ export default function HomeScreen() {
             onPress={() => router.push('/draw')}
             activeOpacity={0.8}
           >
-            <Text style={[styles.dailyTitle, { color: theme.gold }]}>📍 {t('home.daily')}</Text>
+            <View style={styles.dailyHeaderRow}>
+              <Text style={[styles.dailyTitle, { color: theme.gold }]}>📍 {t('home.daily')}</Text>
+              <TouchableOpacity onPress={() => {
+                if (!dailyFortune) return;
+                const text = `🏮 今日棋運：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n幸運棋子：${PIECE_NAMES[dailyFortune.luckyPiece]}\n幸運方位：${dailyFortune.luckyDirection}\n幸運數字：${dailyFortune.luckyNumber}\n幸運色：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
+                try { navigator.share?.({ title: '象棋占卜 - 今日運勢', text }); } catch {}
+                try { navigator.clipboard?.writeText(text); } catch {}
+              }}>
+                <Text style={{ fontSize: 16 }}>📤</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.dailyContent}>
               <View style={styles.dailyMain}>
                 <Text style={styles.dailyLevel}>{dailyFortune.fortuneLevel}</Text>
@@ -158,10 +168,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#3A2F25', padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
-  dailyTitle: {
-    fontSize: FontSize.heading, fontWeight: '700', color: '#C9A96E',
+  dailyHeaderRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  dailyTitle: { fontSize: FontSize.heading, fontWeight: '700' },
   dailyContent: { gap: Spacing.md },
   dailyMain: { alignItems: 'center' },
   dailyLevel: {

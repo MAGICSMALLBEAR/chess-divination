@@ -103,6 +103,14 @@ export default function LibraryScreen() {
                 <Text style={[styles.storyText, { color: theme.textMuted }]}>{poem.story}</Text>
               </View>
             )}
+            {expandedId === poem.id && (
+              <TouchableOpacity
+                style={[styles.drawBtn, { borderColor: theme.gold }]}
+                onPress={() => router.push('/draw')}
+              >
+                <Text style={[styles.drawBtnText, { color: theme.gold }]}>🎲 以此卦占卜</Text>
+              </TouchableOpacity>
+            )}
             <Text style={[styles.expandHint, { color: theme.textMuted }]}>
               {expandedId === poem.id ? '▲ 收起' : '▼ 展開詳情'}
             </Text>
@@ -158,5 +166,10 @@ const styles = StyleSheet.create({
   detailText: { fontSize: FontSize.small, lineHeight: 22, marginBottom: Spacing.sm },
   storyText: { fontSize: FontSize.caption, lineHeight: 20 },
   expandHint: { fontSize: 11, textAlign: 'center', marginTop: 6 },
+  drawBtn: {
+    borderWidth: 1, borderRadius: 8, paddingVertical: 8,
+    alignItems: 'center', marginTop: 8,
+  },
+  drawBtnText: { fontSize: 14, fontWeight: '600' },
   empty: { textAlign: 'center', marginTop: Spacing.xxl, fontSize: FontSize.body },
 });
