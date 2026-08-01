@@ -7,7 +7,7 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ChessPiece from '@/components/ChessPiece';
-import PieceDrawAnimation from '@/components/PieceDrawAnimation';
+import PieceDraw3D from '@/components/PieceDraw3D';
 import { useDrawDivination } from '@/hooks/useDrawDivination';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
@@ -126,7 +126,7 @@ export default function DrawScreen() {
         )}
 
         {step === 'drawing' && drawnPieces.length > 0 && (
-          <PieceDrawAnimation
+          <PieceDraw3D
             drawnPieces={drawnPieces}
             drawSummary={drawSummary}
             onReveal={goToResult}
