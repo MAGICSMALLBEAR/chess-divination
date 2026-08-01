@@ -19,6 +19,12 @@ export default function LibraryScreen() {
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  function handleRandomScroll() {
+    const randIdx = Math.floor(Math.random() * filtered.length);
+    const poem = filtered[randIdx];
+    if (poem) setExpandedId(poem.id);
+  }
+
   const filtered = useMemo(() => {
     let poems = ALL_POEMS;
     if (levelFilter) poems = poems.filter(p => p.level === levelFilter);
@@ -41,7 +47,9 @@ export default function LibraryScreen() {
           <Text style={[styles.backText, { color: theme.textSecondary }]}>← 返回</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: theme.textPrimary }]}>籤詩圖鑑</Text>
-        <View style={{ width: 60 }} />
+        <TouchableOpacity onPress={handleRandomScroll}>
+          <Text style={{ fontSize: 22 }}>🎲</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 搜尋 */}

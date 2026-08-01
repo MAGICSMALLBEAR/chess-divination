@@ -177,6 +177,10 @@ export default function SettingsScreen() {
             <Text style={[styles.label, { color: theme.textSecondary }]}>📊 占卜統計</Text>
             <Text style={{ color: theme.textMuted }}>查看統計數據 →</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => router.push('/achievements')}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>🏆 成就徽章</Text>
+            <Text style={{ color: theme.textMuted }}>查看解鎖進度 →</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 備份 */}

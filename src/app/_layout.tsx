@@ -47,6 +47,7 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="library" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="stats" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="achievements" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
       </ErrorBoundary>
     </ThemeProvider>
