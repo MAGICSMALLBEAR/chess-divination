@@ -1,5 +1,6 @@
 // 備份還原服務
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { toLocalDateString } from './date';
 
 const BACKUP_KEYS = [
   '@chess_divination_history',
@@ -22,7 +23,7 @@ export async function backupData(): Promise<string | null> {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `chess-divination-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `chess-divination-backup-${toLocalDateString()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       return 'downloaded';

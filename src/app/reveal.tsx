@@ -10,7 +10,7 @@ import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView'
 import PoemCard from '@/components/PoemCard';
 import Spinner from '@/components/Spinner';
 import type { DivinationRecord } from '@/services/storage';
-import { getHistory, toggleFavorite } from '@/services/storage';
+import { getHistory, toggleFavorite, isLegacyRecord } from '@/services/storage';
 import { getPoemById } from '@/data/poems';
 import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
@@ -139,6 +139,30 @@ export default function RevealScreen() {
           <View style={styles.backBtn} />
         </View>
 
+        {/* 舊版卦法記錄提示 */}
+        {isLegacyRecord(record) && (
+          <View style={[styles.legacyBox, { borderColor: theme.warning, backgroundColor: theme.bgDark }]}>
+            <Text style={[styles.legacyText, { color: theme.textMuted }]}>
+              ⓘ 此記錄以舊版卦法產生。舊版的卦序對應有誤（先天序誤作文王序），
+              籤詩與卦象可能不符。為保留原始占卜結果，此記錄維持原樣不予改寫；
+              重新占卜即採用修正後的卦法。
+            </Text>
+          </View>
+        )}
+
+        {/* 卦象 */}
+        {record.hexagramName ? (
+          <View style={[styles.hexBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={[styles.hexLabel, { color: theme.textMuted }]}>本卦</Text>
+            <Text style={[styles.hexName, { color: theme.gold }]}>{record.hexagramName}</Text>
+            {record.movingLine ? (
+              <Text style={[styles.hexLabel, { color: theme.textMuted }]}>
+                動爻：第 {record.movingLine} 爻
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* 用戶問題 */}
         {record.questionText ? (
           <View style={styles.questionBox}>
@@ -249,6 +273,27 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: FontSize.body, color: '#C9B99A',
     fontStyle: 'italic', lineHeight: 24,
+  },
+  legacyBox: {
+    width: SCREEN_WIDTH - Spacing.xl * 2,
+    borderRadius: 12, borderWidth: 1,
+    padding: Spacing.md, marginBottom: Spacing.md,
+  },
+  legacyText: {
+    fontSize: FontSize.caption, lineHeight: 20,
+  },
+  hexBox: {
+    width: SCREEN_WIDTH - Spacing.xl * 2,
+    borderRadius: 12, borderWidth: 1,
+    padding: Spacing.md, marginBottom: Spacing.lg,
+    alignItems: 'center',
+  },
+  hexLabel: {
+    fontSize: FontSize.caption,
+  },
+  hexName: {
+    fontSize: FontSize.subtitle, fontWeight: '700',
+    marginVertical: 4, letterSpacing: 2,
   },
   positionBox: {
     width: SCREEN_WIDTH - Spacing.xl * 2,

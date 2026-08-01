@@ -4,15 +4,16 @@
 
 | 項目 | 數值 |
 |------|------|
-| 原始碼檔案 | 43 個 |
+| 原始碼檔案 | 48 個 |
 | Git Commits | 24 次 |
-| Jest 測試 | 20 個 · 3 套件 · 全部通過 |
+| Jest 測試 | 49 個 · 6 套件 · 全部通過 |
 | TypeScript | 零錯誤 |
 | 頁面 | 11 個 |
 | 元件 | 9 個 |
 | Hooks | 6 個 |
-| 服務 | 9 個 |
+| 服務 | 11 個 |
 | 籤詩 | 64 首七言絕句 |
+| 起卦引擎 | v2（先天序 → 文王序已修正） |
 
 ### 技術棧
 Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncStorage · Reanimated · Gesture Handler · Web Audio API · expo-haptics · expo-sharing · view-shot · Jest
@@ -56,6 +57,25 @@ Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncSt
 - 系統主題跟隨（dark/light/system）
 - ErrorBoundary 錯誤邊界
 - 成就系統（8 種徽章）+ 連續使用天數追蹤
+
+## Session 9 — 命理正確性重建 (8/1-8/2)
+
+完整稽核報告與後續規劃見 [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)。
+
+### Phase 0 緊急修復
+- 抽棋完成後的摘要卡與「揭露籤詩」按鈕原本繼承光環動畫值，永遠只有 15% 不透明度
+- 每日運勢與連續天數改用當地日期（原用 UTC，台灣 00:00–08:00 會顯示前一天）
+- 抽棋動畫 effect 補上依賴與完整清理——原本動畫速度與 reducedMotion 設定從未生效
+
+### Phase 1 命理正確性
+- **修正卦序對應**：先天（伏羲）序誤當文王序使用，64 卦中 62 卦拿到與卦象不符的籤詩
+- **棋子→卦改由棋種＋顏色決定**：補足兌卦，八卦全覆蓋；紅黑互為錯卦，紅車與黑車不再同卦
+- **抽棋改為抽出後放回**：64 卦全部可達，雙紅／雙黑成為有效訊號
+- **五行真相來源分離**：卦氣五行負責生剋、意象五行僅供文案，解除兩者矛盾
+- **五行補齊五種關係**：原本漏掉「生我（印）」；方位判定改用 col/row 判八方
+- **每日運勢改為起卦推導**：等級／方位／顏色／數字皆源自當日之卦，彼此自洽
+- 舊記錄標記 `engineVersion`，不改寫歷史，reveal 頁標註「依舊版卦法」
+- 測試 20 → 49 個，新增卦序、方位、日期三套迴歸測試
 
 ---
 
@@ -101,6 +121,9 @@ Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncSt
 ---
 
 ## 未來可開發功能
+
+> 完整的稽核與階段規劃見 [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)。
+> 下一步為 **Phase 2 六爻系統**（動爻／變卦／互卦／體用，並讓棋盤擺位真正影響卦象）。
 
 ### 🔴 高優先（可立即實作）
 - [ ] **成就徽章展示頁** — 在設定或獨立頁面展示 8 種成就的解鎖狀態

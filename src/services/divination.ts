@@ -1,13 +1,20 @@
 // 占卜核心服務
-// 抽棋演算法 + 籤詩選擇 + 每日運勢
+// 抽棋演算法 + 起卦 + 籤詩選擇 + 每日運勢
 
-import type { ChessPiece, PieceType, PieceColor } from '@/data/pieces';
-import { ALL_PIECES, ALL_RED_PIECES, ALL_BLACK_PIECES, pieceTypeToTrigram } from '@/data/pieces';
+import type { ChessPiece } from '@/data/pieces';
+import { ALL_PIECES } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
-import { ALL_POEMS, getPoemById } from '@/data/poems';
+import { getPoemById } from '@/data/poems';
+import {
+  TRIGRAM_NAMES, TRIGRAM_GLYPHS, TRIGRAM_ELEMENTS,
+  hexagramIndex, hexagramNameOf, poemIdFromTrigrams,
+} from './hexagram';
+import { todayString } from './date';
+
+/** 起卦引擎版本。修改起卦邏輯時必須遞增，歷史記錄依此標記所用卦法。 */
+export const DIVINATION_ENGINE_VERSION = 2;
 
 // ====== 確定性 PRNG (Mulberry32) ======
-// 參照神明占卜 seededRandom.ts
 
 export function mulberry32(seed: number): () => number {
   return () => {
@@ -31,162 +38,182 @@ export function hashString(str: string): number {
 
 // ====== 抽棋演算法 ======
 
-/** 隨機抽取指定數量的棋子 */
+/**
+ * 抽取指定數量的棋子。
+ *
+ * 每一次抽取都是從完整的 32 顆棋子中獨立取出（抽出後放回再搖），
+ * 因此可能抽到兩顆相同的棋。這是刻意的設計，理由有二：
+ *
+ * 1. 起卦的每一次取數本就相互獨立，放回才是正確的模型。
+ * 2. 若不放回，「上下同卦」的八個重卦中，乾為天（需兩顆紅帥）與
+ *    坤為地（需兩顆黑將）將永遠抽不到——而乾為天正是籤詩之首。
+ *
+ * 抽到雙帥即成「乾為天」純陽之象，抽到雙將即成「坤為地」純陰之象，
+ * 在解讀上是有意義的結果，而非重複的瑕疵。
+ */
 export function drawPieces(count: 1 | 2 | 3, seed?: number): ChessPiece[] {
   const rand = seed !== undefined ? mulberry32(seed) : Math.random;
-  const pool = [...ALL_PIECES];
   const drawn: ChessPiece[] = [];
 
   for (let i = 0; i < count; i++) {
-    const idx = Math.floor(rand() * pool.length);
-    drawn.push(pool.splice(idx, 1)[0]);
+    drawn.push(ALL_PIECES[Math.floor(rand() * ALL_PIECES.length)]);
   }
 
   return drawn;
 }
 
-/** 隨機抽取指定數量，確保至少紅黑各一（2-3顆時） */
-export function drawPiecesMixed(count: 1 | 2 | 3, seed?: number): ChessPiece[] {
-  if (count === 1) return drawPieces(1, seed);
+// ====== 棋子 → 卦象 ======
 
-  const rand = seed !== undefined ? mulberry32(seed) : Math.random;
-
-  // 先從紅方抽一半，黑方抽一半
-  const redPool = [...ALL_RED_PIECES];
-  const blackPool = [...ALL_BLACK_PIECES];
-
-  if (count === 2) {
-    const ri = Math.floor(rand() * redPool.length);
-    const bi = Math.floor(rand() * blackPool.length);
-    return [redPool[ri], blackPool[bi]];
-  }
-
-  // count === 3: 2 from one side, 1 from other
-  const primarySide = rand() > 0.5 ? 'red' : 'black';
-  const primaryPool = primarySide === 'red' ? redPool : blackPool;
-  const secondaryPool = primarySide === 'red' ? blackPool : redPool;
-
-  const p1 = Math.floor(rand() * primaryPool.length);
-  const p2 = Math.floor(rand() * (primaryPool.length - 1));
-  const s1 = Math.floor(rand() * secondaryPool.length);
-
-  const drawn: ChessPiece[] = [primaryPool[p1]];
-  // second draw from primary, skipping the first index
-  const adjustedP2 = p2 >= p1 ? p2 + 1 : p2;
-  drawn.push(primaryPool[adjustedP2]);
-  drawn.push(secondaryPool[s1]);
-
-  return drawn;
+export interface HexagramResult {
+  /** 上卦（先天序 0–7） */
+  upper: number;
+  /** 下卦（先天序 0–7） */
+  lower: number;
+  /** 先天序索引 0–63 */
+  index: number;
+  /** 卦名，如「水雷屯」 */
+  name: string;
+  /** 對應籤詩 id（文王卦序 1–64） */
+  poemId: number;
+  /**
+   * 動爻（1–6）。抽三顆棋時由第三顆決定，否則為 undefined。
+   * 目前僅記錄，變卦與互卦的解讀於 Phase 2 實作。
+   */
+  movingLine?: number;
 }
-
-// ====== 棋子 → 籤詩對應 ======
 
 /**
- * 計算 64 卦索引 (0-63)
+ * 由抽到的棋子起卦。
  *
- * 抽 1 顆：上下卦相同（8 個重卦）
- * 抽 2 顆：piece1=上卦, piece2=下卦 → 8×8=64 種組合
- * 抽 3 顆：piece1+piece2 合卦為上, piece3 為下
+ * 抽 1 顆：上下同卦，成八重卦之一。
+ * 抽 2 顆：第一顆為上卦、第二顆為下卦，8×8 = 64 卦全覆蓋。
+ * 抽 3 顆：前兩顆定上下卦，第三顆定動爻（梅花易數以第三數取動爻之意）。
  */
+export function computeHexagram(pieces: ChessPiece[]): HexagramResult {
+  if (pieces.length === 0) {
+    throw new Error('起卦至少需要一顆棋子');
+  }
+
+  const upper = pieces[0].trigram;
+  const lower = pieces.length === 1 ? pieces[0].trigram : pieces[1].trigram;
+
+  const result: HexagramResult = {
+    upper,
+    lower,
+    index: hexagramIndex(upper, lower),
+    name: hexagramNameOf(upper, lower),
+    poemId: poemIdFromTrigrams(upper, lower),
+  };
+
+  if (pieces.length >= 3) {
+    // 梅花易數：動爻 = (上卦數 + 下卦數 + 第三數) mod 6，得 0 則為第六爻
+    const sum = upper + lower + pieces[2].trigram;
+    result.movingLine = (sum % 6) + 1;
+  }
+
+  return result;
+}
+
+/** 先天序索引 0–63（保留給既有呼叫端與測試） */
 export function computeHexagramIndex(pieces: ChessPiece[]): number {
-  const count = pieces.length;
-
-  if (count === 1) {
-    // 重卦：上下相同
-    const t = pieces[0].trigram; // 0-7
-    return t * 8 + t;            // 0, 9, 18, 27, 36, 45, 54, 63
-  }
-
-  if (count === 2) {
-    const upper = pieces[0].trigram;
-    const lower = pieces[1].trigram;
-    return upper * 8 + lower;     // 0-63
-  }
-
-  // count === 3
-  // 前兩顆合卦：取 type trigram XOR 混成
-  const upperMixed = (pieces[0].trigram + pieces[1].trigram) % 8;
-  const lower = pieces[2].trigram;
-  return upperMixed * 8 + lower;
+  return computeHexagram(pieces).index;
 }
 
 /**
- * 根據抽到的棋子選擇籤詩
- * 使用 deterministic hash 確保相同輸入 → 相同輸出
+ * 根據抽到的棋子選擇籤詩。
+ *
+ * 注意：卦的索引是「先天（伏羲）序」，而籤詩是依「文王卦序」編號，
+ * 兩者必須經 poemIdFromTrigrams 轉換，不可直接相加。
  */
 export function selectPoem(pieces: ChessPiece[]): Poem {
-  const hexIndex = computeHexagramIndex(pieces);
-  // hexIndex 0-63 直接對應 poem id 1-64
-  const poemId = (hexIndex % 64) + 1;
-  return getPoemById(poemId);
-}
-
-/**
- * 以 hash-based 方式選擇籤詩（備用方案）
- * 確保相同抽棋結果永遠得到相同籤詩
- */
-export function selectPoemByHash(pieces: ChessPiece[]): Poem {
-  const seedString = pieces
-    .map(p => `${p.type}-${p.color}`)
-    .join('|');
-  const hash = hashString(seedString);
-  const poemId = (Math.abs(hash) % 64) + 1;
-  return getPoemById(poemId);
-}
-
-/**
- * 獲取重卦籤詩（抽 1 顆時使用）
- * 8 個重卦分別對應 8 首籤詩
- */
-const SELF_HEXAGRAM_POEMS: Record<number, number> = {
-  0: 1,   // 乾為天 → poem #1
-  7: 2,   // 坤為地 → poem #2
-  3: 51,  // 震為雷 → poem #51
-  4: 57,  // 巽為風 → poem #57
-  2: 30,  // 離為火 → poem #30
-  5: 29,  // 坎為水 → poem #29
-  6: 52,  // 艮為山 → poem #52
-  1: 58,  // 兌為澤 → poem #58
-};
-
-export function selectSelfHexagramPoem(piece: ChessPiece): Poem {
-  const poemId = SELF_HEXAGRAM_POEMS[piece.trigram] || 1;
-  return getPoemById(poemId);
+  return getPoemById(computeHexagram(pieces).poemId);
 }
 
 // ====== 每日運勢 ======
 
-export function generateDailyFortune() {
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10);
+/** 五行對應色 */
+const ELEMENT_COLORS: Record<string, string> = {
+  金: '白', 木: '青', 水: '黑', 火: '紅', 土: '黃',
+};
+
+/** 五行對應的八方位（生我之方為吉方） */
+const ELEMENT_DIRECTIONS: Record<string, string[]> = {
+  木: ['東', '東南'],
+  火: ['南'],
+  土: ['西南', '東北'],
+  金: ['西', '西北'],
+  水: ['北'],
+};
+
+/** 生我者（印）：key 為我之五行，value 為生我之五行 */
+const GENERATED_BY: Record<string, string> = {
+  金: '土', 木: '水', 水: '金', 火: '木', 土: '火',
+};
+
+/** 河圖數 */
+const ELEMENT_NUMBERS: Record<string, number[]> = {
+  水: [1, 6], 火: [2, 7], 木: [3, 8], 金: [4, 9], 土: [5, 10],
+};
+
+export interface DailyFortuneResult {
+  date: string;
+  luckyPiece: string;
+  luckyColor: string;
+  luckyDirection: string;
+  luckyNumber: number;
+  fortuneLevel: string;
+  fortuneText: string;
+  /** 當日之卦所對應的籤詩 id */
+  poemId: number;
+  /** 當日主氣五行 */
+  luckyElement: string;
+}
+
+/**
+ * 產生當日運勢。
+ *
+ * 以「當地日期」為種子起一卦，運勢等級與內容直接取自該卦的籤詩，
+ * 幸運方位／顏色／數字則由該卦的卦氣五行推導，彼此互相自洽。
+ *
+ * 舊版的問題：
+ * 1. 用 toISOString() 取 UTC 日期，台灣當地 00:00–08:00 會顯示前一天的運勢。
+ * 2. 五個欄位各自獨立隨機，可能出現「幸運棋子屬水、幸運方位屬火、幸運色屬火」
+ *    這種自相矛盾的組合。
+ */
+export function generateDailyFortune(): DailyFortuneResult {
+  const dateStr = todayString();
   const seed = hashString(dateStr);
   const rand = mulberry32(seed);
 
-  const pieceTypes: PieceType[] = ['king', 'advisor', 'elephant', 'chariot', 'horse', 'cannon', 'pawn'];
-  const colors: PieceColor[] = ['red', 'black'];
-  const directions = ['東', '南', '西', '北', '東南', '西南', '東北', '西北'];
-  const levels = ['大吉', '上吉', '中吉', '中平'];
-  const colors_lucky = ['紅', '金', '黑', '白', '青', '黃'];
+  const pieces = drawPieces(2, seed);
+  const hexagram = computeHexagram(pieces);
+  const poem = getPoemById(hexagram.poemId);
 
-  const fortuneTexts = [
-    '今日棋勢如虹，宜積極進取，把握良機。',
-    '穩紮穩打，步步為營，收穫在望。',
-    '變局將至，保持靈活，隨機應變。',
-    '以靜制動，守成待時，不宜躁進。',
-    '貴人暗助，內在智慧引領方向。',
-    '突破瓶頸，出奇制勝的好時機。',
-    '堅持不懈，積累之功終將顯現。',
-    '明察秋毫，洞察先機，化險為夷。',
-  ];
+  // 當日主氣取上卦（體）之五行
+  const element = TRIGRAM_ELEMENTS[hexagram.upper];
+
+  // 吉方＝生我之方
+  const supportElement = GENERATED_BY[element];
+  const directions = ELEMENT_DIRECTIONS[supportElement] || ['中'];
+  const luckyDirection = directions[Math.floor(rand() * directions.length)];
+
+  // 助運色＝與主氣比和
+  const luckyColor = ELEMENT_COLORS[element] || '金';
+
+  // 幸運數取該五行的河圖數
+  const numbers = ELEMENT_NUMBERS[element] || [5, 10];
+  const luckyNumber = numbers[Math.floor(rand() * numbers.length)];
 
   return {
     date: dateStr,
-    luckyPiece: pieceTypes[Math.floor(rand() * pieceTypes.length)],
-    luckyColor: colors_lucky[Math.floor(rand() * colors_lucky.length)],
-    luckyDirection: directions[Math.floor(rand() * directions.length)],
-    luckyNumber: Math.floor(rand() * 99) + 1,
-    fortuneLevel: levels[Math.floor(rand() * levels.length)],
-    fortuneText: fortuneTexts[Math.floor(rand() * fortuneTexts.length)],
+    luckyPiece: pieces[0].type,
+    luckyColor,
+    luckyDirection,
+    luckyNumber,
+    fortuneLevel: poem.level,
+    fortuneText: `${hexagram.name}．${poem.title}——${poem.jieYue.general}`,
+    poemId: poem.id,
+    luckyElement: element,
   };
 }
 
@@ -194,16 +221,24 @@ export function generateDailyFortune() {
 
 /** 根據抽到的棋子生成摘要 */
 export function generateDrawSummary(pieces: ChessPiece[]): string {
-  const pieceNames = pieces.map(p => p.displayChar).join('、');
-  const colors = pieces.map(p => p.color === 'red' ? '紅' : '黑').join('');
+  if (pieces.length === 0) return '';
 
-  let summary = `抽得${pieceNames}`;
+  const pieceNames = pieces.map(p => p.displayChar).join('、');
+  const { upper, lower, name } = computeHexagram(pieces);
+
+  let summary =
+    `抽得${pieceNames}，上${TRIGRAM_NAMES[upper]}${TRIGRAM_GLYPHS[upper]}、` +
+    `下${TRIGRAM_NAMES[lower]}${TRIGRAM_GLYPHS[lower]}，成「${name}」。`;
 
   if (pieces.length === 1) {
     const p = pieces[0];
-    summary += `（${p.color === 'red' ? '紅' : '黑'}方${p.chineseName}），五行屬${p.wuxing}，${p.yinYang}性。`;
+    summary += `${p.color === 'red' ? '紅' : '黑'}方${p.chineseName}獨現，卦氣屬${p.guaElement}，${p.yinYang}卦當令。`;
   } else {
-    summary += `，${colors === '紅紅' ? '雙紅純陽' : colors === '黑黑' ? '雙黑純陰' : '紅黑調和'}之象。`;
+    const reds = pieces.filter(p => p.color === 'red').length;
+    const blacks = pieces.length - reds;
+    if (blacks === 0) summary += '全紅純陽，主動在我，事由己出。';
+    else if (reds === 0) summary += '全黑純陰，靜守為宜，事由外來。';
+    else summary += '紅黑相雜，內外交參，宜審時度勢。';
   }
 
   return summary;

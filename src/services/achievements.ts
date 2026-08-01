@@ -1,5 +1,6 @@
 // 成就與連續使用追蹤服務
 import { getSettings, saveSettings } from './storage';
+import { todayString, yesterdayString } from './date';
 
 export interface Achievement {
   id: string;
@@ -64,8 +65,8 @@ export async function checkAchievements(stats: {
 export async function getStreak(): Promise<number> {
   const s = await getSettings();
   const dates = s.usageDates || [];
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const today = todayString();
+  const yesterday = yesterdayString();
 
   if (dates.includes(today)) {
     return s.currentStreak || 1;
@@ -80,12 +81,12 @@ export async function getStreak(): Promise<number> {
 
 export async function recordUsage(): Promise<number> {
   const s = await getSettings();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayString();
   const dates = s.usageDates || [];
 
   if (dates.includes(today)) return s.currentStreak || 1;
 
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const yesterday = yesterdayString();
   const streak = dates.includes(yesterday) ? (s.currentStreak || 0) + 1 : 1;
 
   await saveSettings({

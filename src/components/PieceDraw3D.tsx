@@ -6,6 +6,7 @@ import {
   View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions,
 } from 'react-native';
 import type { ChessPiece as ChessPieceType } from '@/data/pieces';
+import { getPieceTrigramName, getPieceTrigramGlyph } from '@/data/pieces';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { Spacing, FontSize } from '@/constants/theme';
@@ -61,7 +62,39 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
   // 底部陰影容器
   const shadowScale = useRef(new Animated.Value(0)).current;
 
+  // 結果區（摘要卡 + 按鈕）的淡入。必須與光環 ringOpacity 分開，
+  // 否則會繼承光環的最終值 0.15，導致按鈕幾乎看不見。
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+
+  // 注意：useAnimationSpeed / useReducedMotion 都是掛載後才非同步取得值，
+  // 因此本 effect 必須依賴兩者，否則永遠只會用到預設值（設定形同無效）。
   useEffect(() => {
+    // 追蹤所有啟動中的動畫與計時器，unmount 時完整清除
+    const running: Animated.CompositeAnimation[] = [];
+    let landedTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const start = (anim: Animated.CompositeAnimation, onEnd?: Animated.EndCallback) => {
+      running.push(anim);
+      anim.start(onEnd);
+    };
+
+    // 設定載入完成會重跑本 effect，先把所有動畫值歸零避免殘留狀態
+    bowlRotateY.setValue(0);
+    bowlFloat.setValue(0);
+    bowlShake.setValue(0);
+    overlayOpacity.setValue(0);
+    ringScale.setValue(0);
+    ringOpacity.setValue(0);
+    shadowScale.setValue(0);
+    contentOpacity.setValue(0);
+    pieceAnimations.forEach(a => {
+      a.fly.setValue(0); a.rotateY.setValue(0); a.scale.setValue(0);
+      a.opacity.setValue(0); a.landX.setValue(0); a.landY.setValue(0);
+    });
+    particleAnims.forEach(p => {
+      p.x.setValue(0); p.y.setValue(0); p.opacity.setValue(0); p.scale.setValue(0);
+    });
+
     if (reducedMotion) {
       // 簡化動畫直接展示
       pieceAnimations.forEach(anim => {
@@ -70,11 +103,14 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
         anim.opacity.setValue(1);
       });
       ringScale.setValue(1);
-      ringOpacity.setValue(0.3);
+      ringOpacity.setValue(0.15);
       shadowScale.setValue(1);
+      contentOpacity.setValue(1);
       setPhase('landed');
       return;
     }
+
+    setPhase('shaking');
 
     // Phase 1: 搖晃
     const shakeSeq = Animated.sequence([
@@ -97,14 +133,14 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
       Animated.timing(overlayOpacity, { toValue: 0.4, duration: 400 * speed, useNativeDriver: true }),
     ]);
 
-    shakeSeq.start(() => {
+    start(shakeSeq, () => {
       setPhase('flying');
-      bowl3D.start(() => {
+      start(bowl3D, () => {
         // Phase 3: 棋子飛出
         const staggerDelay = 350 * speed;
         pieceAnimations.forEach((anim, i) => {
           const delay = i * staggerDelay;
-          Animated.sequence([
+          start(Animated.sequence([
             Animated.delay(delay),
             Animated.parallel([
               Animated.spring(anim.fly, {
@@ -138,14 +174,14 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                 }),
               ]),
             ]),
-          ]).start();
+          ]));
         });
 
         // 粒子爆散
         particleAnims.forEach((p, i) => {
           const angle = (i / particleAnims.length) * Math.PI * 2;
           const dist = 60 + Math.random() * 80;
-          Animated.sequence([
+          start(Animated.sequence([
             Animated.delay(600 * speed + i * 80),
             Animated.parallel([
               Animated.timing(p.x, {
@@ -173,11 +209,11 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                 }),
               ]),
             ]),
-          ]).start();
+          ]));
         });
 
         // 光環擴散
-        Animated.sequence([
+        start(Animated.sequence([
           Animated.delay(500 * speed),
           Animated.parallel([
             Animated.spring(ringScale, {
@@ -195,23 +231,28 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
               toValue: 1, friction: 5, tension: 60, useNativeDriver: true,
             }),
           ]),
-        ]).start();
+        ]));
 
-        // 完成
-        setTimeout(() => {
+        // 完成：淡出遮罩，並將結果卡與按鈕淡入到完全不透明
+        landedTimer = setTimeout(() => {
           setPhase('landed');
-          Animated.timing(overlayOpacity, {
-            toValue: 0, duration: 300 * speed, useNativeDriver: true,
-          }).start();
+          start(Animated.parallel([
+            Animated.timing(overlayOpacity, {
+              toValue: 0, duration: 300 * speed, useNativeDriver: true,
+            }),
+            Animated.timing(contentOpacity, {
+              toValue: 1, duration: 400 * speed, useNativeDriver: true,
+            }),
+          ]));
         }, drawnPieces.length * staggerDelay + 300 * speed);
       });
     });
 
     return () => {
-      shakeSeq.stop();
-      bowl3D.stop();
+      if (landedTimer !== undefined) clearTimeout(landedTimer);
+      running.forEach(anim => anim.stop());
     };
-  }, []);
+  }, [speed, reducedMotion]);
 
   // 搖晃位移
   const shakeX = bowlShake.interpolate({
@@ -326,7 +367,8 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
             const isRed = piece.color === 'red';
             return (
               <Animated.View
-                key={piece.id}
+                // 抽棋為「抽出後放回」，同一顆棋可能重複出現，故 key 需帶上位置
+                key={`${piece.id}-${i}`}
                 style={[
                   styles.piece3D,
                   {
@@ -385,7 +427,8 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                   >
                     <Text style={styles.pieceName}>{piece.chineseName}</Text>
                     <Text style={styles.pieceColor}>
-                      {isRed ? '紅方' : '黑方'} · {piece.wuxing}
+                      {isRed ? '紅方' : '黑方'} · {getPieceTrigramName(piece)}
+                      {getPieceTrigramGlyph(piece)} {piece.guaElement}
                     </Text>
                   </Animated.View>
                 )}
@@ -409,7 +452,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
           style={[
             styles.summaryCard,
             {
-              opacity: ringOpacity,
+              opacity: contentOpacity,
             },
           ]}
         >
@@ -422,7 +465,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
         <Animated.View
           style={[
             styles.actions,
-            { opacity: ringOpacity },
+            { opacity: contentOpacity },
           ]}
         >
           <TouchableOpacity style={styles.revealBtn} onPress={onReveal}>

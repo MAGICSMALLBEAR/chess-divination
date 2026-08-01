@@ -5,7 +5,8 @@ import { useRouter } from 'expo-router';
 import type { ChessPiece } from '@/data/pieces';
 import { ALL_PIECES } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
-import { selectPoem, generateDrawSummary } from '@/services/divination';
+import { getPoemById } from '@/data/poems';
+import { computeHexagram } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
 import { playPlacePieceSound } from '@/services/sound';
 import { hapticLight } from '@/services/haptics';
@@ -62,10 +63,10 @@ export function useBoardDivination() {
     if (category) setQuestionCategory(category);
     if (text !== undefined) setQuestionText(text);
 
-    // 生成深度位置解讀（含五行方位）
+    // 生成深度位置解讀（含卦氣五行與棋盤方位）
     const placements = placedPieces.map(pp => ({
       col: pp.col, row: pp.row,
-      wuxing: pp.piece.wuxing,
+      guaElement: pp.piece.guaElement,
       direction: pp.piece.direction,
       pieceName: pp.piece.displayChar,
     }));
@@ -73,11 +74,15 @@ export function useBoardDivination() {
 
     // 使用棋子順序作為順序（依放置先後）
     const pieces = placedPieces.map(pp => pp.piece);
-    const poem = selectPoem(pieces);
+    const hex = computeHexagram(pieces);
+    const poem = getPoemById(hex.poemId);
     setSelectedPoem(poem);
 
     // 儲存記錄
-    const record = recordFromDivination(poem, pieces, 'board', cat, txt, positionSummary);
+    const record = recordFromDivination(
+      poem, pieces, 'board', cat, txt, positionSummary,
+      { name: hex.name, movingLine: hex.movingLine },
+    );
     const saved = await addHistory(record);
     setStep('result');
 

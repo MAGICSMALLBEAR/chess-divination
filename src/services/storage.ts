@@ -4,6 +4,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ChessPiece } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
+import { todayString } from './date';
+import { DIVINATION_ENGINE_VERSION } from './divination';
 
 // ====== Keys ======
 
@@ -33,6 +35,19 @@ export interface DivinationRecord {
   positionSummary?: string;      // board position interpretation summary
   timestamp: number;
   isFavorited: boolean;
+  /**
+   * 起卦引擎版本。缺少此欄位者為 v1 舊記錄——v1 的卦序對應有誤
+   * （先天序誤當文王序），其 poemId 與卦象不符。
+   * 舊記錄一律保留原樣不予改寫，僅在顯示時標註，避免竄改使用者的占卜歷史。
+   */
+  engineVersion?: number;
+  hexagramName?: string;
+  movingLine?: number;
+}
+
+/** 判斷記錄是否以已修正的新版卦法產生 */
+export function isLegacyRecord(record: DivinationRecord): boolean {
+  return (record.engineVersion ?? 1) < 2;
 }
 
 export interface Folder {
@@ -219,13 +234,15 @@ export async function removeFromFolder(folderId: string, recordId: string): Prom
 // ====== Daily Fortune ======
 
 export interface DailyFortune {
-  date: string;          // YYYY-MM-DD
+  date: string;          // YYYY-MM-DD（當地時區，非 UTC）
   luckyPiece: string;    // piece type
   luckyColor: string;
   luckyDirection: string;
   luckyNumber: number;
   fortuneLevel: string;
   fortuneText: string;
+  poemId?: number;       // 當日之卦對應的籤詩
+  luckyElement?: string; // 當日主氣五行
 }
 
 export async function getDailyFortune(): Promise<DailyFortune | null> {
@@ -233,8 +250,7 @@ export async function getDailyFortune(): Promise<DailyFortune | null> {
   if (!raw) return null;
   try {
     const fortune = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10);
-    if (fortune.date !== today) return null;
+    if (fortune.date !== todayString()) return null;
     return fortune;
   } catch {
     return null;
@@ -254,6 +270,7 @@ export function recordFromDivination(
   questionCategory?: string,
   questionText?: string,
   positionSummary?: string,
+  hexagram?: { name: string; movingLine?: number },
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: poem.id,
@@ -269,5 +286,8 @@ export function recordFromDivination(
     positionSummary,
     timestamp: Date.now(),
     isFavorited: false,
+    engineVersion: DIVINATION_ENGINE_VERSION,
+    hexagramName: hexagram?.name,
+    movingLine: hexagram?.movingLine,
   };
 }

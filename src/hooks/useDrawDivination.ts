@@ -5,7 +5,9 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import type { ChessPiece } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
-import { drawPiecesMixed, selectPoem, generateDrawSummary } from '@/services/divination';
+import { getPoemById } from '@/data/poems';
+import type { HexagramResult } from '@/services/divination';
+import { drawPieces, computeHexagram, generateDrawSummary } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
 
 export type DrawStep = 'select-count' | 'drawing' | 'result';
@@ -16,6 +18,7 @@ export function useDrawDivination() {
   const [pieceCount, setPieceCount] = useState<1 | 2 | 3>(2);
   const [drawnPieces, setDrawnPieces] = useState<ChessPiece[]>([]);
   const [selectedPoem, setSelectedPoem] = useState<Poem | null>(null);
+  const [hexagram, setHexagram] = useState<HexagramResult | null>(null);
   const [drawSummary, setDrawSummary] = useState('');
   const [questionCategory, setQuestionCategory] = useState<string>('general');
   const [questionText, setQuestionText] = useState<string>('');
@@ -28,12 +31,13 @@ export function useDrawDivination() {
     setStep('drawing');
 
     // 執行抽棋
-    const pieces = drawPiecesMixed(count);
+    const pieces = drawPieces(count);
     setDrawnPieces(pieces);
 
-    // 選擇籤詩
-    const poem = selectPoem(pieces);
-    setSelectedPoem(poem);
+    // 起卦並選擇籤詩
+    const hex = computeHexagram(pieces);
+    setHexagram(hex);
+    setSelectedPoem(getPoemById(hex.poemId));
 
     // 生成摘要
     const summary = generateDrawSummary(pieces);
@@ -51,6 +55,8 @@ export function useDrawDivination() {
       'draw',
       questionCategory,
       questionText,
+      undefined,
+      hexagram ? { name: hexagram.name, movingLine: hexagram.movingLine } : undefined,
     );
     const saved = await addHistory(record);
     setStep('result');
@@ -63,13 +69,14 @@ export function useDrawDivination() {
         mode: 'draw',
       },
     });
-  }, [selectedPoem, drawnPieces, questionCategory, router]);
+  }, [selectedPoem, drawnPieces, questionCategory, questionText, hexagram, router]);
 
   // 重置
   const reset = useCallback(() => {
     setStep('select-count');
     setDrawnPieces([]);
     setSelectedPoem(null);
+    setHexagram(null);
     setDrawSummary('');
   }, []);
 
@@ -78,6 +85,7 @@ export function useDrawDivination() {
     pieceCount,
     drawnPieces,
     selectedPoem,
+    hexagram,
     drawSummary,
     questionCategory,
     setQuestionCategory,
