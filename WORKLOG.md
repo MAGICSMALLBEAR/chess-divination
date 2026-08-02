@@ -4,8 +4,8 @@
 
 | 項目 | 數值 |
 |------|------|
-| 原始碼檔案 | 64 個 |
-| Git Commits | 28 次 |
+| 原始碼檔案 | 70 個 |
+| Git Commits | 30 次 |
 | Jest 測試 | 75 個 · 8 套件 · 全部通過 |
 | TypeScript | 零錯誤 |
 | 頁面 | 12 個 |
@@ -146,6 +146,25 @@ Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncSt
 
 23 檔案、+1632/-284 行。全部功能獨立可運作、無跨功能相依。
 
+## Session 15 — 上架準備 + 程式碼品質收尾（8/2）
+
+Phase 6 完成後的收尾工作。
+
+### 上架素材準備
+- **隱私權政策**：`public/privacy.html`，完整繁體中文隱私權政策（資料收集、通知權限、第三方服務、兒童隱私、聯絡方式），部署於 Vercel
+- **截圖指南**：`SCREENSHOTS_GUIDE.md`，6 張建議截圖場景、App Store/Google Play 尺寸表、四種截圖方法、ImageMagick 後製指令
+- **WORKLOG.md 更新**：Phase 6 13 項 checkbox 全部勾選、Session 14 記錄補上、未來待辦重整
+
+### 程式碼品質修復
+- **路由 `as any` ×4 消除**：`reveal.tsx`、`achievements.tsx`、`onboarding.tsx`、`+not-found.tsx` 改用 Expo Router 原生字串路徑
+- **空 `catch {}` ×9 補 warning**：`haptics.ts`、`useReducedMotion.ts`、`useAnimationSpeed.ts`、`notifications.ts`、`socialShare.ts`、`ShareCardView.tsx`、`reveal.tsx`、`index.tsx` — 全部補上中文 `console.warn`，靜默失敗不再無法追蹤
+- **`cloudSync.ts` 型別化**：定義 `CloudRecord` 介面取代 `as any[]`
+- **`expo-symbols`**：確認是 Expo SDK 57 內建依賴，無法單獨移除，DEVELOPMENT_PLAN.md 已更新備註
+
+### GitHub 推送
+- 全部分支 `master` 已推送至 `MAGICSMALLBEAR/chess-divination`
+- 累積 30 commits，全部通過 CI（TS 零錯誤 + Jest 75 全過 + web build 15 routes）
+
 ---
 
 ## 功能完整清單
@@ -189,30 +208,45 @@ Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncSt
 
 ---
 
-## 未來可開發功能
+## 未來待辦
 
-> 完整的稽核與階段規劃見 [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)。
-> 下一步為 **Phase 4 視覺質感**（導入 `expo-linear-gradient` 做真漸層、`react-native-svg` 取代滿版 Emoji、原生端書法字體）。
+### 🟢 短期（本週可做）
 
-### 🔴 高優先（可立即實作）
-- [x] **成就徽章展示頁** — 在設定或獨立頁面展示 8 種成就的解鎖狀態
-- [x] **頁面過場動畫** — 加入更多轉場效果（fade/slide/scale）
-- [x] **Library 隨機抽籤** — 圖鑑頁面加入「隨機瀏覽」按鈕
-- [x] **問事類別自訂** — 讓使用者自訂問事類別標籤
-- [x] **快捷手勢** — 左右滑動切換歷史記錄/收藏頁籤
-- [x] **棋盤全螢幕模式** — 橫向全螢幕棋盤佈局
+| # | 待辦 | 狀態 | 備註 |
+|---|------|------|------|
+| 1 | **iOS/Android 實機測試** | ⬜ 待做 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端 |
+| 2 | **Vercel 部署驗證** | ⬜ 待做 | 確認 `privacy.html` 可透過 `chess-divination-app.vercel.app/privacy.html` 存取 |
+| 3 | **螢幕截圖製作** | ⬜ 待做 | 照 `SCREENSHOTS_GUIDE.md` 擷取 6 張，上架必需 |
+| 4 | **多語系決策** | ⬜ 待決定 | 選項 A：移除 en/ja 切換器，純繁中定位；選項 B：補齊 64 籤詩翻譯（5 天+） |
 
-### 🟡 中優先（需中等工時）
-- [x] **社群分享優化** — LINE/FB/IG 一鍵分享
-- [x] **離線完整支援** — 所有頁面離線可瀏覽
-- [x] **書法字體原生端** — iOS/Android 載入楷體字型檔
-- [x] **AI API 串接** — DeepSeek/OpenAI 個人化深度解讀
-- [x] **統計圖表視覺化** — 趨勢圖、圓餅圖
-- [x] **音效升級** — 真實象棋落子音效
+### 🟡 中期（需外部資源）
 
-### ⚪ 低優先（需外部資源）
-- [x] **每日推播通知** — expo-notifications
-- [ ] **iOS/Android 原生測試** — 實機安裝
-- [x] **Cloud Sync 雲端同步** — Firebase 或自建後端
-- [x] **App Store / Google Play 上架**（文案與設定已備妥，實際提交需開發者帳號）
-- [ ] **自訂域名** — chess-divination.com
+| # | 待辦 | 狀態 | 備註 |
+|---|------|------|------|
+| 5 | **App Store 實際上架** | 🟡 文案/設定已備妥 | 需 Apple Developer $99/年 + 1024×1024 圖示（已有）+ 6 張截圖 |
+| 6 | **Google Play 實際上架** | 🟡 文案/設定已備妥 | 需 Google Play Console $25 一次性 + 截圖 |
+| 7 | **自訂域名** | ⬜ 待做 | 購買 `chess-divination.com` + DNS 指向 Vercel |
+| 8 | **EAS Build 原生測試** | ⬜ 待做 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
+
+### ⚪ 長期（設計增強）
+
+| # | 待辦 | 狀態 | 備註 |
+|---|------|------|------|
+| 9 | **寬螢幕雙欄佈局** | ⬜ 刻意延後 | 限寬 560px 置中已可讀，雙欄需重新設計資訊層級 |
+| 10 | **原生端書法字體子集化** | ⬜ 刻意延後 | 目前原生端用系統楷書後備，完整 Noto Serif TC 需子集（籤詩用字約 800 字） |
+| 11 | **棋盤重複選子限制** | ⬜ 設計取捨 | 2 顆棋無法組出乾為天/坤為地，但加入位置動爻後變化度已大幅提升 |
+| 12 | **單元測試覆蓋率提升** | ⬜ 待做 | 補 `storage`、`achievements`、`sound`、`notifications` 測試 |
+| 13 | **E2E 測試** | ⬜ 待做 | 抽棋→揭曉→收藏 完整流程自動化測試 |
+| 14 | **多語系完整翻譯** | ⬜ 待決定 | 64 籤詩 + 32 棋子說明 + 成就名稱全翻譯，約 5 天+ |
+
+### ✅ 已全數完成的階段
+
+| 階段 | 內容 | 完成日 |
+|------|------|--------|
+| Phase 0 | 緊急修復（C1/A8-1/C4） | 8/2 |
+| Phase 1 | 命理正確性重建（A1–A10） | 8/2 |
+| Phase 2 | 六爻系統（動爻/變卦/互卦/體用） | 8/2 |
+| Phase 3 | 主題與版面（300+ 硬編色碼歸零） | 8/2 |
+| Phase 4 | 視覺質感（真漸層/SVG/Emoji歸零） | 8/2 |
+| Phase 5 | 動畫重製（Reanimated 4/墨滴轉場） | 8/2 |
+| Phase 6 | 功能補完（13 項新功能） | 8/2 |
