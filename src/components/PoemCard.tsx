@@ -7,7 +7,10 @@ import {
 } from 'react-native';
 import type { Poem } from '@/data/poems';
 import { getLevelColor } from '@/data/poems';
+import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons/Icon';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import type { ThemeColors } from '@/constants/theme';
@@ -22,14 +25,14 @@ interface PoemCardProps {
   onShare?: () => void;
 }
 
-const CATEGORIES: { key: string; label: string; icon: string }[] = [
-  { key: 'general', label: '綜合', icon: '🔮' },
-  { key: 'marriage', label: '感情', icon: '💕' },
-  { key: 'career', label: '事業', icon: '💼' },
-  { key: 'wealth', label: '財運', icon: '💰' },
-  { key: 'health', label: '健康', icon: '💪' },
-  { key: 'study', label: '學業', icon: '📚' },
-  { key: 'travel', label: '出行', icon: '✈️' },
+const CATEGORIES: { key: string; label: string; icon: IconName }[] = [
+  { key: 'general', label: '綜合', icon: 'crystal-ball' },
+  { key: 'marriage', label: '感情', icon: 'love' },
+  { key: 'career', label: '事業', icon: 'career' },
+  { key: 'wealth', label: '財運', icon: 'wealth' },
+  { key: 'health', label: '健康', icon: 'health' },
+  { key: 'study', label: '學業', icon: 'study' },
+  { key: 'travel', label: '出行', icon: 'travel' },
 ];
 
 export default function PoemCard({
@@ -42,6 +45,7 @@ export default function PoemCard({
 }: PoemCardProps) {
   const [expandedCategory, setExpandedCategory] = useState<string>(highlightedCategory);
   const speed = useAnimationSpeed();
+  const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
   const scrollAnim = useRef(new Animated.Value(0)).current;
@@ -195,7 +199,7 @@ export default function PoemCard({
               ]}
               onPress={() => setExpandedCategory(cat.key)}
             >
-              <Text style={styles.categoryIcon}>{cat.icon}</Text>
+              <Icon name={cat.icon} size={16} color={expandedCategory === cat.key ? theme.gold : theme.textMuted} />
               <Text
                 style={[
                   styles.categoryLabel,
@@ -219,12 +223,14 @@ export default function PoemCard({
       {/* 操作按鈕 */}
       <View style={[styles.actions, { width: contentWidth }]}>
         <TouchableOpacity style={styles.favBtn} onPress={onToggleFavorite}>
+          <Icon name={isFavorited ? 'heart-filled' : 'heart'} size={16} color={isFavorited ? theme.textRed : theme.textSecondary} />
           <Text style={styles.favBtnText}>
-            {isFavorited ? '❤️ 已收藏' : '🤍 收藏'}
+            {isFavorited ? ' 已收藏' : ' 收藏'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.shareBtn} onPress={onShare}>
-          <Text style={styles.shareBtnText}>📤 分享</Text>
+          <Icon name="share" size={16} color={theme.textInverse} />
+          <Text style={styles.shareBtnText}> 分享</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -401,12 +407,15 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   favBtn: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: t.bgCard,
     borderWidth: 1,
     borderColor: t.bgMedium,
     paddingVertical: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    gap: 4,
   },
   favBtnText: {
     fontSize: FontSize.body,
@@ -414,10 +423,13 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   shareBtn: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: t.gold,
     paddingVertical: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    gap: 4,
   },
   shareBtnText: {
     fontSize: FontSize.body,

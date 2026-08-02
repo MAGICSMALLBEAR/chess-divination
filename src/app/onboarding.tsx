@@ -5,33 +5,23 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons/Icon';
 import { saveSettings } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 
-const STEPS = [
-  {
-    icon: '🎲',
-    title: '歡迎來到象棋占卜',
-    desc: '以棋問道，觀象知機。\n從古老的象棋智慧中，\n尋找人生的方向與啟發。',
-  },
-  {
-    icon: '♟️',
-    title: '雙重占卜模式',
-    desc: '抽棋占卜：從32顆棋子中\n隨機抽取，快速獲得指引。\n\n棋盤佈局：親手擺放棋子，\n深入探索心中的疑問。',
-  },
-  {
-    icon: '📜',
-    title: '64首原創籤詩',
-    desc: '每首籤詩對應易經64卦，\n融入象棋意象，\n七言絕句搭配全方位解讀。',
-  },
-  {
-    icon: '❤️',
-    title: '記錄與收藏',
-    desc: '每次占卜結果都會自動儲存，\n方便回顧與反思。\n喜歡的結果可以加入收藏。',
-  },
+const STEPS: { icon: IconName; title: string; desc: string }[] = [
+  { icon: 'dice', title: '歡迎來到象棋占卜',
+    desc: '以棋問道，觀象知機。\n從古老的象棋智慧中，\n尋找人生的方向與啟發。' },
+  { icon: 'chess-board', title: '雙重占卜模式',
+    desc: '抽棋占卜：從32顆棋子中\n隨機抽取，快速獲得指引。\n\n棋盤佈局：親手擺放棋子，\n深入探索心中的疑問。' },
+  { icon: 'scroll', title: '64首原創籤詩',
+    desc: '每首籤詩對應易經64卦，\n融入象棋意象，\n七言絕句搭配全方位解讀。' },
+  { icon: 'heart', title: '記錄與收藏',
+    desc: '每次占卜結果都會自動儲存，\n方便回顧與反思。\n喜歡的結果可以加入收藏。' },
 ];
 
 export default function OnboardingScreen() {
@@ -69,7 +59,7 @@ export default function OnboardingScreen() {
 
         {/* 內容 */}
         <View style={styles.content}>
-          <Text style={styles.icon}>{step.icon}</Text>
+          <Icon name={step.icon} size={80} color={theme.gold} />
           <Text style={styles.title}>{step.title}</Text>
           <Text style={styles.desc}>{step.desc}</Text>
         </View>
@@ -87,7 +77,12 @@ export default function OnboardingScreen() {
         {/* 按鈕 */}
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
           <Text style={styles.nextBtnText}>
-            {currentStep < STEPS.length - 1 ? '下一步 →' : '開始占卜 🔮'}
+            <Text style={styles.nextBtnText}>
+              {currentStep < STEPS.length - 1 ? '下一步 →' : '開始占卜'}
+            </Text>
+            {currentStep === STEPS.length - 1 && (
+              <Icon name="crystal-ball" size={18} color={theme.textInverse} />
+            )}
           </Text>
         </TouchableOpacity>
       </View>
@@ -129,8 +124,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     backgroundColor: t.gold, width: 24,
   },
   nextBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     backgroundColor: t.gold, paddingVertical: 16,
-    borderRadius: 16, alignItems: 'center',
+    borderRadius: 16, gap: 4,
   },
   nextBtnText: { fontSize: FontSize.body, fontWeight: '700', color: t.textInverse },
 });

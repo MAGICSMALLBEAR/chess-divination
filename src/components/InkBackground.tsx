@@ -1,18 +1,17 @@
 // 水墨背景元件
 // 墨色渲染 + 粒子動畫，營造水墨畫意境
 //
-// 本元件每一頁都會用到，原本三段背景色與粒子色全部硬編為深色，
-// 是亮色主題整片維持黑底的主因；尺寸也在模組載入時取一次，
-// 旋轉與視窗縮放皆不重算。現改為跟隨主題並使用 useWindowDimensions。
+// v2：三段式純色 View 改為 expo-linear-gradient 真漸層，
+// 水墨粒子維持既有的 Animated API（Reanimated 遷移留待 Phase 5）。
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 const PARTICLE_COUNT = 15;
 
 interface InkParticle {
-  /** 相對位置 0–1，實際座標依當前視窗尺寸換算，故縮放時不需重建粒子 */
   xRatio: number;
   yRatio: number;
   size: number;
@@ -42,8 +41,6 @@ export default function InkBackground() {
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    // 舊版以遞迴 start() 無限循環且從未在卸載時停止，
-    // 多頁堆疊時會累積多份循環持續佔用 JS 執行緒。
     particles.forEach(p => {
       const timer = setTimeout(() => {
         const opacityLoop = Animated.loop(
@@ -95,16 +92,20 @@ export default function InkBackground() {
     };
   }, [particles]);
 
+  // 暗色主題：墨色由上而下，深墨水漸層至暖褐底
+  // 亮色主題：宣紙暖白由上而下，底部略帶紙紋暗色
+  const gradientColors = isDark
+    ? [theme.bgInk, theme.bgDark, theme.bgCard]
+    : [theme.bgRice, theme.bgDark, theme.bgMedium];
+
   return (
     <View style={styles.container} pointerEvents="none">
-      {/* 三段式底色。亮色主題由淺至深、暗色主題由深至淺，方向相反 */}
-      <View style={styles.gradient}>
-        <View style={[styles.gradientTop, { backgroundColor: theme.bgInk }]} />
-        <View style={[styles.gradientMiddle, { backgroundColor: theme.bgDark }]} />
-        <View style={[styles.gradientBottom, { backgroundColor: theme.bgCard }]} />
-      </View>
+      <LinearGradient
+        colors={gradientColors as [string, string, string]}
+        locations={[0, 0.4, 1]}
+        style={styles.gradient}
+      />
 
-      {/* 水墨粒子。亮色主題下墨點才看得見，金色會糊成一片 */}
       {particles.map((p, i) => (
         <Animated.View
           key={i}
@@ -135,8 +136,5 @@ const styles = StyleSheet.create({
   gradient: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
   },
-  gradientTop: { flex: 1 },
-  gradientMiddle: { flex: 1 },
-  gradientBottom: { flex: 2 },
   particle: { position: 'absolute' },
 });

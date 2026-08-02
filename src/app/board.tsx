@@ -7,6 +7,8 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ChessBoard from '@/components/ChessBoard';
+import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons/Icon';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
@@ -21,14 +23,14 @@ function cellSizeFor(width: number): number {
   return Math.min(44, (width - 32) / 9);
 }
 
-const QUESTION_CATEGORIES = [
-  { key: 'general', label: '綜合', icon: '🔮' },
-  { key: 'marriage', label: '感情', icon: '💕' },
-  { key: 'career', label: '事業', icon: '💼' },
-  { key: 'wealth', label: '財運', icon: '💰' },
-  { key: 'health', label: '健康', icon: '💪' },
-  { key: 'study', label: '學業', icon: '📚' },
-  { key: 'travel', label: '出行', icon: '✈️' },
+const QUESTION_CATEGORIES: { key: string; label: string; icon: IconName }[] = [
+  { key: 'general', label: '綜合', icon: 'crystal-ball' },
+  { key: 'marriage', label: '感情', icon: 'love' },
+  { key: 'career', label: '事業', icon: 'career' },
+  { key: 'wealth', label: '財運', icon: 'wealth' },
+  { key: 'health', label: '健康', icon: 'health' },
+  { key: 'study', label: '學業', icon: 'study' },
+  { key: 'travel', label: '出行', icon: 'travel' },
 ];
 
 export default function BoardScreen() {
@@ -84,7 +86,8 @@ export default function BoardScreen() {
               ]}
               onPress={() => setSelectedCategory(cat.key)}
             >
-              <Text style={styles.categoryChipLabel}>{cat.icon} {cat.label}</Text>
+              <Icon name={cat.icon} size={14} color={selectedCategory === cat.key ? theme.gold : theme.textMuted} />
+              <Text style={styles.categoryChipLabel}> {cat.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -101,9 +104,12 @@ export default function BoardScreen() {
 
         {/* 首次提示 */}
         {placedPieces.length === 0 && !selectedPiece && (
-          <Text style={[styles.hintText, { color: theme.textMuted }]}>
-            💡 先從下方棋子庫選擇一顆棋子，再點擊棋盤上的 + 號放置
-          </Text>
+          <View style={styles.hintRow}>
+            <Icon name="lightbulb" size={16} color={theme.textMuted} />
+            <Text style={[styles.hintText, { color: theme.textMuted }]}>
+              {' '}先從下方棋子庫選擇一顆棋子，再點擊棋盤上的 + 號放置
+            </Text>
+          </View>
         )}
 
         {/* 棋盤 */}
@@ -125,17 +131,19 @@ export default function BoardScreen() {
             style={[styles.poolTab, showRedPieces && styles.poolTabActive]}
             onPress={() => setShowRedPieces(true)}
           >
-            <Text style={[styles.poolTabText, showRedPieces && styles.poolTabTextActive]}>
-              🔴 紅方
-            </Text>
+            <View style={styles.poolTabInner}>
+              <View style={[styles.colorDot, { backgroundColor: theme.cinnabar }]} />
+              <Text style={[styles.poolTabText, showRedPieces && styles.poolTabTextActive]}> 紅方</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.poolTab, !showRedPieces && styles.poolTabActive]}
             onPress={() => setShowRedPieces(false)}
           >
-            <Text style={[styles.poolTabText, !showRedPieces && styles.poolTabTextActive]}>
-              ⚫ 黑方
-            </Text>
+            <View style={styles.poolTabInner}>
+              <View style={[styles.colorDot, { backgroundColor: theme.ink }]} />
+              <Text style={[styles.poolTabText, !showRedPieces && styles.poolTabTextActive]}> 黑方</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -147,18 +155,22 @@ export default function BoardScreen() {
             disabled={placedPieces.length === 0}
           >
             <Text style={styles.interpretBtnText}>
-              已放置 {placedPieces.length}/{maxPieces} 顆 — 🔮 解讀佈局
+              已放置 {placedPieces.length}/{maxPieces} 顆 —{' '}
             </Text>
+            <Icon name="crystal-ball" size={16} color={theme.textInverse} />
+            <Text style={styles.interpretBtnText}> 解讀佈局</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.resetBtn} onPress={reset}>
-            <Text style={styles.resetBtnText}>🔄 重新佈局</Text>
+            <Icon name="refresh" size={16} color={theme.textSecondary} />
+            <Text style={styles.resetBtnText}> 重新佈局</Text>
           </TouchableOpacity>
           {placedPieces.length > 0 && (
             <TouchableOpacity style={styles.undoBtn} onPress={() => {
               const last = placedPieces[placedPieces.length - 1];
               if (last) removePieceFromBoard(last.col, last.row);
             }}>
-              <Text style={styles.undoBtnText}>↩️ 撤銷上一步</Text>
+              <Icon name="undo" size={16} color={theme.textSecondary} />
+              <Text style={styles.undoBtnText}> 撤銷上一步</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -186,6 +198,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', gap: 6, paddingHorizontal: Spacing.md,
   },
   categoryChip: {
+    flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14,
     backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
@@ -216,32 +229,40 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   poolTabActive: {
     borderColor: t.gold, backgroundColor: t.bgMedium,
   },
+  poolTabInner: { flexDirection: 'row', alignItems: 'center' },
   poolTabText: { fontSize: 14, color: t.textMuted },
   poolTabTextActive: { color: t.textGold, fontWeight: '600' },
+  colorDot: { width: 10, height: 10, borderRadius: 5 },
   controls: {
     width: '100%',
     marginTop: Spacing.lg,
     gap: Spacing.sm,
   },
   interpretBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     backgroundColor: t.gold, paddingVertical: 14,
-    borderRadius: 12, alignItems: 'center',
+    borderRadius: 12, gap: 4,
   },
   btnDisabled: { opacity: 0.4 },
   interpretBtnText: { fontSize: FontSize.body, fontWeight: '700', color: t.textInverse },
   resetBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: t.bgMedium,
-    paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+    paddingVertical: 12, borderRadius: 12, gap: 4,
   },
   resetBtnText: { fontSize: FontSize.body, color: t.textMuted },
   undoBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: t.gold,
-    paddingVertical: 10, borderRadius: 12, alignItems: 'center',
+    paddingVertical: 10, borderRadius: 12, gap: 4,
     marginTop: 4,
   },
   undoBtnText: { fontSize: FontSize.body, color: t.textGold },
-  hintText: {
-    textAlign: 'center', fontSize: 13,
+  hintRow: {
+    flexDirection: 'row', alignItems: 'center',
     marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
+  },
+  hintText: {
+    textAlign: 'center', fontSize: 13, flex: 1,
   },
 });

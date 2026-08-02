@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import { Icon } from '@/components/icons';
 import type { DivinationRecord, Folder } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -242,7 +243,7 @@ export default function CollectionScreen() {
           {/* 資料夾列表 */}
           {folders.length === 0 && (
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📁</Text>
+              <Icon name="folder" size={40} color={theme.textMuted} />
               <Text style={styles.emptyText}>尚無資料夾</Text>
               <Text style={styles.emptyHint}>建立資料夾來分類整理收藏</Text>
             </View>
@@ -254,7 +255,7 @@ export default function CollectionScreen() {
                 <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
                 <Text style={[styles.folderCount, { color: theme.textMuted }]}>{folder.recordIds.length} 筆</Text>
                 <TouchableOpacity onPress={() => handleDeleteFolder(folder.id)}>
-                  <Text style={{ color: theme.textRed, fontSize: 14 }}>🗑️</Text>
+                  <Icon name="trash" size={14} color={theme.textRed} />
                 </TouchableOpacity>
               </View>
               {/* 資料夾內記錄預覽 */}
@@ -281,7 +282,7 @@ export default function CollectionScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
         {data.length === 0 && (
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📜</Text>
+            <Icon name="scroll" size={40} color={theme.textMuted} />
             <Text style={styles.emptyText}>
               {tab === 'history' ? '尚無占卜記錄' : '尚無收藏記錄'}
             </Text>
@@ -318,9 +319,10 @@ export default function CollectionScreen() {
                 ]}>
                   <Text style={styles.levelMiniText}>{record.poemLevel}</Text>
                 </View>
-                <Text style={styles.modeLabel}>
-                  {record.mode === 'draw' ? '🎲 抽棋' : '♟️ 佈局'}
-                </Text>
+                <View style={styles.modeRow}>
+                  <Icon name={record.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={theme.textMuted} />
+                  <Text style={styles.modeLabel}> {record.mode === 'draw' ? '抽棋' : '佈局'}</Text>
+                </View>
               </View>
               <Text style={styles.cardTitle} numberOfLines={1}>
                 {record.poemTitle}
@@ -329,15 +331,13 @@ export default function CollectionScreen() {
             </View>
             <View style={styles.cardRight}>
               <TouchableOpacity onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
-                <Text style={styles.folderIcon}>📁</Text>
+                <Icon name="folder" size={18} color={theme.textMuted} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleToggleFav(record)}>
-                <Text style={styles.favIcon}>
-                  {record.isFavorited ? '❤️' : '🤍'}
-                </Text>
+                <Icon name={record.isFavorited ? 'heart-filled' : 'heart'} size={18} color={record.isFavorited ? theme.textRed : theme.textMuted} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(record.id)}>
-                <Text style={styles.deleteIcon}>🗑️</Text>
+                <Icon name="trash" size={16} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
             {/* 資料夾選擇器 */}
@@ -421,6 +421,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: 4 },
   levelMini: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   levelMiniText: { fontSize: 11, fontWeight: '700', color: PaperSurface.onLevel },
+  modeRow: { flexDirection: 'row', alignItems: 'center' },
   modeLabel: { fontSize: 11, color: t.textMuted },
   cardTitle: { fontSize: FontSize.body, fontWeight: '600', color: t.textPrimary },
   cardDate: { fontSize: FontSize.caption, color: t.textMuted, marginTop: 2 },

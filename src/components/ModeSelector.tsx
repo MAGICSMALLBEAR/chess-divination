@@ -3,10 +3,12 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Icon } from '@/components/icons';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'draw' | 'board') => void;
@@ -14,6 +16,7 @@ interface ModeSelectorProps {
 
 export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
   const styles = useThemedStyles(makeStyles);
+  const { theme } = useAppTheme();
   const { contentWidth } = useLayout();
   const cardWidth = (contentWidth - Spacing.md) / 2;
 
@@ -32,7 +35,9 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           accessibilityLabel="抽棋占卜 從32顆棋子中隨機抽取"
         >
           <View style={styles.cardInner}>
-            <Text style={styles.cardIcon}>🎲</Text>
+            <View style={styles.cardIcon}>
+              <Icon name="dice" size={40} color={theme.gold} />
+            </View>
             <Text style={styles.cardTitle}>抽棋占卜</Text>
             <Text style={styles.cardDesc}>
               從32顆棋子中{'\n'}隨機抽取1-3顆{'\n'}觀棋象而知天機
@@ -50,7 +55,9 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           activeOpacity={0.8}
         >
           <View style={styles.cardInner}>
-            <Text style={styles.cardIcon}>♟️</Text>
+            <View style={styles.cardIcon}>
+              <Icon name="chess-board" size={40} color={theme.gold} />
+            </View>
             <Text style={styles.cardTitle}>棋盤佈局</Text>
             <Text style={styles.cardDesc}>
               在棋盤上親手{'\n'}擺放棋子位置{'\n'}佈局問道更深層
@@ -101,7 +108,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
   },
   cardIcon: {
-    fontSize: 40,
+    alignItems: 'center',
     marginBottom: Spacing.sm,
   },
   cardTitle: {

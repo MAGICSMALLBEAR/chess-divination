@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons/Icon';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getAchievements, getStreak, type Achievement } from '@/services/achievements';
@@ -32,6 +34,16 @@ export default function AchievementsScreen() {
   const total = achievements.length;
   const pct = Math.round((unlocked / total) * 100);
 
+  // 成就圖示從 emoji 字串 → IconName 的對映
+  function achievementIcon(emoji: string): IconName {
+    const map: Record<string, IconName> = {
+      '🎲': 'dice', '🔮': 'crystal-ball', '👑': 'trophy',
+      '♟️': 'chess-board', '❤️': 'heart', '🔥': 'flame',
+      '☯️': 'refresh', '📜': 'scroll',
+    };
+    return map[emoji] || 'star';
+  }
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -47,7 +59,10 @@ export default function AchievementsScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* 總覽卡片 */}
         <View style={[styles.overviewCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.overviewTitle, { color: theme.gold }]}>🏆 成就進度</Text>
+          <View style={styles.overviewTitleRow}>
+            <Icon name="trophy" size={18} color={theme.gold} />
+            <Text style={[styles.overviewTitle, { color: theme.gold }]}> 成就進度</Text>
+          </View>
           <View style={styles.progressRow}>
             {/* 進度環 */}
             <View style={styles.progressRing}>
@@ -61,7 +76,12 @@ export default function AchievementsScreen() {
             <View style={styles.overviewStats}>
               <Text style={[styles.statBig, { color: theme.textPrimary }]}>{unlocked}<Text style={[styles.statSmall, { color: theme.textMuted }]}>/{total}</Text></Text>
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>已解鎖</Text>
-              <Text style={[styles.statExtra, { color: theme.textMuted }]}>🔥 連續 {streak} 天 · 📜 {totalDraws} 次占卜</Text>
+              <View style={styles.statExtraRow}>
+                <Icon name="flame" size={14} color={theme.textMuted} />
+                <Text style={[styles.statExtra, { color: theme.textMuted }]}> 連續 {streak} 天 · </Text>
+                <Icon name="scroll" size={14} color={theme.textMuted} />
+                <Text style={[styles.statExtra, { color: theme.textMuted }]}> {totalDraws} 次占卜</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -71,7 +91,7 @@ export default function AchievementsScreen() {
           {achievements.map(ach => (
             <View key={ach.id} style={[styles.achRow, ach.unlocked && styles.achUnlocked]}>
               <View style={[styles.achIcon, !ach.unlocked && { opacity: 0.3 }]}>
-                <Text style={styles.achEmoji}>{ach.icon}</Text>
+                <Icon name={achievementIcon(ach.icon)} size={28} color={ach.unlocked ? theme.gold : theme.textMuted} />
               </View>
               <View style={styles.achInfo}>
                 <Text style={[styles.achTitle, { color: ach.unlocked ? theme.textPrimary : theme.textMuted }]}>
@@ -82,9 +102,7 @@ export default function AchievementsScreen() {
                 </Text>
               </View>
               <View style={[styles.achStatus, ach.unlocked && { backgroundColor: theme.gold + '30' }]}>
-                <Text style={[styles.achStatusText, { color: ach.unlocked ? theme.gold : theme.textMuted }]}>
-                  {ach.unlocked ? '✓' : '🔒'}
-                </Text>
+                <Icon name={ach.unlocked ? 'check' : 'lock'} size={14} color={ach.unlocked ? theme.gold : theme.textMuted} />
               </View>
             </View>
           ))}
@@ -93,7 +111,8 @@ export default function AchievementsScreen() {
         {/* 回到首頁 */}
         <TouchableOpacity style={[styles.homeBtn, { borderColor: theme.bgMedium }]}
           onPress={() => router.replace('/(tabs)' as any)}>
-          <Text style={[styles.homeBtnText, { color: theme.textSecondary }]}>🏠 回首頁</Text>
+          <Icon name="home" size={16} color={theme.textSecondary} />
+          <Text style={[styles.homeBtnText, { color: theme.textSecondary }]}> 回首頁</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -113,7 +132,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     borderRadius: 16, borderWidth: 1, padding: Spacing.lg, marginBottom: Spacing.md,
     alignItems: 'center',
   },
-  overviewTitle: { fontSize: FontSize.body, fontWeight: '600', marginBottom: Spacing.md },
+  overviewTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
+  overviewTitle: { fontSize: FontSize.body, fontWeight: '600' },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg },
   progressRing: {
     width: 80, height: 80, borderRadius: 40,
@@ -133,7 +153,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   statBig: { fontSize: FontSize.subtitle, fontWeight: '900' },
   statSmall: { fontSize: FontSize.body, fontWeight: '400' },
   statLabel: { fontSize: FontSize.small, marginTop: 2 },
-  statExtra: { fontSize: FontSize.caption, marginTop: 6 },
+  statExtraRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  statExtra: { fontSize: FontSize.caption },
   listCard: {
     borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: Spacing.md,
   },
@@ -153,8 +174,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   achStatusText: { fontSize: 16, fontWeight: '700' },
   homeBtn: {
-    borderWidth: 1, borderRadius: 12, paddingVertical: 12,
-    alignItems: 'center',
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderRadius: 12, paddingVertical: 12, gap: 4,
   },
   homeBtnText: { fontSize: FontSize.body },
 });

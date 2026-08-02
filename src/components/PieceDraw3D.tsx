@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import type { ChessPiece as ChessPieceType } from '@/data/pieces';
 import { getPieceTrigramName, getPieceTrigramGlyph } from '@/data/pieces';
+import { Icon } from '@/components/icons';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -334,7 +335,6 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
             <View style={styles.bowlBody}>
               <View style={styles.bowlRim} />
               <View style={styles.bowlContent}>
-                <Text style={styles.bowlEmoji}>🏺</Text>
                 <Text style={styles.bowlText}>誠心問道</Text>
               </View>
               <View style={styles.bowlBase} />
@@ -362,9 +362,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
               },
             ]}
           >
-            <View style={styles.bowlBody}>
-              <Text style={styles.bowlEmoji}>🏺</Text>
-            </View>
+            <View style={styles.bowlBody} />
           </Animated.View>
         )}
 
@@ -480,10 +478,12 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
           ]}
         >
           <TouchableOpacity style={styles.revealBtn} onPress={onReveal}>
-            <Text style={styles.revealBtnText}>🔮 揭露籤詩</Text>
+            <Icon name="crystal-ball" size={18} color={theme.textInverse} />
+            <Text style={styles.revealBtnText}> 揭露籤詩</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.redrawBtn} onPress={onRedraw}>
-            <Text style={styles.redrawBtnText}>🔄 重新抽取</Text>
+            <Icon name="refresh" size={18} color={theme.textSecondary} />
+            <Text style={styles.redrawBtnText}> 重新抽取</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -615,15 +615,17 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     gap: Spacing.sm, marginTop: 20,
   },
   revealBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     backgroundColor: t.gold, paddingVertical: 14,
-    borderRadius: 12, alignItems: 'center',
+    borderRadius: 12, gap: 4,
   },
   revealBtnText: {
     fontSize: FontSize.body, fontWeight: '700', color: t.textInverse,
   },
   redrawBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: t.bgMedium,
-    paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+    paddingVertical: 12, borderRadius: 12, gap: 4,
   },
   redrawBtnText: { fontSize: FontSize.body, color: t.textMuted },
 });

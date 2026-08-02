@@ -10,6 +10,7 @@ import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView'
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
 import Spinner from '@/components/Spinner';
+import { Icon } from '@/components/icons';
 import { buildLiuYaoReading } from '@/services/liuyao';
 import { trigramsFromIndex } from '@/services/hexagram';
 import type { DivinationRecord } from '@/services/storage';
@@ -226,15 +227,17 @@ export default function RevealScreen() {
 
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.newBtn} onPress={handleNewDraw}>
+          <Icon name={mode === 'board' ? 'chess-board' : 'dice'} size={18} color={theme.gold} />
           <Text style={styles.newBtnText}>
-            {mode === 'board' ? '♟️ 重新佈局' : '🎲 再次抽棋'}
+            {mode === 'board' ? ' 重新佈局' : ' 再次抽棋'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.homeBtn}
           onPress={() => router.replace('/(tabs)' as any)}
         >
-          <Text style={styles.homeBtnText}>🏠 回首頁</Text>
+          <Icon name="home" size={16} color={theme.textSecondary} />
+          <Text style={styles.homeBtnText}> 回首頁</Text>
         </TouchableOpacity>
        </View>
       </ScrollView>
@@ -251,6 +254,10 @@ export default function RevealScreen() {
           pieceColors={record.drawnPieceColors}
           mode={record.mode}
           timestamp={record.timestamp}
+          hexagramIndex={record.hexagramIndex}
+          movingLine={record.movingLine}
+          changedName={reading?.changed.name}
+          bodyUseRelation={reading ? `${reading.bodyUse.relation} · ${reading.bodyUse.level}` : undefined}
         />
       </View>
     </SafeAreaView>
@@ -406,13 +413,15 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   shareBtnText: { fontSize: FontSize.body, fontWeight: '600', color: t.textInverse },
   newBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     width: '100%', borderWidth: 1, borderColor: t.bgMedium,
-    paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: Spacing.sm,
+    paddingVertical: 12, borderRadius: 12, marginTop: Spacing.sm, gap: 4,
   },
   newBtnText: { fontSize: FontSize.body, color: t.textGold },
   homeBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     width: '100%',
-    paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 4,
+    paddingVertical: 12, borderRadius: 12, marginTop: 4, gap: 4,
   },
   homeBtnText: { fontSize: FontSize.body, color: t.textMuted },
   aiBox: {

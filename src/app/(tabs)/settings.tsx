@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import { Icon } from '@/components/icons';
 import type { AppSettings } from '@/services/storage';
 import { getSettings, saveSettings } from '@/services/storage';
 import { setSoundEnabled } from '@/services/sound';
@@ -115,9 +116,12 @@ export default function SettingsScreen() {
                 <TouchableOpacity key={mode}
                   style={[styles.option, settings.themeMode === mode && { borderColor: theme.gold }]}
                   onPress={() => update('themeMode', mode)}>
-                  <Text style={[styles.optionText, settings.themeMode === mode && { color: theme.gold }]}>
-                    {mode === 'dark' ? '🌙 墨色' : mode === 'light' ? '☀️ 宣紙' : '🔄 跟隨系統'}
-                  </Text>
+                  <View style={styles.optionInner}>
+                    <Icon name={mode === 'dark' ? 'moon' : mode === 'light' ? 'sun' : 'refresh'} size={16} color={settings.themeMode === mode ? theme.gold : theme.textMuted} />
+                    <Text style={[styles.optionText, settings.themeMode === mode && { color: theme.gold }]}>
+                      {mode === 'dark' ? ' 墨色' : mode === 'light' ? ' 宣紙' : ' 跟隨系統'}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -175,15 +179,24 @@ export default function SettingsScreen() {
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           <Text style={[styles.sectionTitle, { color: theme.gold }]}>工具</Text>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/library')}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>📜 籤詩圖鑑</Text>
+            <View style={styles.optionInner}>
+              <Icon name="scroll" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> 籤詩圖鑑</Text>
+            </View>
             <Text style={{ color: theme.textMuted }}>瀏覽 64 首籤詩 →</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/stats')}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>📊 占卜統計</Text>
+            <View style={styles.optionInner}>
+              <Icon name="chart" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> 占卜統計</Text>
+            </View>
             <Text style={{ color: theme.textMuted }}>查看統計數據 →</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/achievements')}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>🏆 成就徽章</Text>
+            <View style={styles.optionInner}>
+              <Icon name="trophy" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> 成就徽章</Text>
+            </View>
             <Text style={{ color: theme.textMuted }}>查看解鎖進度 →</Text>
           </TouchableOpacity>
         </View>
@@ -192,16 +205,25 @@ export default function SettingsScreen() {
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           <Text style={[styles.sectionTitle, { color: theme.gold }]}>資料管理</Text>
           <TouchableOpacity style={styles.row} onPress={handleBackup}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>💾 備份資料</Text>
+            <View style={styles.optionInner}>
+              <Icon name="save" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> 備份資料</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={handleRestore}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>📥 還原資料</Text>
+            <View style={styles.optionInner}>
+              <Icon name="download" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> 還原資料</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={async () => {
             await update('hasCompletedOnboarding', false);
             Alert.alert('已重置', '下次開啟App時將重新顯示引導');
           }}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>🎓 重新觀看引導</Text>
+            <View style={styles.optionInner}>
+              <Icon name="graduation" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> 重新觀看引導</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => {
             Alert.alert('清除所有歷史', '確定要清除所有占卜記錄嗎？此操作無法復原。', [
@@ -209,7 +231,10 @@ export default function SettingsScreen() {
               { text: '清除', style: 'destructive', onPress: async () => { await clearHistory(); Alert.alert('已清除'); } },
             ]);
           }}>
-            <Text style={[styles.label, { color: theme.textRed }]}>🗑️ 清除所有歷史</Text>
+            <View style={styles.optionInner}>
+              <Icon name="trash" size={16} color={theme.textRed} />
+              <Text style={[styles.label, { color: theme.textRed }]}> 清除所有歷史</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -250,6 +275,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
+  optionInner: { flexDirection: 'row', alignItems: 'center' },
   optionText: { fontSize: 13, color: t.textMuted },
   nameInput: {
     flex: 1, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8,

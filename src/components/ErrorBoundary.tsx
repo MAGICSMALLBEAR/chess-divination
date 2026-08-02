@@ -4,6 +4,7 @@
 // 且可能在 ThemeProvider 本身出錯時才被觸發，此時不能依賴主題 context。
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { Icon } from '@/components/icons';
 import { FallbackPalette, Spacing, FontSize } from '@/constants/theme';
 
 interface Props { children: React.ReactNode; }
@@ -28,7 +29,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       return (
         <SafeAreaView style={styles.container}>
           <View style={styles.content}>
-            <Text style={styles.icon}>⚠️</Text>
+            <Icon name="warning" size={56} color={FallbackPalette.gold} />
             <Text style={styles.title}>發生了一些問題</Text>
             <Text style={styles.message}>
               {this.state.error?.message || '未知錯誤'}

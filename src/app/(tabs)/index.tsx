@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
+import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
 import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
@@ -15,15 +16,6 @@ import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
-
-const PIECE_EMOJIS: Record<string, string> = {
-  king: '👑', advisor: '🎓', elephant: '🐘',
-  chariot: '🏰', horse: '🐴', cannon: '💣', pawn: '⚔️',
-};
-const PIECE_NAMES: Record<string, string> = {
-  king: '帥/將', advisor: '仕/士', elephant: '相/象',
-  chariot: '車', horse: '馬', cannon: '炮/砲', pawn: '兵/卒',
-};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -72,9 +64,12 @@ export default function HomeScreen() {
           <Text style={styles.appName}>{t('home.title')}</Text>
           <Text style={styles.tagline}>{t('home.tagline')}</Text>
           {streak > 1 && (
-            <Text style={[styles.streakText, { color: theme.gold }]}>
-              🔥 連續 {streak} 天
-            </Text>
+            <View style={styles.iconRow}>
+              <Icon name="flame" size={14} color={theme.gold} />
+              <Text style={[styles.streakText, { color: theme.gold }]}>
+                {' '}連續 {streak} 天
+              </Text>
+            </View>
           )}
         </View>
 
@@ -86,14 +81,17 @@ export default function HomeScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.dailyHeaderRow}>
-              <Text style={[styles.dailyTitle, { color: theme.gold }]}>📍 {t('home.daily')}</Text>
+              <View style={styles.iconRow}>
+                <Icon name="location" size={18} color={theme.gold} />
+                <Text style={[styles.dailyTitle, { color: theme.gold }]}> {t('home.daily')}</Text>
+              </View>
               <TouchableOpacity onPress={() => {
                 if (!dailyFortune) return;
-                const text = `🏮 今日棋運：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n幸運棋子：${PIECE_NAMES[dailyFortune.luckyPiece]}\n幸運方位：${dailyFortune.luckyDirection}\n幸運數字：${dailyFortune.luckyNumber}\n幸運色：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
+                const text = `今日棋運：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n幸運棋子：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n幸運方位：${dailyFortune.luckyDirection}\n幸運數字：${dailyFortune.luckyNumber}\n幸運色：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
                 try { navigator.share?.({ title: '象棋占卜 - 今日運勢', text }); } catch {}
                 try { navigator.clipboard?.writeText(text); } catch {}
               }}>
-                <Text style={{ fontSize: 16 }}>📤</Text>
+                <Icon name="share" size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             <View style={styles.dailyContent}>
@@ -104,10 +102,10 @@ export default function HomeScreen() {
               <View style={styles.dailyDetails}>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>幸運棋子</Text>
-                  <Text style={styles.detailValue}>
-                    {PIECE_EMOJIS[dailyFortune.luckyPiece] || '🎯'}{' '}
-                    {PIECE_NAMES[dailyFortune.luckyPiece]}
-                  </Text>
+                  <View style={styles.iconRow}>
+                    <PieceIcon type={dailyFortune.luckyPiece} color="red" size={20} />
+                    <Text style={styles.detailValue}> {PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}</Text>
+                  </View>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>幸運方位</Text>
@@ -129,7 +127,10 @@ export default function HomeScreen() {
         {/* 最近紀錄 */}
         {recentRecords.length > 0 && (
           <View style={[styles.recentSection, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.recentTitle, { color: theme.gold }]}>📜 最近占卜</Text>
+            <View style={styles.iconRow}>
+              <Icon name="scroll" size={16} color={theme.gold} />
+              <Text style={[styles.recentTitle, { color: theme.gold }]}> 最近占卜</Text>
+            </View>
             {recentRecords.map(r => (
               <TouchableOpacity key={r.id} style={styles.recentRow}
                 onPress={() => router.push({ pathname: '/reveal', params: { recordId: r.id, mode: r.mode } })}>
@@ -147,7 +148,10 @@ export default function HomeScreen() {
           onPress={() => router.push('/draw')}
           activeOpacity={0.8}
         >
-          <Text style={styles.quickDrawText}>🎲 快速抽一籤</Text>
+          <View style={styles.iconRow}>
+            <Icon name="dice" size={18} color={theme.textInverse} />
+            <Text style={styles.quickDrawText}> 快速抽一籤</Text>
+          </View>
           <Text style={styles.quickDrawSub}>直接抽取 2 顆棋子獲得指引</Text>
         </TouchableOpacity>
 
@@ -217,6 +221,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     marginHorizontal: Spacing.xl, marginTop: Spacing.md,
     padding: Spacing.md, alignItems: 'center',
   },
+  iconRow: { flexDirection: 'row', alignItems: 'center' },
   quote: {
     fontSize: FontSize.small, color: t.textMuted, textAlign: 'center',
     lineHeight: 24, fontStyle: 'italic',

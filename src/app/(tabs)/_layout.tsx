@@ -1,12 +1,14 @@
 // Tab 導覽配置 + 首次引導檢查
 import { Tabs, useRouter } from 'expo-router';
-import { Platform, Text } from 'react-native';
+import { Platform } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons/Icon';
 import { getSettings } from '@/services/storage';
 
-function TabIcon({ emoji }: { emoji: string }) {
-  return <Text style={{ fontSize: 22 }}>{emoji}</Text>;
+function TabIcon({ name, color }: { name: IconName; color: string | { toString(): string } }) {
+  return <Icon name={name} size={22} color={String(color)} />;
 }
 
 export default function TabLayout() {
@@ -50,21 +52,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '首頁',
-          tabBarIcon: () => <TabIcon emoji="🏠" />,
+          tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="collection"
         options={{
           title: '收藏',
-          tabBarIcon: () => <TabIcon emoji="📜" />,
+          tabBarIcon: ({ color }) => <TabIcon name="scroll" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: '設定',
-          tabBarIcon: () => <TabIcon emoji="⚙️" />,
+          tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
         }}
       />
     </Tabs>

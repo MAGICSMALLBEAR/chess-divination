@@ -8,6 +8,8 @@ import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ChessPiece from '@/components/ChessPiece';
 import PieceDraw3D from '@/components/PieceDraw3D';
+import { Icon } from '@/components/icons';
+import type { IconName } from '@/components/icons/Icon';
 import { useDrawDivination } from '@/hooks/useDrawDivination';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
@@ -19,14 +21,14 @@ import { useLayout } from '@/hooks/useLayout';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 
-const QUESTION_CATEGORIES = [
-  { key: 'general', label: '綜合', icon: '🔮' },
-  { key: 'marriage', label: '感情', icon: '💕' },
-  { key: 'career', label: '事業', icon: '💼' },
-  { key: 'wealth', label: '財運', icon: '💰' },
-  { key: 'health', label: '健康', icon: '💪' },
-  { key: 'study', label: '學業', icon: '📚' },
-  { key: 'travel', label: '出行', icon: '✈️' },
+const QUESTION_CATEGORIES: { key: string; label: string; icon: IconName }[] = [
+  { key: 'general', label: '綜合', icon: 'crystal-ball' },
+  { key: 'marriage', label: '感情', icon: 'love' },
+  { key: 'career', label: '事業', icon: 'career' },
+  { key: 'wealth', label: '財運', icon: 'wealth' },
+  { key: 'health', label: '健康', icon: 'health' },
+  { key: 'study', label: '學業', icon: 'study' },
+  { key: 'travel', label: '出行', icon: 'travel' },
 ];
 
 export default function DrawScreen() {
@@ -99,7 +101,7 @@ export default function DrawScreen() {
                   ]}
                   onPress={() => handleCategorySelect(cat.key)}
                 >
-                  <Text style={styles.categoryChipIcon}>{cat.icon}</Text>
+                  <Icon name={cat.icon} size={16} color={selectedCategory === cat.key ? theme.gold : theme.textMuted} />
                   <Text
                     style={[
                       styles.categoryChipLabel,

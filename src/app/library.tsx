@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import { Icon } from '@/components/icons';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -49,7 +50,7 @@ export default function LibraryScreen() {
         </TouchableOpacity>
         <Text style={[styles.title, { color: theme.textPrimary }]}>籤詩圖鑑</Text>
         <TouchableOpacity onPress={handleRandomScroll}>
-          <Text style={{ fontSize: 22 }}>🎲</Text>
+          <Icon name="dice" size={22} color={theme.gold} />
         </TouchableOpacity>
       </View>
 
@@ -117,7 +118,8 @@ export default function LibraryScreen() {
                 style={[styles.drawBtn, { borderColor: theme.gold }]}
                 onPress={() => router.push('/draw')}
               >
-                <Text style={[styles.drawBtnText, { color: theme.gold }]}>🎲 以此卦占卜</Text>
+                <Icon name="dice" size={16} color={theme.gold} />
+                <Text style={[styles.drawBtnText, { color: theme.gold }]}> 以此卦占卜</Text>
               </TouchableOpacity>
             )}
             <Text style={[styles.expandHint, { color: theme.textMuted }]}>
@@ -176,8 +178,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   storyText: { fontSize: FontSize.caption, lineHeight: 20 },
   expandHint: { fontSize: 11, textAlign: 'center', marginTop: 6 },
   drawBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderRadius: 8, paddingVertical: 8,
-    alignItems: 'center', marginTop: 8,
+    marginTop: 8, gap: 4,
   },
   drawBtnText: { fontSize: 14, fontWeight: '600' },
   empty: { textAlign: 'center', marginTop: Spacing.xxl, fontSize: FontSize.body },
