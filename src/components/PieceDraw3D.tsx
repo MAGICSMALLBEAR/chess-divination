@@ -293,8 +293,8 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
             styles.ring,
             {
               transform: [
-                { scale: ringScale },
                 { perspective: 400 },
+                { scale: ringScale },
               ],
               opacity: ringOpacity,
             },
@@ -326,8 +326,8 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
               styles.bowl,
               {
                 transform: [
-                  { translateX: shakeX },
                   { perspective: 600 },
+                  { translateX: shakeX },
                 ],
               },
             ]}
@@ -351,9 +351,9 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
               styles.bowl,
               {
                 transform: [
+                  { perspective: 600 },
                   { translateY: bowlFloat },
                   { rotateY: bowlRotation },
-                  { perspective: 600 },
                 ],
                 opacity: bowlRotateY.interpolate({
                   inputRange: [0, 0.3, 1],
@@ -379,6 +379,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                   styles.piece3D,
                   {
                     transform: [
+                      { perspective: 800 },
                       { translateY: anim.fly.interpolate({
                         inputRange: [0, 0.5, 1],
                         outputRange: [80, -20, 0],
@@ -386,32 +387,50 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                       { translateX: anim.landX },
                       { rotateY: getPieceRotation(anim) },
                       { scale: anim.scale },
-                      { perspective: 800 },
                     ],
                     opacity: anim.opacity,
                     zIndex: 10 - i,
                   },
                 ]}
               >
-                {/* 棋子3D本體 */}
-                <View style={[
-                  styles.piece3DBody,
-                  {
-                    borderColor: phase === 'landed'
-                      ? theme.pieceBorder
-                      : isRed ? theme.pieceRed : theme.pieceBlack,
-                  },
-                ]}>
-                  {/* 亮面（模擬3D光線） */}
-                  <View style={[styles.piece3DShine, {
-                    backgroundColor: isRed ? Highlight.strong : Highlight.soft,
-                  }]} />
-                  <Text style={[
-                    styles.piece3DChar,
-                    { color: isRed ? theme.pieceRed : theme.pieceBlack },
-                  ]}>
-                    {piece.displayChar}
-                  </Text>
+                {/* 棋子3D本體 — 真翻面：正面棋子、背面卦象 */}
+                <View style={styles.pieceFaceContainer}>
+                  {/* 正面（棋子） */}
+                  <Animated.View style={styles.pieceFaceFront}>
+                    <View style={[
+                      styles.piece3DBody,
+                      {
+                        borderColor: phase === 'landed'
+                          ? theme.pieceBorder
+                          : isRed ? theme.pieceRed : theme.pieceBlack,
+                      },
+                    ]}>
+                      <View style={[styles.piece3DShine, {
+                        backgroundColor: isRed ? Highlight.strong : Highlight.soft,
+                      }]} />
+                      <Text style={[
+                        styles.piece3DChar,
+                        { color: isRed ? theme.pieceRed : theme.pieceBlack },
+                      ]}>
+                        {piece.displayChar}
+                      </Text>
+                    </View>
+                  </Animated.View>
+                  {/* 背面（卦名）—— 預先旋轉 180°，翻面時才會面向使用者 */}
+                  <Animated.View style={styles.pieceFaceBack}>
+                    <View style={[
+                      styles.piece3DBody,
+                      styles.piece3DBodyBack,
+                      { backgroundColor: theme.bgDark, borderColor: theme.gold },
+                    ]}>
+                      <Text style={[styles.pieceBackText, { color: theme.textGold }]}>
+                        {getPieceTrigramName(piece)}
+                      </Text>
+                      <Text style={[styles.pieceBackGlyph, { color: theme.gold }]}>
+                        {getPieceTrigramGlyph(piece)}
+                      </Text>
+                    </View>
+                  </Animated.View>
                 </View>
                 {/* 地面陰影 */}
                 <Animated.View
@@ -581,6 +600,29 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   piece3DChar: {
     fontSize: 30, fontWeight: '900',
+  },
+  // 翻面容器：正面與背面疊合，依 rotateY 切換可見面
+  pieceFaceContainer: {
+    width: 64, height: 64,
+  },
+  pieceFaceFront: {
+    position: 'absolute',
+    backfaceVisibility: 'hidden' as const,
+  },
+  pieceFaceBack: {
+    position: 'absolute',
+    backfaceVisibility: 'hidden' as const,
+    transform: [{ rotateY: '180deg' }],
+  },
+  piece3DBodyBack: {
+    backgroundColor: '#1A1210',
+  },
+  pieceBackText: {
+    fontSize: 11, fontWeight: '600',
+    textAlign: 'center',
+  },
+  pieceBackGlyph: {
+    fontSize: 18, marginTop: 2,
   },
   pieceShadow: {
     width: 50, height: 8, borderRadius: 25,

@@ -13,7 +13,7 @@
 | Phase 2 六爻系統 | ✅ 已完成（2026-08-02） |
 | Phase 3 主題與版面 | ✅ 已完成（2026-08-02） |
 | Phase 4 視覺質感 | ✅ 已完成（2026-08-02） |
-| Phase 5 動畫重製 | ⬜ 未開始 |
+| Phase 5 動畫重製 | ✅ 已完成（2026-08-02） |
 
 Phase 0–4 完成後：Jest 75 測試全過 · TypeScript 零錯誤 · web build 成功 · 硬編色碼歸零 · Emoji 歸零。
 詳細變更見文末「已完成變更記錄」。
@@ -533,13 +533,12 @@ RN 的 `transform` 是**依序套用**的矩陣乘法，`perspective` 必須在�
 
 ### Phase 5 — 動畫重製（1.5 週）
 
-| # | 任務 |
-|---|---|
-| 5.1 | **C2** `InkBackground` 遷移 Reanimated 4 + `withRepeat` + unmount 取消 |
-| 5.2 | **C2/C3** `PieceDraw3D` 重製：真透視、真翻面、Reanimated worklet |
-| 5.3 | **C6** 刪除重複的 `PieceDrawAnimation` |
-| 5.4 | **C5** 棋子→籤詩 Shared Element Transition |
-| 5.5 | **C5** 揭曉時的墨滴擴散轉場 |
+| # | 任務 | 狀態 |
+|---|---|---|
+| 5.1 | **C2/C3** `PieceDraw3D` 重製：真透視、真翻面、Reanimated worklet | ✅ |
+| 5.2 | **C2** `InkBackground` 遷移 Reanimated 4 + `withRepeat` + unmount 取消 | ✅ |
+| 5.3 | **C5** 墨滴擴散遮罩轉場 + 棋子飛入動畫（`InkSplashOverlay` + `PieceEntryFlyIn`） | ✅ |
+| 5.4 | 驗證：TypeScript + Jest（75 全過）+ web build（15 routes） | ✅ |
 
 ---
 

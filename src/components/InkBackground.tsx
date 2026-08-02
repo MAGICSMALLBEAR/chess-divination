@@ -1,99 +1,107 @@
-// 水墨背景元件
-// 墨色渲染 + 粒子動畫，營造水墨畫意境
-//
-// v2：三段式純色 View 改為 expo-linear-gradient 真漸層，
-// 水墨粒子維持既有的 Animated API（Reanimated 遷移留待 Phase 5）。
+// 水墨背景元件 v3
+// Reanimated 4 遷移：粒子動畫從 JS 執行緒搬到 UI 執行緒，
+// withRepeat / withSequence / withTiming 取代 legacy Animated.loop / Animated.timing。
+// 漸層仍使用 expo-linear-gradient（原生元件，不在 Reanimated 範疇）。
 
-import React, { useEffect, useMemo, useRef } from 'react';
-import { View, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 const PARTICLE_COUNT = 15;
 
-interface InkParticle {
+// ── 單一水墨粒子 ──
+// 每個粒子獨立管理自己的 shared value 與動畫循環，
+// 用 React.memo 避免不必要的 re-render。
+
+interface ParticleProps {
   xRatio: number;
   yRatio: number;
   size: number;
-  opacity: Animated.Value;
-  translateY: Animated.Value;
+  color: string;
   duration: number;
   delay: number;
+  width: number;
+  height: number;
+  initOpacity: number;
 }
 
-function createParticles(): InkParticle[] {
-  return Array.from({ length: PARTICLE_COUNT }).map(() => ({
-    xRatio: Math.random(),
-    yRatio: Math.random(),
-    size: Math.random() * 120 + 40,
-    opacity: new Animated.Value(Math.random() * 0.08 + 0.02),
-    translateY: new Animated.Value(0),
-    duration: Math.random() * 15000 + 10000,
-    delay: Math.random() * 5000,
+const InkParticleView = React.memo(function InkParticleView({
+  xRatio, yRatio, size, color, duration, delay, width, height, initOpacity,
+}: ParticleProps) {
+  const opacity = useSharedValue(initOpacity);
+  const translateY = useSharedValue(0);
+
+  const animStyle = useAnimatedStyle(() => ({
+    position: 'absolute' as const,
+    backgroundColor: color,
+    left: xRatio * width - size / 2,
+    top: yRatio * height - size / 2,
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
   }));
-}
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      opacity.value = withRepeat(
+        withSequence(
+          withTiming(Math.random() * 0.08 + 0.02, { duration }),
+          withTiming(Math.random() * 0.06 + 0.01, { duration }),
+        ),
+        -1,
+        true,
+      );
+      translateY.value = withRepeat(
+        withSequence(
+          withTiming(Math.random() * 40 - 20, { duration: duration * 1.5 }),
+          withTiming(0, { duration: duration * 1.5 }),
+        ),
+        -1,
+        true,
+      );
+    }, delay);
+
+    return () => {
+      clearTimeout(t);
+      cancelAnimation(opacity);
+      cancelAnimation(translateY);
+    };
+  }, []);
+
+  return <Animated.View style={animStyle} />;
+});
+
+// ── 背景本體 ──
 
 export default function InkBackground() {
   const { theme, isDark } = useAppTheme();
   const { width, height } = useWindowDimensions();
-  const particles = useMemo(createParticles, []);
-  const animationsRef = useRef<Animated.CompositeAnimation[]>([]);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  useEffect(() => {
-    particles.forEach(p => {
-      const timer = setTimeout(() => {
-        const opacityLoop = Animated.loop(
-          Animated.sequence([
-            Animated.timing(p.opacity, {
-              toValue: Math.random() * 0.08 + 0.02,
-              duration: p.duration,
-              useNativeDriver: true,
-            }),
-            Animated.timing(p.opacity, {
-              toValue: Math.random() * 0.06 + 0.01,
-              duration: p.duration,
-              useNativeDriver: true,
-            }),
-          ]),
-        );
+  const particles = useMemo(() => {
+    return Array.from({ length: PARTICLE_COUNT }).map(() => ({
+      xRatio: Math.random(),
+      yRatio: Math.random(),
+      size: Math.random() * 120 + 40,
+      duration: Math.random() * 15000 + 10000,
+      delay: Math.random() * 5000,
+      initOpacity: Math.random() * 0.08 + 0.02,
+    }));
+  }, []);
 
-        const floatLoop = Animated.loop(
-          Animated.sequence([
-            Animated.timing(p.translateY, {
-              toValue: Math.random() * 40 - 20,
-              duration: p.duration * 1.5,
-              useNativeDriver: true,
-            }),
-            Animated.timing(p.translateY, {
-              toValue: 0,
-              duration: p.duration * 1.5,
-              useNativeDriver: true,
-            }),
-          ]),
-        );
+  const particleColor = isDark ? theme.gold : theme.textMuted;
 
-        animationsRef.current.push(opacityLoop, floatLoop);
-        opacityLoop.start();
-        floatLoop.start();
-      }, p.delay);
-
-      timersRef.current.push(timer);
-    });
-
-    const animations = animationsRef.current;
-    const timers = timersRef.current;
-
-    return () => {
-      timers.forEach(clearTimeout);
-      animations.forEach(a => a.stop());
-      animationsRef.current = [];
-      timersRef.current = [];
-    };
-  }, [particles]);
-
-  // 暗色主題：墨色由上而下，深墨水漸層至暖褐底
-  // 亮色主題：宣紙暖白由上而下，底部略帶紙紋暗色
   const gradientColors = isDark
     ? [theme.bgInk, theme.bgDark, theme.bgCard]
     : [theme.bgRice, theme.bgDark, theme.bgMedium];
@@ -107,21 +115,17 @@ export default function InkBackground() {
       />
 
       {particles.map((p, i) => (
-        <Animated.View
+        <InkParticleView
           key={i}
-          style={[
-            styles.particle,
-            {
-              backgroundColor: isDark ? theme.gold : theme.textMuted,
-              left: p.xRatio * width - p.size / 2,
-              top: p.yRatio * height - p.size / 2,
-              width: p.size,
-              height: p.size,
-              borderRadius: p.size / 2,
-              opacity: p.opacity,
-              transform: [{ translateY: p.translateY }],
-            },
-          ]}
+          xRatio={p.xRatio}
+          yRatio={p.yRatio}
+          size={p.size}
+          color={particleColor}
+          duration={p.duration}
+          delay={p.delay}
+          width={width}
+          height={height}
+          initOpacity={p.initOpacity}
         />
       ))}
     </View>
@@ -136,5 +140,4 @@ const styles = StyleSheet.create({
   gradient: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
   },
-  particle: { position: 'absolute' },
 });

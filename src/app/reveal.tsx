@@ -1,11 +1,14 @@
 // 籤詩展示頁面 — 完整解讀
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+// 包含墨滴擴散轉場與棋子飛入動畫（Phase 5.3）
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import InkSplashOverlay from '@/components/InkSplashOverlay';
+import PieceEntryFlyIn from '@/components/PieceEntryFlyIn';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
@@ -37,6 +40,9 @@ export default function RevealScreen() {
   const [isFav, setIsFav] = useState(false);
   const shareRef = useRef<ShareCardHandle>(null);
 
+  // 轉場階段：loading → splashing → revealed
+  const [revealPhase, setRevealPhase] = useState<'loading' | 'splashing' | 'revealed'>('loading');
+
   const poem = record ? getPoemById(record.poemId) : null;
 
   // 有完整卦象資料才能推演三卦與體用（v3 以前的記錄沒有）
@@ -60,8 +66,14 @@ export default function RevealScreen() {
     if (found) {
       setRecord(found);
       setIsFav(found.isFavorited);
+      // 記錄載入完成 → 觸發墨滴擴散轉場
+      setRevealPhase('splashing');
     }
   }
+
+  const handleSplashComplete = useCallback(() => {
+    setRevealPhase('revealed');
+  }, []);
 
   async function handleToggleFavorite() {
     if (!record) return;
@@ -136,6 +148,9 @@ export default function RevealScreen() {
     );
   }
 
+  const showSplash = revealPhase === 'splashing';
+  const piecesRevealed = revealPhase === 'revealed';
+
   const deepReading = buildInterpretation({
     poem,
     questionText: record.questionText,
@@ -149,6 +164,13 @@ export default function RevealScreen() {
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
        <View style={[styles.inner, { width: contentWidth }]}>
+
+        {/* 墨滴擴散轉場：覆蓋在內容之上的墨滴遮罩 */}
+        <InkSplashOverlay
+          visible={showSplash}
+          onComplete={handleSplashComplete}
+        />
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -196,6 +218,15 @@ export default function RevealScreen() {
             <Text style={[styles.positionText, { color: theme.textSecondary }]}>{record.positionSummary}</Text>
           </View>
         ) : null}
+
+        {/* 棋子飛入動畫 */}
+        {record.drawnPieceChars.length > 0 && (
+          <PieceEntryFlyIn
+            pieceChars={record.drawnPieceChars}
+            pieceColors={(record.drawnPieceColors || []) as string[]}
+            visible={piecesRevealed}
+          />
+        )}
 
         {/* PoemCard：棋子 + 籤詩 + 詳解 */}
         <PoemCard

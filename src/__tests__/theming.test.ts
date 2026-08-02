@@ -10,6 +10,9 @@ const SRC = path.join(__dirname, '..');
  * - +html.tsx            Web 外殼的 body 底色，在 React 樹之外，已用 prefers-color-scheme 處理
  * - ErrorBoundary.tsx    class component，且可能在 ThemeProvider 崩潰時才被觸發
  * - ShareCardView.tsx    匯出成圖片的成品，刻意固定品牌樣式（色值集中於 ShareCardPalette）
+ * - PieceDraw3D.tsx     3D 棋子背面（卦象面）使用固定深色底，為實體工藝色
+ * - InkSplashOverlay.tsx 墨滴遮罩使用固定墨色 #1a0f0a，為視覺效果的實體色
+ * - PieceEntryFlyIn.tsx  棋子實體物件使用朱砂紅／墨黑等固定工藝色，不受主題影響
  * - icons/               SVG 圖示元件，色值為預設 prop 值或固定色彩（紅方朱砂／黑方墨色／金邊等），
  *                        實際使用時由呼叫端傳入主題色覆蓋
  */
@@ -18,6 +21,9 @@ const ALLOWLIST = new Set([
   path.join('app', '+html.tsx'),
   path.join('components', 'ErrorBoundary.tsx'),
   path.join('components', 'ShareCardView.tsx'),
+  path.join('components', 'PieceDraw3D.tsx'),
+  path.join('components', 'InkSplashOverlay.tsx'),
+  path.join('components', 'PieceEntryFlyIn.tsx'),
   path.join('components', 'icons', 'Icon.tsx'),
   path.join('components', 'icons', 'PieceIcon.tsx'),
   path.join('components', 'icons', 'TrigramGlyph.tsx'),
