@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>象棋占卜 — 隱私權政策</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px;
+      font-family: 'Noto Serif TC', KaiTi, STKaiti, serif;
+      background: #FBF7F0;
+      color: #2D1F12;
+      line-height: 2;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #0D0A08;
+        color: #D4C8B8;
+      }
+    }
+    h1 { font-size: 28px; text-align: center; margin-bottom: 8px; }
+    h2 { font-size: 20px; margin-top: 36px; border-bottom: 1px solid #C8A96E; padding-bottom: 8px; }
+    p, li { font-size: 16px; }
+    .meta { text-align: center; color: #8C7B6A; font-size: 14px; margin-bottom: 40px; }
+    a { color: #C8A96E; }
+  </style>
+</head>
+<body>
+  <h1>🏮 象棋占卜 隱私權政策</h1>
+  <p class="meta">最後更新日期：2026-08-02</p>
+
+  <h2>1. 資料收集</h2>
+  <p>象棋占卜<strong>不收集、不傳輸、不分享</strong>任何個人資料。</p>
+  <ul>
+    <li>所有占卜記錄、收藏、設定皆儲存在您的<strong>本機裝置</strong>內（經由 AsyncStorage / IndexedDB），不會上傳到任何伺服器。</li>
+    <li>本 App 無帳號系統、無第三方登入。</li>
+  </ul>
+
+  <h2>2. 資料使用</h2>
+  <p>您在本 App 內產生的所有資料（占卜歷史、收藏資料夾、個人設定）僅用於提供占卜服務本身，包括：</p>
+  <ul>
+    <li>歷史記錄查閱與統計圖表</li>
+    <li>收藏管理與資料夾分類</li>
+    <li>主題、語言、音效等個人偏好記憶</li>
+  </ul>
+  <p>這些資料<strong>永不離開您的裝置</strong>，除非您主動使用「雲端同步」功能（該功能需自建後端伺服器，預設為關閉狀態）。</p>
+
+  <h2>3. 通知權限</h2>
+  <p>本 App 提供可選的「每日占卜提醒」功能。若您啟用此功能，App 會請求通知權限，並在每日上午 9:00 發送一條本地排程通知。</p>
+  <ul>
+    <li>通知完全由裝置本地排程，<strong>不經過任何遠端伺服器</strong>。</li>
+    <li>您可隨時在設定頁面關閉此功能。</li>
+  </ul>
+
+  <h2>4. 第三方服務</h2>
+  <ul>
+    <li><strong>AI 深度解讀</strong>：若您設定了 DeepSeek API 金鑰，占卜結果會傳送至 DeepSeek API 進行解讀。金鑰儲存在您的伺服器端環境變數中，不會進入前端程式碼。</li>
+    <li><strong>雲端同步</strong>：此功能需要您自行部署後端伺服器並設定端點 URL。資料傳輸僅發生在您與您自己的伺服器之間。</li>
+    <li>本 App <strong>不含廣告 SDK、不含分析追蹤、不含第三方登入</strong>。</li>
+  </ul>
+
+  <h2>5. 兒童隱私</h2>
+  <p>本 App 不收集任何個人資料，適用於所有年齡層使用者。</p>
+
+  <h2>6. 您的權利</h2>
+  <p>由於所有資料儲存在您的本機裝置上，您可以：</p>
+  <ul>
+    <li>在設定中「清除所有歷史」以刪除占卜記錄</li>
+    <li>使用「備份資料」匯出 JSON 檔案</li>
+    <li>刪除 App 即完全清除所有本機資料</li>
+  </ul>
+
+  <h2>7. 政策更新</h2>
+  <p>若隱私權政策有重大變更，將在 App 更新說明中告知。建議定期查閱此頁面。</p>
+  <p>繼續使用本 App 即表示您同意本隱私權政策。</p>
+
+  <h2>8. 聯絡我們</h2>
+  <p>如有任何隱私權相關疑問，請來信：<a href="mailto:chess-divination@proton.me">chess-divination@proton.me</a></p>
+</body>
+</html>
