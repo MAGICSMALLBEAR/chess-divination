@@ -9,8 +9,8 @@ import InkBackground from '@/components/InkBackground';
 import ChessPiece from '@/components/ChessPiece';
 import PieceDraw3D from '@/components/PieceDraw3D';
 import { Icon } from '@/components/icons';
-import type { IconName } from '@/components/icons/Icon';
 import { useDrawDivination } from '@/hooks/useDrawDivination';
+import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -20,22 +20,12 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
-
-const QUESTION_CATEGORIES: { key: string; label: string; icon: IconName }[] = [
-  { key: 'general', label: '綜合', icon: 'crystal-ball' },
-  { key: 'marriage', label: '感情', icon: 'love' },
-  { key: 'career', label: '事業', icon: 'career' },
-  { key: 'wealth', label: '財運', icon: 'wealth' },
-  { key: 'health', label: '健康', icon: 'health' },
-  { key: 'study', label: '學業', icon: 'study' },
-  { key: 'travel', label: '出行', icon: 'travel' },
-];
-
 export default function DrawScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const categories = useQuestionCategories();
   const {
     step, drawnPieces, selectedPoem, drawSummary,
     startDrawing, goToResult, reset,
@@ -92,7 +82,7 @@ export default function DrawScreen() {
             />
             {/* 問事類別 */}
             <View style={styles.categoryGrid}>
-              {QUESTION_CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <TouchableOpacity
                   key={cat.key}
                   style={[

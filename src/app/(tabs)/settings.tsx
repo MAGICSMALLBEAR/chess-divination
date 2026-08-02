@@ -13,6 +13,9 @@ import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import { backupData, restoreData } from '@/services/backup';
 import { clearHistory } from '@/services/storage';
+import CustomCategoriesSection from '@/components/CustomCategoriesSection';
+import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission } from '@/services/notifications';
+import { uploadToCloud, downloadFromCloud, mergeFromCloud } from '@/services/cloudSync';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { LANG_OPTIONS, type Lang } from '@/services/i18n';
@@ -30,8 +33,10 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameText, setNameText] = useState('');
+  const [reminderOn, setReminderOn] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => { loadSettings(); }, []);
+  useEffect(() => { loadSettings(); checkReminder(); }, []);
 
   async function loadSettings() {
     const s = await getSettings();
@@ -49,6 +54,24 @@ export default function SettingsScreen() {
     if (result) Alert.alert('備份成功', '資料已匯出');
   }
 
+  async function checkReminder() {
+    const on = await isReminderScheduled();
+    setReminderOn(on);
+  }
+
+  async function toggleReminder(on: boolean) {
+    setReminderOn(on);
+    if (on) {
+      const ok = await scheduleDailyReminder();
+      if (!ok) {
+        setReminderOn(false);
+        Alert.alert('無法設定', '請先授予通知權限後再試。');
+      }
+    } else {
+      await cancelDailyReminder();
+    }
+  }
+
   async function handleRestore() {
     Alert.alert('還原資料', '將覆蓋現有資料，確定要還原嗎？', [
       { text: '取消', style: 'cancel' },
@@ -58,6 +81,27 @@ export default function SettingsScreen() {
         else Alert.alert('還原失敗', '請選擇正確的備份檔案');
       }},
     ]);
+  }
+
+  async function handleCloudSync() {
+    setSyncing(true);
+    // 先上傳
+    const uploaded = await uploadToCloud();
+    if (!uploaded) {
+      Alert.alert('雲端同步', '尚未設定雲端同步伺服器。\n請設定 EXPO_PUBLIC_CLOUD_SYNC_URL 環境變數。');
+      setSyncing(false);
+      return;
+    }
+    // 再下載合併
+    const cloud = await downloadFromCloud();
+    if (cloud) {
+      await mergeFromCloud(cloud);
+      await loadSettings();
+      Alert.alert('雲端同步', '同步完成！');
+    } else {
+      Alert.alert('雲端同步', '上傳成功，但無法下載遠端資料。');
+    }
+    setSyncing(false);
   }
 
   if (!settings) {
@@ -173,7 +217,16 @@ export default function SettingsScreen() {
               onValueChange={(v) => { update('hapticEnabled', v); setHapticEnabled(v); }}
               trackColor={{ false: theme.bgMedium, true: theme.gold }} />
           </View>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>每日提醒</Text>
+            <Switch value={reminderOn}
+              onValueChange={toggleReminder}
+              trackColor={{ false: theme.bgMedium, true: theme.gold }} />
+          </View>
         </View>
+
+        {/* 自訂問事類別 */}
+        <CustomCategoriesSection onChanged={loadSettings} />
 
         {/* 工具 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
@@ -208,6 +261,14 @@ export default function SettingsScreen() {
             <View style={styles.optionInner}>
               <Icon name="save" size={16} color={theme.textSecondary} />
               <Text style={[styles.label, { color: theme.textSecondary }]}> 備份資料</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={handleCloudSync}>
+            <View style={styles.optionInner}>
+              <Icon name="refresh" size={16} color={syncing ? theme.gold : theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}>
+                {syncing ? ' 同步中...' : ' 雲端同步'}
+              </Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={handleRestore}>

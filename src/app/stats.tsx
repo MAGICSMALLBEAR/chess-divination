@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import TrendChart from '@/components/TrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getHistory, type DivinationRecord } from '@/services/storage';
@@ -54,6 +55,31 @@ export default function StatsScreen() {
 
   const maxLevel = Math.max(...Object.values(levelCounts), 1);
 
+  // 趨勢圖資料：最近 7 天每日占卜次數與吉凶分佈
+  const trendData = React.useMemo(() => {
+    const days: { label: string; total: number; good: number; neutral: number; bad: number }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = `${d.getMonth() + 1}/${d.getDate()}`;
+      const dayRecords = records.filter(r => {
+        const rd = new Date(r.timestamp);
+        return rd.getFullYear() === d.getFullYear() &&
+          rd.getMonth() === d.getMonth() &&
+          rd.getDate() === d.getDate();
+      });
+      days.push({
+        label: key,
+        total: dayRecords.length,
+        good: dayRecords.filter(r => r.poemLevel === '大吉' || r.poemLevel === '上吉').length,
+        neutral: dayRecords.filter(r => r.poemLevel === '中吉' || r.poemLevel === '中平').length,
+        bad: dayRecords.filter(r => r.poemLevel === '下下').length,
+      });
+    }
+    return days;
+  }, [records]);
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -99,6 +125,9 @@ export default function StatsScreen() {
             <Text style={[styles.statLabel, { color: theme.textMuted }]}>收藏</Text>
           </View>
         </View>
+
+        {/* 趨勢圖表 */}
+        <TrendChart data={trendData} title="近 7 天占卜趨勢" />
 
         {/* 吉凶分佈 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>

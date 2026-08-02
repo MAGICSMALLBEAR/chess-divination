@@ -1,8 +1,10 @@
 // 收藏與歷史記錄頁面
-import React, { useEffect, useState } from 'react';
+// 支援左右滑動切換分頁（快捷手勢 Phase 6.2）
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
   TouchableOpacity, Alert, TextInput, RefreshControl,
+  NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -17,12 +19,15 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 
 type TabType = 'history' | 'favorites' | 'folders';
+const TAB_ORDER: TabType[] = ['history', 'favorites', 'folders'];
 
 export default function CollectionScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const { width: windowWidth } = useWindowDimensions();
+  const horizScrollRef = useRef<ScrollView>(null);
   const [tab, setTab] = useState<TabType>('history');
   const [history, setHistory] = useState<DivinationRecord[]>([]);
   const [favorites, setFavorites] = useState<DivinationRecord[]>([]);
@@ -101,15 +106,19 @@ export default function CollectionScreen() {
     : [];
 
   const levelRank: Record<string, number> = { '大吉': 5, '上吉': 4, '中吉': 3, '中平': 2, '下下': 1 };
-  const rawData = (tab === 'history' ? history : favorites)
-    .slice().sort((a, b) => {
+  function sortAndFilter(list: DivinationRecord[]): DivinationRecord[] {
+    const sorted = list.slice().sort((a, b) => {
       if (sortOrder === 'newest') return b.timestamp - a.timestamp;
       if (sortOrder === 'oldest') return a.timestamp - b.timestamp;
       return (levelRank[b.poemLevel] || 0) - (levelRank[a.poemLevel] || 0);
     });
-  const data = search.trim()
-    ? rawData.filter(r => r.poemTitle.includes(search) || r.poemContent.includes(search) || r.drawnPieceChars.join('').includes(search))
-    : rawData;
+    if (!search.trim()) return sorted;
+    return sorted.filter(r => r.poemTitle.includes(search) || r.poemContent.includes(search) || r.drawnPieceChars.join('').includes(search));
+  }
+  const historyData = sortAndFilter(history);
+  const favoritesData = sortAndFilter(favorites);
+  // 給排序/搜索欄用的 data（跟隨目前選中 tab）
+  const data = tab === 'history' ? historyData : favoritesData;
 
   async function handleDelete(id: string) {
     Alert.alert('確認刪除', '確定要刪除此記錄嗎？', [
@@ -136,9 +145,94 @@ export default function CollectionScreen() {
     });
   }
 
+  // 滑動手勢：偵測水平滾動結束時切換目前分頁
+  const handleSwipeEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const idx = Math.round(offsetX / windowWidth);
+    if (idx >= 0 && idx < TAB_ORDER.length) {
+      setTab(TAB_ORDER[idx]);
+    }
+  }, [windowWidth]);
+
+  // 點擊標籤時同時滾動 pager
+  const switchTab = useCallback((t: TabType) => {
+    setTab(t);
+    const idx = TAB_ORDER.indexOf(t);
+    horizScrollRef.current?.scrollTo({ x: idx * windowWidth, animated: true });
+  }, [windowWidth]);
+
   function formatDate(timestamp: number): string {
     const d = new Date(timestamp);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  // 渲染單筆記錄卡片（供歷史與收藏分頁共用）
+  function renderRecordCard(record: DivinationRecord) {
+    return (
+      <TouchableOpacity
+        key={record.id}
+        style={[styles.card, selectedIds.has(record.id) && { borderColor: theme.textRed }]}
+        onPress={() => selectMode ? toggleSelect(record.id) : handleView(record)}
+        activeOpacity={0.8}
+      >
+        {selectMode && (
+          <View style={[styles.checkbox, selectedIds.has(record.id) && { backgroundColor: theme.textRed }]}>
+            {selectedIds.has(record.id) && <Text style={{ color: PaperSurface.onLevel, fontSize: 12 }}>✓</Text>}
+          </View>
+        )}
+        <View style={styles.cardLeft}>
+          <View style={styles.piecesMini}>
+            <Text style={styles.piecesText}>
+              {record.drawnPieceChars.join(' ')}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.cardCenter}>
+          <View style={styles.cardHeader}>
+            <View style={[
+              styles.levelMini,
+              { backgroundColor: record.poemLevel === '大吉' ? theme.gold : record.poemLevel === '上吉' ? theme.textRed : theme.textMuted },
+            ]}>
+              <Text style={styles.levelMiniText}>{record.poemLevel}</Text>
+            </View>
+            <View style={styles.modeRow}>
+              <Icon name={record.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={theme.textMuted} />
+              <Text style={styles.modeLabel}> {record.mode === 'draw' ? '抽棋' : '佈局'}</Text>
+            </View>
+          </View>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {record.poemTitle}
+          </Text>
+          <Text style={styles.cardDate}>{formatDate(record.timestamp)}</Text>
+        </View>
+        <View style={styles.cardRight}>
+          <TouchableOpacity onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
+            <Icon name="folder" size={18} color={theme.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleToggleFav(record)}>
+            <Icon name={record.isFavorited ? 'heart-filled' : 'heart'} size={18} color={record.isFavorited ? theme.textRed : theme.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(record.id)}>
+            <Icon name="trash" size={16} color={theme.textMuted} />
+          </TouchableOpacity>
+        </View>
+        {pickingFolderFor === record.id && (
+          <View style={styles.folderPicker}>
+            <Text style={[styles.folderPickTitle, { color: theme.textSecondary }]}>加到資料夾：</Text>
+            {folders.map(f => (
+              <TouchableOpacity key={f.id} style={styles.folderPickItem}
+                onPress={() => handleAddToFolder(record.id, f.id)}>
+                <View style={[styles.folderPickDot, { backgroundColor: f.color }]} />
+                <Text style={{ color: theme.textPrimary, fontSize: 13 }}>{f.name}</Text>
+              </TouchableOpacity>
+            ))}
+            {folders.length === 0 && (
+              <Text style={{ color: theme.textMuted, fontSize: 12 }}>尚無資料夾，請先建立</Text>
+            )}
+          </View>
+        )}
+      </TouchableOpacity>
+    );
   }
 
   return (
@@ -152,7 +246,7 @@ export default function CollectionScreen() {
       <View style={styles.tabRow}>
         <TouchableOpacity
           style={[styles.tab, tab === 'history' && styles.tabActive]}
-          onPress={() => setTab('history')}
+          onPress={() => switchTab('history')}
         >
           <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>
             歷史記錄 ({history.length})
@@ -160,7 +254,7 @@ export default function CollectionScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, tab === 'favorites' && styles.tabActive]}
-          onPress={() => setTab('favorites')}
+          onPress={() => switchTab('favorites')}
         >
           <Text style={[styles.tabText, tab === 'favorites' && styles.tabTextActive]}>
             我的收藏 ({favorites.length})
@@ -168,7 +262,7 @@ export default function CollectionScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, tab === 'folders' && styles.tabActive]}
-          onPress={() => setTab('folders')}
+          onPress={() => switchTab('folders')}
         >
           <Text style={[styles.tabText, tab === 'folders' && styles.tabTextActive]}>
             資料夾 ({folders.length})
@@ -213,153 +307,113 @@ export default function CollectionScreen() {
         onChangeText={setSearch}
       />
 
-      {/* 資料夾管理 */}
-      {tab === 'folders' && (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* 新增資料夾 */}
-          {showAddFolder ? (
-            <View style={styles.addFolderRow}>
-              <TextInput
-                style={[styles.folderInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
-                placeholder="資料夾名稱"
-                placeholderTextColor={theme.textMuted}
-                value={newFolderName}
-                onChangeText={setNewFolderName}
-                autoFocus
-              />
-              <TouchableOpacity style={styles.folderBtn} onPress={handleAddFolder}>
-                <Text style={{ color: theme.gold, fontWeight: '600' }}>新增</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowAddFolder(false)}>
-                <Text style={{ color: theme.textMuted }}>取消</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity style={[styles.addFolderBtn, { borderColor: theme.bgMedium }]} onPress={() => setShowAddFolder(true)}>
-              <Text style={{ color: theme.gold }}>＋ 新增資料夾</Text>
-            </TouchableOpacity>
-          )}
+      {/* 水平滑動分頁器：左右滑動切換歷史/收藏/資料夾 */}
+      <ScrollView
+        ref={horizScrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleSwipeEnd}
+        scrollEventThrottle={16}
+        style={styles.pager}
+        contentContainerStyle={styles.pagerContent}
+      >
+        {/* 第 1 頁：歷史記錄 */}
+        <View style={[styles.page, { width: windowWidth - Spacing.md * 2 }]}>
+          <ScrollView
+            contentContainerStyle={styles.pageScroll}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}
+          >
+            {historyData.length === 0 && (
+              <View style={styles.empty}>
+                <Icon name="scroll" size={40} color={theme.textMuted} />
+                <Text style={styles.emptyText}>尚無占卜記錄</Text>
+                <Text style={styles.emptyHint}>開始占卜後記錄將顯示於此</Text>
+              </View>
+            )}
+            {historyData.map((record) => renderRecordCard(record))}
+          </ScrollView>
+        </View>
 
-          {/* 資料夾列表 */}
-          {folders.length === 0 && (
-            <View style={styles.empty}>
-              <Icon name="folder" size={40} color={theme.textMuted} />
-              <Text style={styles.emptyText}>尚無資料夾</Text>
-              <Text style={styles.emptyHint}>建立資料夾來分類整理收藏</Text>
-            </View>
-          )}
-          {folders.map(folder => (
-            <View key={folder.id} style={[styles.folderCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-              <View style={styles.folderHeader}>
-                <View style={[styles.folderDot, { backgroundColor: folder.color }]} />
-                <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
-                <Text style={[styles.folderCount, { color: theme.textMuted }]}>{folder.recordIds.length} 筆</Text>
-                <TouchableOpacity onPress={() => handleDeleteFolder(folder.id)}>
-                  <Icon name="trash" size={14} color={theme.textRed} />
+        {/* 第 2 頁：我的收藏 */}
+        <View style={[styles.page, { width: windowWidth - Spacing.md * 2 }]}>
+          <ScrollView
+            contentContainerStyle={styles.pageScroll}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}
+          >
+            {favoritesData.length === 0 && (
+              <View style={styles.empty}>
+                <Icon name="scroll" size={40} color={theme.textMuted} />
+                <Text style={styles.emptyText}>尚無收藏記錄</Text>
+                <Text style={styles.emptyHint}>在占卜結果中點擊收藏即可加入</Text>
+              </View>
+            )}
+            {favoritesData.map((record) => renderRecordCard(record))}
+          </ScrollView>
+        </View>
+
+        {/* 第 3 頁：資料夾 */}
+        <View style={[styles.page, { width: windowWidth - Spacing.md * 2 }]}>
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            {showAddFolder ? (
+              <View style={styles.addFolderRow}>
+                <TextInput
+                  style={[styles.folderInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
+                  placeholder="資料夾名稱"
+                  placeholderTextColor={theme.textMuted}
+                  value={newFolderName}
+                  onChangeText={setNewFolderName}
+                  autoFocus
+                />
+                <TouchableOpacity style={styles.folderBtn} onPress={handleAddFolder}>
+                  <Text style={{ color: theme.gold, fontWeight: '600' }}>新增</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowAddFolder(false)}>
+                  <Text style={{ color: theme.textMuted }}>取消</Text>
                 </TouchableOpacity>
               </View>
-              {/* 資料夾內記錄預覽 */}
-              {folder.recordIds.slice(0, 3).map(rid => {
-                const rec = history.find(r => r.id === rid);
-                if (!rec) return null;
-                return (
-                  <TouchableOpacity key={rid} style={styles.folderRecord}
-                    onPress={() => router.push({ pathname: '/reveal', params: { recordId: rec.id, mode: rec.mode } })}>
-                    <Text style={[styles.folderRecText, { color: theme.textSecondary }]} numberOfLines={1}>
-                      {rec.drawnPieceChars.join(' ')} · {rec.poemTitle}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
-        </ScrollView>
-      )}
+            ) : (
+              <TouchableOpacity style={[styles.addFolderBtn, { borderColor: theme.bgMedium }]} onPress={() => setShowAddFolder(true)}>
+                <Text style={{ color: theme.gold }}>＋ 新增資料夾</Text>
+              </TouchableOpacity>
+            )}
 
-      {/* 歷史/收藏記錄列表 */}
-      {tab !== 'folders' && (
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
-        {data.length === 0 && (
-          <View style={styles.empty}>
-            <Icon name="scroll" size={40} color={theme.textMuted} />
-            <Text style={styles.emptyText}>
-              {tab === 'history' ? '尚無占卜記錄' : '尚無收藏記錄'}
-            </Text>
-            <Text style={styles.emptyHint}>
-              {tab === 'history' ? '開始占卜後記錄將顯示於此' : '在占卜結果中點擊收藏即可加入'}
-            </Text>
-          </View>
-        )}
-
-        {data.map((record) => (
-          <TouchableOpacity
-            key={record.id}
-            style={[styles.card, selectedIds.has(record.id) && { borderColor: theme.textRed }]}
-            onPress={() => selectMode ? toggleSelect(record.id) : handleView(record)}
-            activeOpacity={0.8}
-          >
-            {selectMode && (
-              <View style={[styles.checkbox, selectedIds.has(record.id) && { backgroundColor: theme.textRed }]}>
-                {selectedIds.has(record.id) && <Text style={{ color: PaperSurface.onLevel, fontSize: 12 }}>✓</Text>}
+            {folders.length === 0 && (
+              <View style={styles.empty}>
+                <Icon name="folder" size={40} color={theme.textMuted} />
+                <Text style={styles.emptyText}>尚無資料夾</Text>
+                <Text style={styles.emptyHint}>建立資料夾來分類整理收藏</Text>
               </View>
             )}
-            <View style={styles.cardLeft}>
-              <View style={styles.piecesMini}>
-                <Text style={styles.piecesText}>
-                  {record.drawnPieceChars.join(' ')}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.cardCenter}>
-              <View style={styles.cardHeader}>
-                <View style={[
-                  styles.levelMini,
-                  { backgroundColor: record.poemLevel === '大吉' ? theme.gold : record.poemLevel === '上吉' ? theme.textRed : theme.textMuted },
-                ]}>
-                  <Text style={styles.levelMiniText}>{record.poemLevel}</Text>
-                </View>
-                <View style={styles.modeRow}>
-                  <Icon name={record.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={theme.textMuted} />
-                  <Text style={styles.modeLabel}> {record.mode === 'draw' ? '抽棋' : '佈局'}</Text>
-                </View>
-              </View>
-              <Text style={styles.cardTitle} numberOfLines={1}>
-                {record.poemTitle}
-              </Text>
-              <Text style={styles.cardDate}>{formatDate(record.timestamp)}</Text>
-            </View>
-            <View style={styles.cardRight}>
-              <TouchableOpacity onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
-                <Icon name="folder" size={18} color={theme.textMuted} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleToggleFav(record)}>
-                <Icon name={record.isFavorited ? 'heart-filled' : 'heart'} size={18} color={record.isFavorited ? theme.textRed : theme.textMuted} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(record.id)}>
-                <Icon name="trash" size={16} color={theme.textMuted} />
-              </TouchableOpacity>
-            </View>
-            {/* 資料夾選擇器 */}
-            {pickingFolderFor === record.id && (
-              <View style={styles.folderPicker}>
-                <Text style={[styles.folderPickTitle, { color: theme.textSecondary }]}>加到資料夾：</Text>
-                {folders.map(f => (
-                  <TouchableOpacity key={f.id} style={styles.folderPickItem}
-                    onPress={() => handleAddToFolder(record.id, f.id)}>
-                    <View style={[styles.folderPickDot, { backgroundColor: f.color }]} />
-                    <Text style={{ color: theme.textPrimary, fontSize: 13 }}>{f.name}</Text>
+            {folders.map(folder => (
+              <View key={folder.id} style={[styles.folderCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+                <View style={styles.folderHeader}>
+                  <View style={[styles.folderDot, { backgroundColor: folder.color }]} />
+                  <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
+                  <Text style={[styles.folderCount, { color: theme.textMuted }]}>{folder.recordIds.length} 筆</Text>
+                  <TouchableOpacity onPress={() => handleDeleteFolder(folder.id)}>
+                    <Icon name="trash" size={14} color={theme.textRed} />
                   </TouchableOpacity>
-                ))}
-                {folders.length === 0 && (
-                  <Text style={{ color: theme.textMuted, fontSize: 12 }}>尚無資料夾，請先建立</Text>
-                )}
+                </View>
+                {folder.recordIds.slice(0, 3).map(rid => {
+                  const rec = history.find(r => r.id === rid);
+                  if (!rec) return null;
+                  return (
+                    <TouchableOpacity key={rid} style={styles.folderRecord}
+                      onPress={() => router.push({ pathname: '/reveal', params: { recordId: rec.id, mode: rec.mode } })}>
+                      <Text style={[styles.folderRecText, { color: theme.textSecondary }]} numberOfLines={1}>
+                        {rec.drawnPieceChars.join(' ')} · {rec.poemTitle}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
-          </TouchableOpacity>
-        ))}
+            ))}
+          </ScrollView>
+        </View>
       </ScrollView>
-      )}
     </SafeAreaView>
   );
 }
@@ -392,6 +446,11 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     backgroundColor: t.bgDark, borderRadius: 10, borderWidth: 1, borderColor: t.bgMedium,
     paddingHorizontal: Spacing.md, paddingVertical: 8, fontSize: 14, color: t.textPrimary,
   },
+  // 水平滑動分頁器
+  pager: { flex: 1, marginHorizontal: Spacing.md },
+  pagerContent: { flexGrow: 1 },
+  page: { flex: 1 },
+  pageScroll: { flexGrow: 1, paddingBottom: 40 },
   // 限寬並置中，避免在平板／桌面被撐成整個視窗寬而出現超長行寬
   scroll: {
     flexGrow: 1, paddingHorizontal: Spacing.md, paddingBottom: 40,

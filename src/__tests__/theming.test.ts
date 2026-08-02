@@ -13,6 +13,7 @@ const SRC = path.join(__dirname, '..');
  * - PieceDraw3D.tsx     3D 棋子背面（卦象面）使用固定深色底，為實體工藝色
  * - InkSplashOverlay.tsx 墨滴遮罩使用固定墨色 #1a0f0a，為視覺效果的實體色
  * - PieceEntryFlyIn.tsx  棋子實體物件使用朱砂紅／墨黑等固定工藝色，不受主題影響
+ * - CustomCategoriesSection.tsx  Modal 遮罩使用固定半透明黑色，不受主題影響
  * - icons/               SVG 圖示元件，色值為預設 prop 值或固定色彩（紅方朱砂／黑方墨色／金邊等），
  *                        實際使用時由呼叫端傳入主題色覆蓋
  */
@@ -24,6 +25,7 @@ const ALLOWLIST = new Set([
   path.join('components', 'PieceDraw3D.tsx'),
   path.join('components', 'InkSplashOverlay.tsx'),
   path.join('components', 'PieceEntryFlyIn.tsx'),
+  path.join('components', 'CustomCategoriesSection.tsx'),
   path.join('components', 'icons', 'Icon.tsx'),
   path.join('components', 'icons', 'PieceIcon.tsx'),
   path.join('components', 'icons', 'TrigramGlyph.tsx'),

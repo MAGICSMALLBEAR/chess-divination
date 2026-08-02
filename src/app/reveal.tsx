@@ -23,6 +23,7 @@ import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
+import { shareNative, shareToLine, shareToFacebook, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
 import { t } from '@/services/i18n';
 import { recordUsage } from '@/services/achievements';
 import type { ThemeColors } from '@/constants/theme';
@@ -85,47 +86,43 @@ export default function RevealScreen() {
   }
 
   async function handleShare() {
-    // 嘗試圖片分享（原生）
+    // 嘗試圖片分享（原生，透過 view-shot 擷取 ShareCardView）
     try {
       await shareRef.current?.share();
       return;
     } catch {}
 
-    // Web fallback: 使用 Web Share API 或複製到剪貼簿
-    if (poem) {
-      if (!record) return;
-      const lines = poem.content.split('\n');
-      const shareText = [
-        `🏮【象棋占卜】${poem.level} · ${poem.title}`,
-        `卦：${poem.hexagramName}`,
-        ``,
-        ...lines,
-        ``,
-        `📜 ${poem.vernacular.slice(0, 80)}...`,
-        ``,
-        `🎲 抽得：${record.drawnPieceChars.join(' ')}`,
-        ...(reading
-          ? [
-              `☯ ${reading.primary.name} → ${reading.changed.name}（動爻 ${reading.movingLineName}）`,
-              `　 體用：${reading.bodyUse.relation} · ${reading.bodyUse.level}`,
-            ]
-          : []),
-        ``,
-        `🔗 chess-divination-app.vercel.app`,
-        `以棋問道 · 觀象知機`,
-      ].join('\n');
-      try {
-        if (navigator.share) {
-          await navigator.share({ title: '象棋占卜結果', text: shareText });
-          return;
+    // Web fallback
+    if (poem && record) {
+      const shareText = formatDivinationShareText({
+        poemTitle: poem.title,
+        poemLevel: poem.level,
+        hexagramName: poem.hexagramName,
+        lines: poem.content.split('\n'),
+        vernacular: poem.vernacular,
+        pieceChars: record.drawnPieceChars,
+        reading: reading ? {
+          primaryName: reading.primary.name,
+          changedName: reading.changed.name,
+          movingLineName: reading.movingLineName,
+          relation: reading.bodyUse.relation,
+          level: reading.bodyUse.level,
+        } : undefined,
+      });
+
+      // 優先使用原生分享選單
+      const nativeOk = await shareNative({ title: '象棋占卜結果', text: shareText });
+      if (nativeOk) return;
+
+      // 降級：LINE / FB / 複製
+      if (typeof window !== 'undefined' && window.confirm('分享到 LINE？\n(取消則複製到剪貼簿)')) {
+        shareToLine({ title: '象棋占卜結果', text: shareText });
+      } else {
+        const ok = await copyToClipboard(shareText);
+        if (!ok && typeof window !== 'undefined') {
+          window.alert('已複製到剪貼簿');
         }
-      } catch {}
-      try {
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(shareText);
-          alert('已複製到剪貼簿');
-        }
-      } catch {}
+      }
     }
   }
 

@@ -83,6 +83,14 @@ export interface AppSettings {
   usageDates?: string[];
   currentStreak?: number;
   unlockedAchievements?: string[];
+  customCategories?: CustomCategory[];
+}
+
+/** 使用者自訂問事類別 */
+export interface CustomCategory {
+  key: string;
+  label: string;
+  icon: string;  // IconName
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
