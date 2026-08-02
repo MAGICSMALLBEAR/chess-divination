@@ -107,3 +107,58 @@ export function poemIdFromTrigrams(upper: number, lower: number): number {
 export function hexagramNameOf(upper: number, lower: number): string {
   return getPoemById(poemIdFromTrigrams(upper, lower)).hexagramName;
 }
+
+// ====== 爻 ======
+
+/** 爻的陰陽：0 為陽（⚊），1 為陰（⚋） */
+export type LineValue = 0 | 1;
+
+export const YANG: LineValue = 0;
+export const YIN: LineValue = 1;
+
+/**
+ * 取某卦第 n 爻的陰陽（1 = 最下爻）。
+ *
+ * 先天卦序的編號本身即為該卦的爻象：以陽為 0、陰為 1，
+ * 自下而上依序為第 4、2、1 位元。
+ *   乾 0 = 000 = 陽陽陽    坤 7 = 111 = 陰陰陰
+ *   震 3 = 011 = 陽陰陰    艮 6 = 110 = 陰陰陽
+ * 因此六爻可由卦號直接推得，不需另建 64×6 的對照表。
+ */
+export function trigramLine(trigram: number, position: 1 | 2 | 3): LineValue {
+  const shift = 3 - position;          // 1→2, 2→1, 3→0
+  return ((trigram >> shift) & 1) as LineValue;
+}
+
+/** 由三爻（自下而上）還原卦號 */
+export function trigramFromLines(lines: LineValue[]): number {
+  return lines[0] * 4 + lines[1] * 2 + lines[2];
+}
+
+/**
+ * 上下卦 → 六爻，索引 0 為初爻（最下）、索引 5 為上爻（最上）。
+ * 下卦為一至三爻，上卦為四至六爻。
+ */
+export function hexagramLines(upper: number, lower: number): LineValue[] {
+  return [
+    trigramLine(lower, 1), trigramLine(lower, 2), trigramLine(lower, 3),
+    trigramLine(upper, 1), trigramLine(upper, 2), trigramLine(upper, 3),
+  ];
+}
+
+/** 六爻 → 上下卦 */
+export function trigramsFromLines(lines: LineValue[]): { upper: number; lower: number } {
+  return {
+    lower: trigramFromLines(lines.slice(0, 3)),
+    upper: trigramFromLines(lines.slice(3, 6)),
+  };
+}
+
+/** 爻位名稱，如「初九」「六三」「上六」 */
+export function lineName(lines: LineValue[], position: number): string {
+  const value = lines[position - 1];
+  const numeral = value === YANG ? '九' : '六';
+  if (position === 1) return `初${numeral}`;
+  if (position === 6) return `上${numeral}`;
+  return `${numeral}${['二', '三', '四', '五'][position - 2]}`;
+}

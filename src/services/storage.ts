@@ -42,12 +42,24 @@ export interface DivinationRecord {
    */
   engineVersion?: number;
   hexagramName?: string;
+  /** 先天序索引 0–63，用於還原完整卦例（變卦／互卦／體用） */
+  hexagramIndex?: number;
   movingLine?: number;
+  /** 起卦時辰數 1–12 */
+  hourBranch?: number;
 }
 
-/** 判斷記錄是否以已修正的新版卦法產生 */
+/**
+ * 判斷記錄是否為卦序錯誤的 v1 舊記錄。
+ * v2 以後卦序皆正確，僅是解讀深度不同，不算「舊卦法」。
+ */
 export function isLegacyRecord(record: DivinationRecord): boolean {
   return (record.engineVersion ?? 1) < 2;
+}
+
+/** 判斷記錄是否含完整的六爻資訊（變卦／互卦／體用） */
+export function hasLiuYaoData(record: DivinationRecord): boolean {
+  return record.hexagramIndex !== undefined && record.movingLine !== undefined;
 }
 
 export interface Folder {
@@ -270,7 +282,7 @@ export function recordFromDivination(
   questionCategory?: string,
   questionText?: string,
   positionSummary?: string,
-  hexagram?: { name: string; movingLine?: number },
+  hexagram?: { name: string; index: number; movingLine: number; hourBranch: number },
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: poem.id,
@@ -288,6 +300,8 @@ export function recordFromDivination(
     isFavorited: false,
     engineVersion: DIVINATION_ENGINE_VERSION,
     hexagramName: hexagram?.name,
+    hexagramIndex: hexagram?.index,
     movingLine: hexagram?.movingLine,
+    hourBranch: hexagram?.hourBranch,
   };
 }

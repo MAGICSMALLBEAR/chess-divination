@@ -56,7 +56,14 @@ export function useDrawDivination() {
       questionCategory,
       questionText,
       undefined,
-      hexagram ? { name: hexagram.name, movingLine: hexagram.movingLine } : undefined,
+      hexagram
+        ? {
+            name: hexagram.name,
+            index: hexagram.index,
+            movingLine: hexagram.movingLine,
+            hourBranch: hexagram.hourBranch,
+          }
+        : undefined,
     );
     const saved = await addHistory(record);
     setStep('result');

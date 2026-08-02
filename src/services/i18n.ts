@@ -52,9 +52,9 @@ const translations: Record<string, Record<Lang, string>> = {
   'reveal.retry': { 'zh-TW': '再次抽棋', en: 'Draw Again', ja: 'もう一度引く' },
   'reveal.retryBoard': { 'zh-TW': '重新佈局', en: 'New Layout', ja: '再配置' },
   'reveal.home': { 'zh-TW': '回首頁', en: 'Home', ja: 'ホーム' },
-  'reveal.aiLoading': { 'zh-TW': 'AI 解讀中...', en: 'AI analyzing...', ja: 'AI解読中...' },
-  'reveal.aiTitle': { 'zh-TW': 'AI 智慧解讀', en: 'AI Interpretation', ja: 'AI智慧解読' },
-  'reveal.aiActions': { 'zh-TW': '建議行動', en: 'Suggested Actions', ja: '推奨アクション' },
+  // 解讀為規則式推導，非語言模型，故不使用「AI」字樣
+  'reveal.deepTitle': { 'zh-TW': '深度解讀', en: 'In-depth Reading', ja: '詳細解読' },
+  'reveal.deepActions': { 'zh-TW': '建議行動', en: 'Suggested Actions', ja: '推奨アクション' },
   'reveal.position': { 'zh-TW': '棋盤佈局解讀', en: 'Board Position Reading', ja: '盤面配置の解読' },
 
   // 收藏

@@ -11,6 +11,7 @@ import { addHistory, recordFromDivination } from '@/services/storage';
 import { playPlacePieceSound } from '@/services/sound';
 import { hapticLight } from '@/services/haptics';
 import { generatePositionSummaryDeep } from '@/services/position';
+import { BOARD } from '@/constants/theme';
 
 export interface PlacedPiece {
   piece: ChessPiece;
@@ -74,14 +75,27 @@ export function useBoardDivination() {
 
     // 使用棋子順序作為順序（依放置先後）
     const pieces = placedPieces.map(pp => pp.piece);
-    const hex = computeHexagram(pieces);
+
+    // 擺位進入起卦：各棋子的格位數總和參與動爻計算，
+    // 使「棋放在哪裡」真正影響卦象，而非僅產生一段文字敘述。
+    const positionSum = placedPieces.reduce(
+      (sum, pp) => sum + pp.col + pp.row * BOARD.cols,
+      0,
+    );
+
+    const hex = computeHexagram(pieces, { extra: positionSum });
     const poem = getPoemById(hex.poemId);
     setSelectedPoem(poem);
 
     // 儲存記錄
     const record = recordFromDivination(
       poem, pieces, 'board', cat, txt, positionSummary,
-      { name: hex.name, movingLine: hex.movingLine },
+      {
+        name: hex.name,
+        index: hex.index,
+        movingLine: hex.movingLine,
+        hourBranch: hex.hourBranch,
+      },
     );
     const saved = await addHistory(record);
     setStep('result');

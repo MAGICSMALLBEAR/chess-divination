@@ -28,3 +28,24 @@ export function yesterdayString(): string {
   d.setDate(d.getDate() - 1);
   return toLocalDateString(d);
 }
+
+// ====== 時辰（地支） ======
+
+export const EARTHLY_BRANCHES = [
+  '子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥',
+] as const;
+
+/**
+ * 當下的時辰數（1–12，子時為 1）。
+ *
+ * 一個時辰兩小時，且子時橫跨半夜：23:00–00:59 為子時。
+ * 梅花易數以「年月日時」起卦，時辰數是動爻的必要參數之一。
+ */
+export function hourBranchNumber(date: Date = new Date()): number {
+  return Math.floor(((date.getHours() + 1) % 24) / 2) + 1;
+}
+
+/** 時辰名，如「午時」 */
+export function hourBranchName(branchNumber: number): string {
+  return `${EARTHLY_BRANCHES[branchNumber - 1]}時`;
+}

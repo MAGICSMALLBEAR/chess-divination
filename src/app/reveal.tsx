@@ -1,5 +1,5 @@
 // 籤詩展示頁面 — 完整解讀
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
   TouchableOpacity, Dimensions,
@@ -8,14 +8,17 @@ import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import PoemCard from '@/components/PoemCard';
+import LiuYaoPanel from '@/components/LiuYaoPanel';
 import Spinner from '@/components/Spinner';
+import { buildLiuYaoReading } from '@/services/liuyao';
+import { trigramsFromIndex } from '@/services/hexagram';
 import type { DivinationRecord } from '@/services/storage';
 import { getHistory, toggleFavorite, isLegacyRecord } from '@/services/storage';
 import { getPoemById } from '@/data/poems';
 import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { getAIInterpretation } from '@/services/ai';
+import { buildInterpretation } from '@/services/interpretation';
 import { t } from '@/services/i18n';
 import { recordUsage } from '@/services/achievements';
 import { Spacing, FontSize } from '@/constants/theme';
@@ -28,9 +31,18 @@ export default function RevealScreen() {
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
-  const [aiResult, setAiResult] = useState<{ interpretation: string; actionPlan: string[] } | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
   const shareRef = useRef<ShareCardHandle>(null);
+
+  const poem = record ? getPoemById(record.poemId) : null;
+
+  // 有完整卦象資料才能推演三卦與體用（v3 以前的記錄沒有）
+  const reading = useMemo(() => {
+    if (!record || record.hexagramIndex === undefined || record.movingLine === undefined) {
+      return null;
+    }
+    const [upper, lower] = trigramsFromIndex(record.hexagramIndex);
+    return buildLiuYaoReading(upper, lower, record.movingLine);
+  }, [record]);
 
   useEffect(() => {
     loadRecord();
@@ -44,14 +56,6 @@ export default function RevealScreen() {
     if (found) {
       setRecord(found);
       setIsFav(found.isFavorited);
-      // 載入 AI 解讀
-      const poem = getPoemById(found.poemId);
-      setAiLoading(true);
-      try {
-        const result = await getAIInterpretation(poem, found.questionText);
-        setAiResult(result);
-      } catch {}
-      setAiLoading(false);
     }
   }
 
@@ -84,6 +88,12 @@ export default function RevealScreen() {
         `📜 ${poem.vernacular.slice(0, 80)}...`,
         ``,
         `🎲 抽得：${record.drawnPieceChars.join(' ')}`,
+        ...(reading
+          ? [
+              `☯ ${reading.primary.name} → ${reading.changed.name}（動爻 ${reading.movingLineName}）`,
+              `　 體用：${reading.bodyUse.relation} · ${reading.bodyUse.level}`,
+            ]
+          : []),
         ``,
         `🔗 chess-divination-app.vercel.app`,
         `以棋問道 · 觀象知機`,
@@ -111,7 +121,7 @@ export default function RevealScreen() {
     }
   }
 
-  if (!record) {
+  if (!record || !poem) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
         <InkBackground />
@@ -122,8 +132,12 @@ export default function RevealScreen() {
     );
   }
 
-  // Load full poem data
-  const poem = getPoemById(record.poemId);
+  const deepReading = buildInterpretation({
+    poem,
+    questionText: record.questionText,
+    questionCategory: record.questionCategory,
+    reading,
+  });
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
@@ -150,16 +164,15 @@ export default function RevealScreen() {
           </View>
         )}
 
-        {/* 卦象 */}
-        {record.hexagramName ? (
+        {/* 卦例推演：本卦／互卦／變卦 + 體用 */}
+        {reading ? (
+          <View style={styles.panelWrap}>
+            <LiuYaoPanel reading={reading} hourBranch={record.hourBranch} />
+          </View>
+        ) : record.hexagramName ? (
           <View style={[styles.hexBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={[styles.hexLabel, { color: theme.textMuted }]}>本卦</Text>
             <Text style={[styles.hexName, { color: theme.gold }]}>{record.hexagramName}</Text>
-            {record.movingLine ? (
-              <Text style={[styles.hexLabel, { color: theme.textMuted }]}>
-                動爻：第 {record.movingLine} 爻
-              </Text>
-            ) : null}
           </View>
         ) : null}
 
@@ -189,28 +202,23 @@ export default function RevealScreen() {
           onShare={handleShare}
         />
 
-        {/* AI 解讀 */}
-        {aiLoading && (
-          <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Spinner text={t('reveal.aiLoading')} size={24} />
-          </View>
-        )}
-        {aiResult && !aiLoading && (
-          <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.sectionTitle, { color: theme.gold }]}>🤖 AI 智慧解讀</Text>
-            <Text style={[styles.bodyText, { color: theme.textSecondary }]}>{aiResult.interpretation}</Text>
-            {aiResult.actionPlan.length > 0 && (
-              <View style={styles.actionList}>
-                <Text style={[styles.actionTitle, { color: theme.gold }]}>建議行動</Text>
-                {aiResult.actionPlan.map((step, i) => (
-                  <Text key={i} style={[styles.actionItem, { color: theme.textSecondary }]}>
-                    {i + 1}. {step}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
+        {/* 深度解讀 */}
+        <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎深度解讀</Text>
+          <Text style={[styles.bodyText, { color: theme.textSecondary }]}>
+            {deepReading.interpretation}
+          </Text>
+          {deepReading.actionPlan.length > 0 && (
+            <View style={styles.actionList}>
+              <Text style={[styles.actionTitle, { color: theme.gold }]}>建議行動</Text>
+              {deepReading.actionPlan.map((step, i) => (
+                <Text key={i} style={[styles.actionItem, { color: theme.textSecondary }]}>
+                  {i + 1}. {step}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
 
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.newBtn} onPress={handleNewDraw}>
@@ -281,6 +289,9 @@ const styles = StyleSheet.create({
   },
   legacyText: {
     fontSize: FontSize.caption, lineHeight: 20,
+  },
+  panelWrap: {
+    width: SCREEN_WIDTH - Spacing.xl * 2,
   },
   hexBox: {
     width: SCREEN_WIDTH - Spacing.xl * 2,

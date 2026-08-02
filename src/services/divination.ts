@@ -9,10 +9,16 @@ import {
   TRIGRAM_NAMES, TRIGRAM_GLYPHS, TRIGRAM_ELEMENTS,
   hexagramIndex, hexagramNameOf, poemIdFromTrigrams,
 } from './hexagram';
-import { todayString } from './date';
+import { todayString, hourBranchNumber } from './date';
 
-/** 起卦引擎版本。修改起卦邏輯時必須遞增，歷史記錄依此標記所用卦法。 */
-export const DIVINATION_ENGINE_VERSION = 2;
+/**
+ * 起卦引擎版本。修改起卦邏輯時必須遞增，歷史記錄依此標記所用卦法。
+ *
+ * v1 — 卦序對應錯誤（先天序誤作文王序），64 卦中 62 卦的籤詩與卦象不符。
+ * v2 — 修正卦序；卦改由棋種＋顏色決定，八卦全覆蓋。
+ * v3 — 納入時辰，每次起卦皆有動爻，並推演變卦、互卦與體用生剋。
+ */
+export const DIVINATION_ENGINE_VERSION = 3;
 
 // ====== 確定性 PRNG (Mulberry32) ======
 
@@ -75,11 +81,23 @@ export interface HexagramResult {
   name: string;
   /** 對應籤詩 id（文王卦序 1–64） */
   poemId: number;
+  /** 動爻 1–6（自下而上） */
+  movingLine: number;
+  /** 起卦所用的時辰數 1–12 */
+  hourBranch: number;
+}
+
+export interface HexagramOptions {
   /**
-   * 動爻（1–6）。抽三顆棋時由第三顆決定，否則為 undefined。
-   * 目前僅記錄，變卦與互卦的解讀於 Phase 2 實作。
+   * 時辰數 1–12。預設取當下時辰。
+   * 傳入固定值可得到可重現的結果（每日運勢即以此保持整日一致）。
    */
-  movingLine?: number;
+  hourBranch?: number;
+  /**
+   * 額外參與動爻計算的數。
+   * 棋盤模式傳入各棋子的格位數總和，使「擺在哪裡」真正影響卦象。
+   */
+  extra?: number;
 }
 
 /**
@@ -87,9 +105,15 @@ export interface HexagramResult {
  *
  * 抽 1 顆：上下同卦，成八重卦之一。
  * 抽 2 顆：第一顆為上卦、第二顆為下卦，8×8 = 64 卦全覆蓋。
- * 抽 3 顆：前兩顆定上下卦，第三顆定動爻（梅花易數以第三數取動爻之意）。
+ * 抽 3 顆：前兩顆定上下卦，第三顆另計入動爻。
+ *
+ * 動爻依梅花易數：(上卦數 + 下卦數 + 其餘數 + 時辰數) mod 6，得 0 則為上爻。
+ * 時辰是必要參數——同樣的棋在不同時辰起卦，變化的關鍵所在本就不同。
  */
-export function computeHexagram(pieces: ChessPiece[]): HexagramResult {
+export function computeHexagram(
+  pieces: ChessPiece[],
+  options: HexagramOptions = {},
+): HexagramResult {
   if (pieces.length === 0) {
     throw new Error('起卦至少需要一顆棋子');
   }
@@ -97,21 +121,20 @@ export function computeHexagram(pieces: ChessPiece[]): HexagramResult {
   const upper = pieces[0].trigram;
   const lower = pieces.length === 1 ? pieces[0].trigram : pieces[1].trigram;
 
-  const result: HexagramResult = {
+  const hourBranch = options.hourBranch ?? hourBranchNumber();
+  const thirdPiece = pieces.length >= 3 ? pieces[2].trigram : 0;
+  const sum = upper + lower + thirdPiece + (options.extra ?? 0) + hourBranch;
+  const remainder = sum % 6;
+
+  return {
     upper,
     lower,
     index: hexagramIndex(upper, lower),
     name: hexagramNameOf(upper, lower),
     poemId: poemIdFromTrigrams(upper, lower),
+    movingLine: remainder === 0 ? 6 : remainder,
+    hourBranch,
   };
-
-  if (pieces.length >= 3) {
-    // 梅花易數：動爻 = (上卦數 + 下卦數 + 第三數) mod 6，得 0 則為第六爻
-    const sum = upper + lower + pieces[2].trigram;
-    result.movingLine = (sum % 6) + 1;
-  }
-
-  return result;
 }
 
 /** 先天序索引 0–63（保留給既有呼叫端與測試） */
@@ -185,8 +208,9 @@ export function generateDailyFortune(): DailyFortuneResult {
   const seed = hashString(dateStr);
   const rand = mulberry32(seed);
 
+  // 時辰固定由日期推得，使當日運勢整天一致，不會隨時辰變動
   const pieces = drawPieces(2, seed);
-  const hexagram = computeHexagram(pieces);
+  const hexagram = computeHexagram(pieces, { hourBranch: (Math.abs(seed) % 12) + 1 });
   const poem = getPoemById(hexagram.poemId);
 
   // 當日主氣取上卦（體）之五行
