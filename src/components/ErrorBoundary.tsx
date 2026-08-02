@@ -1,6 +1,10 @@
 // 錯誤邊界元件 — 捕獲渲染錯誤並顯示友好訊息
+//
+// 使用固定的後備色盤而非主題：本元件是 class component 無法用 hook，
+// 且可能在 ThemeProvider 本身出錯時才被觸發，此時不能依賴主題 context。
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { FallbackPalette, Spacing, FontSize } from '@/constants/theme';
 
 interface Props { children: React.ReactNode; }
 interface State { hasError: boolean; error: Error | null; }
@@ -43,22 +47,23 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#0D0A08',
+    flex: 1, backgroundColor: FallbackPalette.bg,
     alignItems: 'center', justifyContent: 'center',
   },
-  content: { alignItems: 'center', padding: 32 },
-  icon: { fontSize: 56, marginBottom: 16 },
+  content: { alignItems: 'center', padding: Spacing.xl },
+  icon: { fontSize: 56, marginBottom: Spacing.md },
   title: {
-    fontSize: 20, fontWeight: '700', color: '#F5EDE0',
-    marginBottom: 8,
+    fontSize: FontSize.heading, fontWeight: '700', color: FallbackPalette.text,
+    marginBottom: Spacing.sm,
   },
   message: {
-    fontSize: 14, color: '#8A7A60', textAlign: 'center',
-    marginBottom: 24, lineHeight: 22,
+    fontSize: FontSize.small, color: FallbackPalette.textMuted, textAlign: 'center',
+    marginBottom: Spacing.lg, lineHeight: 22,
   },
   retryBtn: {
-    backgroundColor: '#C9A96E', paddingHorizontal: 24, paddingVertical: 12,
+    backgroundColor: FallbackPalette.gold,
+    paddingHorizontal: Spacing.lg, paddingVertical: 12,
     borderRadius: 12,
   },
-  retryText: { fontSize: 16, fontWeight: '600', color: '#1A1210' },
+  retryText: { fontSize: FontSize.body, fontWeight: '600', color: FallbackPalette.card },
 });

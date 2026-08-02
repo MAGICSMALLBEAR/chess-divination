@@ -2,19 +2,20 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
-  TextInput, Dimensions,
+  TextInput,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { Spacing, FontSize } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { ThemeColors } from '@/constants/theme';
+import { Spacing, FontSize, PaperSurface } from '@/constants/theme';
 
 export default function LibraryScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -65,9 +66,9 @@ export default function LibraryScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
         style={styles.filterRow} contentContainerStyle={styles.filterContent}>
         <TouchableOpacity
-          style={[styles.filterChip, !levelFilter && { borderColor: '#C9A96E' }]}
+          style={[styles.filterChip, !levelFilter && { borderColor: theme.gold }]}
           onPress={() => setLevelFilter(null)}>
-          <Text style={[styles.filterText, !levelFilter && { color: '#C9A96E' }]}>全部</Text>
+          <Text style={[styles.filterText, !levelFilter && { color: theme.textGold }]}>全部</Text>
         </TouchableOpacity>
         {POEM_LEVELS.map(level => (
           <TouchableOpacity key={level}
@@ -132,7 +133,7 @@ export default function LibraryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -150,10 +151,10 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
   filterDot: { width: 8, height: 8, borderRadius: 4 },
-  filterText: { fontSize: 12, color: '#8A7A60' },
+  filterText: { fontSize: FontSize.caption, color: t.textMuted },
   count: { fontSize: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.sm },
   list: { paddingHorizontal: Spacing.md, paddingBottom: 40 },
   card: {
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   levelDot: {
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
   },
-  levelDotText: { fontSize: 11, fontWeight: '700', color: '#FFF' },
+  levelDotText: { fontSize: 11, fontWeight: '700', color: PaperSurface.onLevel },
   cardNum: { fontSize: FontSize.small, fontWeight: '600' },
   cardHex: { fontSize: FontSize.small },
   cardTitle: { fontSize: FontSize.body, fontWeight: '700', marginBottom: 8 },

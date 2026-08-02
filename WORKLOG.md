@@ -4,9 +4,9 @@
 
 | 項目 | 數值 |
 |------|------|
-| 原始碼檔案 | 51 個 |
-| Git Commits | 25 次 |
-| Jest 測試 | 71 個 · 7 套件 · 全部通過 |
+| 原始碼檔案 | 53 個 |
+| Git Commits | 26 次 |
+| Jest 測試 | 75 個 · 8 套件 · 全部通過 |
 | TypeScript | 零錯誤 |
 | 頁面 | 11 個 |
 | 元件 | 11 個 |
@@ -90,6 +90,16 @@ Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncSt
 - **解讀誠實化**：`ai.ts` → `interpretation.ts`，移除「AI 智慧解讀」字樣（原本從未呼叫任何模型），改為納入三卦與體用的規則式深度解讀
 - 測試 49 → 71 個，含屯卦爻象、屯之互卦為山地剝等傳統卦例對照
 
+## Session 11 — 主題與版面 (8/2)
+
+- **修好亮色主題**：全 App 300+ 個硬編色碼歸零，20 個元件／頁面改為 `makeStyles(theme)`
+- **守門測試**：新增規則禁止 UI 檔案出現色值字面量，防止回流
+- **版面響應式**：`Dimensions.get` 歸零，改用 `useWindowDimensions`；旋轉與瀏覽器縮放終於生效
+- **內容限寬 560px 置中**：平板／桌面不再出現超長行寬
+- 刻意固定色的部分集中為具名色盤：宣紙卷軸、分享圖卡、錯誤邊界、等級色
+- 移除死碼 `PieceDrawAnimation.tsx`（288 行）
+- 順帶修掉：`PoemCard` 動畫速度設定同樣從未生效；`InkBackground` 粒子循環卸載時不停止；`stats` 自帶一份與 `getLevelColor` 不一致的等級色表
+
 ---
 
 ## 功能完整清單
@@ -136,7 +146,7 @@ Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncSt
 ## 未來可開發功能
 
 > 完整的稽核與階段規劃見 [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md)。
-> 下一步為 **Phase 3 主題與版面**（移除 300+ 硬編色碼修好亮色主題、改用 `useWindowDimensions` 讓版面響應式）。
+> 下一步為 **Phase 4 視覺質感**（導入 `expo-linear-gradient` 做真漸層、`react-native-svg` 取代滿版 Emoji、原生端書法字體）。
 
 ### 🔴 高優先（可立即實作）
 - [ ] **成就徽章展示頁** — 在設定或獨立頁面展示 8 種成就的解鎖狀態

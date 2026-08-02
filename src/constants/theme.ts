@@ -35,6 +35,15 @@ export interface ThemeColors {
   pieceBlack: string;   // 黑方棋子色
   pieceBorder: string;  // 棋子邊框
   pieceBg: string;      // 棋子底色
+
+  // 棋盤色（棋盤在明暗主題下都是木色，僅深淺不同）
+  boardBg: string;      // 棋盤木色底
+  boardLine: string;    // 格線與格點
+  boardText: string;    // 楚河漢界文字
+
+  // 半透明強調色（用於選取態、可放置提示等）
+  goldSoft: string;     // 金色淡底
+  goldFaint: string;    // 金色極淡邊框
 }
 
 // 暗色主題（預設：墨色夜色）
@@ -67,6 +76,13 @@ export const DarkTheme: ThemeColors = {
   pieceBlack: '#2A1F18',
   pieceBorder: '#C9A96E',
   pieceBg: '#F5EDE0',
+
+  boardBg: '#B8873C',
+  boardLine: '#5A3E0E',
+  boardText: '#2A1F18',
+
+  goldSoft: 'rgba(201, 169, 110, 0.15)',
+  goldFaint: 'rgba(201, 169, 110, 0.5)',
 };
 
 // 亮色主題（宣紙白日）
@@ -99,6 +115,13 @@ export const LightTheme: ThemeColors = {
   pieceBlack: '#1A1210',
   pieceBorder: '#A08040',
   pieceBg: '#F5EDE0',
+
+  boardBg: '#E3C48A',
+  boardLine: '#8B6914',
+  boardText: '#1A1210',
+
+  goldSoft: 'rgba(160, 128, 64, 0.15)',
+  goldFaint: 'rgba(160, 128, 64, 0.5)',
 };
 
 export type ThemeMode = 'dark' | 'light' | 'system';
@@ -106,6 +129,95 @@ export type ThemeMode = 'dark' | 'light' | 'system';
 export function getThemeColors(mode: ThemeMode): ThemeColors {
   return mode === 'dark' ? DarkTheme : LightTheme;
 }
+
+/**
+ * 分享圖卡專用色盤。
+ *
+ * 圖卡是匯出成圖片對外分享的成品，不是應用程式介面，
+ * 因此刻意固定為深墨金箔的品牌樣式，不隨使用者的明暗主題改變——
+ * 否則同一張分享卡在不同使用者手上會長得不一樣。
+ */
+export const ShareCardPalette = {
+  paper: '#F5EDE0',
+  paperDeep: '#EDE5D5',
+  white: '#FFFFFF',
+  gold: '#8B6914',
+  goldLight: '#C9A96E',
+  ink: '#1A1210',
+  inkMuted: '#8A7A60',
+  border: '#D4C4A8',
+  red: '#C0392B',
+  onLevel: '#FFFFFF',
+} as const;
+
+/**
+ * 紙面色盤。
+ *
+ * 籤詩卷軸這類模擬實體紙張的元素，在明暗主題下都應維持紙色與墨字——
+ * 若讓紙面跟著暗色主題變黑，「宣紙捲軸」的意象就不成立了。
+ * 深色主題下呈現為暗底上的一卷淺色紙，正是預期的視覺效果。
+ */
+export const PaperSurface = {
+  paper: '#F5EDE0',
+  ink: '#1A1210',
+  inkMuted: '#5A4A38',
+  border: '#D4C4A8',
+  gold: '#8B6914',
+  wood: '#8B6914',
+  woodDark: '#6B4F10',
+  woodDeep: '#5A3E0E',
+  red: '#C0392B',
+  onLevel: '#FFFFFF',
+} as const;
+
+/** 分享卡上的吉凶等級底色 */
+export const ShareCardLevelColors: Record<string, string> = {
+  '大吉': '#C9A96E',
+  '上吉': '#E5746A',
+  '中吉': '#6B9B6B',
+  '中平': '#8A8060',
+  '下下': '#666666',
+};
+
+/**
+ * 吉凶等級色。
+ * 屬於語意化的資料色盤（同一等級在何處都該是同一個顏色），
+ * 目前不隨明暗主題改變。
+ */
+export const LevelColors: Record<string, string> = {
+  '大吉': '#C9A96E', // 金色
+  '上吉': '#E5746A', // 朱砂
+  '中吉': '#8AB87A', // 翠綠
+  '中平': '#C9B99A', // 米黃
+  '下下': '#8A7A60', // 灰褐
+};
+
+export const DEFAULT_LEVEL_COLOR = '#C9B99A';
+
+/** 資料夾標籤的分類色盤 */
+export const FolderColors = [
+  '#C9A96E', '#E5746A', '#6B9B6B', '#6B9BC6', '#C69BC6', '#C6A06B',
+] as const;
+
+/** 立體元素的高光。純白半透明，與主題無關（打光不會因為換佈景而變色） */
+export const Highlight = {
+  strong: 'rgba(255, 255, 255, 0.15)',
+  soft: 'rgba(255, 255, 255, 0.1)',
+} as const;
+
+/**
+ * 錯誤邊界的後備色盤。
+ * ErrorBoundary 是 class component 且可能在 ThemeProvider 崩潰時才被觸發，
+ * 無法依賴主題 context，故使用固定色。
+ */
+export const FallbackPalette = {
+  bg: '#0D0A08',
+  card: '#1A1210',
+  border: '#3A2F25',
+  gold: '#C9A96E',
+  text: '#F5EDE0',
+  textMuted: '#8A7A60',
+} as const;
 
 // ====== 設計 Token ======
 
@@ -147,6 +259,20 @@ export const Duration = {
   normal: 400,
   slow: 700,
   reveal: 900,
+} as const;
+
+// ====== 版面 ======
+
+export const Layout = {
+  /**
+   * 內容最大寬度。
+   * 沒有上限時，卡片在平板與桌面瀏覽器會被撐成整個視窗寬，
+   * 出現超長行寬而難以閱讀（本 App 已部署為 Web PWA）。
+   */
+  maxContent: 560,
+  /** 進入寬螢幕版面的斷點 */
+  tablet: 768,
+  desktop: 1024,
 } as const;
 
 // ====== 棋盤尺寸 ======

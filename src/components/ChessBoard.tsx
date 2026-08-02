@@ -5,7 +5,9 @@ import React, { useRef } from 'react';
 import { View, Text, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
 import type { ChessPiece as ChessPieceType } from '@/data/pieces';
 import ChessPiece from './ChessPiece';
-import { BOARD, Spacing } from '@/constants/theme';
+import type { ThemeColors } from '@/constants/theme';
+import { BOARD, Spacing, FontSize } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
 
 export interface PlacedPiece {
   piece: ChessPieceType;
@@ -36,6 +38,7 @@ export default function ChessBoard({
   maxPieces = 3,
   style,
 }: ChessBoardProps) {
+  const styles = useThemedStyles(makeStyles);
   const boardRef = useRef<View>(null);
   const boardLayoutRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const cols = BOARD.cols;    // 9
@@ -260,51 +263,51 @@ export default function ChessBoard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   container: { alignItems: 'center' },
   board: { position: 'relative' },
   boardBg: {
     position: 'absolute',
-    backgroundColor: '#D4A55A',
+    backgroundColor: t.boardBg,
   },
   gridPoint: {
     position: 'absolute',
     width: 4, height: 4, borderRadius: 2,
-    backgroundColor: '#8B6914', zIndex: 2,
+    backgroundColor: t.boardLine, zIndex: 2,
   },
   hLine: {
     position: 'absolute',
-    height: 1.5, backgroundColor: '#8B6914', zIndex: 1,
+    height: 1.5, backgroundColor: t.boardLine, zIndex: 1,
   },
   vLine: {
     position: 'absolute',
-    width: 1.5, backgroundColor: '#8B6914', zIndex: 1,
+    width: 1.5, backgroundColor: t.boardLine, zIndex: 1,
   },
   river: {
     position: 'absolute', height: 24,
     alignItems: 'center', justifyContent: 'center', zIndex: 3,
   },
   riverText: {
-    fontSize: 14, fontWeight: '700', color: '#1A1210', letterSpacing: 4,
+    fontSize: FontSize.small, fontWeight: '700', color: t.boardText, letterSpacing: 4,
   },
   placedPiece: {
     position: 'absolute', zIndex: 20,
   },
   dropTarget: {
     position: 'absolute', zIndex: 15,
-    backgroundColor: 'rgba(201, 169, 110, 0.15)',
-    borderWidth: 1.5, borderColor: 'rgba(201, 169, 110, 0.5)',
+    backgroundColor: t.goldSoft,
+    borderWidth: 1.5, borderColor: t.goldFaint,
     borderStyle: 'dashed',
     alignItems: 'center', justifyContent: 'center',
   },
   dropIcon: {
-    fontSize: 20, color: 'rgba(201, 169, 110, 0.6)', fontWeight: '300',
+    fontSize: FontSize.heading, color: t.goldFaint, fontWeight: '300',
   },
   availableArea: {
     marginTop: Spacing.lg, alignItems: 'center',
   },
   availableTitle: {
-    fontSize: 14, color: '#C9B99A', marginBottom: Spacing.sm,
+    fontSize: FontSize.small, color: t.textSecondary, marginBottom: Spacing.sm,
   },
   availableRow: {
     flexDirection: 'row', flexWrap: 'wrap',
@@ -314,13 +317,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', padding: 4, borderRadius: 12,
   },
   availablePieceSelected: {
-    backgroundColor: 'rgba(201, 169, 110, 0.15)',
-    borderWidth: 1, borderColor: '#C9A96E',
+    backgroundColor: t.goldSoft,
+    borderWidth: 1, borderColor: t.gold,
   },
   placedLabel: {
-    fontSize: 10, color: '#8A7A60', marginTop: 2,
+    fontSize: FontSize.overline, color: t.textMuted, marginTop: 2,
   },
   selectedLabel: {
-    fontSize: 10, color: '#C9A96E', marginTop: 2, fontWeight: '600',
+    fontSize: FontSize.overline, color: t.textGold, marginTop: 2, fontWeight: '600',
   },
 });

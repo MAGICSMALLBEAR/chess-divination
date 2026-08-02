@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
-  TouchableOpacity, Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -21,13 +21,16 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { t } from '@/services/i18n';
 import { recordUsage } from '@/services/achievements';
-import { Spacing, FontSize } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import type { ThemeColors } from '@/constants/theme';
+import { Spacing, FontSize, PaperSurface } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
 
 export default function RevealScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { contentWidth } = useLayout();
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
@@ -144,6 +147,7 @@ export default function RevealScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+       <View style={[styles.inner, { width: contentWidth }]}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -232,6 +236,7 @@ export default function RevealScreen() {
         >
           <Text style={styles.homeBtnText}>🏠 回首頁</Text>
         </TouchableOpacity>
+       </View>
       </ScrollView>
 
       {/* 隱藏的分享卡片（用於生成圖片） */}
@@ -252,38 +257,40 @@ export default function RevealScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0A08' },
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: t.bgInk },
   scroll: { flexGrow: 1, paddingBottom: 40, alignItems: 'center' },
+  // 內容以 contentWidth 限寬並置中，避免在平板／桌面被撐成整個視窗寬
+  inner: { alignItems: 'center' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontSize: FontSize.body, color: '#C9B99A' },
+  loadingText: { fontSize: FontSize.body, color: t.textSecondary },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
     width: '100%',
   },
   backBtn: { width: 60 },
-  backText: { fontSize: FontSize.body, color: '#C9B99A' },
-  title: { fontSize: FontSize.heading, fontWeight: '700', color: '#F5EDE0' },
+  backText: { fontSize: FontSize.body, color: t.textSecondary },
+  title: { fontSize: FontSize.heading, fontWeight: '700', color: t.textPrimary },
   piecesRow: {
     flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md, marginBottom: Spacing.md,
   },
   questionBox: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
-    backgroundColor: '#1A1210', borderRadius: 12,
-    borderWidth: 1, borderColor: '#3A2F25',
+    width: '100%',
+    backgroundColor: t.bgDark, borderRadius: 12,
+    borderWidth: 1, borderColor: t.bgMedium,
     padding: Spacing.md, marginBottom: Spacing.lg,
   },
   questionLabel: {
-    fontSize: FontSize.caption, color: '#C9A96E',
+    fontSize: FontSize.caption, color: t.textGold,
     marginBottom: 4, fontWeight: '600',
   },
   questionText: {
-    fontSize: FontSize.body, color: '#C9B99A',
+    fontSize: FontSize.body, color: t.textSecondary,
     fontStyle: 'italic', lineHeight: 24,
   },
   legacyBox: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    width: '100%',
     borderRadius: 12, borderWidth: 1,
     padding: Spacing.md, marginBottom: Spacing.md,
   },
@@ -291,10 +298,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.caption, lineHeight: 20,
   },
   panelWrap: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    width: '100%',
   },
   hexBox: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    width: '100%',
     borderRadius: 12, borderWidth: 1,
     padding: Spacing.md, marginBottom: Spacing.lg,
     alignItems: 'center',
@@ -307,7 +314,7 @@ const styles = StyleSheet.create({
     marginVertical: 4, letterSpacing: 2,
   },
   positionBox: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    width: '100%',
     borderRadius: 12, borderWidth: 1,
     padding: Spacing.md, marginBottom: Spacing.lg,
   },
@@ -319,97 +326,97 @@ const styles = StyleSheet.create({
   },
   pieceDisplay: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#F5EDE0', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#C9A96E',
+    backgroundColor: t.pieceBg, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: t.gold,
   },
   pieceChar: { fontSize: 32, fontWeight: '900' },
   levelBadge: {
     paddingHorizontal: 20, paddingVertical: 6, borderRadius: 14, marginBottom: Spacing.sm,
   },
-  levelText: { fontSize: FontSize.body, fontWeight: '700', color: '#FFFFFF' },
+  levelText: { fontSize: FontSize.body, fontWeight: '700', color: PaperSurface.onLevel },
   hexagramName: {
-    fontSize: FontSize.small, color: '#C9B99A', marginBottom: Spacing.sm,
+    fontSize: FontSize.small, color: t.textSecondary, marginBottom: Spacing.sm,
   },
   poemTitle: {
-    fontSize: FontSize.subtitle, fontWeight: '700', color: '#F5EDE0',
+    fontSize: FontSize.subtitle, fontWeight: '700', color: t.textPrimary,
     marginBottom: Spacing.lg,
   },
   poemBox: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
-    backgroundColor: '#1A1210', borderRadius: 16,
-    borderWidth: 1, borderColor: '#3A2F25',
+    width: '100%',
+    backgroundColor: t.bgDark, borderRadius: 16,
+    borderWidth: 1, borderColor: t.bgMedium,
     padding: Spacing.xl, marginBottom: Spacing.lg,
   },
   poemLine: {
-    fontSize: FontSize.poem, color: '#F5EDE0', textAlign: 'center',
+    fontSize: FontSize.poem, color: t.textPrimary, textAlign: 'center',
     lineHeight: 38, letterSpacing: 3,
   },
   divider: {
     flexDirection: 'row', alignItems: 'center',
-    width: SCREEN_WIDTH - Spacing.xl * 2, marginBottom: Spacing.lg,
+    width: '100%', marginBottom: Spacing.lg,
   },
   dividerLine: {
-    flex: 1, height: 1, backgroundColor: '#3A2F25',
+    flex: 1, height: 1, backgroundColor: t.bgMedium,
   },
   dividerText: {
-    fontSize: 18, color: '#C9A96E', marginHorizontal: Spacing.md,
+    fontSize: 18, color: t.textGold, marginHorizontal: Spacing.md,
   },
   section: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    width: '100%',
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSize.body, fontWeight: '600', color: '#C9A96E',
+    fontSize: FontSize.body, fontWeight: '600', color: t.textGold,
     marginBottom: Spacing.sm,
   },
   bodyText: {
-    fontSize: FontSize.body, color: '#C9B99A', lineHeight: 26,
+    fontSize: FontSize.body, color: t.textSecondary, lineHeight: 26,
   },
   catScroll: { marginBottom: Spacing.sm },
   catContent: { gap: 6 },
   catTab: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
     gap: 4,
   },
   catTabActive: {
-    borderColor: '#C9A96E', backgroundColor: '#2A1F18',
+    borderColor: t.gold, backgroundColor: t.bgMedium,
   },
   catIcon: { fontSize: 14 },
-  catLabel: { fontSize: FontSize.small, color: '#8A7A60' },
-  catLabelActive: { color: '#C9A96E', fontWeight: '600' },
+  catLabel: { fontSize: FontSize.small, color: t.textMuted },
+  catLabelActive: { color: t.textGold, fontWeight: '600' },
   catContentBox: {
-    backgroundColor: '#231A14', borderRadius: 12,
-    borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderRadius: 12,
+    borderWidth: 1, borderColor: t.bgMedium,
     padding: Spacing.md,
   },
   actions: {
     flexDirection: 'row', gap: Spacing.sm,
-    width: SCREEN_WIDTH - Spacing.xl * 2, marginTop: Spacing.md,
+    width: '100%', marginTop: Spacing.md,
   },
   favBtn: {
-    flex: 1, backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    flex: 1, backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
     paddingVertical: 12, borderRadius: 12, alignItems: 'center',
   },
-  favBtnText: { fontSize: FontSize.body, color: '#C9B99A' },
+  favBtnText: { fontSize: FontSize.body, color: t.textSecondary },
   shareBtn: {
-    flex: 1, backgroundColor: '#C9A96E',
+    flex: 1, backgroundColor: t.gold,
     paddingVertical: 12, borderRadius: 12, alignItems: 'center',
   },
-  shareBtnText: { fontSize: FontSize.body, fontWeight: '600', color: '#1A1210' },
+  shareBtnText: { fontSize: FontSize.body, fontWeight: '600', color: t.textInverse },
   newBtn: {
-    width: SCREEN_WIDTH - Spacing.xl * 2, borderWidth: 1, borderColor: '#3A2F25',
+    width: '100%', borderWidth: 1, borderColor: t.bgMedium,
     paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: Spacing.sm,
   },
-  newBtnText: { fontSize: FontSize.body, color: '#C9A96E' },
+  newBtnText: { fontSize: FontSize.body, color: t.textGold },
   homeBtn: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    width: '100%',
     paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 4,
   },
-  homeBtnText: { fontSize: FontSize.body, color: '#8A7A60' },
+  homeBtnText: { fontSize: FontSize.body, color: t.textMuted },
   aiBox: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
+    width: '100%',
     borderRadius: 12, borderWidth: 1,
     padding: Spacing.md, marginBottom: Spacing.lg,
   },

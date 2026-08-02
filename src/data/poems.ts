@@ -1,3 +1,5 @@
+import { LevelColors, DEFAULT_LEVEL_COLOR } from '@/constants/theme';
+
 // 象棋占卜 64 首籤詩
 // 對應易經 64 卦，融入象棋意象
 // Poem interface follows the same pattern as 神明占卜
@@ -828,12 +830,5 @@ export function getPoemsByHexagram(hexNum: number): Poem[] {
 export const POEM_LEVELS = ['大吉', '上吉', '中吉', '中平', '下下'] as const;
 
 export function getLevelColor(level: string): string {
-  switch (level) {
-    case '大吉': return '#C9A96E'; // 金色
-    case '上吉': return '#E5746A'; // 朱砂
-    case '中吉': return '#8AB87A'; // 翠綠
-    case '中平': return '#C9B99A'; // 米黃
-    case '下下': return '#8A7A60'; // 灰褐
-    default: return '#C9B99A';
-  }
+  return LevelColors[level] ?? DEFAULT_LEVEL_COLOR;
 }

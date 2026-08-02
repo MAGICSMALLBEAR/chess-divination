@@ -8,6 +8,7 @@ import {
   PanResponder, PanResponderGestureState, Pressable,
 } from 'react-native';
 import type { ChessPiece as ChessPieceType } from '@/data/pieces';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ChessPieceProps {
   piece: ChessPieceType;
@@ -28,10 +29,12 @@ export default function ChessPiece({
   onDragEnd,
   style,
 }: ChessPieceProps) {
+  const { theme } = useAppTheme();
   const pan = useRef(new Animated.ValueXY()).current;
   const isDragging = useRef(false);
 
   const isRed = piece.color === 'red';
+  const pieceInk = isRed ? theme.pieceRed : theme.pieceBlack;
 
   // 只在可拖曳時建立 PanResponder
   const panResponder = useRef(
@@ -75,11 +78,11 @@ export default function ChessPiece({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: '#F5EDE0',
-          borderColor: selected ? '#C9A96E' : isRed ? '#C0392B' : '#1A1210',
+          backgroundColor: theme.pieceBg,
+          borderColor: selected ? theme.pieceBorder : pieceInk,
           borderWidth: selected ? 3 : 2,
         },
-        selected && styles.selected,
+        selected && { shadowColor: theme.gold, ...styles.selected },
       ]}
     >
       <Text
@@ -87,7 +90,7 @@ export default function ChessPiece({
           styles.char,
           {
             fontSize: size * 0.55,
-            color: isRed ? '#C0392B' : '#1A1210',
+            color: pieceInk,
           },
         ]}
       >
@@ -165,7 +168,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   selected: {
-    shadowColor: '#C9A96E',
     shadowOpacity: 0.6,
     shadowRadius: 8,
     elevation: 8,

@@ -2,15 +2,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
-  Dimensions,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { saveSettings } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const STEPS = [
   {
@@ -39,6 +38,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const [currentStep, setCurrentStep] = useState(0);
+  const styles = useThemedStyles(makeStyles);
 
   async function handleFinish() {
     await saveSettings({ hasCompletedOnboarding: true });
@@ -95,8 +95,8 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0A08' },
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: t.bgInk },
   container: {
     flex: 1, paddingHorizontal: Spacing.xl,
     justifyContent: 'space-between', paddingVertical: Spacing.xxl,
@@ -104,17 +104,17 @@ const styles = StyleSheet.create({
   skipBtn: {
     alignSelf: 'flex-end',
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
-  skipText: { fontSize: FontSize.small, color: '#8A7A60' },
+  skipText: { fontSize: FontSize.small, color: t.textMuted },
   content: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   icon: { fontSize: 80, marginBottom: Spacing.lg },
   title: {
-    fontSize: FontSize.title, fontWeight: '700', color: '#F5EDE0',
+    fontSize: FontSize.title, fontWeight: '700', color: t.textPrimary,
     textAlign: 'center', marginBottom: Spacing.md,
   },
   desc: {
-    fontSize: FontSize.body, color: '#C9B99A', textAlign: 'center',
+    fontSize: FontSize.body, color: t.textSecondary, textAlign: 'center',
     lineHeight: 28,
   },
   dots: {
@@ -123,14 +123,14 @@ const styles = StyleSheet.create({
   },
   dot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#3A2F25',
+    backgroundColor: t.bgMedium,
   },
   dotActive: {
-    backgroundColor: '#C9A96E', width: 24,
+    backgroundColor: t.gold, width: 24,
   },
   nextBtn: {
-    backgroundColor: '#C9A96E', paddingVertical: 16,
+    backgroundColor: t.gold, paddingVertical: 16,
     borderRadius: 16, alignItems: 'center',
   },
-  nextBtnText: { fontSize: FontSize.body, fontWeight: '700', color: '#1A1210' },
+  nextBtnText: { fontSize: FontSize.body, fontWeight: '700', color: t.textInverse },
 });

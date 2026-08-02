@@ -11,11 +11,11 @@
 | Phase 0 緊急修復 | ✅ 已完成（2026-08-02） |
 | Phase 1 命理正確性重建 | ✅ 已完成（2026-08-02） |
 | Phase 2 六爻系統 | ✅ 已完成（2026-08-02） |
-| Phase 3 主題與版面 | ⬜ 未開始 |
+| Phase 3 主題與版面 | ✅ 已完成（2026-08-02） |
 | Phase 4 視覺質感 | ⬜ 未開始 |
 | Phase 5 動畫重製 | ⬜ 未開始 |
 
-Phase 0–2 完成後：Jest 71 測試全過 · TypeScript 零錯誤 · web build 成功。
+Phase 0–3 完成後：Jest 75 測試全過 · TypeScript 零錯誤 · web build 成功 · 硬編色碼歸零。
 詳細變更見文末「已完成變更記錄」。
 
 ---
@@ -625,7 +625,35 @@ Phase 5  動畫重製        1.5 週
 
 **測試**：新增 `liuyao.test.ts`，含六爻推導對照傳統卦象（屯卦爻象、屯之互卦為山地剝）、變卦僅差一爻且可逆、體用五種關係全可達、A6 迴歸（位置必須改變動爻）。49 → 71 個測試。
 
+### Phase 3（2026-08-02）
+
+| 項目 | 變更 |
+|---|---|
+| B1 | 新增 `useThemedStyles`，全部 20 個元件與頁面改為 `makeStyles(theme)` 模式 |
+| B1 | 新增守門測試 `theming.test.ts`，禁止 UI 檔案出現色值字面量 |
+| B4 | 新增 `useLayout`，全面改用 `useWindowDimensions`，`Dimensions.get` 歸零 |
+| B4 | 內容限寬 560px 並置中，平板／桌面不再出現超長行寬 |
+| C6 | 移除死碼 `PieceDrawAnimation.tsx`（288 行，無任何引用） |
+
+**硬編色碼從 300+ 降到 0**（守門測試允許的四個檔案除外）。
+
+**刻意不主題化的部分**，各有理由，集中於具名色盤常數：
+
+- `PaperSurface` — 籤詩卷軸是「宣紙」意象，紙面與墨字在明暗主題下都該維持紙色。深色主題下呈現為暗底上的一卷淺色紙，正是預期效果。
+- `ShareCardPalette` — 分享卡是匯出成圖片的成品，不是介面。若跟隨主題，同一張卡在不同使用者手上會長得不一樣。
+- `FallbackPalette` — `ErrorBoundary` 是 class component，且可能在 `ThemeProvider` 本身崩潰時才被觸發，不能依賴主題 context。
+- `LevelColors` / `FolderColors` / `Highlight` — 語意化資料色盤與純白高光，與佈景無關。
+
+**新增的主題欄位**：`boardBg` / `boardLine` / `boardText`（棋盤在兩種主題都是木色，僅深淺不同）、`goldSoft` / `goldFaint`（選取態與可放置提示的半透明強調色）。
+
+**順帶修掉的既有缺陷**：
+
+- `PoemCard` 與 `PieceDraw3D` 同樣有「`useAnimationSpeed` 非同步取值但 effect 依賴為空」的問題，動畫速度設定對捲軸展開動畫也從未生效，已一併修正並補上 cleanup。
+- `InkBackground` 的粒子動畫原以遞迴 `start()` 無限循環且從未在卸載時停止，多頁堆疊會累積多份循環持續佔用 JS 執行緒；已改用 `withRepeat` 式的 `Animated.loop` 並在 unmount 時取消。
+- `stats.tsx` 自行維護了一份與 `getLevelColor` 不一致的等級色表（中吉一個是 `#6B9B6B`、一個是 `#8AB87A`），已統一。
+
 ### 尚未處理
 
+- **寬螢幕雙欄佈局（3.4）未做**。已完成限寬與置中，桌面閱讀體驗的主要問題（超長行寬）已解決；雙欄需要重新設計資訊層級，不是單純的版面切換，留待 Phase 4 與視覺重製一併處理。
 - 棋盤模式因不允許重複選子，2 顆棋時仍無法組出乾為天／坤為地。此限制源自互動設計本身（實體棋盤沒有兩顆帥）；Phase 2 加入位置動爻後，同一組棋已能因擺位不同而得到不同的變卦與體用，變化度已大幅提升。
 - `ShareCardView` 分享圖卡尚未納入卦例（文字分享已納入），留待 Phase 4 重製圖卡時一併處理。

@@ -10,13 +10,18 @@ import type { DivinationRecord, Folder } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
-import { Spacing, FontSize } from '@/constants/theme';
+import type { ThemeColors } from '@/constants/theme';
+import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
 
 type TabType = 'history' | 'favorites' | 'folders';
 
 export default function CollectionScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { contentWidth } = useLayout();
   const [tab, setTab] = useState<TabType>('history');
   const [history, setHistory] = useState<DivinationRecord[]>([]);
   const [favorites, setFavorites] = useState<DivinationRecord[]>([]);
@@ -175,24 +180,24 @@ export default function CollectionScreen() {
         <View style={styles.sortRow}>
           {(['newest', 'oldest', 'best'] as const).map(o => (
             <TouchableOpacity key={o}
-              style={[styles.sortBtn, sortOrder === o && { borderColor: '#C9A96E' }]}
+              style={[styles.sortBtn, sortOrder === o && { borderColor: theme.gold }]}
               onPress={() => setSortOrder(o)}>
-              <Text style={[styles.sortText, sortOrder === o && { color: '#C9A96E' }]}>
+              <Text style={[styles.sortText, sortOrder === o && { color: theme.gold }]}>
                 {o === 'newest' ? '最新' : o === 'oldest' ? '最早' : '最佳'}
               </Text>
             </TouchableOpacity>
           ))}
           {tab === 'history' && data.length > 0 && (
-            <TouchableOpacity style={[styles.sortBtn, selectMode && { borderColor: '#E5746A' }]}
+            <TouchableOpacity style={[styles.sortBtn, selectMode && { borderColor: theme.textRed }]}
               onPress={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}>
-              <Text style={[styles.sortText, selectMode && { color: '#E5746A' }]}>
+              <Text style={[styles.sortText, selectMode && { color: theme.textRed }]}>
                 {selectMode ? '取消選擇' : '批量刪除'}
               </Text>
             </TouchableOpacity>
           )}
           {selectMode && selectedIds.size > 0 && (
-            <TouchableOpacity style={[styles.sortBtn, { borderColor: '#E5746A' }]} onPress={batchDelete}>
-              <Text style={[styles.sortText, { color: '#E5746A' }]}>刪除({selectedIds.size})</Text>
+            <TouchableOpacity style={[styles.sortBtn, { borderColor: theme.textRed }]} onPress={batchDelete}>
+              <Text style={[styles.sortText, { color: theme.textRed }]}>刪除({selectedIds.size})</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -202,7 +207,7 @@ export default function CollectionScreen() {
       <TextInput
         style={styles.searchInput}
         placeholder="搜尋籤詩內容..."
-        placeholderTextColor="#8A7A60"
+        placeholderTextColor={theme.textMuted}
         value={search}
         onChangeText={setSearch}
       />
@@ -249,7 +254,7 @@ export default function CollectionScreen() {
                 <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
                 <Text style={[styles.folderCount, { color: theme.textMuted }]}>{folder.recordIds.length} 筆</Text>
                 <TouchableOpacity onPress={() => handleDeleteFolder(folder.id)}>
-                  <Text style={{ color: '#E5746A', fontSize: 14 }}>🗑️</Text>
+                  <Text style={{ color: theme.textRed, fontSize: 14 }}>🗑️</Text>
                 </TouchableOpacity>
               </View>
               {/* 資料夾內記錄預覽 */}
@@ -273,7 +278,7 @@ export default function CollectionScreen() {
       {/* 歷史/收藏記錄列表 */}
       {tab !== 'folders' && (
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C9A96E" />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
         {data.length === 0 && (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📜</Text>
@@ -289,13 +294,13 @@ export default function CollectionScreen() {
         {data.map((record) => (
           <TouchableOpacity
             key={record.id}
-            style={[styles.card, selectedIds.has(record.id) && { borderColor: '#E5746A' }]}
+            style={[styles.card, selectedIds.has(record.id) && { borderColor: theme.textRed }]}
             onPress={() => selectMode ? toggleSelect(record.id) : handleView(record)}
             activeOpacity={0.8}
           >
             {selectMode && (
-              <View style={[styles.checkbox, selectedIds.has(record.id) && { backgroundColor: '#E5746A' }]}>
-                {selectedIds.has(record.id) && <Text style={{ color: '#FFF', fontSize: 12 }}>✓</Text>}
+              <View style={[styles.checkbox, selectedIds.has(record.id) && { backgroundColor: theme.textRed }]}>
+                {selectedIds.has(record.id) && <Text style={{ color: PaperSurface.onLevel, fontSize: 12 }}>✓</Text>}
               </View>
             )}
             <View style={styles.cardLeft}>
@@ -309,7 +314,7 @@ export default function CollectionScreen() {
               <View style={styles.cardHeader}>
                 <View style={[
                   styles.levelMini,
-                  { backgroundColor: record.poemLevel === '大吉' ? '#C9A96E' : record.poemLevel === '上吉' ? '#E5746A' : '#8A7A60' },
+                  { backgroundColor: record.poemLevel === '大吉' ? theme.gold : record.poemLevel === '上吉' ? theme.textRed : theme.textMuted },
                 ]}>
                   <Text style={styles.levelMiniText}>{record.poemLevel}</Text>
                 </View>
@@ -359,67 +364,71 @@ export default function CollectionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0A08' },
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: t.bgInk },
   header: {
     alignItems: 'center', paddingTop: Spacing.lg, paddingBottom: Spacing.md,
   },
-  title: { fontSize: FontSize.heading, fontWeight: '700', color: '#F5EDE0' },
+  title: { fontSize: FontSize.heading, fontWeight: '700', color: t.textPrimary },
   tabRow: {
     flexDirection: 'row', marginHorizontal: Spacing.md,
-    backgroundColor: '#1A1210', borderRadius: 12, padding: 4,
+    backgroundColor: t.bgDark, borderRadius: 12, padding: 4,
     marginBottom: Spacing.md,
   },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  tabActive: { backgroundColor: '#231A14' },
-  tabText: { fontSize: FontSize.small, color: '#8A7A60' },
-  tabTextActive: { color: '#C9A96E', fontWeight: '600' },
+  tabActive: { backgroundColor: t.bgCard },
+  tabText: { fontSize: FontSize.small, color: t.textMuted },
+  tabTextActive: { color: t.textGold, fontWeight: '600' },
   sortRow: {
     flexDirection: 'row', gap: 6, marginHorizontal: Spacing.md, marginBottom: 8,
   },
   sortBtn: {
     paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
-  sortText: { fontSize: 12, color: '#8A7A60' },
+  sortText: { fontSize: 12, color: t.textMuted },
   searchInput: {
     marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
-    backgroundColor: '#1A1210', borderRadius: 10, borderWidth: 1, borderColor: '#3A2F25',
-    paddingHorizontal: Spacing.md, paddingVertical: 8, fontSize: 14, color: '#F5EDE0',
+    backgroundColor: t.bgDark, borderRadius: 10, borderWidth: 1, borderColor: t.bgMedium,
+    paddingHorizontal: Spacing.md, paddingVertical: 8, fontSize: 14, color: t.textPrimary,
   },
-  scroll: { flexGrow: 1, paddingHorizontal: Spacing.md, paddingBottom: 40 },
+  // 限寬並置中，避免在平板／桌面被撐成整個視窗寬而出現超長行寬
+  scroll: {
+    flexGrow: 1, paddingHorizontal: Spacing.md, paddingBottom: 40,
+    width: '100%', maxWidth: Layout.maxContent, alignSelf: 'center',
+  },
   empty: { alignItems: 'center', paddingTop: Spacing.xxl * 2 },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
-  emptyText: { fontSize: FontSize.body, color: '#C9B99A', marginBottom: Spacing.sm },
-  emptyHint: { fontSize: FontSize.small, color: '#8A7A60', textAlign: 'center' },
+  emptyText: { fontSize: FontSize.body, color: t.textSecondary, marginBottom: Spacing.sm },
+  emptyHint: { fontSize: FontSize.small, color: t.textMuted, textAlign: 'center' },
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1A1210', borderRadius: 12,
-    borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgDark, borderRadius: 12,
+    borderWidth: 1, borderColor: t.bgMedium,
     padding: Spacing.md, marginBottom: Spacing.sm,
   },
   checkbox: {
-    width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#8A7A60',
+    width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: t.textMuted,
     alignItems: 'center', justifyContent: 'center', marginRight: 8,
   },
   cardLeft: { marginRight: Spacing.sm },
   piecesMini: {
-    backgroundColor: '#231A14', borderRadius: 8,
+    backgroundColor: t.bgCard, borderRadius: 8,
     paddingHorizontal: 8, paddingVertical: 6,
   },
-  piecesText: { fontSize: 18, fontWeight: '700', color: '#C9A96E', letterSpacing: 4 },
+  piecesText: { fontSize: 18, fontWeight: '700', color: t.textGold, letterSpacing: 4 },
   cardCenter: { flex: 1 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: 4 },
   levelMini: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  levelMiniText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  modeLabel: { fontSize: 11, color: '#8A7A60' },
-  cardTitle: { fontSize: FontSize.body, fontWeight: '600', color: '#F5EDE0' },
-  cardDate: { fontSize: FontSize.caption, color: '#8A7A60', marginTop: 2 },
+  levelMiniText: { fontSize: 11, fontWeight: '700', color: PaperSurface.onLevel },
+  modeLabel: { fontSize: 11, color: t.textMuted },
+  cardTitle: { fontSize: FontSize.body, fontWeight: '600', color: t.textPrimary },
+  cardDate: { fontSize: FontSize.caption, color: t.textMuted, marginTop: 2 },
   cardRight: { gap: Spacing.sm, alignItems: 'center' },
   favIcon: { fontSize: 22 },
   folderIcon: { fontSize: 18, marginBottom: 2 },
   folderPicker: {
-    backgroundColor: '#231A14', borderRadius: 8, padding: 8, marginTop: 4,
+    backgroundColor: t.bgCard, borderRadius: 8, padding: 8, marginTop: 4,
   },
   folderPickTitle: { fontSize: 11, marginBottom: 4 },
   folderPickItem: {

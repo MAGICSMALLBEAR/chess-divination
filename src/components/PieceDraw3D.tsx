@@ -3,15 +3,20 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions,
+  View, Text, StyleSheet, Animated, TouchableOpacity,
 } from 'react-native';
 import type { ChessPiece as ChessPieceType } from '@/data/pieces';
 import { getPieceTrigramName, getPieceTrigramGlyph } from '@/data/pieces';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { Spacing, FontSize } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { useLayout } from '@/hooks/useLayout';
+import type { ThemeColors } from '@/constants/theme';
+import { Spacing, FontSize, PaperSurface, Highlight } from '@/constants/theme';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+/** 陰影固定為黑色：陰影在明暗主題下都是暗的，不是主題色 */
+const SHADOW = '#000000';
 
 interface Props {
   drawnPieces: ChessPieceType[];
@@ -23,6 +28,9 @@ interface Props {
 export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedraw }: Props) {
   const speed = useAnimationSpeed();
   const reducedMotion = useReducedMotion();
+  const styles = useThemedStyles(makeStyles);
+  const { theme } = useAppTheme();
+  const { height, contentWidth } = useLayout();
   const [phase, setPhase] = useState<'shaking' | 'flying' | 'landed'>('shaking');
 
   // 3D 動畫值
@@ -272,7 +280,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
     });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { minHeight: height * 0.7 }]}>
       {/* 背景暗化層 */}
       <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} />
 
@@ -391,16 +399,18 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                 <View style={[
                   styles.piece3DBody,
                   {
-                    borderColor: phase === 'landed' ? '#C9A96E' : isRed ? '#C0392B' : '#1A1210',
+                    borderColor: phase === 'landed'
+                      ? theme.pieceBorder
+                      : isRed ? theme.pieceRed : theme.pieceBlack,
                   },
                 ]}>
                   {/* 亮面（模擬3D光線） */}
                   <View style={[styles.piece3DShine, {
-                    backgroundColor: isRed ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)',
+                    backgroundColor: isRed ? Highlight.strong : Highlight.soft,
                   }]} />
                   <Text style={[
                     styles.piece3DChar,
-                    { color: isRed ? '#C0392B' : '#1A1210' },
+                    { color: isRed ? theme.pieceRed : theme.pieceBlack },
                   ]}>
                     {piece.displayChar}
                   </Text>
@@ -452,6 +462,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
           style={[
             styles.summaryCard,
             {
+              width: contentWidth,
               opacity: contentOpacity,
             },
           ]}
@@ -465,7 +476,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
         <Animated.View
           style={[
             styles.actions,
-            { opacity: contentOpacity },
+            { width: contentWidth, opacity: contentOpacity },
           ]}
         >
           <TouchableOpacity style={styles.revealBtn} onPress={onReveal}>
@@ -480,17 +491,18 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
   );
 }
 
-const styles = StyleSheet.create({
+// 尺寸相關的值一律以百分比或 inline 帶入，
+// 不再於模組載入時取一次 Dimensions（旋轉與視窗縮放皆需重算）。
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   container: {
     alignItems: 'center', paddingTop: 20, paddingBottom: 40,
-    minHeight: SCREEN_HEIGHT * 0.7,
   },
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#000',
+    backgroundColor: t.bgInk,
   },
   scene: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     height: 320,
     alignItems: 'center',
     justifyContent: 'center',
@@ -500,15 +512,15 @@ const styles = StyleSheet.create({
   ring: {
     position: 'absolute',
     width: 200, height: 200, borderRadius: 100,
-    borderWidth: 2, borderColor: '#C9A96E',
-    top: 60, left: SCREEN_WIDTH / 2 - 100,
+    borderWidth: 2, borderColor: t.gold,
+    top: 60, left: '50%', marginLeft: -100,
   },
   // 粒子
   particle: {
     position: 'absolute',
     width: 6, height: 6, borderRadius: 3,
-    backgroundColor: '#C9A96E',
-    top: 160, left: SCREEN_WIDTH / 2 - 3,
+    backgroundColor: t.gold,
+    top: 160, left: '50%', marginLeft: -3,
   },
   // 棋筒
   bowl: {
@@ -520,26 +532,26 @@ const styles = StyleSheet.create({
   },
   bowlRim: {
     width: 90, height: 14,
-    backgroundColor: '#6B4F10',
+    backgroundColor: PaperSurface.woodDark,
     borderTopLeftRadius: 8, borderTopRightRadius: 8,
   },
   bowlContent: {
     width: 78, height: 70,
-    backgroundColor: '#8B6914',
+    backgroundColor: PaperSurface.wood,
     alignItems: 'center', justifyContent: 'center',
     borderLeftWidth: 4, borderRightWidth: 4,
-    borderColor: '#6B4F10',
+    borderColor: PaperSurface.woodDark,
   },
   bowlBase: {
     width: 90, height: 10,
-    backgroundColor: '#5A3E0E',
+    backgroundColor: PaperSurface.woodDeep,
     borderBottomLeftRadius: 8, borderBottomRightRadius: 8,
   },
   bowlEmoji: { fontSize: 36 },
-  bowlText: { fontSize: 12, color: '#F5EDE0', marginTop: 4 },
+  bowlText: { fontSize: FontSize.caption, color: PaperSurface.paper, marginTop: 4 },
   bowlShadow: {
     width: 80, height: 8, borderRadius: 40,
-    backgroundColor: '#000', opacity: 0.3, marginTop: 2,
+    backgroundColor: SHADOW, opacity: 0.3, marginTop: 2,
   },
   // 棋子展示
   piecesStage: {
@@ -551,12 +563,12 @@ const styles = StyleSheet.create({
   },
   piece3DBody: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#F5EDE0',
+    backgroundColor: t.pieceBg,
     borderWidth: 3,
     alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
     // 立體陰影
-    shadowColor: '#000',
+    shadowColor: SHADOW,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -572,47 +584,46 @@ const styles = StyleSheet.create({
   },
   pieceShadow: {
     width: 50, height: 8, borderRadius: 25,
-    backgroundColor: '#000', marginTop: 4,
+    backgroundColor: SHADOW, marginTop: 4,
   },
   pieceName: {
-    fontSize: 14, fontWeight: '700', color: '#F5EDE0',
+    fontSize: FontSize.small, fontWeight: '700', color: t.textPrimary,
     marginTop: 10, textAlign: 'center',
   },
   pieceColor: {
-    fontSize: 11, color: '#C9B99A', marginTop: 2, textAlign: 'center',
+    fontSize: FontSize.caption, color: t.textSecondary, marginTop: 2, textAlign: 'center',
   },
   // 地面陰影
   groundShadow: {
-    width: SCREEN_WIDTH * 0.6, height: 12, borderRadius: 200,
-    backgroundColor: '#000',
+    width: '60%', height: 12, borderRadius: 200,
+    backgroundColor: SHADOW,
     marginTop: 40,
   },
   // 摘要
   summaryCard: {
-    backgroundColor: '#231A14', borderRadius: 12,
-    borderWidth: 1, borderColor: '#3A2F25',
-    padding: Spacing.lg, marginHorizontal: Spacing.xl,
-    marginTop: 20, width: SCREEN_WIDTH - Spacing.xl * 2,
+    backgroundColor: t.bgCard, borderRadius: 12,
+    borderWidth: 1, borderColor: t.bgMedium,
+    padding: Spacing.lg,
+    marginTop: 20,
   },
   summaryText: {
-    fontSize: FontSize.body, color: '#C9B99A',
+    fontSize: FontSize.body, color: t.textSecondary,
     textAlign: 'center', lineHeight: 26,
   },
   // 按鈕
   actions: {
     gap: Spacing.sm, marginTop: 20,
-    width: SCREEN_WIDTH - Spacing.xl * 2,
   },
   revealBtn: {
-    backgroundColor: '#C9A96E', paddingVertical: 14,
+    backgroundColor: t.gold, paddingVertical: 14,
     borderRadius: 12, alignItems: 'center',
   },
   revealBtnText: {
-    fontSize: FontSize.body, fontWeight: '700', color: '#1A1210',
+    fontSize: FontSize.body, fontWeight: '700', color: t.textInverse,
   },
   redrawBtn: {
-    borderWidth: 1, borderColor: '#3A2F25',
+    borderWidth: 1, borderColor: t.bgMedium,
     paddingVertical: 12, borderRadius: 12, alignItems: 'center',
   },
-  redrawBtnText: { fontSize: FontSize.body, color: '#8A7A60' },
+  redrawBtnText: { fontSize: FontSize.body, color: t.textMuted },
 });

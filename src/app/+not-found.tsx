@@ -1,7 +1,12 @@
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, View, Text } from 'react-native';
+import type { ThemeColors } from '@/constants/theme';
+import { Spacing, FontSize } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
 
 export default function NotFoundScreen() {
+  const styles = useThemedStyles(makeStyles);
+
   return (
     <>
       <Stack.Screen options={{ title: '找不到頁面' }} />
@@ -15,25 +20,25 @@ export default function NotFoundScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#0D0A08',
+    padding: Spacing.md,
+    backgroundColor: t.bgInk,
   },
   title: {
-    fontSize: 20,
+    fontSize: FontSize.heading,
     fontWeight: 'bold',
-    color: '#F5EDE0',
+    color: t.textPrimary,
   },
   link: {
-    marginTop: 15,
-    paddingVertical: 15,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.md,
   },
   linkText: {
-    fontSize: 14,
-    color: '#C9A96E',
+    fontSize: FontSize.small,
+    color: t.gold,
   },
 });

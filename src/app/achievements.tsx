@@ -1,18 +1,19 @@
 // 成就徽章展示頁面
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getAchievements, getStreak, type Achievement } from '@/services/achievements';
 import { getHistory } from '@/services/storage';
+import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function AchievementsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [streak, setStreak] = useState(0);
   const [totalDraws, setTotalDraws] = useState(0);
@@ -99,7 +100,7 @@ export default function AchievementsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -138,9 +139,9 @@ const styles = StyleSheet.create({
   },
   achRow: {
     flexDirection: 'row', alignItems: 'center', padding: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: '#2A1F18',
+    borderBottomWidth: 1, borderBottomColor: t.bgMedium,
   },
-  achUnlocked: { backgroundColor: 'rgba(201,169,110,0.05)' },
+  achUnlocked: { backgroundColor: t.goldSoft },
   achIcon: { width: 44, alignItems: 'center' },
   achEmoji: { fontSize: 28 },
   achInfo: { flex: 1, marginLeft: Spacing.sm },

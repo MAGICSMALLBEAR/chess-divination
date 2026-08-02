@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  Dimensions, TextInput,
+  TextInput,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -14,9 +14,10 @@ import { hapticMedium } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
 import { getSettings, saveSettings } from '@/services/storage';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
+import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const QUESTION_CATEGORIES = [
   { key: 'general', label: '綜合', icon: '🔮' },
@@ -31,6 +32,8 @@ const QUESTION_CATEGORIES = [
 export default function DrawScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { contentWidth } = useLayout();
   const {
     step, drawnPieces, selectedPoem, drawSummary,
     startDrawing, goToResult, reset,
@@ -71,9 +74,14 @@ export default function DrawScreen() {
             <Text style={styles.subtitle}>請問您想問什麼？</Text>
             {/* 問題輸入框 */}
             <TextInput
-              style={[styles.questionInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
+              style={[styles.questionInput, {
+                width: contentWidth,
+                backgroundColor: theme.bgDark,
+                borderColor: theme.bgMedium,
+                color: theme.textPrimary,
+              }]}
               placeholder={t('draw.question')}
-              placeholderTextColor="#5A4A38"
+              placeholderTextColor={theme.textMuted}
               value={questionText}
               onChangeText={setQuestionText}
               multiline
@@ -109,7 +117,7 @@ export default function DrawScreen() {
               {([1, 2, 3] as const).map((n) => (
                 <TouchableOpacity
                   key={n}
-                  style={styles.countBtn}
+                  style={[styles.countBtn, { width: (contentWidth - Spacing.md * 2) / 3 }]}
                   onPress={() => { playDrawPieceSound(); hapticMedium(); startDrawing(n, selectedCategory, questionText); }}
                 >
                   <Text style={styles.countNum}>{n}</Text>
@@ -144,10 +152,10 @@ export default function DrawScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#0D0A08',
+    backgroundColor: t.bgInk,
   },
   scroll: {
     flexGrow: 1,
@@ -166,12 +174,12 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: FontSize.body,
-    color: '#C9B99A',
+    color: t.textSecondary,
   },
   title: {
     fontSize: FontSize.heading,
     fontWeight: '700',
-    color: '#F5EDE0',
+    color: t.textPrimary,
   },
   content: {
     alignItems: 'center',
@@ -180,12 +188,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: FontSize.body,
-    color: '#C9B99A',
+    color: t.textSecondary,
     marginBottom: Spacing.md,
     marginTop: Spacing.md,
   },
   questionInput: {
-    width: SCREEN_WIDTH - Spacing.lg * 2,
     borderRadius: 12, borderWidth: 1,
     padding: Spacing.md, fontSize: FontSize.body,
     minHeight: 80, marginBottom: Spacing.md,
@@ -202,38 +209,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1, gap: 6,
   },
-  categoryChipActive: { borderColor: '#C9A96E' },
+  categoryChipActive: { borderColor: t.gold },
   categoryChipIcon: { fontSize: 16 },
   categoryChipLabel: { fontSize: FontSize.small },
-  categoryChipLabelActive: { color: '#C9A96E', fontWeight: '600' },
+  categoryChipLabelActive: { color: t.textGold, fontWeight: '600' },
   countRow: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
   countBtn: {
-    width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2) / 3,
     borderRadius: 16, borderWidth: 1,
     padding: Spacing.md, alignItems: 'center',
   },
   countNum: {
     fontSize: 36,
     fontWeight: '900',
-    color: '#C9A96E',
+    color: t.textGold,
   },
   countLabel: {
     fontSize: FontSize.body,
     fontWeight: '600',
-    color: '#F5EDE0',
+    color: t.textPrimary,
     marginTop: 4,
   },
   countDesc: {
     fontSize: FontSize.caption,
-    color: '#8A7A60',
+    color: t.textMuted,
     marginTop: 4,
   },
   loadingText: {
     fontSize: FontSize.body,
-    color: '#C9B99A',
+    color: t.textSecondary,
     marginTop: Spacing.xxl,
   },
 });

@@ -1,8 +1,13 @@
 // 分享圖片卡 — 美化版
+//
+// 本卡片是匯出成圖片對外分享的成品，不是應用程式介面，
+// 因此刻意固定為宣紙金箔的品牌樣式，不隨使用者的明暗主題改變——
+// 否則同一張分享卡在不同使用者手上會長得不一樣。色值集中於 ShareCardPalette。
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { ShareCardPalette as P, ShareCardLevelColors } from '@/constants/theme';
 
 const CARD_WIDTH = 400;
 const CARD_HEIGHT = 620;
@@ -39,9 +44,7 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 
-    const levelColor =
-      props.poemLevel === '大吉' ? '#C9A96E' : props.poemLevel === '上吉' ? '#E5746A' :
-      props.poemLevel === '中吉' ? '#6B9B6B' : props.poemLevel === '中平' ? '#8A8060' : '#666';
+    const levelColor = ShareCardLevelColors[props.poemLevel] || ShareCardLevelColors['中平'];
 
     const poems = props.poemContent.split('\n');
 
@@ -61,10 +64,10 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
           <View style={styles.piecesRow}>
             {props.pieceChars.map((char, i) => (
               <View key={i} style={[styles.piece, {
-                borderColor: props.pieceColors[i] === 'red' ? '#C0392B' : '#1A1210',
+                borderColor: props.pieceColors[i] === 'red' ? P.red : P.ink,
               }]}>
                 <Text style={[styles.pieceChar, {
-                  color: props.pieceColors[i] === 'red' ? '#C0392B' : '#1A1210',
+                  color: props.pieceColors[i] === 'red' ? P.red : P.ink,
                 }]}>
                   {char}
                 </Text>
@@ -113,28 +116,28 @@ export default ShareCardView;
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH, height: CARD_HEIGHT,
-    backgroundColor: '#F5EDE0', overflow: 'hidden',
+    backgroundColor: P.paper, overflow: 'hidden',
   },
   bgTop: {
     position: 'absolute', top: 0, left: 0, right: 0, height: CARD_HEIGHT * 0.45,
-    backgroundColor: '#F5EDE0',
+    backgroundColor: P.paper,
   },
   bgBottom: {
     position: 'absolute', bottom: 0, left: 0, right: 0, height: CARD_HEIGHT * 0.55,
-    backgroundColor: '#EDE5D5',
+    backgroundColor: P.paperDeep,
   },
   goldBar: {
-    backgroundColor: '#8B6914', paddingVertical: 8, alignItems: 'center',
+    backgroundColor: P.gold, paddingVertical: 8, alignItems: 'center',
   },
   goldBarText: {
-    fontSize: 12, color: '#F5EDE0', fontWeight: '600', letterSpacing: 3,
+    fontSize: 12, color: P.paper, fontWeight: '600', letterSpacing: 3,
   },
   piecesRow: {
     flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 22,
   },
   piece: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: P.white, alignItems: 'center', justifyContent: 'center',
     borderWidth: 2.5,
   },
   pieceChar: { fontSize: 26, fontWeight: '900' },
@@ -142,35 +145,35 @@ const styles = StyleSheet.create({
     alignSelf: 'center', marginTop: 16,
     paddingHorizontal: 20, paddingVertical: 5, borderRadius: 14,
   },
-  levelText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
+  levelText: { fontSize: 16, fontWeight: '700', color: P.onLevel },
   poemTitle: {
-    fontSize: 20, fontWeight: '900', color: '#1A1210',
+    fontSize: 20, fontWeight: '900', color: P.ink,
     textAlign: 'center', marginTop: 14, letterSpacing: 1,
   },
   hexagram: {
-    fontSize: 13, color: '#8B6914', textAlign: 'center', marginTop: 4,
+    fontSize: 13, color: P.gold, textAlign: 'center', marginTop: 4,
   },
   poemBox: {
     marginHorizontal: 40, marginTop: 18,
-    backgroundColor: '#FFFFFF', borderRadius: 12,
-    borderWidth: 1, borderColor: '#D4C4A8',
+    backgroundColor: P.white, borderRadius: 12,
+    borderWidth: 1, borderColor: P.border,
     padding: 20,
   },
   poemLine: {
-    fontSize: 19, color: '#1A1210', textAlign: 'center',
+    fontSize: 19, color: P.ink, textAlign: 'center',
     lineHeight: 34, letterSpacing: 3,
   },
   footer: {
     alignItems: 'center', marginTop: 16,
   },
-  footerMode: { fontSize: 12, color: '#8A7A60' },
-  footerDate: { fontSize: 11, color: '#8A7A60', marginTop: 4 },
-  footerUrl: { fontSize: 10, color: '#C9A96E', marginTop: 4 },
+  footerMode: { fontSize: 12, color: P.inkMuted },
+  footerDate: { fontSize: 11, color: P.inkMuted, marginTop: 4 },
+  footerUrl: { fontSize: 10, color: P.goldLight, marginTop: 4 },
   footerTagline: {
-    fontSize: 12, color: '#8B6914', marginTop: 6, letterSpacing: 2, fontWeight: '600',
+    fontSize: 12, color: P.gold, marginTop: 6, letterSpacing: 2, fontWeight: '600',
   },
   goldBarBottom: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: 6, backgroundColor: '#8B6914',
+    height: 6, backgroundColor: P.gold,
   },
 });

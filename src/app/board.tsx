@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  Dimensions, TextInput, Alert,
+  TextInput, Alert,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -10,11 +10,16 @@ import ChessBoard from '@/components/ChessBoard';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
+import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CELL_SIZE = Math.min(44, (SCREEN_WIDTH - 32) / 9);
+/** 棋盤格子大小依當前可用寬度換算，旋轉與視窗縮放皆會重算 */
+function cellSizeFor(width: number): number {
+  return Math.min(44, (width - 32) / 9);
+}
 
 const QUESTION_CATEGORIES = [
   { key: 'general', label: '綜合', icon: '🔮' },
@@ -29,6 +34,8 @@ const QUESTION_CATEGORIES = [
 export default function BoardScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { width, contentWidth } = useLayout();
   const {
     placedPieces, selectedPiece, availablePieces, maxPieces,
     selectPiece, placePieceOnBoard, removePieceFromBoard, interpret, reset,
@@ -55,6 +62,7 @@ export default function BoardScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+       <View style={[styles.inner, { width: contentWidth }]}>
         {/* 標題 */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
@@ -85,7 +93,7 @@ export default function BoardScreen() {
         <TextInput
           style={styles.questionInput}
           placeholder="寫下您想問的問題..."
-          placeholderTextColor="#5A4A38"
+          placeholderTextColor={theme.textMuted}
           value={questionText}
           onChangeText={setQuestionText}
           maxLength={200}
@@ -106,7 +114,7 @@ export default function BoardScreen() {
           onPlacePiece={placePieceOnBoard}
           onRemovePiece={removePieceFromBoard}
           onSelectAvailable={selectPiece}
-          cellSize={CELL_SIZE}
+          cellSize={cellSizeFor(width)}
           maxPieces={maxPieces}
           style={styles.boardStyle}
         />
@@ -154,45 +162,48 @@ export default function BoardScreen() {
             </TouchableOpacity>
           )}
         </View>
+       </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0A08' },
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: t.bgInk },
   scroll: { flexGrow: 1, paddingBottom: 40, alignItems: 'center' },
+  // 內容以 contentWidth 限寬並置中，避免在平板／桌面被撐成整個視窗寬
+  inner: { alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
     width: '100%',
   },
   backBtn: { width: 60 },
-  backText: { fontSize: FontSize.body, color: '#C9B99A' },
-  title: { fontSize: FontSize.heading, fontWeight: '700', color: '#F5EDE0' },
+  backText: { fontSize: FontSize.body, color: t.textSecondary },
+  title: { fontSize: FontSize.heading, fontWeight: '700', color: t.textPrimary },
   catScroll: { maxHeight: 40, marginBottom: Spacing.sm },
   catContent: {
     flexDirection: 'row', gap: 6, paddingHorizontal: Spacing.md,
   },
   categoryChip: {
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
   categoryChipActive: {
-    borderColor: '#C9A96E', backgroundColor: '#2A1F18',
+    borderColor: t.gold, backgroundColor: t.bgMedium,
   },
-  categoryChipLabel: { fontSize: 12, color: '#8A7A60' },
+  categoryChipLabel: { fontSize: 12, color: t.textMuted },
   boardStyle: { marginTop: Spacing.md },
   questionInput: {
-    width: SCREEN_WIDTH - Spacing.md * 2,
-    backgroundColor: '#1A1210',
+    width: '100%',
+    backgroundColor: t.bgDark,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#3A2F25',
+    borderColor: t.bgMedium,
     paddingHorizontal: Spacing.md,
     paddingVertical: 10,
     fontSize: FontSize.small,
-    color: '#F5EDE0',
+    color: t.textPrimary,
     marginBottom: Spacing.md,
   },
   poolTabs: {
@@ -200,35 +211,35 @@ const styles = StyleSheet.create({
   },
   poolTab: {
     paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
   poolTabActive: {
-    borderColor: '#C9A96E', backgroundColor: '#2A1F18',
+    borderColor: t.gold, backgroundColor: t.bgMedium,
   },
-  poolTabText: { fontSize: 14, color: '#8A7A60' },
-  poolTabTextActive: { color: '#C9A96E', fontWeight: '600' },
+  poolTabText: { fontSize: 14, color: t.textMuted },
+  poolTabTextActive: { color: t.textGold, fontWeight: '600' },
   controls: {
-    width: SCREEN_WIDTH - Spacing.md * 2,
+    width: '100%',
     marginTop: Spacing.lg,
     gap: Spacing.sm,
   },
   interpretBtn: {
-    backgroundColor: '#C9A96E', paddingVertical: 14,
+    backgroundColor: t.gold, paddingVertical: 14,
     borderRadius: 12, alignItems: 'center',
   },
   btnDisabled: { opacity: 0.4 },
-  interpretBtnText: { fontSize: FontSize.body, fontWeight: '700', color: '#1A1210' },
+  interpretBtnText: { fontSize: FontSize.body, fontWeight: '700', color: t.textInverse },
   resetBtn: {
-    borderWidth: 1, borderColor: '#3A2F25',
+    borderWidth: 1, borderColor: t.bgMedium,
     paddingVertical: 12, borderRadius: 12, alignItems: 'center',
   },
-  resetBtnText: { fontSize: FontSize.body, color: '#8A7A60' },
+  resetBtnText: { fontSize: FontSize.body, color: t.textMuted },
   undoBtn: {
-    borderWidth: 1, borderColor: '#C9A96E',
+    borderWidth: 1, borderColor: t.gold,
     paddingVertical: 10, borderRadius: 12, alignItems: 'center',
     marginTop: 4,
   },
-  undoBtnText: { fontSize: FontSize.body, color: '#C9A96E' },
+  undoBtnText: { fontSize: FontSize.body, color: t.textGold },
   hintText: {
     textAlign: 'center', fontSize: 13,
     marginHorizontal: Spacing.md, marginBottom: Spacing.sm,

@@ -6,6 +6,7 @@ import type { ChessPiece } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
 import { todayString } from './date';
 import { DIVINATION_ENGINE_VERSION } from './divination';
+import { FolderColors } from '@/constants/theme';
 
 // ====== Keys ======
 
@@ -201,7 +202,7 @@ export async function saveSettings(settings: Partial<AppSettings>): Promise<AppS
 
 // ====== Folders ======
 
-const FOLDER_COLORS = ['#C9A96E', '#E5746A', '#6B9B6B', '#6B9BC6', '#C69BC6', '#C6A06B'];
+const FOLDER_COLORS = FolderColors;
 
 export async function getFolders(): Promise<Folder[]> {
   const s = await getSettings();

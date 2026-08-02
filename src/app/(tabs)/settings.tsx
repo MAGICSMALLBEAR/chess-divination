@@ -15,11 +15,16 @@ import { clearHistory } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { LANG_OPTIONS, type Lang } from '@/services/i18n';
+import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { contentWidth } = useLayout();
   const { t, lang, setLang } = useI18n();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -156,13 +161,13 @@ export default function SettingsScreen() {
             <Text style={[styles.label, { color: theme.textSecondary }]}>音效</Text>
             <Switch value={settings.soundEnabled}
               onValueChange={(v) => { update('soundEnabled', v); setSoundEnabled(v); }}
-              trackColor={{ false: '#3A2F25', true: '#C9A96E' }} />
+              trackColor={{ false: theme.bgMedium, true: theme.gold }} />
           </View>
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>觸覺回饋</Text>
             <Switch value={settings.hapticEnabled}
               onValueChange={(v) => { update('hapticEnabled', v); setHapticEnabled(v); }}
-              trackColor={{ false: '#3A2F25', true: '#C9A96E' }} />
+              trackColor={{ false: theme.bgMedium, true: theme.gold }} />
           </View>
         </View>
 
@@ -204,7 +209,7 @@ export default function SettingsScreen() {
               { text: '清除', style: 'destructive', onPress: async () => { await clearHistory(); Alert.alert('已清除'); } },
             ]);
           }}>
-            <Text style={[styles.label, { color: '#E5746A' }]}>🗑️ 清除所有歷史</Text>
+            <Text style={[styles.label, { color: theme.textRed }]}>🗑️ 清除所有歷史</Text>
           </TouchableOpacity>
         </View>
 
@@ -225,7 +230,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { alignItems: 'center', paddingTop: Spacing.lg, paddingBottom: Spacing.md },
@@ -237,15 +242,15 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: FontSize.small, fontWeight: '600', marginBottom: Spacing.sm },
   row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: '#2A1F18',
+    paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: t.bgMedium,
   },
   label: { fontSize: FontSize.body },
   options: { flexDirection: 'row', gap: 6 },
   option: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
-  optionText: { fontSize: 13, color: '#8A7A60' },
+  optionText: { fontSize: 13, color: t.textMuted },
   nameInput: {
     flex: 1, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8,
     fontSize: FontSize.body, marginRight: Spacing.sm,

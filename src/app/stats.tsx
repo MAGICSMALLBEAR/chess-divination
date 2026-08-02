@@ -2,21 +2,21 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getHistory, type DivinationRecord } from '@/services/storage';
-import { POEM_LEVELS } from '@/data/poems';
+import { POEM_LEVELS, getLevelColor } from '@/data/poems';
 import { t } from '@/services/i18n';
+import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function StatsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
   const [records, setRecords] = useState<DivinationRecord[]>([]);
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
@@ -54,11 +54,6 @@ export default function StatsScreen() {
 
   const maxLevel = Math.max(...Object.values(levelCounts), 1);
 
-  const levelColors: Record<string, string> = {
-    '大吉': '#C9A96E', '上吉': '#E5746A', '中吉': '#6B9B6B',
-    '中平': '#C9B99A', '下下': '#8A7A60',
-  };
-
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -76,9 +71,9 @@ export default function StatsScreen() {
         <View style={styles.filterRow}>
           {(['all', 'week', 'month'] as const).map(f => (
             <TouchableOpacity key={f}
-              style={[styles.filterBtn, dateFilter === f && { borderColor: '#C9A96E' }]}
+              style={[styles.filterBtn, dateFilter === f && { borderColor: theme.gold }]}
               onPress={() => setDateFilter(f)}>
-              <Text style={[styles.filterText, dateFilter === f && { color: '#C9A96E' }]}>
+              <Text style={[styles.filterText, dateFilter === f && { color: theme.textGold }]}>
                 {f === 'all' ? '全部' : f === 'week' ? '本週' : '本月'}
               </Text>
             </TouchableOpacity>
@@ -116,7 +111,7 @@ export default function StatsScreen() {
               <View key={level} style={styles.barRow}>
                 <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{level}</Text>
                 <View style={styles.barTrack}>
-                  <View style={[styles.barFill, { width: `${barW}%`, backgroundColor: levelColors[level] || '#666' }]} />
+                  <View style={[styles.barFill, { width: `${barW}%`, backgroundColor: getLevelColor(level) }]} />
                 </View>
                 <Text style={[styles.barCount, { color: theme.textMuted }]}>{count}</Text>
               </View>
@@ -143,7 +138,7 @@ export default function StatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -157,7 +152,7 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: 'center', borderRadius: 12, borderWidth: 1,
     paddingVertical: Spacing.md,
   },
-  statNum: { fontSize: FontSize.title, fontWeight: '900', color: '#C9A96E' },
+  statNum: { fontSize: FontSize.title, fontWeight: '900', color: t.textGold },
   statLabel: { fontSize: FontSize.caption, marginTop: 4 },
   section: {
     borderRadius: 12, borderWidth: 1, padding: Spacing.md, marginBottom: Spacing.md,
@@ -165,7 +160,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: FontSize.body, fontWeight: '600', marginBottom: Spacing.sm },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   barLabel: { fontSize: FontSize.small, width: 40 },
-  barTrack: { flex: 1, height: 14, backgroundColor: '#1A1210', borderRadius: 7, overflow: 'hidden' },
+  barTrack: { flex: 1, height: 14, backgroundColor: t.bgDark, borderRadius: 7, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 7, minWidth: 2 },
   barCount: { fontSize: FontSize.small, width: 30, textAlign: 'right' },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
@@ -178,7 +173,7 @@ const styles = StyleSheet.create({
   },
   filterBtn: {
     paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14,
-    backgroundColor: '#231A14', borderWidth: 1, borderColor: '#3A2F25',
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
-  filterText: { fontSize: 13, color: '#8A7A60' },
+  filterText: { fontSize: FontSize.small, color: t.textMuted },
 });

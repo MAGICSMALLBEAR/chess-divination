@@ -2,17 +2,20 @@
 // 兩種模式：抽棋式 + 棋盤佈局式
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'draw' | 'board') => void;
 }
 
 export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
-  const cardWidth = (SCREEN_WIDTH - Spacing.md * 3) / 2;
+  const styles = useThemedStyles(makeStyles);
+  const { contentWidth } = useLayout();
+  const cardWidth = (contentWidth - Spacing.md) / 2;
 
   return (
     <View style={styles.container}>
@@ -65,7 +68,7 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
@@ -73,12 +76,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSize.title,
     fontWeight: '700',
-    color: '#F5EDE0',
+    color: t.textPrimary,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: FontSize.body,
-    color: '#C9B99A',
+    color: t.textSecondary,
     marginBottom: Spacing.xl,
   },
   cards: {
@@ -87,10 +90,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   card: {
-    backgroundColor: '#231A14',
+    backgroundColor: t.bgCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#3A2F25',
+    borderColor: t.bgMedium,
     overflow: 'hidden',
   },
   cardInner: {
@@ -104,36 +107,36 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: FontSize.heading,
     fontWeight: '700',
-    color: '#C9A96E',
+    color: t.textGold,
     marginBottom: Spacing.sm,
   },
   cardDesc: {
     fontSize: FontSize.small,
-    color: '#C9B99A',
+    color: t.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.md,
   },
   cardBadge: {
-    backgroundColor: 'rgba(201, 169, 110, 0.15)',
+    backgroundColor: t.bgMedium,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   badgeText: {
-    fontSize: 12,
-    color: '#C9A96E',
+    fontSize: FontSize.caption,
+    color: t.textGold,
   },
   cardBadgeAlt: {
-    backgroundColor: 'rgba(192, 57, 43, 0.15)',
+    backgroundColor: t.bgDark,
   },
   badgeTextAlt: {
-    fontSize: 12,
-    color: '#E5746A',
+    fontSize: FontSize.caption,
+    color: t.textRed,
   },
   footer: {
     fontSize: FontSize.small,
-    color: '#8A7A60',
+    color: t.textMuted,
     letterSpacing: 2,
   },
 });

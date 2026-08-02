@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -12,7 +11,10 @@ import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type 
 import { getStreak } from '@/services/achievements';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
-import { Spacing, FontSize } from '@/constants/theme';
+import type { ThemeColors } from '@/constants/theme';
+import { Spacing, FontSize, Layout } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
 
 const PIECE_EMOJIS: Record<string, string> = {
   king: '👑', advisor: '🎓', elephant: '🐘',
@@ -26,6 +28,8 @@ const PIECE_NAMES: Record<string, string> = {
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { contentWidth } = useLayout();
   const [dailyFortune, setDailyFortune] = useState<DailyFortune | null>(null);
   const [recentRecords, setRecentRecords] = useState<DivinationRecord[]>([]);
   const [streak, setStreak] = useState(0);
@@ -131,7 +135,7 @@ export default function HomeScreen() {
                 onPress={() => router.push({ pathname: '/reveal', params: { recordId: r.id, mode: r.mode } })}>
                 <Text style={[styles.recentPieces, { color: theme.textPrimary }]}>{r.drawnPieceChars.join(' ')}</Text>
                 <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{r.poemTitle}</Text>
-                <Text style={[styles.recentLevel, { color: r.poemLevel === '大吉' ? '#C9A96E' : r.poemLevel === '下下' ? '#8A7A60' : theme.textMuted }]}>{r.poemLevel}</Text>
+                <Text style={[styles.recentLevel, { color: r.poemLevel === '大吉' ? theme.gold : r.poemLevel === '下下' ? theme.textMuted : theme.textMuted }]}>{r.poemLevel}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -161,22 +165,26 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0A08' },
-  scroll: { flexGrow: 1, paddingBottom: 40 },
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: t.bgInk },
+  // 限寬並置中，避免在平板／桌面被撐成整個視窗寬而出現超長行寬
+  scroll: {
+    flexGrow: 1, paddingBottom: 40,
+    width: '100%', maxWidth: Layout.maxContent, alignSelf: 'center',
+  },
   header: {
     alignItems: 'center', paddingTop: Spacing.xxl, paddingBottom: Spacing.lg,
   },
   appName: {
-    fontSize: FontSize.hero, fontWeight: '900', color: '#C9A96E',
+    fontSize: FontSize.hero, fontWeight: '900', color: t.textGold,
     letterSpacing: 4, marginBottom: Spacing.xs,
   },
-  tagline: { fontSize: FontSize.body, color: '#C9B99A', letterSpacing: 2 },
+  tagline: { fontSize: FontSize.body, color: t.textSecondary, letterSpacing: 2 },
   streakText: { fontSize: FontSize.small, fontWeight: '600', marginTop: 4 },
   dailyCard: {
     marginHorizontal: Spacing.md,
-    backgroundColor: '#1A1210', borderRadius: 16,
-    borderWidth: 1, borderColor: '#3A2F25', padding: Spacing.lg,
+    backgroundColor: t.bgDark, borderRadius: 16,
+    borderWidth: 1, borderColor: t.bgMedium, padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   dailyHeaderRow: {
@@ -187,11 +195,11 @@ const styles = StyleSheet.create({
   dailyContent: { gap: Spacing.md },
   dailyMain: { alignItems: 'center' },
   dailyLevel: {
-    fontSize: FontSize.subtitle, fontWeight: '900', color: '#E5746A',
+    fontSize: FontSize.subtitle, fontWeight: '900', color: t.textRed,
     marginBottom: Spacing.xs,
   },
   dailyText: {
-    fontSize: FontSize.body, color: '#C9B99A', textAlign: 'center',
+    fontSize: FontSize.body, color: t.textSecondary, textAlign: 'center',
     lineHeight: 26,
   },
   dailyDetails: {
@@ -200,17 +208,17 @@ const styles = StyleSheet.create({
   },
   detailItem: {
     alignItems: 'center',
-    backgroundColor: '#231A14', borderRadius: 10,
+    backgroundColor: t.bgCard, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 8, minWidth: 70,
   },
-  detailLabel: { fontSize: 11, color: '#8A7A60', marginBottom: 2 },
-  detailValue: { fontSize: 14, fontWeight: '600', color: '#F5EDE0' },
+  detailLabel: { fontSize: 11, color: t.textMuted, marginBottom: 2 },
+  detailValue: { fontSize: 14, fontWeight: '600', color: t.textPrimary },
   quoteCard: {
     marginHorizontal: Spacing.xl, marginTop: Spacing.md,
     padding: Spacing.md, alignItems: 'center',
   },
   quote: {
-    fontSize: FontSize.small, color: '#8A7A60', textAlign: 'center',
+    fontSize: FontSize.small, color: t.textMuted, textAlign: 'center',
     lineHeight: 24, fontStyle: 'italic',
   },
   quickDraw: {
@@ -218,10 +226,10 @@ const styles = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: 'center',
   },
   quickDrawText: {
-    fontSize: FontSize.body, fontWeight: '700', color: '#1A1210',
+    fontSize: FontSize.body, fontWeight: '700', color: t.textInverse,
   },
   quickDrawSub: {
-    fontSize: FontSize.caption, color: '#5A4A38', marginTop: 2,
+    fontSize: FontSize.caption, color: t.textMuted, marginTop: 2,
   },
   recentSection: {
     marginHorizontal: Spacing.md, marginBottom: Spacing.md,
@@ -230,7 +238,7 @@ const styles = StyleSheet.create({
   recentTitle: { fontSize: FontSize.small, fontWeight: '600', marginBottom: Spacing.sm },
   recentRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#2A1F18',
+    paddingVertical: 6, borderTopWidth: 1, borderTopColor: t.bgMedium,
   },
   recentPieces: { fontSize: 18, fontWeight: '700', letterSpacing: 3, width: 60 },
   recentPoem: { flex: 1, fontSize: FontSize.small },

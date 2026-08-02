@@ -4,14 +4,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Animated, TouchableOpacity,
-  ScrollView, Dimensions,
 } from 'react-native';
 import type { Poem } from '@/data/poems';
 import { getLevelColor } from '@/data/poems';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
-import { Spacing, FontSize, Duration } from '@/constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useLayout } from '@/hooks/useLayout';
+import type { ThemeColors } from '@/constants/theme';
+import { Spacing, FontSize, Duration, PaperSurface as P } from '@/constants/theme';
 
 interface PoemCardProps {
   poem: Poem;
@@ -42,13 +42,28 @@ export default function PoemCard({
 }: PoemCardProps) {
   const [expandedCategory, setExpandedCategory] = useState<string>(highlightedCategory);
   const speed = useAnimationSpeed();
+  const styles = useThemedStyles(makeStyles);
+  const { contentWidth } = useLayout();
   const scrollAnim = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const lineAnimations = useRef(poem.content.split('\n').map(() => new Animated.Value(0))).current;
 
+  // useAnimationSpeed 是掛載後才非同步取值，故必須列入依賴，
+  // 否則動畫速度設定永遠只會用到預設值。
   useEffect(() => {
+    const running: Animated.CompositeAnimation[] = [];
+
+    scrollAnim.setValue(0);
+    contentOpacity.setValue(0);
+    lineAnimations.forEach(a => a.setValue(0));
+
+    const start = (anim: Animated.CompositeAnimation) => {
+      running.push(anim);
+      anim.start();
+    };
+
     // 捲軸展開動畫
-    Animated.sequence([
+    start(Animated.sequence([
       Animated.timing(scrollAnim, {
         toValue: 1,
         duration: Duration.reveal * speed,
@@ -59,21 +74,23 @@ export default function PoemCard({
         duration: Duration.normal * speed,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]));
 
     // 逐行顯示詩句
     lineAnimations.forEach((anim, i) => {
-      Animated.sequence([
-        Animated.delay(Duration.reveal + i * 300),
+      start(Animated.sequence([
+        Animated.delay((Duration.reveal + i * 300) * speed),
         Animated.spring(anim, {
           toValue: 1,
           friction: 5,
           tension: 60,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]));
     });
-  }, []);
+
+    return () => running.forEach(a => a.stop());
+  }, [speed, contentOpacity, lineAnimations, scrollAnim]);
 
   const scrollScaleY = scrollAnim.interpolate({
     inputRange: [0, 1],
@@ -88,16 +105,16 @@ export default function PoemCard({
       <Animated.View
         style={[
           styles.scrollWrap,
-          { transform: [{ scaleY: scrollScaleY }] },
+          { width: contentWidth, transform: [{ scaleY: scrollScaleY }] },
         ]}
       >
         {/* 卷軸頂端 */}
-        <View style={styles.scrollTop}>
+        <View style={[styles.scrollTop, { width: contentWidth }]}>
           <View style={styles.scrollKnob} />
         </View>
 
         {/* 籤詩主體 */}
-        <View style={styles.scrollBody}>
+        <View style={[styles.scrollBody, { width: contentWidth }]}>
           {/* 棋象 */}
           {drawnPieceChars.length > 0 && (
             <Text style={styles.pieceChars}>
@@ -158,13 +175,15 @@ export default function PoemCard({
         </View>
 
         {/* 卷軸底端 */}
-        <View style={styles.scrollBottom}>
+        <View style={[styles.scrollBottom, { width: contentWidth }]}>
           <View style={styles.scrollKnob} />
         </View>
       </Animated.View>
 
       {/* 各面向解讀（折疊面板） */}
-      <Animated.View style={[styles.categoriesSection, { opacity: contentOpacity }]}>
+      <Animated.View
+        style={[styles.categoriesSection, { width: contentWidth, opacity: contentOpacity }]}
+      >
         <Text style={styles.sectionTitle}>▎各面向詳解</Text>
         <View style={styles.categoryTabs}>
           {CATEGORIES.map((cat) => (
@@ -198,7 +217,7 @@ export default function PoemCard({
       </Animated.View>
 
       {/* 操作按鈕 */}
-      <View style={styles.actions}>
+      <View style={[styles.actions, { width: contentWidth }]}>
         <TouchableOpacity style={styles.favBtn} onPress={onToggleFavorite}>
           <Text style={styles.favBtnText}>
             {isFavorited ? '❤️ 已收藏' : '🤍 收藏'}
@@ -212,26 +231,24 @@ export default function PoemCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ThemeColors) => StyleSheet.create({
   container: {
     alignItems: 'center',
   },
+  // ── 卷軸本體：紙面與木軸固定為實體色，不隨主題改變 ──
   scrollWrap: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
     alignItems: 'center',
   },
   scrollTop: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
     height: 24,
-    backgroundColor: '#8B6914',
+    backgroundColor: P.wood,
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scrollBottom: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
     height: 24,
-    backgroundColor: '#8B6914',
+    backgroundColor: P.wood,
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -239,19 +256,18 @@ const styles = StyleSheet.create({
   scrollKnob: {
     width: 60,
     height: 12,
-    backgroundColor: '#6B4F10',
+    backgroundColor: P.woodDark,
     borderRadius: 6,
   },
   scrollBody: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
-    backgroundColor: '#F5EDE0',
+    backgroundColor: P.paper,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
   },
   pieceChars: {
     fontSize: FontSize.subtitle,
     fontWeight: '700',
-    color: '#C0392B',
+    color: P.red,
     textAlign: 'center',
     marginBottom: Spacing.md,
     letterSpacing: 8,
@@ -270,16 +286,16 @@ const styles = StyleSheet.create({
   levelText: {
     fontSize: FontSize.small,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: P.onLevel,
   },
   hexagramName: {
     fontSize: FontSize.small,
-    color: '#5A4A38',
+    color: P.inkMuted,
   },
   poemTitle: {
     fontSize: FontSize.subtitle,
     fontWeight: '700',
-    color: '#1A1210',
+    color: P.ink,
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
@@ -288,7 +304,7 @@ const styles = StyleSheet.create({
   },
   poemLine: {
     fontSize: FontSize.poem,
-    color: '#1A1210',
+    color: P.ink,
     textAlign: 'center',
     lineHeight: 36,
     letterSpacing: 2,
@@ -296,18 +312,18 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#D4C4A8',
+    backgroundColor: P.border,
     marginVertical: Spacing.md,
   },
   vernacularTitle: {
     fontSize: FontSize.body,
     fontWeight: '600',
-    color: '#8B6914',
+    color: P.gold,
     marginBottom: Spacing.sm,
   },
   vernacular: {
     fontSize: FontSize.body,
-    color: '#1A1210',
+    color: P.ink,
     lineHeight: 26,
   },
   storySection: {
@@ -316,22 +332,22 @@ const styles = StyleSheet.create({
   storyTitle: {
     fontSize: FontSize.body,
     fontWeight: '600',
-    color: '#8B6914',
+    color: P.gold,
     marginBottom: Spacing.sm,
   },
   storyText: {
     fontSize: FontSize.small,
-    color: '#5A4A38',
+    color: P.inkMuted,
     lineHeight: 22,
   },
+  // ── 卷軸之外的區塊：跟隨主題 ──
   categoriesSection: {
-    width: SCREEN_WIDTH - Spacing.xl * 2,
     marginTop: Spacing.lg,
   },
   sectionTitle: {
     fontSize: FontSize.body,
     fontWeight: '600',
-    color: '#C9B99A',
+    color: t.textSecondary,
     marginBottom: Spacing.md,
   },
   categoryTabs: {
@@ -346,60 +362,59 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#231A14',
+    backgroundColor: t.bgCard,
     borderWidth: 1,
-    borderColor: '#3A2F25',
+    borderColor: t.bgMedium,
     gap: 4,
   },
   categoryTabActive: {
-    borderColor: '#C9A96E',
-    backgroundColor: '#2A1F18',
+    borderColor: t.gold,
+    backgroundColor: t.bgMedium,
   },
   categoryIcon: {
-    fontSize: 14,
+    fontSize: FontSize.small,
   },
   categoryLabel: {
     fontSize: FontSize.small,
-    color: '#8A7A60',
+    color: t.textMuted,
   },
   categoryLabelActive: {
-    color: '#C9A96E',
+    color: t.textGold,
     fontWeight: '600',
   },
   categoryContent: {
-    backgroundColor: '#231A14',
+    backgroundColor: t.bgCard,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#3A2F25',
+    borderColor: t.bgMedium,
     padding: Spacing.md,
   },
   categoryText: {
     fontSize: FontSize.body,
-    color: '#C9B99A',
+    color: t.textSecondary,
     lineHeight: 26,
   },
   actions: {
     flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.lg,
-    width: SCREEN_WIDTH - Spacing.xl * 2,
   },
   favBtn: {
     flex: 1,
-    backgroundColor: '#231A14',
+    backgroundColor: t.bgCard,
     borderWidth: 1,
-    borderColor: '#3A2F25',
+    borderColor: t.bgMedium,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
   favBtnText: {
     fontSize: FontSize.body,
-    color: '#C9B99A',
+    color: t.textSecondary,
   },
   shareBtn: {
     flex: 1,
-    backgroundColor: '#C9A96E',
+    backgroundColor: t.gold,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
@@ -407,6 +422,6 @@ const styles = StyleSheet.create({
   shareBtnText: {
     fontSize: FontSize.body,
     fontWeight: '600',
-    color: '#1A1210',
+    color: t.textInverse,
   },
 });
