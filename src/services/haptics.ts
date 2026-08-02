@@ -26,7 +26,7 @@ async function doHaptic(style: Haptics.ImpactFeedbackStyle) {
       await Haptics.impactAsync(style);
     }
   } catch {
-    // Silently fail
+    console.warn('觸覺回饋播放失敗');
   }
 }
 
@@ -48,5 +48,5 @@ export function hapticSuccess() {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-  } catch {}
+  } catch { console.warn('觸覺通知播放失敗'); }
 }

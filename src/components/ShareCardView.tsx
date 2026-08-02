@@ -55,7 +55,7 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
           if (uri && (await Sharing.isAvailableAsync())) {
             await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '象棋占卜 - 分享籤詩' });
           }
-        } catch {}
+        } catch { console.warn('分享圖片擷取失敗'); }
       },
     }));
 

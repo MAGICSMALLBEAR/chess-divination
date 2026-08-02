@@ -72,7 +72,7 @@ export async function scheduleDailyReminder(): Promise<boolean> {
 export async function cancelDailyReminder(): Promise<void> {
   try {
     await Notifications.cancelScheduledNotificationAsync(REMINDER_ID);
-  } catch {}
+  } catch { console.warn('取消每日提醒排程失敗'); }
 }
 
 /** 檢查每日提醒是否已排程 */

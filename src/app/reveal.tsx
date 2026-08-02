@@ -90,7 +90,7 @@ export default function RevealScreen() {
     try {
       await shareRef.current?.share();
       return;
-    } catch {}
+    } catch { /* view-shot 在 Web 端不可用，fallback 至文字分享 */ }
 
     // Web fallback
     if (poem && record) {
@@ -262,7 +262,7 @@ export default function RevealScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.homeBtn}
-          onPress={() => router.replace('/(tabs)' as any)}
+          onPress={() => router.replace('/(tabs)')}
         >
           <Icon name="home" size={16} color={theme.textSecondary} />
           <Text style={styles.homeBtnText}> 回首頁</Text>

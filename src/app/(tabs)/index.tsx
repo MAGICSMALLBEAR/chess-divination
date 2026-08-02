@@ -88,8 +88,8 @@ export default function HomeScreen() {
               <TouchableOpacity onPress={() => {
                 if (!dailyFortune) return;
                 const text = `今日棋運：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n幸運棋子：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n幸運方位：${dailyFortune.luckyDirection}\n幸運數字：${dailyFortune.luckyNumber}\n幸運色：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
-                try { navigator.share?.({ title: '象棋占卜 - 今日運勢', text }); } catch {}
-                try { navigator.clipboard?.writeText(text); } catch {}
+                try { navigator.share?.({ title: '象棋占卜 - 今日運勢', text }); } catch { console.warn('分享失敗'); }
+                try { navigator.clipboard?.writeText(text); } catch { console.warn('複製到剪貼簿失敗'); }
               }}>
                 <Icon name="share" size={18} color={theme.textSecondary} />
               </TouchableOpacity>

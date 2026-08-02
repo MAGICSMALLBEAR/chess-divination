@@ -452,7 +452,7 @@ RN 的 `transform` 是**依序套用**的矩陣乘法，`perspective` 必須在�
 | 測試覆蓋 | 20 個測試，只涵蓋 `divination` / `pieces` / `poems` 資料層 | 補 `hexagram`（A1 迴歸）、`position`、`storage`、`achievements` |
 | 錯誤處理 | 多處 `try {} catch {}` 空吞（`reveal.tsx:53,96,102`） | 至少 `console.warn`，避免靜默失敗 |
 | 型別 | `router.replace('/(tabs)' as any)`（`reveal.tsx:199`） | 開啟 typed routes 消除 `as any` |
-| 依賴 | `expo-symbols` 已裝未用 | 移除或啟用 |
+| 依賴 | `expo-symbols` 已裝未用 | 為 Expo SDK 57 內建依賴，非直接安裝，無法單獨移除 |
 | 無障礙 | 有 `reducedMotion`，但 `accessibilityLabel` 稀疏 | 補齊互動元件的標籤與 `accessibilityRole` |
 
 ---

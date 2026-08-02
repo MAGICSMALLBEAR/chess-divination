@@ -110,7 +110,7 @@ export default function AchievementsScreen() {
 
         {/* 回到首頁 */}
         <TouchableOpacity style={[styles.homeBtn, { borderColor: theme.bgMedium }]}
-          onPress={() => router.replace('/(tabs)' as any)}>
+          onPress={() => router.replace('/(tabs)')}>
           <Icon name="home" size={16} color={theme.textSecondary} />
           <Text style={[styles.homeBtnText, { color: theme.textSecondary }]}> 回首頁</Text>
         </TouchableOpacity>

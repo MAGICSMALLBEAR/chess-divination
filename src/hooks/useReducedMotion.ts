@@ -13,7 +13,7 @@ export function useReducedMotion(): boolean {
         const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
         mq.addEventListener('change', handler);
         return () => mq.removeEventListener('change', handler);
-      } catch {}
+      } catch { console.warn('reduceMotion 偵測失敗，使用預設值'); }
     } else {
       AccessibilityInfo.isReduceMotionEnabled().then(setReduced);
       const sub = AccessibilityInfo.addEventListener(

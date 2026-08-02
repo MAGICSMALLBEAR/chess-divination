@@ -73,22 +73,25 @@ export async function downloadFromCloud(): Promise<CloudPayload | null> {
 export async function mergeFromCloud(data: CloudPayload): Promise<void> {
   const AsyncStorage = require('@react-native-async-storage/async-storage').default;
 
+  // 雲端記錄的最小介面（僅需 id 和 timestamp 做去重與排序）
+  interface CloudRecord { id: string; timestamp: number; }
+
   // 比對本地與雲端的時間戳，只還原較新的版本
   const localRaw = await AsyncStorage.getItem('@chess_divination_history');
   if (localRaw) {
     const localHistory = JSON.parse(localRaw);
-    const localIds = new Set(localHistory.map((r: any) => r.id));
+    const localIds = new Set(localHistory.map((r: CloudRecord) => r.id));
 
     // 合併：雲端有但本地沒有的記錄
     const merged = [...localHistory];
-    for (const record of data.history as any[]) {
+    for (const record of data.history as CloudRecord[]) {
       if (!localIds.has(record.id)) {
         merged.push(record);
       }
     }
 
     // 按時間排序並寫回
-    merged.sort((a: any, b: any) => b.timestamp - a.timestamp);
+    merged.sort((a: CloudRecord, b: CloudRecord) => b.timestamp - a.timestamp);
     await AsyncStorage.setItem('@chess_divination_history', JSON.stringify(merged.slice(0, 500)));
   } else {
     // 本地無記錄，直接寫入雲端資料

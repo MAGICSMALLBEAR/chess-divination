@@ -21,7 +21,7 @@ export async function shareNative(content: ShareContent): Promise<boolean> {
     if (result.action !== Share.dismissedAction) {
       return true;
     }
-  } catch {}
+  } catch { console.warn('原生分享失敗'); }
   return false;
 }
 

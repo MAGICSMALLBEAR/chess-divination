@@ -32,7 +32,7 @@ export default function OnboardingScreen() {
 
   async function handleFinish() {
     await saveSettings({ hasCompletedOnboarding: true });
-    router.replace('/(tabs)' as any);
+    router.replace('/(tabs)');
   }
 
   function handleNext() {

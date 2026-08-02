@@ -12,7 +12,7 @@ export default function NotFoundScreen() {
       <Stack.Screen options={{ title: '找不到頁面' }} />
       <View style={styles.container}>
         <Text style={styles.title}>此頁面不存在</Text>
-        <Link href={'/' as any} style={styles.link}>
+        <Link href="/" style={styles.link}>
           <Text style={styles.linkText}>回到首頁</Text>
         </Link>
       </View>

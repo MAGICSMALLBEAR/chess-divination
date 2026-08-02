@@ -20,7 +20,7 @@ export function useAnimationSpeed(): number {
       try {
         const settings = await getSettings();
         setMultiplier(SPEED_MULTIPLIERS[settings.drawAnimationSpeed] || 1.0);
-      } catch {}
+      } catch { console.warn('動畫速度設定讀取失敗，使用預設值'); }
     })();
   }, []);
 
