@@ -4,9 +4,10 @@
 
 | 項目 | 數值 |
 |------|------|
-| 原始碼檔案 | 70 個 |
-| Git Commits | 30 次 |
-| Jest 測試 | 75 個 · 8 套件 · 全部通過 |
+| 原始碼檔案 | 74 個 |
+| Git Commits | 32 次 |
+| Jest 測試 | 170 個 · 12 套件 · 全部通過 |
+| E2E 測試 | 24 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 12 個 |
 | 元件 | 13 個 |
@@ -16,7 +17,7 @@
 | 起卦引擎 | v3（六爻：本卦／變卦／互卦／體用） |
 
 ### 技術棧
-Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncStorage · Reanimated · Gesture Handler · Web Audio API · expo-haptics · expo-sharing · view-shot · Jest
+Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncStorage · Reanimated · Gesture Handler · Web Audio API · expo-haptics · expo-sharing · view-shot · Jest · Playwright
 
 ### 部署
 - **GitHub**: [MAGICSMALLBEAR/chess-divination](https://github.com/MAGICSMALLBEAR/chess-divination)
@@ -165,6 +166,45 @@ Phase 6 完成後的收尾工作。
 - 全部分支 `master` 已推送至 `MAGICSMALLBEAR/chess-divination`
 - 累積 30 commits，全部通過 CI（TS 零錯誤 + Jest 75 全過 + web build 15 routes）
 
+## Session 16 — 測試補強與版面收尾（8/6–8/7）
+
+### 單元測試 75 → 170
+- `storage.test.ts`（33）：歷史 CRUD、500 筆上限、收藏雙向同步、設定合併與毀損降級、資料夾 CRUD、每日運勢跨日過期、v1/v2 記錄版本判定
+- `achievements.test.ts`（29）：8 種成就解鎖條件、重複解鎖防護、連續天數累加/中斷/去重、`week_streak` 自動解鎖
+- `layout.test.ts`（23）：斷點判定、限寬、無效尺寸防護
+- `grid.test.ts`（10）：欄數與卡片寬度計算
+
+### #9 寬螢幕多欄佈局
+- 新增 `useGrid` hook：以 `onLayout` 量測**容器**寬度決定欄數（1/2/3 欄）
+- `library.tsx`、`collection.tsx` 卡片改為多欄網格
+- `Layout.maxGrid = 1080`——多欄若沿用 `maxContent`(560)，每欄只剩 270px，反比單欄更難讀
+- 實測：1440px→3 欄(卡片 355)、800px→2 欄(380)、390px→1 欄(358)
+
+### #13 E2E 測試（Playwright，24 個）
+- 測 `expo export` 的**靜態產物**（與 Vercel 同一份），非開發伺服器
+- 兩組 viewport：mobile(iPhone 13) + desktop(1440×900)
+- `divination.spec`：抽棋→揭曉→記錄→收藏主線、圖鑑搜尋、7 條路由可達性（含 JS 例外檢查）
+- `responsive.spec`：多欄佈局、視窗縮放重算、無水平捲軸
+- `onboarding.spec`：首次啟動引導（其餘測試由 fixture 跳過）
+- npm scripts：`e2e` / `e2e:ui` / `typecheck` / `build:web` / `verify`
+
+### 測試抓到的兩個真實 bug
+
+**1. 資料夾 ID 碰撞**（由單元測試發現）
+`addFolder` 用 `folder-${Date.now()}` 當 ID，同一毫秒內建立的兩個資料夾會拿到**相同 ID**，刪除其一會連帶刪掉另一個。改用含隨機後綴的 `generateId()`。
+
+**2. Web 版響應式版面從未生效**（由 E2E 發現）
+Expo 靜態匯出的 Web 版，`useWindowDimensions()` 在 hydration 之後仍回傳 0，連 `globalThis.innerWidth` 都是 `undefined`——實測要等使用者**縮放視窗**才會出現正確值。
+結果 `contentWidth` 恆為 `-64px`，Session 11 做的「內容限寬 560px」在**已部署的 PWA 上從未生效**。
+且因為 RN Web 會靜默忽略無效寬度，畫面只是退回滿版拉伸，沒有任何錯誤訊息，純看畫面不會發現。
+- `computeLayout` 加上視窗寬下限，杜絕負寬度
+- 網格改以 `onLayout` 量測容器，完全不依賴 window 全域
+
+### 程式碼品質
+- 消除 4 處路由 `as any`（改用 Expo Router 原生字串路徑）
+- 9 處空 `catch {}` 補上中文 `console.warn`
+- `cloudSync.ts` 定義 `CloudRecord` 介面取代 `as any[]`
+
 ---
 
 ## 功能完整清單
@@ -218,26 +258,28 @@ Phase 6 完成後的收尾工作。
 | 2 | **Vercel 部署驗證** | ⬜ 待做 | 確認 `privacy.html` 可透過 `chess-divination-app.vercel.app/privacy.html` 存取 |
 | 3 | **螢幕截圖製作** | ⬜ 待做 | 照 `SCREENSHOTS_GUIDE.md` 擷取 6 張，上架必需 |
 | 4 | **多語系決策** | ⬜ 待決定 | 選項 A：移除 en/ja 切換器，純繁中定位；選項 B：補齊 64 籤詩翻譯（5 天+） |
+| 5 | **其餘頁面套用多欄** | ⬜ 待做 | 目前只有圖鑑與收藏用了 `useGrid`，統計/成就頁仍是單欄 |
+| 6 | **E2E 納入 CI** | ⬜ 待做 | GitHub Actions 跑 `npm run verify && npm run e2e` |
 
 ### 🟡 中期（需外部資源）
 
 | # | 待辦 | 狀態 | 備註 |
 |---|------|------|------|
-| 5 | **App Store 實際上架** | 🟡 文案/設定已備妥 | 需 Apple Developer $99/年 + 1024×1024 圖示（已有）+ 6 張截圖 |
-| 6 | **Google Play 實際上架** | 🟡 文案/設定已備妥 | 需 Google Play Console $25 一次性 + 截圖 |
-| 7 | **自訂域名** | ⬜ 待做 | 購買 `chess-divination.com` + DNS 指向 Vercel |
-| 8 | **EAS Build 原生測試** | ⬜ 待做 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
+| 7 | **App Store 實際上架** | 🟡 文案/設定已備妥 | 需 Apple Developer $99/年 + 1024×1024 圖示（已有）+ 6 張截圖 |
+| 8 | **Google Play 實際上架** | 🟡 文案/設定已備妥 | 需 Google Play Console $25 一次性 + 截圖 |
+| 9 | **自訂域名** | ⬜ 待做 | 購買 `chess-divination.com` + DNS 指向 Vercel |
+| 10 | **EAS Build 原生測試** | ⬜ 待做 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
 
 ### ⚪ 長期（設計增強）
 
 | # | 待辦 | 狀態 | 備註 |
 |---|------|------|------|
-| 9 | **寬螢幕雙欄佈局** | ⬜ 刻意延後 | 限寬 560px 置中已可讀，雙欄需重新設計資訊層級 |
-| 10 | **原生端書法字體子集化** | ⬜ 刻意延後 | 目前原生端用系統楷書後備，完整 Noto Serif TC 需子集（籤詩用字約 800 字） |
-| 11 | **棋盤重複選子限制** | ⬜ 設計取捨 | 2 顆棋無法組出乾為天/坤為地，但加入位置動爻後變化度已大幅提升 |
-| 12 | **單元測試覆蓋率提升** | ⬜ 待做 | 補 `storage`、`achievements`、`sound`、`notifications` 測試 |
-| 13 | **E2E 測試** | ⬜ 待做 | 抽棋→揭曉→收藏 完整流程自動化測試 |
-| 14 | **多語系完整翻譯** | ⬜ 待決定 | 64 籤詩 + 32 棋子說明 + 成就名稱全翻譯，約 5 天+ |
+| 11 | **寬螢幕多欄佈局** | ✅ 已完成（Session 16） | `useGrid` 以 onLayout 量測容器，圖鑑與收藏已套用 |
+| 12 | **原生端書法字體子集化** | ⬜ 刻意延後 | 目前原生端用系統楷書後備，完整 Noto Serif TC 需子集（籤詩用字約 800 字） |
+| 13 | **棋盤重複選子限制** | ⬜ 設計取捨 | 2 顆棋無法組出乾為天/坤為地，但加入位置動爻後變化度已大幅提升 |
+| 14 | **單元測試覆蓋率提升** | ✅ 已完成（Session 16） | storage/achievements/layout/grid，75 → 170 個 |
+| 15 | **E2E 測試** | ✅ 已完成（Session 16） | Playwright 24 個，mobile + desktop 兩組 viewport |
+| 16 | **多語系完整翻譯** | ⬜ 待決定 | 64 籤詩 + 32 棋子說明 + 成就名稱全翻譯，約 5 天+ |
 
 ### ✅ 已全數完成的階段
 
@@ -250,3 +292,5 @@ Phase 6 完成後的收尾工作。
 | Phase 4 | 視覺質感（真漸層/SVG/Emoji歸零） | 8/2 |
 | Phase 5 | 動畫重製（Reanimated 4/墨滴轉場） | 8/2 |
 | Phase 6 | 功能補完（13 項新功能） | 8/2 |
+| 收尾 | 上架素材 + 程式碼品質 | 8/2 |
+| 測試 | 單元 170 + E2E 24 + 多欄佈局 | 8/7 |
