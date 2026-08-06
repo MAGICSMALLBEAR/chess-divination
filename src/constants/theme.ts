@@ -270,6 +270,12 @@ export const Layout = {
    * 出現超長行寬而難以閱讀（本 App 已部署為 Web PWA）。
    */
   maxContent: 560,
+  /**
+   * 卡片網格的最大寬度。
+   * 比 maxContent 寬——多欄佈局若沿用 560px，每欄只剩約 270px，
+   * 反而比單欄更難讀。放寬後每欄約落在 440–520px 的可讀區間。
+   */
+  maxGrid: 1080,
   /** 進入寬螢幕版面的斷點 */
   tablet: 768,
   desktop: 1024,

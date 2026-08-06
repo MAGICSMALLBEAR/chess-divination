@@ -10,13 +10,15 @@ import { Icon } from '@/components/icons';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useGrid } from '@/hooks/useGrid';
 import type { ThemeColors } from '@/constants/theme';
-import { Spacing, FontSize, PaperSurface } from '@/constants/theme';
+import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
 
 export default function LibraryScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { onLayout, cardWidth } = useGrid();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -87,11 +89,17 @@ export default function LibraryScreen() {
         共 {filtered.length} 首
       </Text>
 
-      {/* 詩歌列表 */}
+      {/* 詩歌列表。寬螢幕改為多欄網格，避免卡片被撐成整個視窗寬 */}
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        <View style={styles.grid} onLayout={onLayout}>
         {filtered.map(poem => (
           <TouchableOpacity key={poem.id}
-            style={[styles.card, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}
+            style={[
+              styles.card,
+              { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
+              // 單欄時佔滿容器；多欄時以計算出的卡片寬並排
+              cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
+            ]}
             onPress={() => setExpandedId(expandedId === poem.id ? null : poem.id)}
             activeOpacity={0.8}
           >
@@ -127,6 +135,7 @@ export default function LibraryScreen() {
             </Text>
           </TouchableOpacity>
         ))}
+        </View>
         {filtered.length === 0 && (
           <Text style={[styles.empty, { color: theme.textMuted }]}>找不到符合的籤詩</Text>
         )}
@@ -158,10 +167,16 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   filterDot: { width: 8, height: 8, borderRadius: 4 },
   filterText: { fontSize: FontSize.caption, color: t.textMuted },
   count: { fontSize: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.sm },
-  list: { paddingHorizontal: Spacing.md, paddingBottom: 40 },
+  // 網格容器置中，讓多欄內容在寬螢幕上不貼左邊
+  list: { paddingHorizontal: Spacing.md, paddingBottom: 40, alignItems: 'center' },
+  // 限寬並置中；實際欄數由 useGrid 依量測到的容器寬度決定
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    gap: Spacing.sm, alignItems: 'flex-start',
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
   card: {
     borderRadius: 12, borderWidth: 1, padding: Spacing.md,
-    marginBottom: Spacing.sm,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   levelDot: {

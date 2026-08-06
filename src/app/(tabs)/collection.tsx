@@ -17,6 +17,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
+import { useGrid } from '@/hooks/useGrid';
 
 type TabType = 'history' | 'favorites' | 'folders';
 const TAB_ORDER: TabType[] = ['history', 'favorites', 'folders'];
@@ -26,6 +27,7 @@ export default function CollectionScreen() {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const { onLayout: onGridLayout, cardWidth } = useGrid();
   const { width: windowWidth } = useWindowDimensions();
   const horizScrollRef = useRef<ScrollView>(null);
   const [tab, setTab] = useState<TabType>('history');
@@ -171,7 +173,12 @@ export default function CollectionScreen() {
     return (
       <TouchableOpacity
         key={record.id}
-        style={[styles.card, selectedIds.has(record.id) && { borderColor: theme.textRed }]}
+        style={[
+          styles.card,
+          // 尚未量測或單欄時佔滿；多欄時以量測推得的卡片寬並排
+          cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
+          selectedIds.has(record.id) && { borderColor: theme.textRed },
+        ]}
         onPress={() => selectMode ? toggleSelect(record.id) : handleView(record)}
         activeOpacity={0.8}
       >
@@ -332,7 +339,9 @@ export default function CollectionScreen() {
                 <Text style={styles.emptyHint}>開始占卜後記錄將顯示於此</Text>
               </View>
             )}
-            {historyData.map((record) => renderRecordCard(record))}
+            <View style={styles.grid} onLayout={onGridLayout}>
+              {historyData.map((record) => renderRecordCard(record))}
+            </View>
           </ScrollView>
         </View>
 
@@ -350,7 +359,9 @@ export default function CollectionScreen() {
                 <Text style={styles.emptyHint}>在占卜結果中點擊收藏即可加入</Text>
               </View>
             )}
-            {favoritesData.map((record) => renderRecordCard(record))}
+            <View style={styles.grid} onLayout={onGridLayout}>
+              {favoritesData.map((record) => renderRecordCard(record))}
+            </View>
           </ScrollView>
         </View>
 
@@ -450,7 +461,14 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   pager: { flex: 1, marginHorizontal: Spacing.md },
   pagerContent: { flexGrow: 1 },
   page: { flex: 1 },
-  pageScroll: { flexGrow: 1, paddingBottom: 40 },
+  // 網格容器置中，讓多欄內容在寬螢幕上不貼左邊
+  pageScroll: { flexGrow: 1, paddingBottom: 40, alignItems: 'center' },
+  // 限寬並置中；實際欄數由 useGrid 依量測到的容器寬度決定
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    gap: Spacing.sm, alignItems: 'flex-start',
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
   // 限寬並置中，避免在平板／桌面被撐成整個視窗寬而出現超長行寬
   scroll: {
     flexGrow: 1, paddingHorizontal: Spacing.md, paddingBottom: 40,
@@ -464,7 +482,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: t.bgDark, borderRadius: 12,
     borderWidth: 1, borderColor: t.bgMedium,
-    padding: Spacing.md, marginBottom: Spacing.sm,
+    // 間距由 grid 的 gap 提供，此處不再設 marginBottom
+    padding: Spacing.md,
   },
   checkbox: {
     width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: t.textMuted,
