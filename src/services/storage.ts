@@ -221,7 +221,9 @@ export async function addFolder(name: string): Promise<Folder> {
   const s = await getSettings();
   const folders = s.folders || [];
   const folder: Folder = {
-    id: `folder-${Date.now()}`,
+    // 用 generateId 而非單純的 Date.now()——同一毫秒內連續建立兩個資料夾
+    // 會拿到相同 id，刪除其一會連帶刪掉另一個。
+    id: `folder-${generateId()}`,
     name,
     color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
     recordIds: [],
