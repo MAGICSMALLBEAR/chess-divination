@@ -5,9 +5,9 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 74 個 |
-| Git Commits | 32 次 |
+| Git Commits | 34 次 |
 | Jest 測試 | 170 個 · 12 套件 · 全部通過 |
-| E2E 測試 | 24 個 · Playwright · mobile + desktop |
+| E2E 測試 | 56 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 12 個 |
 | 元件 | 13 個 |
@@ -200,6 +200,24 @@ Expo 靜態匯出的 Web 版，`useWindowDimensions()` 在 hydration 之後仍�
 - `computeLayout` 加上視窗寬下限，杜絕負寬度
 - 網格改以 `onLayout` 量測容器，完全不依賴 window 全域
 
+### 多欄佈局擴及其餘頁面
+- 成就頁：每張成就自成一卡，桌面 3 欄／手機 1 欄
+- 統計頁：吉凶分佈與棋子排行在寬螢幕並排（2 欄）
+- **TrendChart 同一類 bug**：原以 `useLayout().width` 計算，在 Web 上寬度恆為最小值約 264px。改用 `useMeasuredWidth`（onLayout 量測自身容器），實測容器 1080 → SVG 1040
+
+### E2E 測試環境修正
+一度回報「24 全過」，實為誤讀被截斷的輸出——真實結果是 25 過 / 31 失敗：
+- `mobile` project 用 `devices['iPhone 13']`（WebKit）但只裝了 chromium，整個 project 起不來 → 改用 `devices['Pixel 5']`（Chromium 核心），本機與 CI 只需一種瀏覽器
+- `gridColumns()` 以「第一個 flex-wrap 容器」猜網格，會誤抓總覽列 → 改以 `testID="card-grid"` 定位
+- 版面斷言改用 `expect.poll`：`onLayout` 是非同步量測，直接斷言會在版面收斂前就跑
+
+修正後 **56/56 全過**，並已驗證 `webServer` 能自行啟動（CI 的實際情境）。
+
+### CI
+`.github/workflows/ci.yml`：
+- `verify` job：typecheck → jest → web build，上傳 dist 產物
+- `e2e` job：取回產物 → 裝 chromium → 跑 Playwright，失敗時上傳報告
+
 ### 程式碼品質
 - 消除 4 處路由 `as any`（改用 Expo Router 原生字串路徑）
 - 9 處空 `catch {}` 補上中文 `console.warn`
@@ -258,8 +276,8 @@ Expo 靜態匯出的 Web 版，`useWindowDimensions()` 在 hydration 之後仍�
 | 2 | **Vercel 部署驗證** | ⬜ 待做 | 確認 `privacy.html` 可透過 `chess-divination-app.vercel.app/privacy.html` 存取 |
 | 3 | **螢幕截圖製作** | ⬜ 待做 | 照 `SCREENSHOTS_GUIDE.md` 擷取 6 張，上架必需 |
 | 4 | **多語系決策** | ⬜ 待決定 | 選項 A：移除 en/ja 切換器，純繁中定位；選項 B：補齊 64 籤詩翻譯（5 天+） |
-| 5 | **其餘頁面套用多欄** | ⬜ 待做 | 目前只有圖鑑與收藏用了 `useGrid`，統計/成就頁仍是單欄 |
-| 6 | **E2E 納入 CI** | ⬜ 待做 | GitHub Actions 跑 `npm run verify && npm run e2e` |
+| 5 | **其餘頁面套用多欄** | ✅ 已完成 | 成就頁 3 欄、統計頁 2 欄；順帶修好 TrendChart 寬度 |
+| 6 | **E2E 納入 CI** | ✅ 已完成 | `.github/workflows/ci.yml`：verify job + e2e job |
 
 ### 🟡 中期（需外部資源）
 
