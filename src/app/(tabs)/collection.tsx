@@ -339,7 +339,7 @@ export default function CollectionScreen() {
                 <Text style={styles.emptyHint}>開始占卜後記錄將顯示於此</Text>
               </View>
             )}
-            <View style={styles.grid} onLayout={onGridLayout}>
+            <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
               {historyData.map((record) => renderRecordCard(record))}
             </View>
           </ScrollView>
@@ -359,7 +359,7 @@ export default function CollectionScreen() {
                 <Text style={styles.emptyHint}>在占卜結果中點擊收藏即可加入</Text>
               </View>
             )}
-            <View style={styles.grid} onLayout={onGridLayout}>
+            <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
               {favoritesData.map((record) => renderRecordCard(record))}
             </View>
           </ScrollView>

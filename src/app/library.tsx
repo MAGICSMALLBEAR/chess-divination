@@ -91,7 +91,7 @@ export default function LibraryScreen() {
 
       {/* 詩歌列表。寬螢幕改為多欄網格，避免卡片被撐成整個視窗寬 */}
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        <View style={styles.grid} onLayout={onLayout}>
+        <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
         {filtered.map(poem => (
           <TouchableOpacity key={poem.id}
             style={[

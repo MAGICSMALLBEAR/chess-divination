@@ -7,15 +7,17 @@ import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useGrid } from '@/hooks/useGrid';
 import { getAchievements, getStreak, type Achievement } from '@/services/achievements';
 import { getHistory } from '@/services/storage';
 import type { ThemeColors } from '@/constants/theme';
-import { Spacing, FontSize } from '@/constants/theme';
+import { Spacing, FontSize, Layout } from '@/constants/theme';
 
 export default function AchievementsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { onLayout, cardWidth } = useGrid();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [streak, setStreak] = useState(0);
   const [totalDraws, setTotalDraws] = useState(0);
@@ -86,10 +88,15 @@ export default function AchievementsScreen() {
           </View>
         </View>
 
-        {/* 成就列表 */}
-        <View style={[styles.listCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+        {/* 成就列表。寬螢幕改為多欄，每張成就自成一卡 */}
+        <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
           {achievements.map(ach => (
-            <View key={ach.id} style={[styles.achRow, ach.unlocked && styles.achUnlocked]}>
+            <View key={ach.id} style={[
+              styles.achRow,
+              { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
+              cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
+              ach.unlocked && styles.achUnlocked,
+            ]}>
               <View style={[styles.achIcon, !ach.unlocked && { opacity: 0.3 }]}>
                 <Icon name={achievementIcon(ach.icon)} size={28} color={ach.unlocked ? theme.gold : theme.textMuted} />
               </View>
@@ -127,10 +134,11 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   backText: { fontSize: FontSize.body },
   title: { fontSize: FontSize.heading, fontWeight: '700' },
-  scroll: { paddingHorizontal: Spacing.md, paddingBottom: 40 },
+  scroll: { paddingHorizontal: Spacing.md, paddingBottom: 40, alignItems: 'center' },
   overviewCard: {
     borderRadius: 16, borderWidth: 1, padding: Spacing.lg, marginBottom: Spacing.md,
     alignItems: 'center',
+    width: '100%', maxWidth: Layout.maxContent, alignSelf: 'center',
   },
   overviewTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
   overviewTitle: { fontSize: FontSize.body, fontWeight: '600' },
@@ -155,12 +163,15 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   statLabel: { fontSize: FontSize.small, marginTop: 2 },
   statExtraRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   statExtra: { fontSize: FontSize.caption },
-  listCard: {
-    borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: Spacing.md,
+  // 網格容器：限寬置中，欄數由 useGrid 依量測到的容器寬度決定
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm,
+    alignItems: 'flex-start', alignSelf: 'center',
+    width: '100%', maxWidth: Layout.maxGrid, marginBottom: Spacing.md,
   },
   achRow: {
     flexDirection: 'row', alignItems: 'center', padding: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: t.bgMedium,
+    borderRadius: 12, borderWidth: 1,
   },
   achUnlocked: { backgroundColor: t.goldSoft },
   achIcon: { width: 44, alignItems: 'center' },
@@ -176,6 +187,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   homeBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderRadius: 12, paddingVertical: 12, gap: 4,
+    width: '100%', maxWidth: Layout.maxContent, alignSelf: 'center',
   },
   homeBtnText: { fontSize: FontSize.body },
 });

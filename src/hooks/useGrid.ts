@@ -49,14 +49,27 @@ export function cardWidthFor(containerWidth: number, columns: number): number {
   return (containerWidth - GRID_GAP * (columns - 1)) / columns;
 }
 
-export function useGrid(): GridInfo {
-  const [containerWidth, setContainerWidth] = useState(0);
+/**
+ * 量測自身容器的寬度。
+ * 回傳的 `onLayout` 需掛到要量測的 View 上；量測前 width 為 0。
+ */
+export function useMeasuredWidth(): {
+  onLayout: (e: LayoutChangeEvent) => void;
+  width: number;
+} {
+  const [width, setWidth] = useState(0);
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
     // 只在變化夠大時更新，避免次像素抖動造成無限 re-render
-    setContainerWidth((prev) => (Math.abs(prev - w) > 1 ? w : prev));
+    setWidth((prev) => (Math.abs(prev - w) > 1 ? w : prev));
   }, []);
+
+  return { onLayout, width };
+}
+
+export function useGrid(): GridInfo {
+  const { onLayout, width: containerWidth } = useMeasuredWidth();
 
   const columns = columnsForWidth(containerWidth);
 

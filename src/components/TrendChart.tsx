@@ -7,9 +7,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Rect, Line, Text as SvgText, G } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { useLayout } from '@/hooks/useLayout';
+import { useMeasuredWidth } from '@/hooks/useGrid';
 import type { ThemeColors } from '@/constants/theme';
-import { FontSize, Spacing } from '@/constants/theme';
+import { FontSize, Spacing, Layout } from '@/constants/theme';
 
 interface DataPoint {
   label: string;
@@ -31,8 +31,13 @@ const CHART_PADDING = { top: 16, right: 16, bottom: 28, left: 8 };
 
 export default function TrendChart({ data, title }: Props) {
   const { theme } = useAppTheme();
-  const { width } = useLayout();
-  const chartWidth = width - Spacing.md * 2 - CHART_PADDING.left - CHART_PADDING.right;
+  // 量測自身容器而非視窗：Web 靜態匯出下取不到視窗尺寸（見 useGrid.ts 檔頭），
+  // 沿用 useLayout 會讓圖表永遠是最小寬度。
+  const { onLayout, width } = useMeasuredWidth();
+  const chartWidth = Math.max(
+    width - Spacing.md * 2 - CHART_PADDING.left - CHART_PADDING.right,
+    0,
+  );
 
   if (data.length === 0) return null;
 
@@ -40,8 +45,13 @@ export default function TrendChart({ data, title }: Props) {
   const barGap = chartWidth / data.length;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}
+      onLayout={onLayout}
+    >
       <Text style={[styles.title, { color: theme.gold }]}>{title}</Text>
+      {/* 量測完成前不畫圖，避免以 0 寬度閃現 */}
+      {chartWidth > 0 && (
       <Svg width={chartWidth + CHART_PADDING.right} height={CHART_HEIGHT}>
         <G x={CHART_PADDING.left} y={CHART_PADDING.top}>
           {/* 基準線 */}
@@ -101,6 +111,7 @@ export default function TrendChart({ data, title }: Props) {
           })}
         </G>
       </Svg>
+      )}
     </View>
   );
 }
@@ -108,6 +119,7 @@ export default function TrendChart({ data, title }: Props) {
 const styles = StyleSheet.create({
   container: {
     borderRadius: 12, borderWidth: 1, padding: Spacing.md, marginBottom: Spacing.md,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
   title: {
     fontSize: FontSize.body, fontWeight: '600', marginBottom: Spacing.sm,

@@ -8,16 +8,18 @@ import InkBackground from '@/components/InkBackground';
 import TrendChart from '@/components/TrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useGrid } from '@/hooks/useGrid';
 import { getHistory, type DivinationRecord } from '@/services/storage';
 import { POEM_LEVELS, getLevelColor } from '@/data/poems';
 import { t } from '@/services/i18n';
 import type { ThemeColors } from '@/constants/theme';
-import { Spacing, FontSize } from '@/constants/theme';
+import { Spacing, FontSize, Layout } from '@/constants/theme';
 
 export default function StatsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { onLayout, cardWidth } = useGrid();
   const [records, setRecords] = useState<DivinationRecord[]>([]);
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
@@ -129,8 +131,13 @@ export default function StatsScreen() {
         {/* 趨勢圖表 */}
         <TrendChart data={trendData} title="近 7 天占卜趨勢" />
 
-        {/* 吉凶分佈 */}
-        <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+        {/* 吉凶分佈與棋子排行。寬螢幕並排，窄螢幕上下堆疊 */}
+        <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
+        <View style={[
+          styles.section,
+          { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
+          cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
+        ]}>
           <Text style={[styles.sectionTitle, { color: theme.gold }]}>吉凶分佈</Text>
           {POEM_LEVELS.map(level => {
             const count = levelCounts[level] || 0;
@@ -149,7 +156,11 @@ export default function StatsScreen() {
         </View>
 
         {/* 最常抽到的棋子 */}
-        <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+        <View style={[
+          styles.section,
+          { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
+          cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
+        ]}>
           <Text style={[styles.sectionTitle, { color: theme.gold }]}>最常抽到棋子類型</Text>
           {sortedTypes.length === 0 && (
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>尚無資料</Text>
@@ -161,6 +172,7 @@ export default function StatsScreen() {
               <Text style={[styles.rankCount, { color: theme.textMuted }]}>{count} 次</Text>
             </View>
           ))}
+        </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -175,8 +187,17 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   backText: { fontSize: FontSize.body },
   title: { fontSize: FontSize.heading, fontWeight: '700' },
-  scroll: { paddingHorizontal: Spacing.md, paddingBottom: 40 },
-  overviewRow: { flexDirection: 'row', gap: 8, marginBottom: Spacing.md },
+  scroll: { paddingHorizontal: Spacing.md, paddingBottom: 40, alignItems: 'center' },
+  // 網格容器：限寬置中，欄數由 useGrid 依量測到的容器寬度決定
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm,
+    alignItems: 'flex-start', alignSelf: 'center',
+    width: '100%', maxWidth: Layout.maxGrid,
+  },
+  overviewRow: {
+    flexDirection: 'row', gap: 8, marginBottom: Spacing.md,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
   statBox: {
     flex: 1, alignItems: 'center', borderRadius: 12, borderWidth: 1,
     paddingVertical: Spacing.md,
@@ -184,7 +205,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   statNum: { fontSize: FontSize.title, fontWeight: '900', color: t.textGold },
   statLabel: { fontSize: FontSize.caption, marginTop: 4 },
   section: {
-    borderRadius: 12, borderWidth: 1, padding: Spacing.md, marginBottom: Spacing.md,
+    borderRadius: 12, borderWidth: 1, padding: Spacing.md,
   },
   sectionTitle: { fontSize: FontSize.body, fontWeight: '600', marginBottom: Spacing.sm },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
@@ -199,6 +220,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   emptyText: { fontSize: FontSize.body, textAlign: 'center', paddingVertical: Spacing.md },
   filterRow: {
     flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: Spacing.md,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
   filterBtn: {
     paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14,

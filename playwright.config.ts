@@ -11,7 +11,7 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 8090;
+const PORT = 8099;
 const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -35,8 +35,10 @@ export default defineConfig({
 
   projects: [
     {
+      // 用 Pixel 5（Chromium 核心）而非 iPhone（WebKit）：
+      // 只需安裝一種瀏覽器，本機與 CI 的環境需求一致。
       name: 'mobile',
-      use: { ...devices['iPhone 13'] },
+      use: { ...devices['Pixel 5'] },
     },
     {
       // 寬螢幕多欄佈局的迴歸驗證
