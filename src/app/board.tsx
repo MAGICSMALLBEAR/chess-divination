@@ -16,18 +16,26 @@ import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
+import { useMeasuredWidth } from '@/hooks/useGrid';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
 
-/** 棋盤格子大小依當前可用寬度換算，旋轉與視窗縮放皆會重算 */
+/**
+ * 棋盤格子大小依可用寬度換算，旋轉與視窗縮放皆會重算。
+ * 上限放寬到 56：桌面容器有 720px 可用，鎖在 44 會讓棋盤顯得侷促。
+ */
 function cellSizeFor(width: number): number {
-  return Math.min(44, (width - 32) / 9);
+  if (width <= 0) return 32;   // 尚未量測，先給可用的預設值
+  return Math.min(56, Math.max(28, (width - 32) / 9));
 }
 
 export default function BoardScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
-  const { width, contentWidth } = useLayout();
+  const { width } = useLayout();
+  // 量測內容容器而非視窗：Web 靜態匯出取不到視窗尺寸（見 useGrid.ts 檔頭），
+  // 沿用視窗寬會讓棋盤格子縮到最小值，棋盤在桌面上明顯偏小。
+  const { onLayout: onInnerLayout, width: innerWidth } = useMeasuredWidth();
   const categories = useQuestionCategories();
   const {
     placedPieces, selectedPiece, availablePieces, maxPieces,
@@ -38,10 +46,10 @@ export default function BoardScreen() {
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // 全螢幕模式下棋盤格子加大
+  // 全螢幕模式下棋盤格子加大；一般模式依量測到的容器寬度換算
   const cellSz = isFullscreen
     ? Math.min(68, (width - 16) / 9)
-    : cellSizeFor(width);
+    : cellSizeFor(innerWidth);
 
   const currentPool = showRedPieces ? ALL_RED_PIECES : ALL_BLACK_PIECES;
 
@@ -121,7 +129,7 @@ export default function BoardScreen() {
           <Stack.Screen options={{ headerShown: false }} />
           <InkBackground />
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-           <View style={[styles.inner, { width: contentWidth }]}>
+           <View style={styles.inner} onLayout={onInnerLayout}>
             {/* 標題 */}
             <View style={styles.header}>
               <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
@@ -182,7 +190,7 @@ export default function BoardScreen() {
           onPlacePiece={placePieceOnBoard}
           onRemovePiece={removePieceFromBoard}
           onSelectAvailable={selectPiece}
-          cellSize={cellSizeFor(width)}
+          cellSize={cellSz}
           maxPieces={maxPieces}
           style={styles.boardStyle}
         />
@@ -247,8 +255,12 @@ export default function BoardScreen() {
 const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: t.bgInk },
   scroll: { flexGrow: 1, paddingBottom: 40, alignItems: 'center' },
-  // 內容以 contentWidth 限寬並置中，避免在平板／桌面被撐成整個視窗寬
-  inner: { alignItems: 'center' },
+  // 內容限寬並置中。720 比一般閱讀寬度(560)寬一些——
+  // 棋盤與 7 個問事類別在 560 下會顯得侷促、類別列還會被截斷。
+  inner: {
+    alignItems: 'center',
+    width: '100%', maxWidth: 720, alignSelf: 'center',
+  },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
@@ -257,9 +269,13 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   backBtn: { width: 60 },
   backText: { fontSize: FontSize.body, color: t.textSecondary },
   title: { fontSize: FontSize.heading, fontWeight: '700', color: t.textPrimary },
-  catScroll: { maxHeight: 40, marginBottom: Spacing.sm },
+  // 用固定 height 而非 maxHeight：水平 ScrollView 在 Web 上沒有明確高度時會塌陷
+  catScroll: { height: 40, marginBottom: Spacing.sm, flexGrow: 0, width: '100%' },
+  // 不置中：類別數量在窄螢幕會超出可視寬度，flexbox 的 center
+  // 在溢出時會把起點推成負值，第一個類別反而被切掉。靠左起排最穩。
   catContent: {
     flexDirection: 'row', gap: 6, paddingHorizontal: Spacing.md,
+    alignItems: 'center',
   },
   categoryChip: {
     flexDirection: 'row', alignItems: 'center',

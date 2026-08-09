@@ -234,7 +234,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     fontSize: FontSize.body, fontWeight: '700', color: t.textInverse,
   },
   quickDrawSub: {
-    fontSize: FontSize.caption, color: t.textMuted, marginTop: 2,
+    // 按鈕是金色底，副標原本沿用 textMuted（淺灰）幾乎讀不出來；
+    // 改用與主文字同一組的反白色，再以 opacity 拉出層次。
+    fontSize: FontSize.caption, color: t.textInverse, opacity: 0.75, marginTop: 2,
   },
   recentSection: {
     marginHorizontal: Spacing.md, marginBottom: Spacing.md,
