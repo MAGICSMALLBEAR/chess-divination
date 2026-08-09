@@ -84,6 +84,35 @@ test.describe('記錄與收藏', () => {
   });
 });
 
+test.describe('籤詩頁轉場', () => {
+  /**
+   * 迴歸：墨滴擴散遮罩的完成回呼原本掛在 withTiming 的第三參數上。
+   * 那個回呼跑在 UI thread（worklet），直接呼叫 JS 閉包會靜默失效，
+   * 父層狀態機因此永遠停在轉場中——15 層墨色圓形永久蓋住整個籤詩頁，
+   * 內容雖在 DOM 中（測 toBeVisible 會通過）卻幾乎看不見。
+   */
+  test('轉場結束後不應殘留墨滴遮罩', async ({ page }) => {
+    await drawPieces(page, 2);
+    await page.getByText('揭露籤詩').click({ timeout: 30_000 });
+    await expect(page).toHaveURL(/\/reveal/, { timeout: 30_000 });
+    await expect(page.getByText('再次抽棋')).toBeVisible({ timeout: 30_000 });
+
+    // 等轉場動畫走完（擴散 1200 + 停留 150 + 淡出 350，留足餘裕）
+    await expect.poll(() => page.evaluate(() => {
+      // 墨滴用固定色 #1a0f0a
+      return document.querySelectorAll('div').length
+        ? [...document.querySelectorAll('div')].filter((el) => {
+            const cs = getComputedStyle(el);
+            if (!cs.backgroundColor.includes('26, 15, 10')) return false;
+            const r = el.getBoundingClientRect();
+            // 只算真的還蓋在畫面上的（有尺寸且父鏈未淡出）
+            return r.width > 0 && r.height > 0;
+          }).length
+        : 0;
+    }), { timeout: 15_000, message: '墨滴遮罩應在轉場後卸載' }).toBe(0);
+  });
+});
+
 test.describe('籤詩圖鑑', () => {
   test('圖鑑顯示全部 64 首籤詩', async ({ page }) => {
     await page.goto('/library');

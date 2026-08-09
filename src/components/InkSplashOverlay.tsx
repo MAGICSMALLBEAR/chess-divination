@@ -3,7 +3,7 @@
 // 每個墨滴斑點是獨立元件，各自控制 Reanimated shared value。
 // 擴散完成後整體淡出，揭露下方內容。
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -107,31 +107,35 @@ export default function InkSplashOverlay({ visible, onComplete }: Props) {
 
   const overlayOpacity = useSharedValue(1);
 
-  // 使用傳入的 visible 和 onComplete；但動畫驅動由 phase 狀態管理
-  // 因為 visible 是由父元件控制的 prop，我們需要在 visible 變為 true 時觸發動畫
-  const phase = useSharedValue<'hidden' | 'expanding' | 'fading' | 'done'>('hidden');
+  // onComplete 存在 ref 中，讓計時器永遠拿到最新的回呼，
+  // 又不必把它放進 effect 依賴而重啟整段動畫。
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (!visible) {
-      phase.value = 'hidden';
       overlayOpacity.value = 1;
       return;
     }
 
-    // 開始擴散 → 停留 → 淡出 → 完成
-    phase.value = 'expanding';
-
     const totalExpand = EXPAND_DURATION + 450;  // 最晚斑點的 delay + 擴散時間
+
+    // 擴散 → 停留 → 淡出
     const fadeTimer = setTimeout(() => {
-      phase.value = 'fading';
-      overlayOpacity.value = withTiming(0, { duration: FADE_DURATION }, () => {
-        phase.value = 'done';
-        if (onComplete) onComplete();
-      });
+      overlayOpacity.value = withTiming(0, { duration: FADE_DURATION });
     }, totalExpand + HOLD_DURATION);
+
+    // 完成通知一律由 JS 計時器發出，不掛在 withTiming 的回呼上。
+    // withTiming 的回呼跑在 UI thread（worklet），要呼叫 JS 閉包必須經 runOnJS；
+    // 直接呼叫會靜默失效，父層的狀態機就永遠停在轉場中——
+    // 遮罩不卸載，整個籤詩頁被 15 層墨色圓形蓋住。
+    const doneTimer = setTimeout(() => {
+      onCompleteRef.current?.();
+    }, totalExpand + HOLD_DURATION + FADE_DURATION);
 
     return () => {
       clearTimeout(fadeTimer);
+      clearTimeout(doneTimer);
       cancelAnimation(overlayOpacity);
     };
   }, [visible]);
@@ -140,8 +144,7 @@ export default function InkSplashOverlay({ visible, onComplete }: Props) {
     opacity: overlayOpacity.value,
   }));
 
-  // 只在 visible 或動畫進行中時渲染
-  if (!visible && phase.value === 'hidden') return null;
+  if (!visible) return null;
 
   return (
     <Animated.View
