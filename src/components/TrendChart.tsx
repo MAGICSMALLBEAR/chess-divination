@@ -26,7 +26,9 @@ interface Props {
 
 const CHART_HEIGHT = 160;
 const BAR_MAX_HEIGHT = 120;
-const BAR_WIDTH = 32;
+/** 柱寬下限與上限。固定寬度在寬螢幕下會顯得過細，故改為依欄距推算 */
+const BAR_WIDTH_MIN = 24;
+const BAR_WIDTH_MAX = 72;
 const CHART_PADDING = { top: 16, right: 16, bottom: 28, left: 8 };
 
 export default function TrendChart({ data, title }: Props) {
@@ -43,6 +45,8 @@ export default function TrendChart({ data, title }: Props) {
 
   const maxTotal = Math.max(...data.map(d => d.total), 1);
   const barGap = chartWidth / data.length;
+  // 柱寬取欄距的六成，並夾在上下限之間，讓窄螢幕不擠、寬螢幕不空
+  const barWidth = Math.min(Math.max(barGap * 0.6, BAR_WIDTH_MIN), BAR_WIDTH_MAX);
 
   return (
     <View
@@ -62,7 +66,7 @@ export default function TrendChart({ data, title }: Props) {
           />
           {/* 柱狀 */}
           {data.map((d, i) => {
-            const x = i * barGap + (barGap - BAR_WIDTH) / 2;
+            const x = i * barGap + (barGap - barWidth) / 2;
             const totalH = (d.total / maxTotal) * BAR_MAX_HEIGHT;
             const y = BAR_MAX_HEIGHT - totalH;
 
@@ -71,7 +75,7 @@ export default function TrendChart({ data, title }: Props) {
                 {/* 總數柱 */}
                 <Rect
                   x={x} y={y}
-                  width={BAR_WIDTH} height={totalH}
+                  width={barWidth} height={totalH}
                   fill={theme.gold} opacity={0.3} rx={3}
                 />
                 {/* 吉柱（上半部） */}
@@ -79,14 +83,14 @@ export default function TrendChart({ data, title }: Props) {
                   <Rect
                     x={x + 2}
                     y={BAR_MAX_HEIGHT - (d.good / maxTotal) * BAR_MAX_HEIGHT}
-                    width={BAR_WIDTH - 4}
+                    width={barWidth - 4}
                     height={(d.good / maxTotal) * BAR_MAX_HEIGHT}
                     fill={theme.gold} opacity={0.8} rx={2}
                   />
                 )}
                 {/* 日期標籤 */}
                 <SvgText
-                  x={x + BAR_WIDTH / 2}
+                  x={x + barWidth / 2}
                   y={BAR_MAX_HEIGHT + 18}
                   fontSize={10}
                   fill={theme.textMuted}
@@ -97,7 +101,7 @@ export default function TrendChart({ data, title }: Props) {
                 {/* 數字標籤 */}
                 {d.total > 0 && (
                   <SvgText
-                    x={x + BAR_WIDTH / 2}
+                    x={x + barWidth / 2}
                     y={y - 4}
                     fontSize={10}
                     fill={theme.textSecondary}

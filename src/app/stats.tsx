@@ -5,10 +5,10 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
+import { PIECE_CHINESE_NAMES } from '@/components/icons';
 import TrendChart from '@/components/TrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { useGrid } from '@/hooks/useGrid';
 import { getHistory, type DivinationRecord } from '@/services/storage';
 import { POEM_LEVELS, getLevelColor } from '@/data/poems';
 import { t } from '@/services/i18n';
@@ -19,7 +19,6 @@ export default function StatsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
-  const { onLayout, cardWidth } = useGrid();
   const [records, setRecords] = useState<DivinationRecord[]>([]);
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
@@ -132,12 +131,8 @@ export default function StatsScreen() {
         <TrendChart data={trendData} title="近 7 天占卜趨勢" />
 
         {/* 吉凶分佈與棋子排行。寬螢幕並排，窄螢幕上下堆疊 */}
-        <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
-        <View style={[
-          styles.section,
-          { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
-          cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
-        ]}>
+        <View testID="card-grid" style={styles.grid}>
+        <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           <Text style={[styles.sectionTitle, { color: theme.gold }]}>吉凶分佈</Text>
           {POEM_LEVELS.map(level => {
             const count = levelCounts[level] || 0;
@@ -156,11 +151,7 @@ export default function StatsScreen() {
         </View>
 
         {/* 最常抽到的棋子 */}
-        <View style={[
-          styles.section,
-          { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
-          cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
-        ]}>
+        <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           <Text style={[styles.sectionTitle, { color: theme.gold }]}>最常抽到棋子類型</Text>
           {sortedTypes.length === 0 && (
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>尚無資料</Text>
@@ -168,7 +159,9 @@ export default function StatsScreen() {
           {sortedTypes.slice(0, 7).map(([type, count], i) => (
             <View key={type} style={styles.rankRow}>
               <Text style={[styles.rankNum, { color: theme.gold }]}>#{i + 1}</Text>
-              <Text style={[styles.rankType, { color: theme.textPrimary }]}>{type}</Text>
+              <Text style={[styles.rankType, { color: theme.textPrimary }]}>
+                {PIECE_CHINESE_NAMES[type] ?? type}
+              </Text>
               <Text style={[styles.rankCount, { color: theme.textMuted }]}>{count} 次</Text>
             </View>
           ))}
@@ -204,8 +197,10 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   statNum: { fontSize: FontSize.title, fontWeight: '900', color: t.textGold },
   statLabel: { fontSize: FontSize.caption, marginTop: 4 },
+  // flexBasis 320：寬到放得下兩張就並排均分，放不下自動換行成單欄
   section: {
     borderRadius: 12, borderWidth: 1, padding: Spacing.md,
+    flexGrow: 1, flexBasis: 320,
   },
   sectionTitle: { fontSize: FontSize.body, fontWeight: '600', marginBottom: Spacing.sm },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },

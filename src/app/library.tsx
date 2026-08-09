@@ -56,9 +56,10 @@ export default function LibraryScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 搜尋 */}
+      {/* 搜尋與篩選。包在限寬容器內，與下方內容網格對齊 */}
+      <View style={styles.controls}>
       <TextInput
-        style={[styles.searchInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
+        style={[styles.searchInput, { backgroundColor: theme.bgCard, borderColor: theme.goldFaint, color: theme.textPrimary }]}
         placeholder="搜尋籤詩..."
         placeholderTextColor={theme.textMuted}
         value={search}
@@ -88,6 +89,7 @@ export default function LibraryScreen() {
       <Text style={[styles.count, { color: theme.textMuted }]}>
         共 {filtered.length} 首
       </Text>
+      </View>
 
       {/* 詩歌列表。寬螢幕改為多欄網格，避免卡片被撐成整個視窗寬 */}
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
@@ -146,19 +148,27 @@ export default function LibraryScreen() {
 
 const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1 },
+  controls: { paddingHorizontal: Spacing.md },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
   },
   backText: { fontSize: FontSize.body },
   title: { fontSize: FontSize.heading, fontWeight: '700' },
+  // 控制列與內容網格同寬置中，否則寬螢幕上會一個貼左、一個置中
   searchInput: {
-    marginHorizontal: Spacing.md, borderRadius: 10, borderWidth: 1,
+    borderRadius: 10, borderWidth: 1,
     paddingHorizontal: Spacing.md, paddingVertical: 10,
     fontSize: FontSize.body, marginBottom: Spacing.sm,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
-  filterRow: { maxHeight: 36, marginBottom: Spacing.sm },
-  filterContent: { flexDirection: 'row', gap: 6, paddingHorizontal: Spacing.md },
+  // 用固定 height 而非 maxHeight：水平 ScrollView 在 Web 上沒有明確高度時
+  // 會塌陷成幾像素，等級篩選整排變成無法點擊的細線。
+  filterRow: {
+    height: 40, marginBottom: Spacing.sm, flexGrow: 0,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
+  filterContent: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14,
@@ -166,7 +176,10 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   filterDot: { width: 8, height: 8, borderRadius: 4 },
   filterText: { fontSize: FontSize.caption, color: t.textMuted },
-  count: { fontSize: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.sm },
+  count: {
+    fontSize: 12, marginBottom: Spacing.sm,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
   // 網格容器置中，讓多欄內容在寬螢幕上不貼左邊
   list: { paddingHorizontal: Spacing.md, paddingBottom: 40, alignItems: 'center' },
   // 限寬並置中；實際欄數由 useGrid 依量測到的容器寬度決定

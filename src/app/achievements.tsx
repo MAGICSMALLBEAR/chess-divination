@@ -138,7 +138,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   overviewCard: {
     borderRadius: 16, borderWidth: 1, padding: Spacing.lg, marginBottom: Spacing.md,
     alignItems: 'center',
-    width: '100%', maxWidth: Layout.maxContent, alignSelf: 'center',
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
   overviewTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
   overviewTitle: { fontSize: FontSize.body, fontWeight: '600' },
@@ -187,7 +187,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   homeBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderRadius: 12, paddingVertical: 12, gap: 4,
-    width: '100%', maxWidth: Layout.maxContent, alignSelf: 'center',
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
   homeBtnText: { fontSize: FontSize.body },
 });

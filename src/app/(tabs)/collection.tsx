@@ -249,7 +249,8 @@ export default function CollectionScreen() {
         <Text style={styles.title}>{t('collection.title')}</Text>
       </View>
 
-      {/* Tab 切換 */}
+      {/* 控制列：分頁 / 排序 / 搜尋。統一包在有左右邊距的容器內 */}
+      <View style={styles.controls}>
       <View style={styles.tabRow}>
         <TouchableOpacity
           style={[styles.tab, tab === 'history' && styles.tabActive]}
@@ -313,6 +314,7 @@ export default function CollectionScreen() {
         value={search}
         onChangeText={setSearch}
       />
+      </View>
 
       {/* 水平滑動分頁器：左右滑動切換歷史/收藏/資料夾 */}
       <ScrollView
@@ -431,21 +433,25 @@ export default function CollectionScreen() {
 
 const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: t.bgInk },
+  controls: { paddingHorizontal: Spacing.md },
   header: {
     alignItems: 'center', paddingTop: Spacing.lg, paddingBottom: Spacing.md,
   },
   title: { fontSize: FontSize.heading, fontWeight: '700', color: t.textPrimary },
+  // 控制列與內容網格同寬置中，否則寬螢幕上一個貼邊、一個置中
   tabRow: {
-    flexDirection: 'row', marginHorizontal: Spacing.md,
+    flexDirection: 'row',
     backgroundColor: t.bgDark, borderRadius: 12, padding: 4,
     marginBottom: Spacing.md,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   tabActive: { backgroundColor: t.bgCard },
   tabText: { fontSize: FontSize.small, color: t.textMuted },
   tabTextActive: { color: t.textGold, fontWeight: '600' },
   sortRow: {
-    flexDirection: 'row', gap: 6, marginHorizontal: Spacing.md, marginBottom: 8,
+    flexDirection: 'row', gap: 6, marginBottom: 8,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
   sortBtn: {
     paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12,
@@ -453,9 +459,11 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   sortText: { fontSize: 12, color: t.textMuted },
   searchInput: {
-    marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
-    backgroundColor: t.bgDark, borderRadius: 10, borderWidth: 1, borderColor: t.bgMedium,
+    marginBottom: Spacing.sm,
+    // 底色與邊框拉高對比：原本 bgDark 配 bgMedium 在墨色背景上幾乎看不見輸入框
+    backgroundColor: t.bgCard, borderRadius: 10, borderWidth: 1, borderColor: t.goldFaint,
     paddingHorizontal: Spacing.md, paddingVertical: 8, fontSize: 14, color: t.textPrimary,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
   // 水平滑動分頁器
   pager: { flex: 1, marginHorizontal: Spacing.md },
