@@ -5,16 +5,17 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 83 個 |
-| Git Commits | 46 次 |
-| Jest 測試 | 220 個 · 15 套件 · 全部通過 |
-| E2E 測試 | 74 個 · Playwright · mobile + desktop |
+| Git Commits | 50 次 |
+| Jest 測試 | 265 個 · 18 套件 · 全部通過 |
+| E2E 測試 | 78 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
-| 頁面 | 12 個 |
-| 元件 | 13 個 |
-| Hooks | 8 個 |
-| 服務 | 15 個 |
+| 頁面 | 14 個 |
+| 元件 | 18 個 |
+| Hooks | 11 個 |
+| 服務 | 17 個 |
 | 籤詩 | 64 首七言絕句 |
 | 起卦引擎 | v3（六爻：本卦／變卦／互卦／體用） |
+| AI 解讀 | Vercel serverless function（DeepSeek API，未配置時降級） |
 
 ### 技術棧
 Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncStorage · Reanimated · Gesture Handler · Web Audio API · expo-haptics · expo-sharing · view-shot · Jest · Playwright · GitHub Actions
@@ -294,6 +295,67 @@ App 的核心產出頁整頁極暗，卦例推演、宣紙卷軸、白話解釋�
 - **`lineName` 對越界爻位產生「六undefined」**——爻位來自儲存的記錄，
   舊版或損毀資料會讓 undefined 直接顯示在畫面上
 
+## Session 18 — AI 深度解讀全端打通（8/10）
+
+Phase 6.7 原只做了後端半邊（API Route 檔案存在但沒有任何前端呼叫），
+且在 static output 下 Expo Router 根本不會匯出 API Route。
+三階段逐步把缺口補齊。
+
+### 第一階段：接上前端（commit 7ea1d26）
+
+- 新增 `src/services/aiInterpretation.ts`：客戶端呼叫 `/api/interpret`，
+  用可辨識聯集回報三種結果（ok / unavailable / error），而非拋錯。
+  AI 解讀是加值內容，任何失敗都必須退回規則式解讀，刻意不讓錯誤往上拋。
+- `reveal.tsx` 新增「AI 深度解讀」區塊，四種狀態：
+  待命（按鈕）→ 載入中（Spinner）→ 完成（顯示）／失敗（說明 + 重試）
+- 規則式深度解讀維持在下方獨立區塊，不受 AI 狀態影響
+- **新增測試**：`aiInterpretation.test.ts`（14）——成功路徑、501/404 降級、
+  靜態站台把未知路徑導回 HTML、逾時、任何情況都不拋錯
+- **E2E**：端點不可用時的降級 + 以 `page.route` 模擬成功路徑
+- 前端會顯示「AI 解讀尚未啟用」——因為 static output 下 API Route 不會被匯出
+
+### 第二階段：記錄啟用門檻（commit 446c998）
+
+- 實測把 `web.output` 改為 `"server"` 的後果：
+  API Route 確實會被匯出，但產出結構從扁平 HTML 變成 client/server 分離，
+  現有 `vercel.json` 與 `npx expo serve` 全部失效（78 個 E2E 也跑不起來）
+- 查閱 Expo SDK 57 文件確認：server 模式需自建 Node.js 伺服器，
+  官方未提供 Vercel + server output 的部署指引，建議改用 EAS Hosting
+- `.env.example` 記錄結論與啟用條件
+
+### 第三階段：換方向——Vercel serverless function（commit a2e598a）
+
+上一輪的結論是「要啟用 AI 得換部署平台」，但那是把問題想窄了。
+
+- **關鍵洞察**：Vercel 原生支援根目錄 `api/` 的 serverless function，
+  與 Expo 靜態網站產出並存——不需要改 `web.output`
+- 新增 `src/services/aiPrompt.ts`（156 行）：提示詞建構與模型呼叫的共用邏輯，
+  零依賴、不使用 `@/` 別名（Vercel 的 TypeScript 不處理 path mappings）
+- 新增 `api/interpret.ts`（78 行）：Vercel serverless function，Web Standard 簽章
+- `src/app/api/interpret+api.ts` 改為呼叫同一份共用邏輯，保留給日後 EAS Hosting 或原生端
+- `vercel.json` 的 catch-all rewrite 排除 `/api`，否則請求會被導向 `index.html`
+- **前端不需改動**——本來就是呼叫 `/api/interpret`
+
+### 測試抓到的安全問題
+
+上游錯誤訊息原本被原封不動轉發到前端。部分服務會在錯誤中回顯 Authorization 標頭，
+等於把金鑰送到瀏覽器。改為：詳細內容只寫伺服器日誌，回客戶端的僅有通用訊息與狀態碼。
+
+### 新增測試 234 → 265
+
+- `aiPrompt.test.ts`（20）：提示詞組成、類別代碼轉中文標籤、模型呼叫、上游失敗不外洩金鑰
+- `apiInterpret.test.ts`（11）：501/400/413/405、金鑰不出現在回應中、驗證失敗時不呼叫外部服務
+
+### 啟用方式
+
+在 Vercel 專案設定加入 `DEEPSEEK_API_KEY` 環境變數即可，不需改動任何程式碼。
+未設定時端點回 501，前端顯示「AI 解讀尚未啟用」並保留規則式深度解讀。
+
+### Session 18 總結
+
+11 檔案、+1043/-102 行。TS 零錯誤 · Jest 265 全過 · E2E 78 全過。
+Phase 6.7 AI 深度解讀從「後端半邊」變成「全端可用」，且不需更換部署平台。
+
 ---
 
 ## 功能完整清單
@@ -302,7 +364,7 @@ App 的核心產出頁整頁極暗，卦例推演、宣紙卷軸、白話解釋�
 - 抽棋模式（選類別→問事→動畫→籤詩）
 - 棋盤佈局（選棋→拖曳放棋→深度解讀）
 - 64 首七言絕句籤詩（易經 64 卦對映）
-- AI 智慧解讀（離線 fallback）
+- AI 深度解讀（DeepSeek API via Vercel serverless function，未配置時降級為規則式解讀）
 
 ### 解讀系統
 - 白話解釋 + 典故 + 7 面詳解（感情/事業/財運/健康/學業/出行/綜合）
@@ -339,37 +401,31 @@ App 的核心產出頁整頁極暗，卦例推演、宣紙卷軸、白話解釋�
 
 ## 未來待辦
 
-### 🟢 短期（本週可做）
+### 🟢 技術面（不需外部資源）
 
-| # | 待辦 | 狀態 | 備註 |
-|---|------|------|------|
-| 1 | **iOS/Android 實機測試** | ⬜ 待做 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端 |
-| 2 | **Vercel 部署驗證** | ⬜ 待做 | 確認 `privacy.html` 可透過 `chess-divination-app.vercel.app/privacy.html` 存取 |
-| 3 | **螢幕截圖製作** | ⬜ 待做 | 照 `SCREENSHOTS_GUIDE.md` 擷取 6 張，上架必需 |
-| 4 | **多語系決策** | ⬜ 待決定 | 選項 A：移除 en/ja 切換器，純繁中定位；選項 B：補齊 64 籤詩翻譯（5 天+） |
-| 5 | **其餘頁面套用多欄** | ✅ 已完成 | 成就頁 3 欄、統計頁 2 欄；順帶修好 TrendChart 寬度 |
-| 6 | **E2E 納入 CI** | ✅ 已完成 | `.github/workflows/ci.yml`：verify job + e2e job |
-| 7 | **視覺可見性測試** | ✅ 已完成（Session 17） | 遮擋偵測 + 可點擊尺寸，補上 toBeVisible 的盲點 |
+| # | 待辦 | 優先度 | 備註 |
+|---|------|--------|------|
+| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | `git push` → Vercel 自動部署，在專案設定加入 `DEEPSEEK_API_KEY` 即可啟用 AI 解讀 |
+| 2 | **單元測試覆蓋率補強** | 🟡 中 | 265 → 目標 300+。仍缺：`i18n`、`sound`、`socialShare`、`notifications`、`useDrawDivination`、`useBoardDivination` |
+| 3 | **iOS/Android 實機測試** | 🟡 中 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端觸覺、字體、手勢 |
+| 4 | **EAS Build 原生測試** | 🟢 低 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
 
-### 🟡 中期（需外部資源）
+### 🟡 上架相關（需外部資源）
 
-| # | 待辦 | 狀態 | 備註 |
-|---|------|------|------|
-| 7 | **App Store 實際上架** | 🟡 文案/設定已備妥 | 需 Apple Developer $99/年 + 1024×1024 圖示（已有）+ 6 張截圖 |
-| 8 | **Google Play 實際上架** | 🟡 文案/設定已備妥 | 需 Google Play Console $25 一次性 + 截圖 |
-| 9 | **自訂域名** | ⬜ 待做 | 購買 `chess-divination.com` + DNS 指向 Vercel |
-| 10 | **EAS Build 原生測試** | ⬜ 待做 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
+| # | 待辦 | 優先度 | 備註 |
+|---|------|--------|------|
+| 5 | **螢幕截圖製作** | 🔴 高 | 照 `SCREENSHOTS_GUIDE.md` 擷取 6 張，App Store / Google Play 必需 |
+| 6 | **App Store 實際上架** | 🟡 中 | 文案與設定已備妥（`STORE_LISTING.md`）。需 Apple Developer $99/年 |
+| 7 | **Google Play 實際上架** | 🟡 中 | 文案與設定已備妥。需 Google Play Console $25 一次性 |
+| 8 | **自訂域名** | 🟢 低 | 購買 `chess-divination.com` + DNS 指向 Vercel |
 
-### ⚪ 長期（設計增強）
+### ⚪ 設計面（需產品決策）
 
-| # | 待辦 | 狀態 | 備註 |
-|---|------|------|------|
-| 11 | **寬螢幕多欄佈局** | ✅ 已完成（Session 16） | `useGrid` 以 onLayout 量測容器，圖鑑與收藏已套用 |
-| 12 | **原生端書法字體子集化** | ⬜ 刻意延後 | 目前原生端用系統楷書後備，完整 Noto Serif TC 需子集（籤詩用字約 800 字） |
-| 13 | **棋盤重複選子限制** | ⬜ 設計取捨 | 2 顆棋無法組出乾為天/坤為地，但加入位置動爻後變化度已大幅提升 |
-| 14 | **單元測試覆蓋率提升** | 🟡 大幅補強 | +interpretation/backup/cloudSync，75 → 220 個。仍缺 i18n / sound / socialShare / notifications 與兩個占卜 hook |
-| 15 | **E2E 測試** | ✅ 已完成（Session 16） | Playwright 24 個，mobile + desktop 兩組 viewport |
-| 16 | **多語系完整翻譯** | ⬜ 待決定 | 64 籤詩 + 32 棋子說明 + 成就名稱全翻譯，約 5 天+ |
+| # | 待辦 | 優先度 | 備註 |
+|---|------|--------|------|
+| 9 | **多語系策略決定** | 🟡 中 | A：移除 en/ja 切換器，純繁中定位（半天）；B：補齊 64 籤詩翻譯（5 天+） |
+| 10 | **原生端書法字體子集化** | 🟢 低 | 目前原生端用系統楷書後備；完整 Noto Serif TC 需子集（籤詩用字約 800 字） |
+| 11 | **棋盤重複選子限制** | 🟢 低 | 2 顆棋時無法組出乾為天／坤為地，但位置動爻已大幅提升變化度 |
 
 ### ✅ 已全數完成的階段
 
@@ -382,5 +438,8 @@ App 的核心產出頁整頁極暗，卦例推演、宣紙卷軸、白話解釋�
 | Phase 4 | 視覺質感（真漸層/SVG/Emoji歸零） | 8/2 |
 | Phase 5 | 動畫重製（Reanimated 4/墨滴轉場） | 8/2 |
 | Phase 6 | 功能補完（13 項新功能） | 8/2 |
+| Phase 6.7 | AI 深度解讀全端打通（Vercel serverless function） | 8/10 |
 | 收尾 | 上架素材 + 程式碼品質 | 8/2 |
-| 測試 | 單元 170 + E2E 24 + 多欄佈局 | 8/7 |
+| Session 16 | 多欄佈局 + E2E + CI（測試 170、E2E 56） | 8/7 |
+| Session 17 | 截圖檢視修復 4 個功能性缺陷（測試 220、E2E 74） | 8/9 |
+| Session 18 | AI 解讀全端打通（測試 265、E2E 78） | 8/10 |
