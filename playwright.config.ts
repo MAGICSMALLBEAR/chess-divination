@@ -22,8 +22,9 @@ export default defineConfig({
 
   // CI 上禁止 test.only 漏提交
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1,
+  // 所有 worker 共用同一個 expo serve；過度平行會讓頁面載入競爭到逾時。
+  workers: process.env.CI ? 1 : 4,
 
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
 

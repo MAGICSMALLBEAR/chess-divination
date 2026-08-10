@@ -82,10 +82,13 @@ test.describe('內容可見性', () => {
       await page.goto(path);
       await expect(page.getByText(marker).first()).toBeVisible({ timeout: 15_000 });
 
-      const r = await readability(page, marker);
-      expect(r.found, `${marker} 應存在且有尺寸`).toBe(true);
-      expect(r.occluded, `${marker} 被其他元素蓋住`).toBe(false);
-      expect(r.opacity, `${marker} 實際不透明度過低`).toBeGreaterThan(0.5);
+      // 版面由 onLayout 非同步量測，需輪詢等它收斂再判斷可見性
+      await expect
+        .poll(async () => {
+          const r = await readability(page, marker);
+          return r.found && !r.occluded && (r.opacity ?? 0) > 0.5;
+        }, { timeout: 15_000, message: `${marker} 未能正常顯示（不存在／被遮蓋／過淡）` })
+        .toBe(true);
     });
   }
 });
@@ -117,8 +120,11 @@ test.describe('互動元件尺寸', () => {
     await page.goto('/library');
     await expect(page.getByText('共 64 首')).toBeVisible({ timeout: 15_000 });
 
+    await expect
+      .poll(async () => (await readability(page, '全部')).found, { timeout: 15_000 })
+      .toBe(true);
+
     const r = await readability(page, '全部');
-    expect(r.found).toBe(true);
     // 一般可點擊目標至少要有 20px 高
     expect(r.height, '篩選 chip 高度不足，無法點擊').toBeGreaterThan(20);
   });
@@ -128,8 +134,11 @@ test.describe('互動元件尺寸', () => {
     await page.goto('/board');
     await expect(page.getByText('棋盤佈局')).toBeVisible({ timeout: 15_000 });
 
+    await expect
+      .poll(async () => (await readability(page, '綜合')).found, { timeout: 15_000 })
+      .toBe(true);
+
     const r = await readability(page, '綜合');
-    expect(r.found).toBe(true);
     expect(r.height, '類別 chip 高度不足').toBeGreaterThan(20);
   });
 

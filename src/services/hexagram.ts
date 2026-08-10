@@ -154,11 +154,18 @@ export function trigramsFromLines(lines: LineValue[]): { upper: number; lower: n
   };
 }
 
-/** 爻位名稱，如「初九」「六三」「上六」 */
+/**
+ * 爻位名稱，如「初九」「六三」「上六」。
+ *
+ * position 理應是 1–6。此處仍夾制範圍：爻位是從 AsyncStorage 讀回的
+ * 使用者記錄，舊版或損毀的資料若帶了越界值，未經夾制會算出
+ * `['二','三','四','五'][-2]` → undefined，畫面上直接顯示「六undefined」。
+ */
 export function lineName(lines: LineValue[], position: number): string {
-  const value = lines[position - 1];
+  const pos = Math.min(6, Math.max(1, Math.round(position) || 1));
+  const value = lines[pos - 1];
   const numeral = value === YANG ? '九' : '六';
-  if (position === 1) return `初${numeral}`;
-  if (position === 6) return `上${numeral}`;
-  return `${numeral}${['二', '三', '四', '五'][position - 2]}`;
+  if (pos === 1) return `初${numeral}`;
+  if (pos === 6) return `上${numeral}`;
+  return `${numeral}${['二', '三', '四', '五'][pos - 2]}`;
 }
