@@ -4,10 +4,10 @@
 
 | 項目 | 數值 |
 |------|------|
-| 原始碼檔案 | 74 個 |
-| Git Commits | 34 次 |
-| Jest 測試 | 170 個 · 12 套件 · 全部通過 |
-| E2E 測試 | 56 個 · Playwright · mobile + desktop |
+| 原始碼檔案 | 83 個 |
+| Git Commits | 46 次 |
+| Jest 測試 | 220 個 · 15 套件 · 全部通過 |
+| E2E 測試 | 74 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 12 個 |
 | 元件 | 13 個 |
@@ -17,7 +17,7 @@
 | 起卦引擎 | v3（六爻：本卦／變卦／互卦／體用） |
 
 ### 技術棧
-Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncStorage · Reanimated · Gesture Handler · Web Audio API · expo-haptics · expo-sharing · view-shot · Jest · Playwright
+Expo SDK 57 · React 19.2 · RN 0.86 · TypeScript 6.0 · Expo Router · AsyncStorage · Reanimated · Gesture Handler · Web Audio API · expo-haptics · expo-sharing · view-shot · Jest · Playwright · GitHub Actions
 
 ### 部署
 - **GitHub**: [MAGICSMALLBEAR/chess-divination](https://github.com/MAGICSMALLBEAR/chess-divination)
@@ -223,6 +223,77 @@ Expo 靜態匯出的 Web 版，`useWindowDimensions()` 在 hydration 之後仍�
 - 9 處空 `catch {}` 補上中文 `console.warn`
 - `cloudSync.ts` 定義 `CloudRecord` 介面取代 `as any[]`
 
+## Session 17 — 實際看畫面，抓出四個功能性缺陷（8/7–8/8）
+
+前幾個 Session 的驗證都停在「測試綠燈」。這次改為**實際截圖檢視每一頁**，
+結果在通過全部 170 個單元測試與 56 個 E2E 的情況下，
+仍發現四個使用者一定會遇到的缺陷。
+
+### 🔴 籤詩頁被墨滴遮罩永久覆蓋
+
+App 的核心產出頁整頁極暗，卦例推演、宣紙卷軸、白話解釋幾乎全不可見。
+
+根因在 `InkSplashOverlay`：完成回呼掛在 `withTiming` 的第三參數上，
+那個回呼跑在 UI thread（worklet），要呼叫 JS 閉包必須經 `runOnJS`，
+直接呼叫會**靜默失效**。`onComplete` 從未觸發 → `reveal.tsx` 的狀態機
+永遠停在 `splashing` → 15 層墨色圓形（1841px、opacity 0.92）永久蓋在頁面上。
+
+修法：完成通知改由 JS `setTimeout` 發出，完全不經 worklet。
+
+### 🔴 棋盤在 Web 上一直是最小尺寸
+
+`cellSizeFor(視窗寬)` 在 Web 上取到 clamp 後的 320，格子恆為 32px、
+棋盤只有 288px。改用量測到的容器寬度後為 **504px**。
+
+值得注意的是**同一頁面有兩套算法**——全螢幕分支本來就用對了量測寬度，
+只有一般模式沿用視窗寬。所以只有全螢幕模式的棋盤是正常大小。
+
+### 🔴 圖鑑等級篩選列高度塌陷成 5px
+
+水平 ScrollView 在 Web 上沒有明確高度時會塌陷，整排篩選變成點不到的細線。
+`maxHeight: 36` 改為 `height: 40`。棋盤頁的問事類別列有同樣問題，一併修正。
+
+### 🔴 統計頁棋子排行顯示英文 key
+
+畫面上直接顯示 `king` / `chariot` 這種程式內部代號，
+改用既有的 `PIECE_CHINESE_NAMES` 顯示「帥/將」「車」。
+
+### 其餘版面修正
+- 搜尋框在墨色背景上幾乎不可見（深底配深邊框）→ 改 `bgCard` 底 + 金色淡邊
+- 控制列全寬貼邊、內容網格卻置中限寬 → 統一限寬置中
+- 成就頁元素寬度不一（卡 560、網格 1080、按鈕 560）→ 統一
+- 趨勢圖柱固定 32px，在 1040px 容器下過細 → 依欄距推算（夾在 24–72）
+- 統計頁兩張卡套用三欄網格會空掉一整欄 → 改 `flexGrow` + `flexBasis`
+- 棋盤頁限寬 560 導致 7 個問事類別被截斷，「出行」完全看不到 → 放寬到 720
+- 首頁「快速抽一籤」副標在金色底上用淺灰字 → 改反白 + opacity
+
+### 新增視覺可見性測試（e2e/visual.spec.ts，16 個）
+
+沒有做像素比對——那在不同機器上太脆弱，而且只會說「有東西變了」，
+不會說「使用者看不見內容」。改測三件事：
+
+1. **遮擋偵測**：`elementFromPoint` 確認內容沒被蓋住 + 累乘父鏈 opacity
+2. **全螢幕遮罩殘留**（排除 zIndex 低的 InkBackground）
+3. **可點擊高度與實際尺寸**
+
+這三類正是上述缺陷的共同盲點：**元素都在 DOM 中、都有尺寸，
+`toBeVisible` 全數通過，畫面卻是壞的**。
+
+已驗證測試有效：把棋盤 bug 改回去，對應測試 2/2 失敗，還原後通過。
+（一個不會在 bug 存在時失敗的迴歸測試沒有價值。）
+
+### 測試補強 170 → 220
+- `interpretation.test.ts`（20）：使用者直接讀到的解讀文案
+- `backup.test.ts`（16）、`cloudSync.test.ts`（14）：出錯會遺失使用者資料
+
+順帶修掉三個資料相關缺陷：
+- **`restoreData` 的 Promise 可能永遠不 resolve**——`JSON.parse` 寫在
+  async 回呼裡，格式不對時沒有人 catch，使用者選到錯檔案後畫面靜靜卡住
+- **`mergeFromCloud` 缺乏防護**——本地無記錄時直接寫入雲端資料，
+  不驗證形狀也不套用 500 筆上限
+- **`lineName` 對越界爻位產生「六undefined」**——爻位來自儲存的記錄，
+  舊版或損毀資料會讓 undefined 直接顯示在畫面上
+
 ---
 
 ## 功能完整清單
@@ -278,6 +349,7 @@ Expo 靜態匯出的 Web 版，`useWindowDimensions()` 在 hydration 之後仍�
 | 4 | **多語系決策** | ⬜ 待決定 | 選項 A：移除 en/ja 切換器，純繁中定位；選項 B：補齊 64 籤詩翻譯（5 天+） |
 | 5 | **其餘頁面套用多欄** | ✅ 已完成 | 成就頁 3 欄、統計頁 2 欄；順帶修好 TrendChart 寬度 |
 | 6 | **E2E 納入 CI** | ✅ 已完成 | `.github/workflows/ci.yml`：verify job + e2e job |
+| 7 | **視覺可見性測試** | ✅ 已完成（Session 17） | 遮擋偵測 + 可點擊尺寸，補上 toBeVisible 的盲點 |
 
 ### 🟡 中期（需外部資源）
 
@@ -295,7 +367,7 @@ Expo 靜態匯出的 Web 版，`useWindowDimensions()` 在 hydration 之後仍�
 | 11 | **寬螢幕多欄佈局** | ✅ 已完成（Session 16） | `useGrid` 以 onLayout 量測容器，圖鑑與收藏已套用 |
 | 12 | **原生端書法字體子集化** | ⬜ 刻意延後 | 目前原生端用系統楷書後備，完整 Noto Serif TC 需子集（籤詩用字約 800 字） |
 | 13 | **棋盤重複選子限制** | ⬜ 設計取捨 | 2 顆棋無法組出乾為天/坤為地，但加入位置動爻後變化度已大幅提升 |
-| 14 | **單元測試覆蓋率提升** | ✅ 已完成（Session 16） | storage/achievements/layout/grid，75 → 170 個 |
+| 14 | **單元測試覆蓋率提升** | 🟡 大幅補強 | +interpretation/backup/cloudSync，75 → 220 個。仍缺 i18n / sound / socialShare / notifications 與兩個占卜 hook |
 | 15 | **E2E 測試** | ✅ 已完成（Session 16） | Playwright 24 個，mobile + desktop 兩組 viewport |
 | 16 | **多語系完整翻譯** | ⬜ 待決定 | 64 籤詩 + 32 棋子說明 + 成就名稱全翻譯，約 5 天+ |
 
