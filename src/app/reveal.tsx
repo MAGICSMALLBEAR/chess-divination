@@ -23,6 +23,7 @@ import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
+import { fetchAiInterpretation } from '@/services/aiInterpretation';
 import { shareNative, shareToLine, shareToFacebook, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
 import { t } from '@/services/i18n';
 import { recordUsage } from '@/services/achievements';
@@ -40,6 +41,12 @@ export default function RevealScreen() {
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
   const shareRef = useRef<ShareCardHandle>(null);
+
+  // AI 深度解讀。這是加值內容——取不到時保留下方的規則式解讀，
+  // 不讓籤詩頁因為外部服務而壞掉。
+  const [aiState, setAiState] = useState<
+    { kind: 'idle' } | { kind: 'loading' } | { kind: 'done'; text: string } | { kind: 'failed'; message: string }
+  >({ kind: 'idle' });
 
   // 轉場階段：loading → splashing → revealed
   const [revealPhase, setRevealPhase] = useState<'loading' | 'splashing' | 'revealed'>('loading');
@@ -75,6 +82,34 @@ export default function RevealScreen() {
   const handleSplashComplete = useCallback(() => {
     setRevealPhase('revealed');
   }, []);
+
+  async function handleAiInterpret() {
+    if (!poem) return;
+    setAiState({ kind: 'loading' });
+
+    const result = await fetchAiInterpretation({
+      poem: {
+        title: poem.title,
+        content: poem.content,
+        level: poem.level,
+        hexagramName: poem.hexagramName,
+        vernacular: poem.vernacular,
+      },
+      question: record?.questionText,
+      questionCategory: record?.questionCategory,
+      hexagram: reading
+        ? {
+            primaryName: reading.primary.name,
+            changedName: reading.changed.name,
+            movingLineName: reading.movingLineName,
+            bodyUseRelation: reading.bodyUse.relation,
+          }
+        : undefined,
+    });
+
+    if (result.status === 'ok') setAiState({ kind: 'done', text: result.interpretation });
+    else setAiState({ kind: 'failed', message: result.message });
+  }
 
   async function handleToggleFavorite() {
     if (!record) return;
@@ -235,7 +270,53 @@ export default function RevealScreen() {
           onShare={handleShare}
         />
 
-        {/* 深度解讀 */}
+        {/* AI 深度解讀。取不到時不影響下方的規則式解讀 */}
+        <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎AI 深度解讀</Text>
+
+          {aiState.kind === 'idle' && (
+            <TouchableOpacity
+              style={[styles.aiBtn, { borderColor: theme.gold }]}
+              onPress={handleAiInterpret}
+              accessibilityRole="button"
+              accessibilityLabel="請 AI 為這支籤詩提供深度解讀"
+            >
+              <Icon name="crystal-ball" size={16} color={theme.gold} />
+              <Text style={[styles.aiBtnText, { color: theme.gold }]}> 請 AI 解讀此卦</Text>
+            </TouchableOpacity>
+          )}
+
+          {aiState.kind === 'loading' && (
+            <View style={styles.aiLoading}>
+              <Spinner text="解讀中..." />
+            </View>
+          )}
+
+          {aiState.kind === 'done' && (
+            <Text style={[styles.bodyText, { color: theme.textSecondary }]}>
+              {aiState.text}
+            </Text>
+          )}
+
+          {aiState.kind === 'failed' && (
+            <View>
+              <Text style={[styles.aiNotice, { color: theme.textMuted }]}>
+                {aiState.message}
+              </Text>
+              <TouchableOpacity
+                style={[styles.aiBtn, { borderColor: theme.bgMedium }]}
+                onPress={handleAiInterpret}
+                accessibilityRole="button"
+                accessibilityLabel="重新嘗試 AI 解讀"
+              >
+                <Icon name="refresh" size={14} color={theme.textMuted} />
+                <Text style={[styles.aiBtnText, { color: theme.textMuted }]}> 重試</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* 規則式深度解讀 */}
         <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎深度解讀</Text>
           <Text style={[styles.bodyText, { color: theme.textSecondary }]}>
@@ -457,6 +538,13 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     borderRadius: 12, borderWidth: 1,
     padding: Spacing.md, marginBottom: Spacing.lg,
   },
+  aiBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderRadius: 10, paddingVertical: 10, marginTop: Spacing.sm,
+  },
+  aiBtnText: { fontSize: FontSize.small, fontWeight: '600' },
+  aiLoading: { paddingVertical: Spacing.md, alignItems: 'center' },
+  aiNotice: { fontSize: FontSize.small, lineHeight: 20 },
   actionList: { marginTop: Spacing.md },
   actionTitle: { fontSize: FontSize.small, fontWeight: '600', marginBottom: Spacing.sm },
   actionItem: { fontSize: FontSize.body, lineHeight: 26, marginBottom: 4 },

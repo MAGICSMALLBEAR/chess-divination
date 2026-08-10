@@ -113,6 +113,48 @@ test.describe('籤詩頁轉場', () => {
   });
 });
 
+test.describe('AI 深度解讀', () => {
+  /**
+   * 端點需要 app.json 的 web.output 設為 "server" 且後端設有 DEEPSEEK_API_KEY。
+   * 兩者缺一時此功能必須優雅降級——保留規則式解讀，不讓籤詩頁壞掉。
+   */
+  test('端點不可用時降級且不影響規則式解讀', async ({ page }) => {
+    await drawPieces(page, 2);
+    await page.getByText('揭露籤詩').click({ timeout: 30_000 });
+    await expect(page).toHaveURL(/\/reveal/, { timeout: 30_000 });
+
+    await page.getByText('請 AI 解讀此卦').click({ timeout: 30_000 });
+
+    // 降級提示出現，且可重試
+    await expect(page.getByText(/AI 解讀尚未啟用|無法連線|解讀服務/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('重試')).toBeVisible();
+
+    // 規則式解讀不受影響
+    await expect(page.getByText('▎深度解讀')).toBeVisible();
+    await expect(page.getByText('建議行動')).toBeVisible();
+  });
+
+  test('成功取得解讀時顯示 AI 內容', async ({ page }) => {
+    // 攔截端點，模擬後端已配置好的情況
+    await page.route('**/api/interpret', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ interpretation: '龍德在天，宜乘勢而進，然須守中不驕。' }),
+      }),
+    );
+
+    await drawPieces(page, 2);
+    await page.getByText('揭露籤詩').click({ timeout: 30_000 });
+    await expect(page).toHaveURL(/\/reveal/, { timeout: 30_000 });
+
+    await page.getByText('請 AI 解讀此卦').click({ timeout: 30_000 });
+
+    await expect(page.getByText('龍德在天，宜乘勢而進，然須守中不驕。'))
+      .toBeVisible({ timeout: 20_000 });
+  });
+});
+
 test.describe('籤詩圖鑑', () => {
   test('圖鑑顯示全部 64 首籤詩', async ({ page }) => {
     await page.goto('/library');
