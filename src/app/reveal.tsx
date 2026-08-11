@@ -154,8 +154,8 @@ export default function RevealScreen() {
         shareToLine({ title: '象棋占卜結果', text: shareText });
       } else {
         const ok = await copyToClipboard(shareText);
-        if (!ok && typeof window !== 'undefined') {
-          window.alert('已複製到剪貼簿');
+        if (typeof window !== 'undefined') {
+          window.alert(ok ? '已複製到剪貼簿' : '複製失敗，請手動選取文字複製');
         }
       }
     }

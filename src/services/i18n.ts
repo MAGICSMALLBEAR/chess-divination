@@ -131,9 +131,14 @@ export function subscribe(fn: Listener): () => void {
 }
 
 export function t(key: string): string {
-  const entry = translations[key];
+  // 必須查自有屬性：'toString'、'constructor' 這類名稱會命中 Object.prototype，
+  // 直接取值會拿到函式（truthy），讓 !entry 失效，最終回傳 undefined，
+  // 與宣告的 string 回傳型別不符。
+  const entry = Object.prototype.hasOwnProperty.call(translations, key)
+    ? translations[key]
+    : undefined;
   if (!entry) return key;
-  return entry[currentLang] || entry['zh-TW'];
+  return entry[currentLang] || entry['zh-TW'] || key;
 }
 
 // 取得所有語言的選項列表

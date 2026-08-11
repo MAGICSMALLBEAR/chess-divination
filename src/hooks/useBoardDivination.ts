@@ -107,7 +107,8 @@ export function useBoardDivination() {
         mode: 'board',
       },
     });
-  }, [placedPieces, questionCategory, router]);
+    // questionText 亦於內部讀取，未列入相依會在未帶參數呼叫時取到過時值
+  }, [placedPieces, questionCategory, questionText, router]);
 
   // 重置
   const reset = useCallback(() => {
