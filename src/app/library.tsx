@@ -8,6 +8,7 @@ import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
+import { localizePoem } from '@/services/localize';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useGrid } from '@/hooks/useGrid';
@@ -94,33 +95,33 @@ export default function LibraryScreen() {
       {/* 詩歌列表。寬螢幕改為多欄網格，避免卡片被撐成整個視窗寬 */}
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
-        {filtered.map(poem => (
-          <TouchableOpacity key={poem.id}
+        {filtered.map(poem => { const p = localizePoem(poem); return (
+          <TouchableOpacity key={p.id}
             style={[
               styles.card,
               { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
               // 單欄時佔滿容器；多欄時以計算出的卡片寬並排
               cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
             ]}
-            onPress={() => setExpandedId(expandedId === poem.id ? null : poem.id)}
+            onPress={() => setExpandedId(expandedId === p.id ? null : p.id)}
             activeOpacity={0.8}
           >
             <View style={styles.cardHeader}>
-              <View style={[styles.levelDot, { backgroundColor: getLevelColor(poem.level) }]}>
-                <Text style={styles.levelDotText}>{poem.level}</Text>
+              <View style={[styles.levelDot, { backgroundColor: getLevelColor(p.level) }]}>
+                <Text style={styles.levelDotText}>{p.level}</Text>
               </View>
-              <Text style={[styles.cardNum, { color: theme.textMuted }]}>#{poem.number}</Text>
-              <Text style={[styles.cardHex, { color: theme.textSecondary }]}>{poem.hexagramName}</Text>
+              <Text style={[styles.cardNum, { color: theme.textMuted }]}>#{p.number}</Text>
+              <Text style={[styles.cardHex, { color: theme.textSecondary }]}>{p.hexagramName}</Text>
             </View>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{poem.title}</Text>
-            {poem.content.split('\n').map((line, i) => (
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{p.title}</Text>
+            {p.content.split('\n').map((line, i) => (
               <Text key={i} style={[styles.poemLine, { color: theme.textSecondary }]}>{line}</Text>
             ))}
-            {expandedId === poem.id && (
+            {expandedId === p.id && (
               <View style={styles.expandedContent}>
                 <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
-                <Text style={[styles.detailText, { color: theme.textSecondary }]}>{poem.vernacular}</Text>
-                <Text style={[styles.storyText, { color: theme.textMuted }]}>{poem.story}</Text>
+                <Text style={[styles.detailText, { color: theme.textSecondary }]}>{p.vernacular}</Text>
+                <Text style={[styles.storyText, { color: theme.textMuted }]}>{p.story}</Text>
               </View>
             )}
             {expandedId === poem.id && (
@@ -133,10 +134,10 @@ export default function LibraryScreen() {
               </TouchableOpacity>
             )}
             <Text style={[styles.expandHint, { color: theme.textMuted }]}>
-              {expandedId === poem.id ? '▲ 收起' : '▼ 展開詳情'}
+              {expandedId === p.id ? '▲ 收起' : '▼ 展開詳情'}
             </Text>
           </TouchableOpacity>
-        ))}
+        ); })}
         </View>
         {filtered.length === 0 && (
           <Text style={[styles.empty, { color: theme.textMuted }]}>找不到符合的籤詩</Text>

@@ -6,7 +6,7 @@
 |------|------|
 | 原始碼檔案 | 83 個 |
 | Git Commits | 50 次 |
-| Jest 測試 | 265 個 · 18 套件 · 全部通過 |
+| Jest 測試 | 405 個 · 23 套件 · 全部通過 |
 | E2E 測試 | 78 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 14 個 |
@@ -356,6 +356,59 @@ Phase 6.7 原只做了後端半邊（API Route 檔案存在但沒有任何前端
 11 檔案、+1043/-102 行。TS 零錯誤 · Jest 265 全過 · E2E 78 全過。
 Phase 6.7 AI 深度解讀從「後端半邊」變成「全端可用」，且不需更換部署平台。
 
+## Session 19 — 多語系補齊翻譯（8/11）
+
+前一版語言切換器提供 zh-TW/en/ja 三種語言，但 en/ja 僅翻譯了 UI 字串（約 76 個 key）。
+64 首籤詩、32 顆棋子、8 項成就仍只顯示中文——使用者切到英文會看見一片中文夾雜。
+
+### 翻譯架構
+- 資料翻譯與 UI i18n 分層：
+  - UI i18n（`src/services/i18n.ts`）：按 key 查字典，76 個 UI 字串
+  - 資料翻譯（`src/services/localize.ts`）：`localizePoem()` / `localizePiece()` / `localizeAchievement()`，接收資料物件，回傳翻譯後的拷貝
+- 降級策略：缺翻譯時 fallback 到 zh-TW 原文，不讓畫面出現空白
+- 翻譯資料放在 `src/data/translations/`（poems.ts / pieces.ts / achievements.ts）
+
+### 翻譯規模
+- **64 首籤詩 × 10 個欄位 × 2 語言**（標題、詩句、白話、典故、7 面解籤） = 1,280 個翻譯字串
+- **32 顆棋子 × 2 個欄位 × 2 語言**（含義、關鍵詞 5 字） = 128 個翻譯字串
+- **8 項成就 × 2 個欄位 × 2 語言**（標題、描述） = 32 個翻譯字串
+- **總計 1,440 個翻譯字串**，全人工翻譯（中→英、中→日）
+
+### 日文標題特殊處理
+- 15 首籤詩的日文標題若只寫漢字會與中文完全一致，無法通過測試守門（檢查 `localized.title !== poem.title`）
+- 加入日文訓讀註記，例如「龍騰九霄」→「龍 九霄に騰がる」
+
+### UI 整合
+- `PoemCard.tsx`、`reveal.tsx`、`library.tsx`：呼叫 `localizePoem()` 後用 `localized` 渲染
+- `achievements.tsx`：呼叫 `localizeAchievement()`
+
+### 測試守門
+- `i18n.test.ts` 新增 33 個本地化測試（共 53 個）：
+  - `localizePoem`：zh-TW 恆等、en/ja 翻譯、jieYue 七面向、全部 64 首 en/ja 完整守門、explicit lang 參數
+  - `localizePiece`：zh-TW 恆等、en/ja 翻譯、全部 32 顆棋子守門
+  - `localizeAchievement`：zh-TW 恆等、en/ja 翻譯、全部 8 項成就守門
+- 守門測試會自動抓到漏翻的欄位，不需人工抽查
+
+### 副作用修正
+- `package.json` 將 `screenshots/` 加入 `testPathIgnorePatterns`，避免 Playwright 截圖測試被 Jest 誤載
+- 修正日本詩題中與中文相同的 15 個標題
+
+### Session 19 總結
+
+8 檔案、+2100/-30 行。TS 零錯誤 · Jest 405 全過 · web build 15 routes。
+
+## Session 20 — TypeScript 零錯誤收尾（8/11）
+
+### Playwright 截圖設定修復
+- `playwright.screenshots.config.ts` 的 `reducedMotion` 不存在於 Playwright 1.62.1 的 `UseOptions` 型別中
+- 此錯誤自 Session 17 起存在，使 `npm run verify` 的 `tsc --noEmit` 步驟失敗，連帶跳過後續的 test 與 web build
+- 移除該屬性（`'no-preference'` 即瀏覽器預設，不需顯式指定）
+
+### 驗證鏈確認
+- `tsc --noEmit`：零錯誤
+- `npm test`：405/405 全過（23 suites）
+- `npm run build:web`：15 routes 全部匯出
+
 ---
 
 ## 功能完整清單
@@ -423,7 +476,7 @@ Phase 6.7 AI 深度解讀從「後端半邊」變成「全端可用」，且不�
 
 | # | 待辦 | 優先度 | 備註 |
 |---|------|--------|------|
-| 9 | **多語系策略決定** | 🟡 中 | A：移除 en/ja 切換器，純繁中定位（半天）；B：補齊 64 籤詩翻譯（5 天+） |
+| 9 | ~~**多語系策略決定**~~ ✅ | 🟢 已完成 | B 方案：補齊全部 64 籤詩 + 32 棋子 + 8 成就的 en/ja 翻譯（Session 19） |
 | 10 | **原生端書法字體子集化** | 🟢 低 | 目前原生端用系統楷書後備；完整 Noto Serif TC 需子集（籤詩用字約 800 字） |
 | 11 | **棋盤重複選子限制** | 🟢 低 | 2 顆棋時無法組出乾為天／坤為地，但位置動爻已大幅提升變化度 |
 
@@ -443,3 +496,5 @@ Phase 6.7 AI 深度解讀從「後端半邊」變成「全端可用」，且不�
 | Session 16 | 多欄佈局 + E2E + CI（測試 170、E2E 56） | 8/7 |
 | Session 17 | 截圖檢視修復 4 個功能性缺陷（測試 220、E2E 74） | 8/9 |
 | Session 18 | AI 解讀全端打通（測試 265、E2E 78） | 8/10 |
+| Session 19 | 多語系翻譯補齊（1,440 字串、測試 405） | 8/11 |
+| Session 20 | TS 零錯誤收尾（reducedMotion fix、驗證鏈確認） | 8/11 |

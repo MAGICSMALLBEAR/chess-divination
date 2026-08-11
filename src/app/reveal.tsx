@@ -26,6 +26,7 @@ import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
 import { shareNative, shareToLine, shareToFacebook, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
 import { t } from '@/services/i18n';
+import { localizePoem } from '@/services/localize';
 import { recordUsage } from '@/services/achievements';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface } from '@/constants/theme';
@@ -51,7 +52,7 @@ export default function RevealScreen() {
   // 轉場階段：loading → splashing → revealed
   const [revealPhase, setRevealPhase] = useState<'loading' | 'splashing' | 'revealed'>('loading');
 
-  const poem = record ? getPoemById(record.poemId) : null;
+  const poem = record ? localizePoem(getPoemById(record.poemId)) : null;
 
   // 有完整卦象資料才能推演三卦與體用（v3 以前的記錄沒有）
   const reading = useMemo(() => {

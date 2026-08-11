@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import type { Poem } from '@/data/poems';
 import { getLevelColor } from '@/data/poems';
+import { localizePoem } from '@/services/localize';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
@@ -48,9 +49,10 @@ export default function PoemCard({
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const localized = localizePoem(poem);
   const scrollAnim = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
-  const lineAnimations = useRef(poem.content.split('\n').map(() => new Animated.Value(0))).current;
+  const lineAnimations = useRef(localized.content.split('\n').map(() => new Animated.Value(0))).current;
 
   // useAnimationSpeed 是掛載後才非同步取值，故必須列入依賴，
   // 否則動畫速度設定永遠只會用到預設值。
@@ -101,7 +103,7 @@ export default function PoemCard({
     outputRange: [0.05, 1],
   });
 
-  const levelColor = getLevelColor(poem.level);
+  const levelColor = getLevelColor(localized.level);
 
   return (
     <View style={styles.container}>
@@ -129,19 +131,19 @@ export default function PoemCard({
           {/* 卦名 + 編號 */}
           <View style={styles.headerRow}>
             <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
-              <Text style={styles.levelText}>{poem.level}</Text>
+              <Text style={styles.levelText}>{localized.level}</Text>
             </View>
             <Text style={styles.hexagramName}>
-              第{poem.number}籤 · {poem.hexagramName}
+              第{localized.number}籤 · {localized.hexagramName}
             </Text>
           </View>
 
           {/* 籤題 */}
-          <Text style={styles.poemTitle}>{poem.title}</Text>
+          <Text style={styles.poemTitle}>{localized.title}</Text>
 
           {/* 籤詩內容（逐行） */}
           <View style={styles.poemContent}>
-            {poem.content.split('\n').map((line, i) => (
+            {localized.content.split('\n').map((line, i) => (
               <Animated.Text
                 key={i}
                 style={[
@@ -168,13 +170,13 @@ export default function PoemCard({
           {/* 白話解釋 */}
           <Animated.View style={{ opacity: contentOpacity }}>
             <Text style={styles.vernacularTitle}>▎白話解釋</Text>
-            <Text style={styles.vernacular}>{poem.vernacular}</Text>
+            <Text style={styles.vernacular}>{localized.vernacular}</Text>
           </Animated.View>
 
           {/* 典故 */}
           <Animated.View style={[styles.storySection, { opacity: contentOpacity }]}>
             <Text style={styles.storyTitle}>▎典故參考</Text>
-            <Text style={styles.storyText}>{poem.story}</Text>
+            <Text style={styles.storyText}>{localized.story}</Text>
           </Animated.View>
         </View>
 
@@ -215,7 +217,7 @@ export default function PoemCard({
         {/* 解讀內容 */}
         <View style={styles.categoryContent}>
           <Text style={styles.categoryText}>
-            {(poem.jieYue as unknown as Record<string, string>)[expandedCategory] || poem.jieYue.general}
+            {(localized.jieYue as unknown as Record<string, string>)[expandedCategory] || localized.jieYue.general}
           </Text>
         </View>
       </Animated.View>

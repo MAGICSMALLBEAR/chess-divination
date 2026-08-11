@@ -1,0 +1,2158 @@
+// 籤詩翻譯（en / ja）
+// 64 首籤詩的完整多語系翻譯
+// 使用結構：poemId → { en?: PoemLocale, ja?: PoemLocale }
+
+import type { Lang } from '@/services/i18n';
+
+interface JieYueLocale {
+  marriage?: string;
+  wealth?: string;
+  career?: string;
+  health?: string;
+  study?: string;
+  travel?: string;
+  general?: string;
+}
+
+interface PoemLocale {
+  title?: string;
+  content?: string;
+  vernacular?: string;
+  story?: string;
+  jieYue?: JieYueLocale;
+}
+
+export const poemTranslations: Record<number, Partial<Record<Lang, PoemLocale>>> = {
+  // ═══════════════════ 1. 乾為天 (帥/將) ═══════════════════
+  1: {
+    en: {
+      title: 'Dragon Soars the Heavens',
+      content: 'Heaven\'s primal force commands the central field,\nThe general ascends to hold ten thousand shields.\nAt the fifth dragon, wind and cloud converge —\nOne decisive move sets the universe in order.',
+      vernacular: 'A great fortune sign. Like a dragon soaring through the highest heavens — majestic and unstoppable. You are at the perfect convergence of timing, place, and support. Past efforts are about to bear fruit. The general commanding from the center symbolizes your wisdom and authority to steer the greater situation. Whether in career or life decisions, this is the optimal moment to "make your move."',
+      story: 'Hexagram 1 (Qián) — six solid yang lines, the head of the I Ching. In chess, the King/General resides in the nine-palace, governing all troops. Historical parallels: Han Xin\'s decisive battle against all odds; Zhuge Liang\'s Empty Fortress strategy — both classic examples of the commander\'s presence turning the tide at critical moments.',
+      jieYue: {
+        marriage: 'A predestined match — sincerity alone will make it blossom. Those already partnered will find their bond growing even stronger.',
+        wealth: 'Abundant financial prospects; stable primary income with promising side opportunities. Favorable for long-term investment planning.',
+        career: 'High position, heavy authority — your leadership is widely recognized. Good news awaits whether starting a venture or seeking promotion.',
+        health: 'Full of vitality — body and mind at peak condition. Maintain a regular routine for lasting wellness.',
+        study: 'Rapid academic advancement with excellent exam fortune. Focus on your goals and outstanding results will follow.',
+        travel: 'Smooth journeys with helpful people appearing along the way. Good timing for important business trips.',
+        general: 'Extremely auspicious! This is one of the best signs. Maintain confidence and a positive attitude — take that first bold step, and success will be right before you.',
+      },
+    },
+    ja: {
+      title: '龍 九霄に騰がる',
+      content: '乾元亨利中軍を御し、\n将帥台に登り万鈞を掌る。\n飛龍九五風雲会し、\n一着先んじて乾坤を定む。',
+      vernacular: '大吉の籤。龍が九霄に騰がるように、気勢は磅礴たるもの。今あなたは天の時・地の利・人の和という絶好のタイミングにあります。これまでの努力がまさに花開こうとしています。将帥が中軍に坐するように、大局を掌握する知恵と権威があなたには備わっています。仕事でも人生の重要な決断でも、今こそ「一手を打つ」最適の時です。',
+      story: '乾卦は六爻すべてが陽、易経の首。将棋では帥・將が九宮に居て全局を統御する。韓信の背水の陣、諸葛亮の空城の計——いずれも肝心な時に将帥の風格を発揮した古典的名場面。',
+      jieYue: {
+        marriage: '良縁は天が定めたもの——誠実に向き合えば自然に開花する。パートナーがいる人は絆がさらに深まる。',
+        wealth: '財源は広く通じ、本業は安定し副収入も期待できる。長期投資の佈局に適した時期。',
+        career: '高位に就き権限は重く、リーダーシップは高く評価される。起業・昇進ともに吉報あり。',
+        health: '精力充実し、心身ともにピーク。規則正しい生活リズムで健康長続き。',
+        study: '学業は飛躍的に進み、試験運は極めて良好。目標に集中すれば必ず好成績。',
+        travel: '旅は順調、遠出には貴人の助けあり。重要なビジネス旅行の計画に最適。',
+        general: '大吉！これは非常に良い籤です。自信と積極的な姿勢を持ち続け、勇気をもって最初の一歩を踏み出せば、成功はすぐ目の前にあります。',
+      },
+    },
+  },
+
+  // ═══════════════════ 2. 坤為地 (仕/士) ═══════════════════
+  2: {
+    en: {
+      title: 'Vast Earth Bears All',
+      content: 'Earth\'s boundless virtue bears the weight of all,\nThe advisor guards the palace, planning wise and tall.\nGentleness conquers hardness — walk the upright way,\nStep by steady step, truth unfolds each day.',
+      vernacular: 'An upper-good fortune sign. The Kun hexagram embodies the earth\'s receptive and nurturing qualities. The Advisor guarding the central palace represents the wisdom and loyalty of a strategist. You may not stand at center stage, but your support and planning are the keys to success. Overcome hardness with softness, movement with stillness — wait patiently, and harvest will come.',
+      story: 'Kun hexagram — six solid yin lines, the virtue of the earth. In chess, the Advisor/Guard protects the nine-palace — it cannot leave the palace, yet it forms the most critical defensive line. Zhang Liang plotted strategy from within the tent and decided victory a thousand miles away — the very model of the advisor\'s way.',
+      jieYue: {
+        marriage: 'Stable and grounded romance, like a long gentle stream. Sincere companionship surpasses flowery words.',
+        wealth: 'Steady finances reward conservative management. Accumulate little by little; avoid speculative risks.',
+        career: 'The unsung hero behind the scenes — your quiet dedication will eventually be recognized. Teamwork surpasses solo efforts.',
+        health: 'Watch your digestive system; eat light and regular meals. Relaxation of body and mind is essential.',
+        study: 'Progress step by step and build a solid foundation. Don\'t chase shortcuts — steady and sure wins the race.',
+        travel: 'Short trips are favorable; avoid long journeys. Prepare thoroughly before departure.',
+        general: 'Overcoming hardness with softness and movement with stillness is your best strategy right now. No need to rush into the spotlight — when the moment ripens, everything will flow naturally to completion.',
+      },
+    },
+    ja: {
+      title: '厚徳載物',
+      content: '坤厚の徳は物を載せて疆り無く、\n仕は中宮を守り万策をめぐらす。\n柔能く剛を克ち正道を行い、\n歩々陣を固めて真価現る。',
+      vernacular: '上吉の籤。坤卦は大地の包容と受容を象徴する。仕が中宮を守るのは謀士の知恵と忠誠の表れ。あなたは舞台の中央に立つ人ではないかもしれない——しかしその支援と謀略こそが成功の鍵。柔が剛を制し、静が動を制す。辛抱強く待てば、必ず収穫がある。',
+      story: '坤卦は六爻すべて陰、大地の徳。将棋で仕・士は九宮を守り、宮を出られないが最も肝心な防衛線。張良帷幄の中に運籌し、勝利を千里の外に決す——まさに仕士の道の典型。',
+      jieYue: {
+        marriage: '感情は安定して着実、細く長く続く。誠実な寄り添いが華麗な言葉に勝る。',
+        wealth: '財運は平穩、保守的な資産運用に適す。少しずつ積み上げ、投機は避ける。',
+        career: '陰の功労者。地道な努力はいつか必ず認められる。単独行動よりチームプレイが吉。',
+        health: '消化器系に注意。食事は薄味で規則正しく。心身のリラックスが大切。',
+        study: '順を追って漸進し、基礎を固める。速成を求めず、着実に一歩ずつ。',
+        travel: '短期の小旅行が適す。遠出は避け、出発前の周到な準備を。',
+        general: '柔が剛を克ち、静が動を制す——これが今のあなたにとって最善の策。焦って自分をアピールする必要はない。時が熟せば、すべては自然に成就する。',
+      },
+    },
+  },
+
+  // ═══════════════════ 3. 水雷屯 ═══════════════════
+  3: {
+    en: {
+      title: 'First Sprout Breaks Ground',
+      content: 'Thunder rolls, rain falls — sweet dew descends,\nChariot and horse begin their journey, the road not yet found.\nAll great undertakings start with obstacles and trials —\nPatiently water the seed, and wait for the forest to grow.',
+      vernacular: 'A balanced-even sign. The Zhun hexagram symbolizes the difficulty of birth and beginnings. Like the opening moves of chess, the chariot and horse have yet to find their optimal path — patient positioning is needed. You are in the early stages of development; difficulties and challenges are unavoidable, but they are also the necessary path to growth.',
+      story: 'Zhun (Hexagram 3) — Kan above, Zhen below: thunder and rain intermingle, all things begin to emerge. Chess openings emphasize strategic positioning; rushing to attack often backfires. Liu Bei visited the thatched cottage three times to recruit Zhuge Liang — a difficult start that eventually built a kingdom, perfectly embodying the spirit of Zhun.',
+      jieYue: {
+        marriage: 'New relationships need time to cultivate — don\'t rush. Those already partnered need more communication.',
+        wealth: 'Finances are at the starting stage. Prioritize increasing income and reducing expenses. Invest conservatively.',
+        career: 'Starting a business or new project — difficulties are normal. Persist, and breakthroughs will follow.',
+        health: 'Watch for stress during the adjustment period. Moderate exercise helps regulate body and mind.',
+        study: 'Hitting walls in a new field of study — don\'t be discouraged. Finding the right method matters more than grinding harder.',
+        travel: 'Minor hiccups possible during journeys. Stay patient and flexible.',
+        general: 'Everything is hard at the beginning — this is the path everything must walk. Don\'t let the obstacles before you break your spirit. Each step is paving the road ahead.',
+      },
+    },
+    ja: {
+      title: '初芽土を破る',
+      content: '雷行き雨降りて甘霖を降らす、\n車馬初めて程に就くも道未だ尋ねず。\n万事起頭に多く險阻あり、\n忍耐もて灌漑し林と成るを待つ。',
+      vernacular: '中平の籤。屯卦は万物初生の艱難を象徴。将棋の序盤のように、車馬はまだ最適な路線を見つけておらず、忍耐強い佈局が必要。あなたは物事の発展初期段階にいる——困難や挑戦は避けられないが、それこそが成長への必要な道のり。',
+      story: '屯卦は上坎下震、雷雨交じり万物始めて生ず。将棋の序盤は佈局を重んじ、性急な攻めは往々にして裏目に出る。劉備は三顧の礼で草廬を訪れ、艱難創業の末に大業を成す——まさに屯卦精神の体現。',
+      jieYue: {
+        marriage: '新しい恋は時間をかけて育てるもの。焦りは禁物。パートナーがいる人はコミュニケーションを増やすこと。',
+        wealth: '財務は起步段階。収入を増やし支出を減らすことが急務。投資は保守的に。',
+        career: '起業や新規プロジェクトの立ち上げ期。困難は当たり前。諦めずに続ければ必ず突破できる。',
+        health: '適応期のストレスに注意。適度な運動が身心の調整に役立つ。',
+        study: '新しい分野の学習で壁に当たっている。落ち込まないで。方法を見つけることが埋头苦読より大切。',
+        travel: '旅路で小さな波乱があるかも。忍耐と柔軟性を持って。',
+        general: '万事起頭難——すべての始まりは難しいもの。目の前の困難に怯まず、一歩一歩が未来への道を敷いている。',
+      },
+    },
+  },
+
+  // ═══════════════════ 4. 山水蒙 ═══════════════════
+  4: {
+    en: {
+      title: 'Seeking Path in Mist',
+      content: 'Mountains fold, waters wind — dense fog obscures the way,\nThe elephant steps through the field, searching all four directions.\nSeek a wise teacher to open your understanding —\nOnce clouds part to reveal the sun, the fragrance spreads of itself.',
+      vernacular: 'A balanced-even sign. The Meng hexagram symbolizes enlightenment and learning. Like the Elephant in chess — it walks a fixed field pattern yet requires wise judgment. You may be facing confusion or difficult choices. What you need most now is to humbly seek guidance and find a good mentor to point the way.',
+      story: 'Meng — Gen above, Kan below: vapor rises beneath the mountain, forming fog. In chess, the Elephant walks the field diagonal — there are rules to follow, yet wisdom is still needed. Confucius said: "I do not enlighten the unenthusiastic, nor instruct the inarticulate." Education and learning are the keys to clearing the mist.',
+      jieYue: {
+        marriage: 'Confusion in relationships — don\'t guess alone. Honest communication can clear up misunderstandings.',
+        wealth: 'Do more homework before investing or managing money. Never blindly follow trends. Consult professionals.',
+        career: 'Hitting a bottleneck at work. Further study or asking senior colleagues is the key to breakthrough.',
+        health: 'If you feel unwell, seek professional medical advice. Don\'t self-diagnose.',
+        study: 'Encountering difficulties in learning — this is a signal of growth. Find the right teacher or learning method.',
+        travel: 'Do thorough research before heading out. Check routes and information carefully.',
+        general: 'Confusion is the prelude to growth. Don\'t be afraid to admit what you don\'t know — asking others for guidance is a mark of wisdom.',
+      },
+    },
+    ja: {
+      title: '霧中に径を尋ねる',
+      content: '山重なり水複雑に霧は迷茫、\n象は田間を踏み四方を覓む。\n明師に教えを求め智慧を開けば、\n雲を撥ね日を見て自ずから芬芳。',
+      vernacular: '中平の籤。蒙卦は啓蒙と学習を象徴。将棋の相・象は田字を歩き、固定軌道があるが知恵の判断が必要。あなたは迷いや選択困難に直面しているかも。今最も必要なのは、謙虚に教えを請い、良師益友を見つけて方向を示してもらうこと。',
+      story: '蒙卦は上艮下坎、山の下水気が蒸騰して霧となる。将棋で相・象は田字対角を歩き、規則はあるが知恵が必要。孔子曰く「憤せずんば啓せず、悱せずんば発せず」。教育と学習こそ霧を晴らす鍵。',
+      jieYue: {
+        marriage: '感情に戸惑いがあっても独りで推測しない。率直なコミュニケーションが誤解を解消する。',
+        wealth: '投資や資産運用はよく調べてから。盲目的に流行を追わず、専門家に相談を。',
+        career: '職場で壁に当たっている。学習や先輩への相談が突破の鍵。',
+        health: '体調不良の時は専門医の診断を。自己判断は禁物。',
+        study: '学習で困難に直面するのは成長のシグナル。良い教師や学習法を見つけて。',
+        travel: '出発前に情報をしっかり調べること。経路や情報を確認。',
+        general: '迷いは成長の前奏曲。知らないことを認めるのを恐れず、人に教えを請うことは知恵の表れ。',
+      },
+    },
+  },
+
+  // ═══════════════════ 5. 水天需 ═══════════════════
+  5: {
+    en: {
+      title: 'Await the Right Moment',
+      content: 'Clouds roll across the sky, rain is about to fall,\nThe cannon waits on the mountain for the signal\'s call.\nThe noble one keeps tools concealed, biding time —\nWhen the moment comes, a thousand armies fall.',
+      vernacular: 'A medium-good fortune sign. The Xu hexagram symbolizes waiting for the right timing. Like the Cannon in chess, which needs a mount to unleash its power — acting alone brings limitations. You are prepared, but the moment is not yet ripe. Wait patiently, maintain faith, and when the east wind arrives, you can unfold your full potential.',
+      story: 'Xu — Kan above, Qian below: clouds in heaven, awaiting rain. In chess, the Cannon needs an intervening piece to capture — the only piece requiring "conditions" to maximize its power. Jiang Taigong fishing with a straight hook, Zhuge Liang resting in Longzhong — both classic examples of awaiting the right ruler.',
+      jieYue: {
+        marriage: 'The right person needs the right moment to appear. Don\'t lower your standards out of loneliness.',
+        wealth: 'Funds are ready but the investment timing is not. Stay observant and wait for market signals.',
+        career: 'The timing for promotion or job change isn\'t ripe yet. Use this period to strengthen yourself.',
+        health: 'Your body needs rest and recuperation. Don\'t push too hard — conserve energy.',
+        study: 'The preparation period before exams or interviews. Stay calm and proceed steadily.',
+        travel: 'Postpone travel plans slightly. Wait for better timing or weather.',
+        general: 'Waiting is not doing nothing — it is preparing thoroughly before the optimal moment arrives. When the time is not ripe, forcing it brings harm; when the moment comes, the momentum is unstoppable.',
+      },
+    },
+    ja: {
+      title: '時を待ちて動く',
+      content: '雲天際に騰り雨まさに臨まんとす、\n砲は山頭に架かり令を待つ。\n君子器を身に蔵して候ち、\n時機一たび到れば千軍を破る。',
+      vernacular: '中吉の籤。需卦は時機を待つことを象徴。将棋の炮（砲）は台が必要で、単独行動では制限される。あなたはすでに準備ができているが、時期はまだ熟していない。忍耐強く待ち、信念を持ち続ければ、東風が吹いたとき、思う存分に力量を発揮できる。',
+      story: '需卦は上坎下乾、雲天にあり雨を待つ。将棋で炮は子を隔てて吃子する——唯一「条件を待つ」必要がある駒。姜太公の釣り、諸葛亮の高臥隆中——いずれも明主を待った古典的事例。',
+      jieYue: {
+        marriage: 'ふさわしい人はふさわしい時に現れる。孤独だからと基準を下げないこと。',
+        wealth: '資金は準備できたが投資の時期はまだ。市場シグナルを待って観望を。',
+        career: '昇進や転職のタイミングはまだ熟していない。この期間に自分を充実させること。',
+        health: '身体は休息と養生が必要。過労を避け、精気を養う。',
+        study: '試験や面接前の準備期間。気持ちを落ち着けて着実に。',
+        travel: '旅行計画はやや先延ばしに。より良い時期や天候を待つ。',
+        general: '待つことは無為ではない——最適な時機が来る前に周到な準備をすること。時機が来なければ強求しても損、時機が来れば勢いは破竹の如し。',
+      },
+    },
+  },
+
+  // ═══════════════════ 6. 天水訟 ═══════════════════
+  6: {
+    en: {
+      title: 'Contest at Chu River',
+      content: 'Heaven and water set against each other, waves surge and rise,\nChu River and Han border — weapons clash under the skies.\nIn disputes, better to yield a single step —\nThen sea and sky stretch wide, and harmony returns.',
+      vernacular: 'A low-luck sign. The Song hexagram symbolizes conflict and contention. Like the Chu River–Han Border standoff on the chessboard, red and black refuse to yield. You may be facing interpersonal conflict, contract disputes, or internal contradiction. At this moment, forceful contention brings no benefit — taking one step back opens endless horizons.',
+      story: 'Song — Qian above, Kan below: heaven and water move contrary to each other. The Chu River–Han Border at the center of the chessboard is precisely the historical imprint of the Chu-Han Contention. Lin Xiangru returned the Heshi Jade intact to Zhao, then found himself placed above Lian Po — Lian Po was indignant, but Lin Xiangru yielded, eventually moving Lian Po to offer a humble apology.',
+      jieYue: {
+        marriage: 'Prone to quarrels with your partner. More tolerance, less nitpicking. Communicate after cooling down.',
+        wealth: 'Avoid lending/borrowing or contract disputes. Review all terms carefully before signing documents.',
+        career: 'Possible rivals or adversaries at work. Prove yourself through competence; avoid direct confrontation.',
+        health: 'Stress may cause insomnia or headaches. Moderate exercise and meditation help relaxation.',
+        study: 'Maintain a calm mindset in exams or competitions. Don\'t let competitiveness affect your performance.',
+        travel: 'Be extra careful with traffic safety during travel. Avoid disputes with others.',
+        general: 'Winning an argument may lose a greater advantage. Yielding is not weakness — it is higher wisdom. Trust that fairness lies in people\'s hearts, and time will prove all things.',
+      },
+    },
+    ja: {
+      title: '楚河の争渡',
+      content: '天水相違して浪波を起こし、\n楚河漢界に干戈を動かす。\n争訟は一歩を退くに如かず、\n海闊天空にして自ずから太和。',
+      vernacular: '下下の籤。訟卦は争いと衝突を象徴。将棋盤中央の楚河漢界のように、紅黒双方が譲らない。あなたは人間関係の衝突、契約紛糾、内面の葛藤に直面しているかも。強く争っても益はなく、一歩退けば海闊天空。',
+      story: '訟卦は上乾下坎、天と水が相反して進む。将棋盤中央の楚河漢界は、まさに楚漢相争の歴史的痕跡。藺相如は完璧を趙に帰し、廉頗の上に立った——廉頗は不服だが藺相如は避譲し、ついに廉頗は負荊請罪した。',
+      jieYue: {
+        marriage: 'パートナーと口論しやすい時期。寛容さを増し、些事にこだわらない。冷静になってから話し合う。',
+        wealth: '貸借や契約トラブルを避ける。書類署名前に条項を綿密に確認。',
+        career: '職場に競争者やトラブルメーカーがいるかも。実力で証明し、正面衝突は避ける。',
+        health: 'ストレスで不眠や頭痛の恐れ。適度な運動と瞑想がリラックスに役立つ。',
+        study: '試験や試合では平常心を保つ。競争心に影響されないこと。',
+        travel: '交通安全に特に注意。旅先でのトラブルを避ける。',
+        general: '一時の怒りで長期的利益を失うな。譲ることは弱さではなく、より高い知恵。公正は人の心にあり、時間がすべてを証明する。',
+      },
+    },
+  },
+
+  // ═══════════════════ 7. 地水師 ═══════════════════
+  7: {
+    en: {
+      title: 'Army Marches with Cause',
+      content: 'Within the earth, waters gather a mighty host,\nThe chariot rides a straight line — thunderous force.\nMarch only with just cause to claim the victory —\nWith iron discipline, success comes certainly.',
+      vernacular: 'A medium-good fortune sign. The Shi hexagram symbolizes the military and organized action. Like the Chariot in chess charging straight ahead — unstoppable force. You may be about to launch an important initiative or project. The key is "marching with just cause" — clear objectives and strict discipline will lead to victory.',
+      story: 'Shi — Kun above, Kan below: water hidden in earth, like an army in ambush. In chess, the Chariot is the most powerful attacking piece, symbolizing decisive action. Yue Fei led the Yue Family Army with the motto "freeze to death without looting houses, starve to death without plundering" — iron discipline brought a hundred victories.',
+      jieYue: {
+        marriage: 'Be clear about your position and expectations in relationships. Sincere commitment reaps genuine love.',
+        wealth: 'Suitable for planned investments or entrepreneurship. But comprehensive planning is essential — don\'t act recklessly.',
+        career: 'Teamwork outweighs individual performance. If leading, lead by example.',
+        health: 'Physical condition is good. A good time to start a new fitness plan. Discipline is the foundation of health.',
+        study: 'Create a strict study plan and follow it faithfully. Discipline matters more than talent.',
+        travel: 'Business trips or travel with clear objectives. A tight, efficient itinerary.',
+        general: 'Before taking action, establish righteous goals and principles. When the cause is just, words carry weight; when words carry weight, things get done.',
+      },
+    },
+    ja: {
+      title: '師 名を以て出づ',
+      content: '地中に水ありて雄兵を聚め、\n車直線を行き勢いは雷霆。\n師出有名にして方に勝ち、\n紀律厳明なれば定めて勝つべし。',
+      vernacular: '中吉の籤。師卦は軍隊と組織行動を象徴。将棋の車のように、縦横無尽に駆け抜け、勢いは止められない。あなたは重要な行動やプロジェクトを始めようとしているかも。鍵は「師出有名」——目標が明確で、紀律が厳格であれば、成功は間違いない。',
+      story: '師卦は上坤下坎、地中に水を蔵し軍隊の潜伏の如し。将棋で車は最も攻撃力のある駒。岳飛は「凍えて死すとも家屋を壊さず、飢えて死すとも掠奪せず」——紀律厳明にして百戦百勝。',
+      jieYue: {
+        marriage: '感情では自分の立場と期待を明確に。真摯に向き合えば真摯な愛を得られる。',
+        wealth: '計画的な投資や起業に適す。ただし完璧な計画が必要——軽挙妄動は禁物。',
+        career: 'チームワークが個人のパフォーマンスに勝る。リーダーは身をもって範を示すこと。',
+        health: '体調良好。新しいフィットネス計画を始めるのに良い時期。紀律は健康の基。',
+        study: '厳格な学習計画を立てて着実に実行。才能より紀律が大切。',
+        travel: '出張や旅行は目的が明確で、日程はコンパクトかつ効率的。',
+        general: '行動の前に正しい目標と原則を確立せよ。名正しければ言葉が筋道通り、言葉が筋道通れば事は成就する。',
+      },
+    },
+  },
+
+  // ═══════════════════ 8. 水地比 ═══════════════════
+  8: {
+    en: {
+      title: 'Stars Surround the Moon',
+      content: 'Water flows across the earth, silently nourishing all,\nPawns unite in purpose — their power stands tall.\nTen thousand hearts converge as one body whole —\nUnited in harmony, deep feeling fills the soul.',
+      vernacular: 'An upper-good fortune sign. The Bi hexagram symbolizes closeness and unity. Like the Pawns in chess — individually weak, but five pawns united can achieve great things. Trustworthy companions are by your side; unity and cooperation can create greater accomplishments. Draw near to the worthy and keep the unworthy at a distance — this is the core guidance of this sign.',
+      story: 'Bi — Kan above, Kun below: water clinging to the earth, intimate and close. In chess, five Pawns advancing side by side, mutually protecting each other. Liu Bei, Guan Yu, and Zhang Fei\'s Oath of the Peach Garden — brothers united in purpose can sever gold.',
+      jieYue: {
+        marriage: 'Harmonious and close relationships, suitable for taking the next step. Sincere companionship is the most touching.',
+        wealth: 'A great opportunity for joint investment or partnership. Find trustworthy collaborators.',
+        career: 'Team atmosphere is excellent; colleagues are mutually supportive. Good time for team projects.',
+        health: 'Social activities benefit physical and mental wellness. Gatherings with family and friends bring positive energy.',
+        study: 'Suitable for group study or book clubs. Discussion together is more effective than studying alone.',
+        travel: 'Traveling with companions brings excellent fortune. The happiest journeys are with kindred spirits.',
+        general: 'Unity is strength. Finding the right partners surpasses struggling alone. Cherish those who genuinely care for you.',
+      },
+    },
+    ja: {
+      title: '衆星月を拱す',
+      content: '水流れ大地を潤して声無く、\n兵卒心を同じくして勢い自ずから成る。\n万衆心を帰して一体となり、\n和衷共済して深情を見る。',
+      vernacular: '上吉の籤。比卦は親近と団結を象徴。将棋の兵卒のように、単独の力は微かだが、五兵心を同じくすれば大事を成せる。あなたの側には信頼に値する仲間がいる。団結と協力でより大きな成果を生み出せる。賢人に親しみ、小人からは離れる——これがこの籤の核心的導き。',
+      story: '比卦は上坎下坤、水が大地に付き親密無間。将棋で五つの兵・卒が並んで前進し互いに援護する。劉関張桃園の誓い——兄弟心を同じくすれば、その利は金をも断つ。',
+      jieYue: {
+        marriage: '感情は和やかで親密。関係をさらに進展させるのに適す。誠実な寄り添いが最も心に響く。',
+        wealth: '共同投資や合弁経営の良機。信頼できる協力相手を見つけよ。',
+        career: 'チームの雰囲気は良好で、同僚同士助け合っている。チームプロジェクトに参加するのに良い時期。',
+        health: '社交活動が身心健康に有益。家族や友人との集まりがポジティブなエネルギーをもたらす。',
+        study: 'グループ学習や読書会に参加するのに適す。共に議論すれば独学より効率的。',
+        travel: '仲間との旅行運は上々。志を共にする友との旅が最も楽しい。',
+        general: '団結が力なり。正しい仲間を見つけることが、一人で支えるよりも勝る。真心であなたを大切にする人を珍惜しよう。',
+      },
+    },
+  },
+
+  // ═══════════════════ 9. 風天小畜 ═══════════════════
+  9: {
+    en: {
+      title: 'Small Accumulation',
+      content: 'Wind moves above heaven, gathering wisps of cloud,\nThe elephant\'s eye surveys the field, discerning false from true.\nSmall gains achieved — don\'t let pride take hold,\nGrains build a tower; wait for the hour foretold.',
+      vernacular: 'A medium-good fortune sign. The Xiao Xu hexagram symbolizes small accumulations not yet abundant. Like the Elephant in chess — broad vision but movement restricted to the field pattern. You\'ve made some progress, but there\'s still distance to the great achievement. Don\'t become complacent with small successes — continue accumulating.',
+      story: 'Xiao Xu — Xun above, Qian below: wind above heaven, not yet forming rain. In chess, the Elephant cannot cross the river — symbolizing having perspective but needing to keep one\'s station. Guan Zhong governed Qi by first enriching the people, then strengthening the state — accumulation built hegemony.',
+      jieYue: {
+        marriage: 'The relationship is stable but not yet at the marriage stage. Enjoy the present and let things flow naturally.',
+        wealth: 'Small savings accumulated — continue saving. Spend within your means and prepare for a bigger future plan.',
+        career: 'Small achievements at work deserve celebration, but don\'t stop. Greater goals are still ahead.',
+        health: 'Body condition is steady. Maintain good lifestyle habits.',
+        study: 'Preliminary results are showing in your studies, but learning has no limit. Continuous refinement leads higher.',
+        travel: 'Short trips are most suitable. Small journeys can bring great satisfaction.',
+        general: 'A journey of a thousand miles begins with a single step. Without accumulating small steps, one cannot reach a thousand miles. Every bit of progress is worth affirming, but greater achievements still lie ahead.',
+      },
+    },
+    ja: {
+      title: '小しく成る有り',
+      content: '風天上を行き微雲を積み、\n相眼局を観て偽真を弁ず。\n小有所成 自満すること休めよ、\n沙を積んで塔と成し時を待て。',
+      vernacular: '中吉の籤。小畜卦は小さく蓄積あるも未だ充足せずを象徴。将棋の相・象のように視野は広いが行動は田字格に制限される。あなたはいくつか進展を得たが、大成功まではまだ距離がある。小さな成功に満足せず、蓄積を続けよ。',
+      story: '小畜卦は上巽下乾、風天に行き未だ雨ならず。将棋で相は河を渡らず——格局はあるが本分を守る必要あり。管仲は斉を治め、まず民を富ませ後に国を強くし、国力を蓄積して霸業を成した。',
+      jieYue: {
+        marriage: '関係は安定しているが、まだ結婚の段階ではない。今を楽しみ自然に任せる。',
+        wealth: '小さな蓄えあり。収入に応じた支出を心がけ、将来の大計画に備えよ。',
+        career: '仕事での小さな成果は祝う価値がある。しかし立ち止まらず、さらに大きな目標へ。',
+        health: '体調は平穩。良い生活習慣を維持せよ。',
+        study: '学習には初步的成果が出ている。しかし学に果てはなく、継続的に精進を。',
+        travel: '短距離の小旅行が最適。小さな旅も大きな満足をもたらす。',
+        general: '千里の行も足下より始まる。跬歩を積まずんば以って千里に至る無し。すべての進歩は肯定に値するが、より大きな成果はまだ後にある。',
+      },
+    },
+  },
+
+  // ═══════════════════ 10. 天澤履 ═══════════════════
+  10: {
+    en: {
+      title: 'Treading on Thin Ice',
+      content: 'Heaven above the marsh — each step is fraught,\nThe horse leaps through thickets, risking all it brought.\nFacing the abyss, on thin ice, keep a careful mind —\nSteady steps forward, and you\'ll leave no obstacle behind.',
+      vernacular: 'A balanced-even sign. The Lü hexagram symbolizes cautious advance. Like the Horse in chess — it walks the "day" pattern, agile yet vulnerable to having its leg blocked. You are in a situation requiring extreme care; every step must be carefully weighed. Follow the rules, maintain your proper place, and you will safely navigate through.',
+      story: 'Lü — Qian above, Dui below: heaven above the marsh — like treading on thin ice. In chess, the Horse walks the day-character pattern but fears the "blocked horse leg" — even a brief obstruction stops it cold. Guan Yu crossed five passes and slew six generals, relying on boldness tempered with meticulous care.',
+      jieYue: {
+        marriage: 'Proceed cautiously in relationships. Don\'t rush to push things forward. Observe whether the other person is sincere.',
+        wealth: 'Stay conservative with financial operations. Avoid high-risk investments. Better safe than sorry.',
+        career: 'The workplace environment is complex — pay attention to subtle shifts in interpersonal dynamics. Keep a low profile.',
+        health: 'Watch your feet and joints. Avoid sprains while walking or exercising.',
+        study: 'Encountering difficulties in learning — slow down and study carefully rather than rushing through.',
+        travel: 'Double-check all itinerary details before departure. Safety first.',
+        general: 'Being careful is not cowardice — it is responsibility to yourself and those around you. One step at a time, treading steadily forward.',
+      },
+    },
+    ja: {
+      title: '薄氷を履むが如し',
+      content: '天沢上に臨み歩みは艱く、\n馬は檀溪を躍り険しくもまた還る。\n深きに臨み薄きを履み心は細かくあるべし、\n穩歩前へ行けば自ずから関を過ぐ。',
+      vernacular: '中平の籤。履卦は慎重な前進を象徴。将棋の馬のように——日字を歩き、柔軟だが足を蹩かれる危険がある。あなたは細心の注意が必要な局面にいる。一歩一歩を深く考え、規則を守り本分を守れば、安全に通過できる。',
+      story: '履卦は上乾下兌、天沢上にあり薄氷を履むが如し。将棋で馬は日字を歩み蹩脚が最も怖い——正に「馬蹩脚なれば寸歩も難し」。関羽五関を過ぎ六将を斬る——胆が大きく心が細かいことを頼みとした。',
+      jieYue: {
+        marriage: '感情の進展は慎重に。急いで関係を進めようとしない。相手が本心かどうかを見極めて。',
+        wealth: '財務操作は保守的に。高リスク投資を避けよ。念には念を入れよ。',
+        career: '職場環境は複雑。人間関係の微妙な変化に注意。低姿勢が上策。',
+        health: '足や関節の健康に注意。歩行時や運動時の捻挫に気をつけて。',
+        study: '学習で難問に直面中。ゆっくりと丁寧に研究することが丸呑みより勝る。',
+        travel: '出発前にスケジュール詳細を再三確認。安全第一。',
+        general: '慎重であることは臆病ではなく、自分と周囲への責任。一歩一脚印、着実に前進せよ。',
+      },
+    },
+  },
+
+  // ═══════════════════ 11. 地天泰 ═══════════════════
+  11: {
+    en: {
+      title: 'Heaven and Earth in Harmony',
+      content: 'Earth\'s breath ascends, heaven\'s breath descends as one,\nRed and black converge — through them, prosperity runs.\nYin and yang in union, vital force blooms bright —\nAll matters flow smoothly, a hundred blessings take flight.',
+      vernacular: 'A great fortune sign. The Tai hexagram symbolizes the blending of heaven and earth, the harmony of yin and yang — all things flow smoothly. Like the red and black sides in chess — though opponents, they truly complement each other. You are in a phase of rising fortune; obstacles in every direction are dissolving. This is the best moment to launch new plans and establish new relationships.',
+      story: 'Tai — Kun above, Qian below: earth\'s breath rises, heaven\'s breath descends — yin and yang intertwine in harmony. In chess, red and black oppose each other on the surface, yet in truth they create a fine game together. Emperor Taizong of Tang and Wei Zheng — ruler and minister complemented each other, co-creating the Golden Age of Zhenguan.',
+      jieYue: {
+        marriage: 'Romantic fortune blossoms. Singles may meet a suitable match. Those already partnered will see their relationship advance.',
+        wealth: 'Financial prospects are bright. Both primary and secondary income are strong. Good time for new investments or business plans.',
+        career: 'Career flows smoothly; superiors and subordinates are united. Good opportunities for promotion or job change.',
+        health: 'Excellent physical condition, abundant energy. A good time to start new exercise or wellness practices.',
+        study: 'Academic progress is smooth; thinking is clear. Excellent fortune for exams and interviews.',
+        travel: 'Travel is highly auspicious; journeys will be delightful. Suitable for distant travel or going abroad.',
+        general: 'This is one of the best fortune periods of the year. Heaven and earth in harmony, everything flowing smoothly. Seize this golden period and boldly pursue your dreams.',
+      },
+    },
+    ja: {
+      title: '天地 交わり泰う',
+      content: '地気上行し天気下降す、\n紅黒交会して勢い通亨す。\n陰陽和合して生機旺んに、\n万事亨通して百福臻る。',
+      vernacular: '大吉の籤。泰卦は天地の交わりと陰陽の和合を象徴し、万事通泰。将棋で紅黒双方は表面上互いに攻め合うが、実は相補い合って一局の良き棋を成す。あなたは運勢上昇の段階にあり、各方面の障害が溶けつつある。新しい計画を始め、新しい関係を築く最適な時期。',
+      story: '泰卦は上坤下乾、地気上昇し天気下降、陰陽交泰。将棋で紅黒対弈は表面上攻め合っているが、実は互いに一局の良き棋を成就させている。唐太宗と魏徴——君臣互いに補完し合い、共に貞観の治を創った。',
+      jieYue: {
+        marriage: '桃花満開。独身者はふさわしい相手に出会うチャンス。パートナーがいる人は関係がさらに一歩進む。',
+        wealth: '財運は亨通し、本業も副収入も旺ん。新しい投資やビジネス計画を始めるのに良い時期。',
+        career: '事業は順調で上下心が一つ。昇進や転職に良い機会あり。',
+        health: '身体は健康で精力旺盛。新しい運動や養生計画を始めるのに最適。',
+        study: '学業は順調で思考は明晰。試験や面接の運勢は極めて良好。',
+        travel: '旅は大吉で道中愉快。遠出や海外旅行に適す。',
+        general: '一年の中で最も良い運勢の一つ。天地交泰し、万事亨通。この黄金の期間を掴み、勇敢に夢を追いかけよ。',
+      },
+    },
+  },
+
+  // ═══════════════════ 12. 天地否 ═══════════════════
+  12: {
+    en: {
+      title: 'Heaven and Earth Blocked',
+      content: 'Heaven\'s breath won\'t descend, earth\'s breath won\'t rise,\nThe general trapped in the nine-palace strains his eyes.\nIn times of blockage, keeping still is wise —\nHide your light and bide your time till the clearing skies.',
+      vernacular: 'A low-luck sign. The Pi hexagram symbolizes heaven and earth not communicating — all things blocked. Like the General trapped in the nine-palace, besieged on all sides. You may feel that nothing goes your way, ambitions frustrated. But after blockage comes opening — at this moment stillness is better than movement. Retreat to advance, and wait for the turning point.',
+      story: 'Pi — Qian above, Kun below: heaven\'s breath won\'t descend, earth\'s breath won\'t rise — heaven and earth separated. In chess, the General trapped in the nine-palace, caught between dilemmas. King Goujian of Yue slept on brushwood and tasted gall — in times of blockage he endured and built strength, until three thousand Yue troops could swallow Wu.',
+      jieYue: {
+        marriage: 'Relationships may encounter bottlenecks or cold periods. Give each other some space; don\'t force resolution.',
+        wealth: 'Financial fortune is low. Don\'t invest or expand. Holding onto existing assets is victory.',
+        career: 'Work may face obstacles or schemers. Keep a low profile and avoid getting entangled in disputes.',
+        health: 'Physically and mentally exhausted — you need rest and recuperation. Watch for weakened immunity.',
+        study: 'Study progress is blocked — you may need a different approach or a temporary break.',
+        travel: 'Travel will not go smoothly; prone to delays and setbacks. Postpone unless necessary.',
+        general: 'Life has its ups and downs; the blocked period will eventually pass. What matters most right now is maintaining faith, conserving strength, and waiting for the turning of heaven\'s timing.',
+      },
+    },
+    ja: {
+      title: '天地 閉塞す',
+      content: '天気降らず地気昇らず、\n九宮に帥を困らせ征き難し。\n閉塞の時は宜しく静を守り、\n光を韜み晦を養いて清明を待つ。',
+      vernacular: '下下の籤。否卦は天地通ぜず万事閉塞を象徴。将棋で将帥は九宮に困らされ、四面楚歌。あなたはすべてがうまくいかず、志が伸ばせないと感じているかも。しかし否極まれば泰来る——今は静を動より優先し、退をもって進とし、転機を待て。',
+      story: '否卦は上乾下坤、天気降らず地気昇らず、天地隔絶。将棋で将帥は九宮に困らされ左右苦難。越王勾践は臥薪嘗胆——閉塞の時に忍耐し力を蓄え、終に三千越甲もて呉を呑むことを得た。',
+      jieYue: {
+        marriage: '感情が瓶頸や冷戦期に直面するかも。互いにスペースを与え、急に解決しようとしない。',
+        wealth: '財運は低迷。投資や拡張は避けよ。現有資産を守ることが勝利。',
+        career: '仕事で障害や小人に遭遇するかも。低調に事を運び、いざこざに巻き込まれぬよう。',
+        health: '心身ともに疲弊——休息と養生が必要。免疫力低下に注意。',
+        study: '学習の進捗が滞っている。方法を変えるか一時休息を。',
+        travel: '旅は順調でなく、遅延や波乱に遭いやすい。必要でなければ延期を。',
+        general: '人生には上がり下がりがある。否運はやがて去る。今最も大事なのは信念を保ち、力を養い、天の時が変わるのを待つこと。',
+      },
+    },
+  },
+
+  // ═══════════════════ 13. 天火同人 ═══════════════════
+  13: {
+    en: {
+      title: 'Kindred Spirits',
+      content: 'Heaven\'s light and fire\'s gleam shine on loyal hearts as one,\nThe cannons\' fire connects — shared burden, shared sun.\nWith kindred purpose travel beneath the wide sky —\nUnited hearts, united strength, no barrier stands too high.',
+      vernacular: 'An upper-good fortune sign. The Tong Ren hexagram symbolizes like-minded partnership. Like twin Cannons in chess, mutually supporting — combined power far exceeds a single piece. You will meet or already have companions who share your ideals; common goals enable you to overcome any difficulty together.',
+      story: 'Tong Ren — Qian above, Li below: heaven and fire reflecting each other, bright light spreading everywhere. In chess, twin Cannons form a linked cannon formation — power far exceeding one cannon alone. Guan Zhong and Bao Shuya\'s friendship: Bao Shuya recommended Guan Zhong as prime minister; Guan Zhong said, "My parents gave me life, but Bao Shuya truly knows me."',
+      jieYue: {
+        marriage: 'Chance to meet someone with shared interests. Common hobbies are the best catalyst for romance.',
+        wealth: 'A great time for partnership ventures or collaborative investments. Finding the right person matters more than finding the right project.',
+        career: 'Team collaboration is excellent; colleagues support each other. Good time for cross-departmental projects.',
+        health: 'Group sports or fitness classes work better for you.',
+        study: 'Join a study group or learning community. Mutual encouragement accelerates progress.',
+        travel: 'Travel with friends — the journey will be delightful and safe.',
+        general: 'One person\'s strength is finite; a group\'s strength is infinite. Find your "kindred people" — no barrier in the world can stand against you.',
+      },
+    },
+    ja: {
+      title: '志を同じくし道を合わす',
+      content: '天光火映して肝胆を照らし、\n砲火相連なり勢い共に担う。\n志同道合して天下を行き、\n同心協力して難関を破る。',
+      vernacular: '上吉の籤。同人卦は志を同じくする仲間関係を象徴。将棋の双砲のように、互いに協力すれば威力は倍増する。あなたは理念を同じくする仲間と出会う、あるいはすでに持っている。共通の目標が、あらゆる困難を共に克服させてくれる。',
+      story: '同人卦は上乾下離、天火相映え光明普く照らす。将棋で双砲は連環炮を形成し、威力は単炮よりはるかに大きい。管仲と鮑叔牙の交友——鮑叔牙は管仲を宰相に推薦し、管仲は「我を生むは父母、我を知るは鮑子」と語った。',
+      jieYue: {
+        marriage: '趣味の合う相手に出会うチャンス。共通の趣味は恋愛の最良の触媒。',
+        wealth: '共同起業や協力投資の良い時期。正しいプロジェクトより正しい人を見つけることが重要。',
+        career: 'チームの協力雰囲気は良好で同僚が互いにサポート。部署横断的プロジェクトに適す。',
+        health: 'グループスポーツやフィットネスクラスがより効果的。',
+        study: '読書会や学習グループに参加を。相互励まし合いで進歩が速い。',
+        travel: '友達との旅——道中は楽しく安全。',
+        general: '一人の力は有限、一群の力は無限。あなたの「同人」を見つけよ——世の中に越えられない関はない。',
+      },
+    },
+  },
+
+  // ═══════════════════ 14. 火天大有 ═══════════════════
+  14: {
+    en: {
+      title: 'Year of Great Abundance',
+      content: 'Fire above heaven illuminates the bumper harvest bright,\nThe red cannon pierces the stars with soaring might.\nIn this year of great abundance, celebration and cheer —\nUse wealth with wisdom, and blessings shall draw near.',
+      vernacular: 'A great fortune sign. The Da You hexagram symbolizes great harvest and great possession. Like the Cannon\'s explosive power in chess — one brilliant burst astonishes all. You are in the season of reaping; past efforts will bring generous returns. But remember to "follow heaven\'s timing and rest in peace" — use resources wisely and share your good fortune.',
+      story: 'Da You — Li above, Qian below: fire above heaven, illuminating all creation. In chess, the Cannon captures through intervening pieces, often achieving surprise victories. The Duke of Zhou "grasped his food and gave it away" — the world\'s hearts returned to him. Those who use power and wealth well can sustain their position.',
+      jieYue: {
+        marriage: 'Romantic abundance — singles have high-quality prospects. Those partnered may consider engagement or marriage.',
+        wealth: 'Exceptional windfall fortune; investment gains are promising. But don\'t be greedy — know when to take profits.',
+        career: 'Career advances significantly with abundant results. Good time to expand business or launch new products.',
+        health: 'Full of vitality. Suitable for high-intensity exercise or personal challenges.',
+        study: 'Excellent exam results and abundant academic harvest. Great prospects for top honors.',
+        travel: 'A perfect time for a luxury trip or reward journey. Enjoy the abundance of life.',
+        general: 'This is an extremely good sign! The joy of harvest deserves celebration. At the same time, don\'t forget to share your blessings and help others — the cycle of goodness will make you even more prosperous.',
+      },
+    },
+    ja: {
+      title: '大有の年',
+      content: '火天上にありて豊收を照らし、\n紅砲霄を沖き斗牛を貫く。\n大有の年 喜慶多し、\n善く其の財を用いて福自ずから流る。',
+      vernacular: '大吉の籤。大有卦は大豊作、大所有を象徴。将棋の炮の爆発力のように——一鳴りで人を驚かす。あなたは収穫の季節にあり、過去の努力が豊かな報いをもたらす。しかし「天に順いて休命す」——資源を善用し、福を分かち合え。',
+      story: '大有卦は上離下乾、火天上にあり万物を普く照らす。将棋で炮は子を隔てて吃子し、往往にして奇襲で勝つ。周公は哺を吐き天下の心を帰す——権力と富を善用する者こそ長久たり得る。',
+      jieYue: {
+        marriage: '感情は豊作——独身者は良質の桃花あり。パートナーがいる人は婚約や結婚を検討する時期。',
+        wealth: '偏財運は極めて良好。投資利益は期待できる。しかし貪らず、頃合いを見て利を確定せよ。',
+        career: '事業は大幅に進展し、成果は豊か。業務拡大や新製品投入に適す。',
+        health: '体力充実。高強度の運動や自己挑戦に適す。',
+        study: '試験成績は優れ、学習成果は豊か。金榜題名の望みあり。',
+        travel: '豪華旅行や自分へのご褒美旅行に良い時期。人生の豊かさを楽しめ。',
+        general: '極めて良い籤！豊作の喜びは大いに祝うに値する。同時に福を分かち合い、人を助けることを忘れずに——善の循環があなたをさらに富ませる。',
+      },
+    },
+  },
+
+  // ═══════════════════ 15. 地山謙 ═══════════════════
+  15: {
+    en: {
+      title: 'The Humble Noble One',
+      content: 'High mountains hide beneath the earth, not seeking any crown,\nThe pawn bows its head and steps forward, never looking down.\nThe humble noble one rules the self with modest grace —\nDeep virtue and open heart embrace all time and space.',
+      vernacular: 'An upper-good fortune sign. The Qian hexagram symbolizes the virtue of humility. Like the Pawn in chess — though lowly, it advances step by step, never retreating. The truly strong never show off; maintaining a low profile and a humble heart will actually bring more support and blessings.',
+      story: 'Qian — Kun above, Gen below: high mountains hidden beneath the great earth, symbolizing humility. In chess, the Pawn can only advance, never retreat — symbolizing unwavering low-profile progress. The Duke of Zhou "grasped his food three times in one meal, washed his hair three times in one bath" — humbly receiving others, winning all hearts.',
+      jieYue: {
+        marriage: 'The humble and gentle person is most popular in relationships. Lower your posture and be sincere.',
+        wealth: 'Manage money quietly — make your fortune in silence. Excessive flaunting attracts unnecessary trouble.',
+        career: 'Achieve without boasting, possess talent without arrogance. A humble attitude will win you more opportunities.',
+        health: 'Maintain peace of mind — avoid dramatic emotional swings. Cultivating the heart matters more than cultivating the body.',
+        study: 'Seek learning with humility — there is no end to knowledge. Admitting insufficiency is the path to improvement.',
+        travel: 'Travel low-key; don\'t flaunt. A humble journey has its own humble pleasures.',
+        general: 'Fullness brings loss; humility brings gain. This sign tells you: true strength comes from humility. Lower your stance, and the world will open even greater doors.',
+      },
+    },
+    ja: {
+      title: '謙謙たる君子',
+      content: '高山地に隠れて鋒を争わず、\n兵卒頭を低くし歩々従う。\n謙謙たる君子 卑しみて自ら牧め、\n厚徳虚懐 万事を容る。',
+      vernacular: '上吉の籤。謙卦は謙虚の美徳を象徴。将棋の兵卒のように——微かにしても歩々前進し決して退かない。真の強者は決して誇示しない。低い姿勢と謙虚な心を保てば、かえってより多くの支持と福報を得られる。',
+      story: '謙卦は上坤下艮、高山が大地の下に隠れ、謙虚を象徴。将棋で兵・卒は前にのみ進み後退できない——堅忍不抜の低調な前進を象徴。周公は一飯に三度哺を吐き、一沐に三度髪を握り、謙虚に人を待ち天下の心を帰した。',
+      jieYue: {
+        marriage: '謙虚で温厚な人が恋愛で最も人気がある。姿勢を低くし、誠実に向き合え。',
+        wealth: '低調に資産運用——黙って財を成せ。過度な誇示は不要なトラブルを招く。',
+        career: '功あっても誇らず、才あっても驕らず。謙虚な態度がより多くの機会をもたらす。',
+        health: '心の平静を保ち、感情の激しい起伏を避ける。心を養うことが身体を養うより重要。',
+        study: '謙虚に教えを乞い、学に限りなし。不足を認めることが進歩への道。',
+        travel: '低調に旅をし、派手に振る舞わない。平凡な旅にも平凡な楽しみあり。',
+        general: '満は損を招き、謙は益を受く。この籤が伝えること：真の力は謙虚から来る。姿勢を低くすれば、世界はより大きな門を開いてくれる。',
+      },
+    },
+  },
+
+  // ═══════════════════ 16. 雷地豫 ═══════════════════
+  16: {
+    en: {
+      title: 'Thunder Emerges from Earth',
+      content: 'Thunder bursts from earth — ten thousand things revive,\nThe horse gallops the wild plain, treading spring grass alive.\nMove with the season, heart full of joyful cheer —\nWith optimism and drive, grand vistas shall appear.',
+      vernacular: 'A medium-good fortune sign. The Yu hexagram symbolizes joy and action. Like the Horse in chess — agile, leaping, full of vitality. It\'s time to step out of your comfort zone and take action! Keep an optimistic and joyful mindset, move with the flow of the moment, and there will be fine results.',
+      story: 'Yu — Zhen above, Kun below: thunder emerging from the earth, all things roused to action. In chess, the Horse walks the day pattern — light-footed and quick. Liu Bei leaped across the Tan Stream on horseback — in crisis, the horse\'s agility saved him.',
+      jieYue: {
+        marriage: 'Romantic life is joyful — good for dates and outings. A happy heart attracts good connections.',
+        wealth: 'Finances are stable with upward potential. Suitable for small-scale investments. When your mood is good, financial luck follows naturally.',
+        career: 'The work atmosphere is pleasant — chances to join interesting projects. Showing enthusiasm will bring unexpected rewards.',
+        health: 'A joyful mood is the best medicine. Good for outdoor activities and social gatherings.',
+        study: 'High learning enthusiasm — good time to explore new fields. Happy learning doubles efficiency.',
+        travel: 'Travel fortune is excellent. A spontaneous short trip fits perfectly.',
+        general: 'Keep a joyful heart and face each day with optimism. Happiness is a choice — and the best feng shui.',
+      },
+    },
+    ja: {
+      title: '雷地を出でて奮う',
+      content: '雷地中を出でて万物蘇り、\n馬平原を奔り春の蕪を踏む。\n時に順いて動き心愉悅し、\n楽観進取して宏図を展く。',
+      vernacular: '中吉の籤。豫卦は喜びと行動を象徴。将棋の馬のように——柔軟に跳躍し、活力に満ちている。快適圏から踏み出し行動を起こす時！楽観的で愉快な気持ちを保ち、時勢に順応して動けば、良い成果が得られる。',
+      story: '豫卦は上震下坤、雷地上に出でて万物奮い立つ。将棋で馬は日字を歩み、歩調軽やか。劉備は檀溪を馬で跳躍——危急の中で馬の柔軟性が彼を救った。',
+      jieYue: {
+        marriage: '感情生活は愉悅——デートや外出に良い時期。楽しい心が良縁を引き寄せる。',
+        wealth: '財運は安定し上昇傾向。小規模投資に適す。気分が良ければ財運も自然と良くなる。',
+        career: '職場の雰囲気は愉快で面白いプロジェクトに参加するチャンスあり。熱意を示せば意外な収穫が。',
+        health: '愉悅な気持ちが最良の薬。アウトドア活動や社交の集まりに適す。',
+        study: '学習意欲が高く、新しい分野の探求に適す。楽しい学習は効率を倍増させる。',
+        travel: '旅行運は極めて良い。思い立ったら気軽な小旅行へ。',
+        general: '楽しい気持ちを保ち、楽観的に毎日を迎えよう。幸せは選択——それこそが最良の風水。',
+      },
+    },
+  },
+
+  // ═══════════════════ 17-24 ═══════════════════
+  17: {
+    en: {
+      title: 'Adapt to the Moment',
+      content: 'Thunder above the marsh — follow the moving flow,\nThe horse obeys the general\'s command, never alone to go.\nSeize the changing moment with flexible grace —\nFlow with the current and every matter finds its place.',
+      vernacular: 'A medium-good fortune sign. The Sui hexagram symbolizes following the times and adapting flexibly. Like the Horse in chess — it has a fixed movement pattern, yet can nimbly coordinate with the General\'s command. Don\'t stubbornly cling to your own views; learn to adapt to environmental changes, adjust strategies as needed, and you will remain undefeated.',
+      story: 'Sui — Dui above, Zhen below: thunder in the marsh, moving with the flow. In chess, the Horse walks the day pattern but must coordinate with the overall situation — never charging in alone. Han Xin endured the humiliation of crawling between someone\'s legs — bending and stretching as needed, ultimately becoming a peerless commander.',
+      jieYue: {
+        marriage: 'Learn to cooperate and compromise in relationships. If it\'s not a matter of principle, better to accommodate the other person.',
+        wealth: 'Markets change rapidly — investment strategies should adapt nimbly. Follow trends rather than fighting them.',
+        career: 'Adapt to company or market changes; stay flexible. Clinging to old methods may lead to obsolescence.',
+        health: 'Your body needs rhythm adjustments with the changing seasons. Following natural cycles is the best way to nurture health.',
+        study: 'Learning methods should adapt to the person and the time. If one approach doesn\'t work, try another.',
+        travel: 'Stay flexible during journeys. When unexpected things happen, go with the flow.',
+        general: 'Going with the flow doesn\'t mean drifting aimlessly — it means finding the rhythm that suits you best amid change. Be flexible and adaptable, and the road of life will grow wider.',
+      },
+    },
+    ja: {
+      title: '機に随いて応変す',
+      content: '沢上に雷あり勢いに随いて行く、\n馬は将の令に随って孤征せず。\n時に因り宜しきを制して霊活に用い、\n勢いに順いて為せば百事成る。',
+      vernacular: '中吉の籤。随卦は時勢への順応と柔軟な適応を象徴。将棋の馬のように——決まった歩き方だが、将帥の指揮に柔軟に合わせられる。固執せず、環境の変化に適応することを学び、適時に戦略を調整すれば、不敗の地に立てる。',
+      story: '随卦は上兌下震、沢中に雷あり勢いに随って動く。将棋で馬は日字を歩むが全局を見て配合すべし——孤軍深入は禁物。韓信胯下の辱め——能く屈し能く伸び、最終的に一代の兵仙となる。',
+      jieYue: {
+        marriage: '感情では協力と妥協を学ぶ。原則的な問題でなければ、相手に合わせる方が良い。',
+        wealth: '市場は変化が速く、投資戦略も柔軟に調整すべし。趨勢に従い逆らわない。',
+        career: '会社や市場の変化に適応し弾力性を保つ。古い方法に固執すれば淘汰されるかも。',
+        health: '季節の変化に合わせて生活リズムを調整。自然の規律に順応することが最も養生的。',
+        study: '学習法は人と時に応じて変える。合わない方法は別の方法を試してみる。',
+        travel: '旅の途中は柔軟さを保ち、突発的な状況には臨機応変に対応。',
+        general: '勢いに従うことは流されることではない——変化の中で自分に最も合ったリズムを見つけること。柔軟な適応力で、人生の道はより広がる。',
+      },
+    },
+  },
+
+  18: {
+    en: {
+      title: 'Setting Right the Decay',
+      content: 'Mountain wind enters the ravine — decay worms breed within,\nThe elephant trapped at field\'s heart can barely begin.\nDeep-rooted ills must be cured from the source —\nReform and clear the old to bring a fresh new course.',
+      vernacular: 'A low-luck sign. The Gu hexagram symbolizes accumulated rot and decay. Like the Elephant in chess trapped at the field\'s center, unable to move. You may be facing long-accumulated problems finally erupting — resentment in relationships, bad habits at work, or hidden health issues. Treat the root, not just symptoms. Thorough reform is the path to rebirth.',
+      story: 'Gu — Gen above, Xun below: mountain wind entering the ravine — things rotting. In chess, the Elephant walks the field pattern, and if the field center is blocked, every step becomes impossible. Shang Yang\'s reforms, Wang Anshi\'s reforms — both examples of sweeping change when deep-seated problems demanded it.',
+      jieYue: {
+        marriage: 'Old problems in the relationship must be confronted directly. Procrastination only makes things worse.',
+        wealth: 'Financial leaks need thorough inspection and repair. Short-term pain beats long-term agony.',
+        career: 'Stale practices at work need reform. Rather than muddling through, better to start fresh.',
+        health: 'Don\'t ignore your body\'s warning signals. Get a thorough checkup and find the root cause.',
+        study: 'If old study habits aren\'t working, it\'s time for a complete change of method.',
+        travel: 'Cancel or postpone unnecessary trips. Prioritize resolving the accumulated problems at hand.',
+        general: 'Though this sign is unfavorable, the positive meaning of "Gu" is "setting right what has decayed." Face the problems, solve them, and you\'ll emerge from the fire stronger than before.',
+      },
+    },
+    ja: {
+      title: '乱を撥ね正を返す',
+      content: '山風壑に入りて蠱虫生じ、\n象田心に陥り歩み難し。\n積弊は須く根本より治むべし、\n旧を革め除を新たにして新生を煥発す。',
+      vernacular: '下下の籤。蠱卦は積弊と腐敗を象徴。将棋の象が田心に困らされて身動きできないように。あなたは長期に蓄積された問題がついに爆発する局面に直面しているかも——感情の積怨、職場の陋習、健康の隠れた問題。治本せずして治標するな——徹底的な革新のみが再生の道。',
+      story: '蠱卦は上艮下巽、山風壑に入り事物腐壊。将棋で象は田字を歩み、田心が塞がれれば寸歩も難し。商鞅変法、王安石変法——いずれも積弊が深い時に大刀闊斧で改革した例。',
+      jieYue: {
+        marriage: '感情の古い問題は正面から解決する必要がある。先延ばしは状況を悪化させるだけ。',
+        wealth: '財務の漏れは徹底的に検査し修補せよ。長痛より短痛を選べ。',
+        career: '仕事の陳腐な習慣は改革が必要。苟延するより再出発せよ。',
+        health: '身体の警告信号を無視するな。徹底的に検査し病根を見つけよ。',
+        study: '古い学習習慣が効かないなら、方法を徹底的に変える時。',
+        travel: '不要不急の旅はキャンセルか延期。身近な積み重なった問題の処理を優先せよ。',
+        general: 'この籤は良くないが、「蠱」の肯定的意味は「乱を撥ね正に返す」。問題に直面し解決すれば、火の中で生まれ変わってより強くなる。',
+      },
+    },
+  },
+
+  19: {
+    en: {
+      title: 'Overseeing from Above',
+      content: 'Earth above the marsh — the vantage point is high,\nThe general leaves the nine-palace to survey the eight directions nigh.\nFrom commanding heights, the full picture is seen —\nSeize this precious moment; do not let it slip between.',
+      vernacular: 'An upper-good fortune sign. The Lin hexagram symbolizes overseeing from above, surveying the overall situation. Like the General in chess sitting in the nine-palace, commanding the full board. You have the chance to stand at a higher vantage point, seeing things clearly and making the right decisions at the critical moment. But remember — good fortune doesn\'t last forever. Seize the present.',
+      story: 'Lin — Kun above, Dui below: earth above marsh — overseeing from height. In chess, the General, though never leaving the nine-palace, can command the entire board. Qin Shi Huang unified China and ascended Mount Tai to perform the Fengshan sacrifice — consolidating his empire from a commanding height.',
+      jieYue: {
+        marriage: 'An excellent time to confess your feelings or propose. From the emotional high ground, you clearly see what you truly want.',
+        wealth: 'Seize market opportunities and act decisively. Your judgment is especially sharp right now.',
+        career: 'Your leadership ability is fully displayed. Good time to take on greater responsibilities. Take the initiative.',
+        health: 'At a peak physically. Suitable for pushing limits — marathons or extreme sports.',
+        study: 'Your vision is expansive — good for setting long-term study plans. Macro thinking matters more now than details.',
+        travel: 'Scenic spots with commanding views are most suitable. Climb high and gaze far — the heart opens wide.',
+        general: 'Opportunities are fleeting. When you see the full picture clearly, don\'t hesitate any longer. This is your best moment to show leadership and judgment.',
+      },
+    },
+    ja: {
+      title: '高きに居て下を臨む',
+      content: '地沢上に臨み勢い高く懸かる、\n帥九宮を出でて八埏を瞰る。\n高きに居て遠きを望み全局を明らかにし、\n良機を把握して遅延する莫かれ。',
+      vernacular: '上吉の籤。臨卦は高きに居て全局を監督することを象徴。将棋の将帥が九宮に坐し全局を統観するように。あなたはより高い位置から物事を見る機会があり、肝心な時機を捉えて正しい決断ができる。しかし好運は続かない——今を掴め。',
+      story: '臨卦は上坤下兌、地沢より高く、高きに居て下を臨む。将棋で将帥は九宮を出ないが全局を指揮できる。秦始皇天下統一後泰山で封禅——高きに居て帝業を固めた。',
+      jieYue: {
+        marriage: '告白や求婚に絶好のタイミング。感情の高みに立って、自分が本当に欲しいものがはっきり見える。',
+        wealth: '市場のチャンスを掴み果断に行動せよ。判断力が特に鋭い時期。',
+        career: 'リーダーシップが十分に発揮される。より大きな責任を担う適切な時期。自ら機会を求めよ。',
+        health: '体力はピーク。極限運動やマラソンに挑戦するのに適した時期。',
+        study: '視野が広がっている——長期的な学習計画を立てる好機。細部よりマクロ思考が今は重要。',
+        travel: '高きから見下ろす景勝地が最適。高きに登り遠くを望み、心が広がる。',
+        general: '機会は一瞬で過ぎ去る。全局がはっきり見えたなら、もう迷うな。これがリーダーシップと判断力を示す最良の時。',
+      },
+    },
+  },
+
+  20: {
+    en: {
+      title: 'Observe Quietly',
+      content: 'Wind sweeping over earth observes the finest hair,\nThe elephant stands aside, reading the opponent\'s air.\nWatch the changes quietly to discern false from real —\nThe hero thinks thrice before acting; that\'s the wiser deal.',
+      vernacular: 'A balanced-even sign. The Guan hexagram symbolizes observation and waiting. Like the Elephant in chess — it needs to observe the full board before it can be effective. Don\'t rush to act; first calm your mind and observe how the situation unfolds. The observer sees more clearly — sometimes stepping back gives a better view.',
+      story: 'Guan — Xun above, Kun below: wind moving over the earth, observing all things. In chess, before making a move, one should observe the full board — "The onlooker sees the game better than the player." Zhuge Liang pacified five directions without leaving his seat — relying on precise observation of the full situation.',
+      jieYue: {
+        marriage: 'First observe the other person\'s character and habits carefully. Don\'t rush into emotional investment.',
+        wealth: 'When market direction is unclear, observation is the best strategy. Watch more, act less.',
+        career: 'Don\'t rush to take sides or state your position. First observe the company politics and overall trend.',
+        health: 'Pay attention to subtle changes in your body. Prevention beats treatment. Regular health checkups.',
+        study: 'Listen more, watch more, observe more. Learn from others\' strengths and experiences.',
+        travel: 'Research your itinerary thoroughly before departure. Watch the weather and road conditions.',
+        general: 'The truly wise don\'t rush to act — they first see the full picture. While you observe, the answers often emerge on their own.',
+      },
+    },
+    ja: {
+      title: '静かに其の変を観る',
+      content: '風地上を行き秋毫を察し、\n相手は旁観して略韜を弁ず。\n静かに其の変を観て虚実を明らかにし、\n三思して後に動くは是れ英豪。',
+      vernacular: '中平の籤。観卦は観察と待機を象徴。将棋の相のように——全局を観察してこそ機能を発揮できる。行動を急がず、まず心を静めて局面の変化を観察せよ。傍観者はよりはっきり見える——時には一歩退くことでより良く見える。',
+      story: '観卦は上巽下坤、風地上を行き万物を遍く観る。将棋で着手の前にまず全局を観る——「当局者は迷い、傍観者は清し」。諸葛亮は座ったまま五路を安んじた——全局の精確な観察に頼ったのだ。',
+      jieYue: {
+        marriage: 'まず相手の人柄や習慣をよく観察せよ。急に感情的投資をしない。',
+        wealth: '市場の方向性が不明な時、観望が最良の策。多く観て少なく動く。',
+        career: '急いで立場表明や派閥選択をするな。まず会社の政治と全局の動向を観察せよ。',
+        health: '身体の細かな変化に注意。予防は治療に勝る。定期的な健康診断を。',
+        study: '多く聴き多く観て多く観察せよ。人の長所や経験から学べ。',
+        travel: '出発前に旅程を詳しく調べよ。天候や道路状況を観察。',
+        general: '真の智者は行動を急がず、まず全局をはっきり見る。観察しているうちに、答えは往々にして浮かび上がってくる。',
+      },
+    },
+  },
+
+  21: {
+    en: {
+      title: 'Biting Through',
+      content: 'Thunder and lightning — the bite of judgment falls,\nCannons roar and thunder cracks, breaking through the walls.\nDiscern right from wrong, make the decisive cut —\nA sharp knife through tangled hemp resolves the deepest rut.',
+      vernacular: 'A medium-good fortune sign. The Shi He hexagram symbolizes biting through — decision and judgment. Like the Cannon in chess striking through an intervening piece — you need to find the critical breakthrough point. You\'re facing a situation that demands decisive handling — tangled relationships, stalled projects, or difficult choices. Grit your teeth and make the decision.',
+      story: 'Shi He — Li above, Zhen below: thunder and lightning intertwined — symbolizing punishment and decision. In chess, seizing the moment to strike with the Cannon often breaks the stalemate. Judge Bao Zheng\'s verdict against Chen Shimei — clearly distinguishing right from wrong with decisive justice, an enduring legacy.',
+      jieYue: {
+        marriage: 'Problems in the relationship must be laid out clearly. Ambiguity only hurts both sides.',
+        wealth: 'Cut losses when you need to — hesitation will only cost more.',
+        career: 'Deal decisively with problematic employees or inappropriate partnerships. Delay only makes it worse.',
+        health: 'Pay attention to teeth and oral health. Small ailments untreated become major illnesses.',
+        study: 'When hitting a bottleneck, decisively change direction. Don\'t waste time on the same dead-end path.',
+        travel: 'Decisively cancel or change unreasonable travel arrangements.',
+        general: 'When you should cut, don\'t let chaos ensue. This sign tells you: it\'s time to grit your teeth and make that decision you\'ve been avoiding. Once you act decisively, you\'ll find it wasn\'t as hard as you thought.',
+      },
+    },
+    ja: {
+      title: '罰を明らかに法を敕す',
+      content: '雷電交じりて噬嗑の威を加え、\n砲轟き雷震い重囲を破る。\n是非を明らかに弁じて機に当たり断を下し、\n快刀乱麻を断ち困危を解く。',
+      vernacular: '中吉の籤。噬嗑卦は咬合と決断を象徴。将棋の炮の隔子攻撃のように——肝心な突破口を見つける必要がある。あなたは果断な処理が求められる局面にある——もつれた人間関係、停滞したプロジェクト、二者択一の苦渋。歯を食いしばり、決断を下せ。',
+      story: '噬嗑卦は上離下震、雷電交じり刑罰と決断を象徴。将棋で時機を掴んで炮で轟撃すれば往々にして膠着を打破する。包拯の美案への裁き——是非を明らかにし果断に法を執行、千古に伝わる。',
+      jieYue: {
+        marriage: '感情の問題ははっきりと言明せよ。曖昧な状態は共倒れになるだけ。',
+        wealth: '損切りすべき時は損切りせよ。躊躇すれば損失はさらに大きくなる。',
+        career: '問題ある従業員や不適切な協力関係は果断に処理せよ。遅延は悪化を招くだけ。',
+        health: '歯や口腔の問題に注意。小さな病気が大病に発展する。',
+        study: '瓶頸に当たったら果断に方向を調整せよ。同じ行き止まりで時間を浪費するな。',
+        travel: '不合理な旅程は果断に取り消すか変更せよ。',
+        general: '断つべき時に断たねば、かえって其の乱を受く。この籤が伝えること：歯を食いしばり、ずっと避けてきたあの決断を下す時が来た。果断の後、物事は想像より難しくないとわかる。',
+      },
+    },
+  },
+
+  22: {
+    en: {
+      title: 'Adornment\'s Grace',
+      content: 'Fire beneath the mountain casts a radiant glow,\nThe cannon hides behind the hill — biding time, steady and slow.\nAdornment adds its luster, it\'s true —\nBut return to simple truth: that\'s what lasts through and through.',
+      vernacular: 'A balanced-even sign. The Bi hexagram symbolizes adornment and beautification. Like the Cannon hidden behind a mountain (a screening piece) — seemingly unremarkable, yet containing hidden power. Appearance and packaging matter, but don\'t pursue surface glamour at the expense of inner substance.',
+      story: 'Bi — Gen above, Li below: fire beneath the mountain, its glow adorning the mountain\'s shape. In chess, the Cannon needs a mount — the unremarkable piece is often the key. Confucius said: "When substance exceeds refinement, one is rustic; when refinement exceeds substance, one is pedantic. Only when substance and refinement are balanced is one a noble person."',
+      jieYue: {
+        marriage: 'Appearance and first impressions are important in love, but inner sincerity is what really lasts.',
+        wealth: 'Don\'t be fooled by glossy packaging or marketing rhetoric. See through the surface and evaluate the substance.',
+        career: 'Presentation and communication skills are important. Properly packaging your ideas yields twice the result with half the effort.',
+        health: 'Outer radiance is less important than inner health. Focus on the fundamentals of diet and sleep.',
+        study: 'Make your notes and presentations attractive, but content is the core.',
+        travel: 'Plan a quality trip that isn\'t overly extravagant. Simplicity is also a form of beauty.',
+        general: 'The ideal is to cultivate both inner and outer, but if you must choose only one, always choose inner enrichment. Gorgeous exteriors fade with time; sincere inner substance grows more precious with age.',
+      },
+    },
+    ja: {
+      title: '文飾の美',
+      content: '山下に火あり華章を映し、\n砲山後に蔵れて時を待つ。\n文飾固より光彩を添うれど、\n本に返り真に帰るが最も久長なり。',
+      vernacular: '中平の籤。賁卦は修飾と美化を象徴。将棋の炮が山（駒）の後ろに隠れるように——目立たなく見えても力を秘めている。外見と包装は確かに重要だが、表面の華やかさを追い求めすぎて内面の本質を疎かにしてはいけない。',
+      story: '賁卦は上艮下離、山下に火あり火光照映。将棋で炮は台となる駒が必要——見た目は地味な駒が往往にして鍵となる。孔子曰く「質文に勝てば則ち野、文質に勝てば則ち史。文質彬彬として然る後に君子」。',
+      jieYue: {
+        marriage: '外見と第一印象は恋愛で重要——しかし内面の誠実さこそが長続きの秘訣。',
+        wealth: '華やかな包装やマーケティング話術に惑わされない。表面を見破り本質を評価せよ。',
+        career: 'プレゼンと表現力は重要。アイデアを適度にパッケージすれば事半功倍。',
+        health: '外見の輝きより内面の健康。食事と睡眠の基本を大切に。',
+        study: 'ノートやプレゼンは美しく——しかし内容こそが核心。',
+        travel: '質感はあるが過度に奢華でない旅を計画せよ。簡素もまた美の一つ。',
+        general: '内面と外見の両立が理想だが、どちらか一つしか選べないなら、常に内面の充実を選べ。華麗な外見はやがて褪せ、誠実な内面は時を経てなお新たなり。',
+      },
+    },
+  },
+
+  23: {
+    en: {
+      title: 'Mountain Crumbles',
+      content: 'The mountain crumbles, layer upon layer peels away,\nLone pawns, few soldiers — victory too far away.\nThe very foundation shakes — stay still and guard your ground,\nStop with the season and wait for the sun to come around.',
+      vernacular: 'A low-luck sign. The Bo hexagram symbolizes peeling away and collapse. Like Pawns being eliminated one by one in chess — the tide has turned. You may be facing a crisis that shakes your foundation — job insecurity, relationship breakdown, or health deterioration. At this point, do not act rashly; conserve and wait for yang energy to return.',
+      story: 'Bo — Gen above, Kun below: the mountain crumbles to the earth, layer after layer. In chess, Pawns can only advance, never retreat — once they enter deep enemy territory, they often go without returning. Emperor Chongzhen of Ming faced internal strife and external threats — the foundation was shaken, and there was no turning the tide.',
+      jieYue: {
+        marriage: 'The relationship may face a major test. If the foundation isn\'t solid, barely holding on won\'t last.',
+        wealth: 'Financial situation may deteriorate. An emergency fund is crucial. Stop all unnecessary spending.',
+        career: 'The company may face layoffs or restructuring. Prepare for the worst while keeping a low profile.',
+        health: 'Your body\'s foundation is damaged. Pay attention to bones, joints, and immune system. Rest and replenish.',
+        study: 'Studies may be disrupted by external factors. Temporarily lower your expectations; take it one step at a time.',
+        travel: 'Cancel non-essential trips. Stay in a safe environment.',
+        general: 'When the mountain crumbles and the earth splits, it seems like the worst. But after total stripping away comes recovery. In the darkest hour, dawn is already near. Protect yourself and wait patiently.',
+      },
+    },
+    ja: {
+      title: '山崩れ地裂く',
+      content: '山崩れ地裂けて層々に剝ぐ、\n兵孤しく卒寡く勢い勝ち難し。\n根基動揺し宜しく静を守るべし、\n時に順いて止まり陽の昇るを待つ。',
+      vernacular: '下下の籤。剝卦は剥落と崩壊を象徴。将棋の兵卒が一つずつ消されていくように——大勢は去った。あなたは根基が揺らぐ危機に直面しているかも——仕事が危ない、関係が壊れる、健康が悪化する。この時は妄りに動かず、守成を主とし、陽気が戻るのを待て。',
+      story: '剝卦は上艮下坤、山崩れて地に落ち層々剥落。将棋で兵・卒は前にのみ進み後退できず、一旦敵陣深くに入れば往往にして去って帰らず。明朝崇禎帝は内憂外患に直面し、根基すでに動き、回天の力なし。',
+      jieYue: {
+        marriage: '感情関係が重大な試練に直面するかも。基礎が不安定なら、無理に維持しても長続きしない。',
+        wealth: '財務状況が悪化する恐れ。緊急予備金が重要。不要不急の出費をすべて停止せよ。',
+        career: '会社が人員整理や再編に直面するかも。最悪に備えつつ、低姿勢を保て。',
+        health: '身体の根基が損なわれている。骨骼、関節、免疫系に注意。十分な休息と元気補充を。',
+        study: '学業が外部要因で妨げられるかも。一時的に期待値を下げ、一歩ずつ進む。',
+        travel: '不要不急の旅はキャンセル。安全な環境に身を置け。',
+        general: '山崩れ地裂け——最悪の状況。しかし剥極まれば必ず復す。最も暗い時、夜明けはすでに近い。自分を守り、忍耐強く待て。',
+      },
+    },
+  },
+
+  24: {
+    en: {
+      title: 'Return of the Light',
+      content: 'Thunder within the earth — yang energy returns anew,\nHorse hooves tread spring snow, announcing the year\'s debut.\nThe first origin returns, all images renew —\nAt winter solstice, yang is born, ten thousand doors open to view.',
+      vernacular: 'An upper-good fortune sign. The Fu hexagram symbolizes return and rebirth. Like the Horse treading spring mud in chess — new vitality is stirring. After the long cold winter, spring has finally arrived. What was lost will return; what was interrupted will begin anew. This is the moment when a single yang line returns, bringing renewal.',
+      story: 'Fu — Kun above, Zhen below: thunder beneath the earth, a single yang just born. In chess, during the endgame — what seems hopeless often holds hidden revival. At winter solstice, a single yang is born — this is precisely the spirit of Fu: at the coldest moment, yang energy is already quietly returning.',
+      jieYue: {
+        marriage: 'Hope for reconciliation after a breakup, or a fresh start after emotional wounds. Give yourself and the other person a chance.',
+        wealth: 'Finances are bottoming and rebounding. Previous losses have a chance to be slowly recouped.',
+        career: 'The unemployed will find new work; entrepreneurs will see a turnaround. It\'s the right moment to start anew.',
+        health: 'Your body is gradually recovering after illness. Pay attention to nurturing health — yang energy is rising.',
+        study: 'A good time to retake or make up exams. You\'ll be better prepared this time.',
+        travel: 'Return to an old place or replan a trip — you\'ll experience it with entirely new eyes.',
+        general: 'Winter ends, spring comes — all things are renewed. This is the best time to "start again." Let the past be the past; infinite possibilities await you in the future.',
+      },
+    },
+    ja: {
+      title: '一元 復た始まる',
+      content: '雷地中にありて陽気回り、\n馬蹄雪を踏みて春を報じて来たる。\n一元復始して新たに象を更め、\n冬至陽生じて万戸開く。',
+      vernacular: '上吉の籤。復卦は回帰と再生を象徴。将棋で馬が春泥を踏むように——新しい生気がすでに動き始めている。長い寒冬を過ぎ、春がついに来た。失ったものは戻り、中断したものは再び始まる。一陽来復の好機。',
+      story: '復卦は上坤下震、雷地下にあり一陽初めて生ず。将棋で残局段階——山窮水尽に見えて往往にして柳暗花明。冬至一陽生——まさに復卦の精神：最も寒い時、陽気はすでに密かに戻っている。',
+      jieYue: {
+        marriage: '別れからの復縁の望み、または感情の傷からの再出発。自分にも相手にもチャンスを与えよ。',
+        wealth: '財務状況は底を打ち反発。以前の損失は徐々に回収できる見込み。',
+        career: '失業者は新しい仕事を見つけ、起業家は転機を迎える。再出発の好機。',
+        health: '病後の身体が徐々に元気を回復中。養生に注意——陽気は上昇している。',
+        study: '再履修や追試の好機。今回はより十分な準備ができている。',
+        travel: '旧地再訪や旅程の再計画——まったく新しい感覚で体験できる。',
+        general: '冬尽き春来たり、万象更新。これは「再出発」の最良の時。過去は過去とし、未来には無限の可能性が待っている。',
+      },
+    },
+  },
+
+  // ═══════════════════ 25-32 ═══════════════════
+  25: {
+    en: {
+      title: 'Unexpected Calamity',
+      content: 'Beneath heaven thunder rolls — sudden storms arise,\nThe horse stumbles — what can one do, though wise?\nAn undeserved disaster, hard to foresee —\nStay true to the right path, and demons will flee.',
+      vernacular: 'A balanced-even sign. The Wu Wang hexagram symbolizes unexpected misfortune. Like the Horse in chess suddenly having its leg blocked — caught off guard. You may have encountered undeserved calamity — despite doing nothing wrong, you\'re inexplicably caught up in problems. What matters most now is to stay upright and not let the unexpected deviate you from the right path.',
+      story: 'Wu Wang — Qian above, Zhen below: thunder moves beneath heaven — sudden disruption. In chess, the Horse suddenly blocked — even the best-laid plan can fail in an instant. "The old man at the frontier lost his horse — who knows if it wasn\'t a blessing?" Sometimes undeserved calamity brings unexpected good fortune.',
+      jieYue: {
+        marriage: 'Unexpected situations may arise in relationships (third party interference or family opposition). Don\'t panic — true gold fears no fire.',
+        wealth: 'May encounter unexpected financial loss. Manage risk well; don\'t put all eggs in one basket.',
+        career: 'May be unfairly drawn into office politics or blamed for project failures. Your innocence will be known in time.',
+        health: 'Watch for accidental injuries, especially in sports and traffic situations.',
+        study: 'Exams or interviews may encounter unexpected situations. Prepare for the worst.',
+        travel: 'Purchase travel insurance before departing. Have contingency plans for emergencies.',
+        general: 'Some things in life cannot be predicted or controlled. Rather than blaming heaven and others, better to face them calmly. Hold onto your integrity and goodness, and misfortune will eventually leave you.',
+      },
+    },
+    ja: {
+      title: '無妄の災い',
+      content: '天下に雷行き驟波を起こし、\n馬前蹄を失う——奈何ともすべきか。\n無妄の災い 予料し難し、\n正を守り阿らずして自ずから魔を免る。',
+      vernacular: '中平の籤。无妄卦は意外な災禍を象徴。将棋の馬が突然に足を蹩かれるように——不意を突かれる。あなたは無妄の災いに遭ったかも——明らかに何も悪いことをしていないのに、理由もなく巻き込まれる。今最も大事なのは正直を保ち、アクシデントで正道から逸れないこと。',
+      story: '无妄卦は上乾下震、天下に雷行き突発の変事。将棋で馬が突然蹩脚され——どんなに良い計画も瞬間に無効になる。塞翁馬を失う、焉んぞ福に非ざるを知らんや——無妄の災いは時に禍転じて福となる。',
+      jieYue: {
+        marriage: '感情で予期せぬ状況（第三者の介入や家族の反対）が発生するかも。慌てるな——真金は火を畏れず。',
+        wealth: '予期せぬ財務損失の恐れ。リスク管理を徹底し、一か所に集中投資するな。',
+        career: '理不尽にオフィス政治やプロジェクト失敗の責任に巻き込まれるかも。清廉は人の心にあり。',
+        health: '不慮の事故に注意——特に運動や交通面で。',
+        study: '試験や面接で予想外の事態が起きるかも。最悪に備えて準備せよ。',
+        travel: '出発前に保険加入。突発事態への対応策を用意せよ。',
+        general: '人生には予測も制御もできないことがある。天を怨み人を尤るより、坦然と向き合う方が良い。自分の正直と善良を守り続ければ、災いはやがて遠ざかる。',
+      },
+    },
+  },
+
+  26: {
+    en: {
+      title: 'Great Accumulation',
+      content: 'The mountain holds heaven\'s treasure — gathering wind of might,\nPawns hide in the valley, awaiting the moment to strike.\nYears of nurtured light and gathered power —\nOne great deed, and all the world shall honor.',
+      vernacular: 'An upper-good fortune sign. The Da Xu hexagram symbolizes vast accumulation and preparation. Like the Pawns in chess — seemingly insignificant, yet they have already gathered the strength to cross the river. You have been quietly preparing for a long time — knowledge, connections, and capital are all in place. Though you are still in the accumulation phase, the moment of eruption is drawing near.',
+      story: 'Da Xu — Gen above, Qian below: heaven within the mountain — boundless potential stored within. In chess, Pawns before crossing the river seem powerless; after crossing, they can move laterally with great effect. Zhuge Liang lived in seclusion in Longzhong for ten years, reading widely and making extensive connections — upon emerging, he astonished the world.',
+      jieYue: {
+        marriage: 'Long-standing friendship may transform into love. The deeper the foundation of the relationship, the more solid the future.',
+        wealth: 'Long-term investments or savings are about to show results. Don\'t rush to cash out — let them continue growing.',
+        career: 'Years of accumulated expertise are finally being noticed. Opportunities for promotion or poaching are right before you.',
+        health: 'Long-maintained health habits are starting to show effects. Keep it up.',
+        study: 'A deep academic foundation lets you handle new challenges with ease.',
+        travel: 'A long-planned journey can finally take place. Worth looking forward to.',
+        general: 'Da Xu means "great accumulation" — all your past preparation will not go to waste. When opportunity comes, you\'ll find you\'ve been ready all along.',
+      },
+    },
+    ja: {
+      title: '厚く積んで薄く発す',
+      content: '山天の宝を蔵して雄風を蓄え、\n兵山谷に蔵れて時を待って攻む。\n光を韜み晦を養いて多年の力、\n一挙に名を成して天下崇める。',
+      vernacular: '上吉の籤。大畜卦は大量の蓄積と準備を象徴。将棋の兵卒のように——目立たないが、すでに河を渡る力を蓄えている。あなたは長い間黙々と準備してきた——知識、人脈、資金がすべて揃っている。まだ蓄力段階だが、爆発の時は間近に迫っている。',
+      story: '大畜卦は上艮下乾、山中に天あり無窮を蘊蔵。将棋で兵卒は河を渡る前は無力に見えるが、渡った後は左右に横行できる。諸葛亮隆中に隐居すること十年——書を博く読み名士と広く交わり、山を出て一鳴驚人。',
+      jieYue: {
+        marriage: '長い友情が愛情に変わるかも。感情の基礎が深いほど、未来は穩固になる。',
+        wealth: '長期投資や貯蓄がまもなく成果を見せる。急いで利益確定せず、成長を続けさせよ。',
+        career: '多年蓄積した専門能力がついに注目される。昇進や引き抜きのチャンスは目の前にある。',
+        health: '長期堅持してきた健康習慣が効果を見せ始めた。継続せよ。',
+        study: '深い学術的基礎が新しい挑戦でも余裕をもたらす。',
+        travel: '長く計画していた旅がついに実現できる。期待に値する。',
+        general: '大畜とは「大いなる蓄積」——あなたの過去のすべての準備は無駄にならない。機会が来た時、自分はとっくに準備万端だったと気づくだろう。',
+      },
+    },
+  },
+
+  27: {
+    en: {
+      title: 'Nourishing Life',
+      content: 'Thunder beneath the mountain nourishes true essence,\nThe horse grazes on southern hills in quiet presence.\nThe way of nourishment lies in self-reliance —\nGuard your words and deeds, and blessings will advance.',
+      vernacular: 'A medium-good fortune sign. The Yi hexagram symbolizes nourishment and self-sustenance. Like the Horse put out to pasture on southern hills — temporarily resting and regenerating. You need to pay attention to your physical and mental health — diet, rest, and emotional management. Also beware of "disaster from the mouth" — be cautious in word and deed. Self-reliance is the long-term path.',
+      story: 'Yi — Gen above, Zhen below: thunder beneath the mountain, nourishing all things. In chess, before the opening, first set up your formation — nurture your energy and sharpen your edge. Zhuangzi\'s "The Master of Nurturing Life": "My life has a limit, but knowledge has no limit." The way of nurturing lies in following nature.',
+      jieYue: {
+        marriage: 'Relationships need "nourishment." Spend time with your partner — steady, patient care matters more than passion.',
+        wealth: 'Self-reliance and down-to-earth earning is the most reliable path. Beware of get-rich-quick schemes.',
+        career: 'Focus on "development" at work — mentoring subordinates and building networks.',
+        health: 'An excellent time for nurturing your body. Traditional Chinese medicine wellness and food therapy are fitting.',
+        study: 'Learning needs "digestion and absorption." Don\'t bite off more than you can chew.',
+        travel: 'Suitable for wellness retreats — hot springs or forest bathing are excellent.',
+        general: 'Take care of yourself first, then you\'ll have the capacity to care for others. The body is the capital of revolution; speech is the bridge of human connection. Nurture body and heart — neither can be neglected.',
+      },
+    },
+    ja: {
+      title: '頤養 天年を養う',
+      content: '山下に雷あり正元を養い、\n馬南山に放たれ草を食み蕃える。\n頤養の道は自ら食むを求め、\n言を謹み行いを慎めば福門に臨む。',
+      vernacular: '中吉の籤。頤卦は養生と自養を象徴。将棋で馬が南山に放たれ——一時の休養と再生。あなたは自分の身心の健康——食事、作息、感情管理に注意を払う必要がある。同時に「禍は口から出づ」——言行を謹め。自力更生、他人に頼らないことが長久の道。',
+      story: '頤卦は上艮下震、山下に雷あり万物を養育。将棋で開局前にまず陣を整え精を養い鋭を蓄う。荘子養生主篇：「吾が生や涯り有り、知や涯り無し」。養生の道は自然に順応することにあり。',
+      jieYue: {
+        marriage: '感情は「滋養」が必要。一緒に過ごす時間を大切に——細く長い気遣いが激情より大切。',
+        wealth: '自力更生、着実に稼ぐのが最も穩妥。不労所得の考えには警戒を。',
+        career: '職場での「育成」に注力——部下の育成、人脈構築を。',
+        health: '身体を養生する良い時期。漢方養生や食療養生が適している。',
+        study: '学習は「消化吸収」が必要。欲張って噛み切れないほど詰め込まない。',
+        travel: '養生旅行に適す——温泉や森林浴が良い。',
+        general: '自分を大切にできてこそ、人を大切にできる。身体は革命の資本、言葉は人間関係の橋。身を養い心を養う——どちらも欠かせない。',
+      },
+    },
+  },
+
+  28: {
+    en: {
+      title: 'Excess Beyond Measure',
+      content: 'The marsh floods the wooden boat — wild winds and waves rage,\nThe cannon\'s roar, too fierce, turns back to cause its own damage.\nGoing too far is worse than not going far enough —\nThe Middle Way is the prescription, plain but tough.',
+      vernacular: 'A balanced-even sign. The Da Guo hexagram symbolizes excess and extremes. Like the Cannon in chess — its power is great, but overuse exposes weakness. You may be going too far in some area — workaholism, overspending, or excessive emotional investment. Know when to stop; moderation is the only sustainable path.',
+      story: 'Da Guo — Dui above, Xun below: the marsh submerges the wooden boat — pressure too great. In chess, using the Cannon too much leaves the rear vulnerable. The Doctrine of the Mean: "Going too far is as bad as not going far enough" — anything taken to excess becomes harmful.',
+      jieYue: {
+        marriage: 'Being too dependent or too distant in love are both unhealthy. Find the balance point.',
+        wealth: 'Over-concentration or excessive risk-taking in investments both need adjustment. Diversify your risk.',
+        career: 'Workaholics, beware of burnout. Excessive effort doesn\'t necessarily bring proportional returns.',
+        health: 'Exercising too much or dieting too hard will harm your body. Do what is within your capacity.',
+        study: 'Studying excessively actually reduces efficiency. Rest appropriately so the brain can digest and absorb.',
+        travel: 'A schedule packed too full prevents you from truly enjoying the journey. Leave some blank space.',
+        general: 'Everything has its proper measure — excess becomes disaster. Passion is good, but fanaticism wounds; effort is good, but overexertion damages. Find the balance point, and life\'s journey can go far.',
+      },
+    },
+    ja: {
+      title: '過ぎたるは猶及ばざるが如し',
+      content: '沢木舟を滅し風浪狂い、\n砲声烈し過ぎて反って傷と成る。\n過ぎたるは猶及ばざるが如し止まるを知れ、\n中庸の道こそ良方。',
+      vernacular: '中平の籤。大過卦は過度と極端を象徴。将棋の炮の威力は大きいが、使いすぎると弱点を露呈する。あなたはどこかでやりすぎているかも——仕事中毒、過度の消費、感情的なのめり込み。適度で止まることを知れ——中庸こそ持続の道。',
+      story: '大過卦は上兌下巽、沢水木舟を没し圧力過大。将棋で炮を多用しすぎると後防が空虚になる。中庸の道：「過ぎたるは猶及ばざるが如し」——何事もやりすぎは良くない。',
+      jieYue: {
+        marriage: '依存しすぎたり冷淡すぎたり——どちらも健康ではない。バランスを見つけて。',
+        wealth: '投資の過度集中や過度冒険はいずれも調整が必要。リスク分散を。',
+        career: 'ワーカホリックは燃え尽きに注意。過度の努力は必ずしも対等のリターンをもたらさない。',
+        health: '運動のしすぎや過激なダイエットは身体を傷つける。量力而行。',
+        study: '勉強しすぎるとかえって効率が下がる。適度な休息で脳に消化吸収させる。',
+        travel: '日程を詰め込みすぎると旅を楽しめない。空白の時間を残して。',
+        general: 'すべてのことに度があり、過ぎれば災いとなる。情熱は良いが狂熱は傷つく。努力は良いが命がけは損なう。バランスを見つければ、人生は長く歩ける。',
+      },
+    },
+  },
+
+  29: {
+    en: {
+      title: 'Water\'s Perilous Path',
+      content: 'Abyss upon abyss — the water\'s force is fierce and strong,\nThe chariot rides the treacherous way with steps steady and long.\nThrough trials and hardships, the heart grows ever more still —\nConstant dripping wears through stone; see the wonder of its will.',
+      vernacular: 'A balanced-even sign. The Kan hexagram symbolizes danger and trial. Like the Chariot in chess — it sweeps unhindered, yet if it falls into a trap, it too can be trapped. You may be facing a series of challenges and tests, but Kan also tells us — water can wear through stone; persistence will eventually overcome all difficulties.',
+      story: 'Kan — both above and below are Kan: layers of danger overlapping. In chess, the Chariot has the greatest power but is also the most targeted. Yu the Great controlled the floods for thirteen years, passing his own home three times without entering — with perseverance and wisdom, he overcame the waters.',
+      jieYue: {
+        marriage: 'The path of love may be bumpy, but relationships tested by hardship are the most sincere.',
+        wealth: 'Finances may face cash-flow difficulties. Stay calm and seek solutions.',
+        career: 'Work challenges come one after another. Persevere — each one overcome is growth.',
+        health: 'May face chronic illness or recurring old injuries. Treat proactively; don\'t delay.',
+        study: 'Learning bottlenecks need time to break through. Persist — constant dripping wears through stone.',
+        travel: 'Journeys may encounter many twists and turns, but they are also a form of experience.',
+        general: 'Life is like wading through water — sometimes deep, sometimes shallow. When you encounter rapids, don\'t panic — experience is the best guide. Every difficulty is making you stronger.',
+      },
+    },
+    ja: {
+      title: '水行くこと険しき道',
+      content: '重坎重々水勢兇し、\n車険しき道を行くも歩み従容なり。\n磨難を経歴して心は愈々定まり、\n滴水石を穿ちて奇功を見る。',
+      vernacular: '中平の籤。坎卦は危険と試練を象徴。将棋の車のように——縦横無阻だが、罠に陥れば閉じ込められもする。あなたは連続する挑戦と試練に直面しているかも。しかし坎卦は同時に教えてくれる——水は石を穿つことができる。持ち続ければ、ついにあらゆる困難を克服できる。',
+      story: '坎卦は上下皆坎、重危相畳む。将棋で車は威力最大だが最も狙われやすい。大禹治水十三年、三たび家門を過ぎても入らず——恒心と知恵で水患を克服した。',
+      jieYue: {
+        marriage: '感情の道は起伏があるかも——しかし試練を経た感情こそ真摯。',
+        wealth: '資金繰りに困難が生じるかも。冷静さを保ち解決策を探れ。',
+        career: '仕事の難関が次々と来る。耐え抜け——克服するたびに成長がある。',
+        health: '慢性疾患や旧傷の再発に悩まされるかも。積極的に治療し、遅延するな。',
+        study: '学習の瓶頸は突破に時間がかかる。持ち続ければ、水滴石を穿つ。',
+        travel: '旅路では多くの曲折があるかも——しかしそれも一つの経験。',
+        general: '人生は川を渡るように——深いところも浅いところもある。危険な瀬に遭っても慌てるな——経験が最良の案内人。すべての困難があなたをより強くする。',
+      },
+    },
+  },
+
+  30: {
+    en: {
+      title: 'Radiance Shines Bright',
+      content: 'Fire doubled upon fire illuminates the sky\'s bright dome,\nCannons linked in succession break the enemy\'s home.\nCling to the way of righteousness — your radiance will gleam —\nWith gentle grace and humble heart, every endeavor shall succeed.',
+      vernacular: 'A medium-good fortune sign. The Li hexagram symbolizes brightness and attachment. Like the Cannon in chess — it needs a mount to unleash its power. You need to find the right "attachment point" — a good platform, a good mentor, or a proper goal — in order to shine and radiate.',
+      story: 'Li — both above and below are Li: brightness layered upon brightness. In chess, the Cannon must attach to another piece (the mount) to attack. Zhuge Liang attached himself to Liu Bei, and Liu Bei attached himself to Zhuge Liang — ruler and minister mutually attached to achieve great deeds.',
+      jieYue: {
+        marriage: 'In love, mutually supporting and illuminating each other is the healthiest relationship. Find "the right person."',
+        wealth: 'Find a good investment platform or financial advisor, and your financial path will flow more smoothly.',
+        career: 'Attach yourself to a good team or company, and your talents will be noticed.',
+        health: 'Keep a bright mindset — positive energy benefits physical and mental health.',
+        study: 'Find the right learning resources and mentors, and learning effectiveness will multiply.',
+        travel: 'Set out toward the direction of sunlight — the journey will be filled with brightness.',
+        general: 'Brightness and passion are your greatest assets. Find the right attachment point, and your radiance will illuminate both yourself and others.',
+      },
+    },
+    ja: {
+      title: '光明普く照らす',
+      content: '重離畳みて焰天明を照らし、\n砲火連環して敵営を破る。\n正道に依附して光輝顕れ、\n柔順謙和にして万事興る。',
+      vernacular: '中吉の籤。離卦は光明と依附を象徴。将棋の炮のように——砲架に依附してこそ威力を発揮できる。あなたは正しい「依附点」——良いプラットフォーム、良い導師、正しい目標——を見つけてこそ、光を放ち熱を発することができる。',
+      story: '離卦は上下皆離、光明相畳む。将棋で炮は他の駒（砲架）に依附してこそ攻撃できる。諸葛亮は劉備に依附し、劉備は諸葛亮に依附した——君臣互いに依附してこそ大業を成せた。',
+      jieYue: {
+        marriage: '感情では互いに支え合い照らし合うことが健康な関係。「正しい人」を見つけよ。',
+        wealth: '良い投資プラットフォームや理財顧問を見つければ、財路はより順調に。',
+        career: '良いチームや会社に依附すれば、あなたの才能は注目される。',
+        health: '気持ちを明るく保て——ポジティブなエネルギーは身心の健康に有益。',
+        study: '正しい学習リソースと導師を見つければ、学習効果は倍増する。',
+        travel: '陽光の方向へ出発せよ——道中は光明に満ちている。',
+        general: '光明と情熱はあなたの最大の資産。正しい依附点を見つければ、あなたの光は自分も他人も照らし出す。',
+      },
+    },
+  },
+
+  31: {
+    en: {
+      title: 'Heart to Heart',
+      content: 'Mountain and marsh exchange their breath — deep resonance flows,\nPawns united in purpose sever gold with their blows.\nTwo hearts in mutual joy, yin and yang combined —\nA single point of understanding links mind to mind.',
+      vernacular: 'An upper-good fortune sign. The Xian hexagram symbolizes resonance and romance. Like the Pawns in chess — single-minded, advancing without distraction. This is the most important love sign in the I Ching. Whether in romance, friendship, or partnership, there will be resonance and mutual understanding. Open your heart and accept the goodwill of others.',
+      story: 'Xian — Dui above, Gen below: mountain and marsh share breath — man and woman in resonance. In chess, red and black, though opponents, achieve one complete game together. Sima Xiangru and Zhuo Wenjun — a single song of "Phoenix Seeking His Mate" — two hearts linked by unspoken understanding.',
+      jieYue: {
+        marriage: 'The ultimate romantic sign! Singles will meet someone who moves their heart; those partnered will see their relationship deepen.',
+        wealth: 'Partnerships are harmonious — an excellent time for joint ventures.',
+        career: 'Team chemistry is perfect — colleague resonance and cooperation are at their peak.',
+        health: 'Spiritual fulfillment brings physical health. A joyful heart is the best tonic.',
+        study: 'Great interaction with classmates or teachers. Exchanging ideas and discussions yield rich rewards.',
+        travel: 'Travel with your beloved and create beautiful memories together.',
+        general: '"Xian" is the ancient form of "Gan" (to feel). Nothing in the world is more beautiful than "hearts connecting without words." Open your heart and feel the love and kindness around you.',
+      },
+    },
+    ja: {
+      title: '心心相印す',
+      content: '山沢気を通じて感応深く、\n兵卒心を同じくして金を断つに利あり。\n両情相悦び陰陽合し、\n心有りて霊犀一点通ず。',
+      vernacular: '上吉の籤。咸卦は感応と感情を象徴。将棋の兵卒のように——心に雑念なく勇往邁進。これは易経で最も重要な恋愛の籤。恋愛、友情、協力関係——いずれも感応と共鳴がある。心を開き、人の善意を受け入れよ。',
+      story: '咸卦は上兌下艮、山沢気を通じ男女感応。将棋で紅黒双方は敵ながら一局の棋を共に成就させる。司馬相如と卓文君——一曲鳳求凰、心有りて霊犀一点通ず。',
+      jieYue: {
+        marriage: '最良の桃花籤！独身者は心動かされる相手に出会い、パートナーがいる人は感情がさらに深まる。',
+        wealth: '協力相手との関係は良好。共同起業の好機。',
+        career: 'チームの呼吸は最高。同僚間の感応と協力がピークに達する。',
+        health: '心の充実が身体の健康をもたらす。楽しい気持ちが最高の薬。',
+        study: '同級生や先生との良好な交流。議論で収穫豊か。',
+        travel: '愛する人との旅——美しい思い出を作れ。',
+        general: '「咸」は「感」の古字。世の中で最も美しいことは「心有霊犀」——心が通じ合うこと。心を開き、周りの愛と善意を感じ取れ。',
+      },
+    },
+  },
+
+  32: {
+    en: {
+      title: 'Everlasting Endurance',
+      content: 'Thunder and wind in mutual motion — the Way has no end,\nElephant and horse sustain each other — on them depend.\nSun and moon orbit with eternal light —\nSteadfast and true, ten thousand years shine bright.',
+      vernacular: 'An upper-good fortune sign. The Heng hexagram symbolizes endurance and eternity. Like the Elephant and Horse working together in chess — stable and lasting. This is a sign about long-term cultivation — relationships need long nurturing, careers need sustained investment. Don\'t chase quick results; steady and true is the long-lasting way.',
+      story: 'Heng — Zhen above, Xun below: thunder and wind in mutual interplay — eternal as heaven and earth. In chess, Elephant and Horse complement each other in defense — steady and enduring. The story of the Foolish Old Man who moved the mountain tells us: with perseverance, metal and stone can be carved.',
+      jieYue: {
+        marriage: 'The ultimate sign for long-term commitment. The relationship is stable — good for discussing marriage.',
+        wealth: 'Long-term investment beats short-term trading. Regular fixed-amount investing is the most stable strategy.',
+        career: 'A stable work environment is more valuable than a high-paying but turbulent job. Cultivate patiently.',
+        health: 'Establish long-term health habits — more important than chasing quick weight loss or fitness results.',
+        study: 'Learning is a lifelong endeavor. Continuous progress matters more than talent.',
+        travel: 'Suited for slow, long-distance journeys — savor each place carefully.',
+        general: 'Heaven and earth may end someday, but this heart\'s devotion knows no end. True success and happiness both come from long persistence. Find the right direction, and then persevere.',
+      },
+    },
+    ja: {
+      title: '天長地久 久しきを経る',
+      content: '雷風相薄りて道窮まり無く、\n相馬互いに持ちて勢い空しからず。\n日月運行して恒久に照らし、\n堅貞自守して万年同じ。',
+      vernacular: '上吉の籤。恒卦は持久と永続を象徴。将棋で相と馬の組み合わせ走法のように——安定して持続的。これは長期経営についての籤——感情は長く育てる必要があり、事業は持続的な投入が必要。速成を求めず、着実にこそ長久の道。',
+      story: '恒卦は上震下巽、雷風相薄り天長地久。将棋で相馬配合の防守は穩固持久。愚公山を移すの物語が教えること：持続すれば、金石も鏤むべし。',
+      jieYue: {
+        marriage: '長期関係の最良の籤。感情は安定——結婚の話を進めるのに適す。',
+        wealth: '長期投資は短期売買に勝る。定期定額が最も穩健な戦略。',
+        career: '安定した職場環境は高給だが動蕩する仕事より価値がある。忍耐強く耕耘せよ。',
+        health: '長期的な健康習慣を確立せよ——速効の減量や筋トレより重要。',
+        study: '学習は一生の仕事。持続的な進歩が才能より大切。',
+        travel: '長距離のスローな旅に適す——各地をじっくり味わえ。',
+        general: '天長地久時ありて尽くとも、此の心綿々として絶ゆる期なし。真の成功と幸福はすべて長い堅持から来る。正しい方向を見つけ、そして持ち続けよ。',
+      },
+    },
+  },
+
+  // ═══════════════════ 33-44 ═══════════════════
+  33: {
+    en: {
+      title: 'Retreat with Grace',
+      content: 'Heaven above the mountain — the momentum wanes,\nThe general retreats to the deep palace, guarding what remains.\nTo withdraw at the crest — this is the noble one\'s art —\nRetreat to advance, and safeguard your heart.',
+      vernacular: 'A balanced-even sign. The Dun hexagram symbolizes retreat and concealment. Like the General retreating deep into the nine-palace — using withdrawal as advance. Sometimes retreating is not cowardice but a wise choice. When petty people dominate or the timing isn\'t right, temporarily avoiding the edge while preserving your strength is the intelligent move.',
+      story: 'Dun — Qian above, Gen below: heaven above the mountain — the noble one retreats into seclusion. In chess, the General facing danger finds retreat the best choice. Fan Li, after helping King Goujian of Yue restore his kingdom, sailed away on the five lakes — retreating at the crest, he achieved a peaceful end.',
+      jieYue: {
+        marriage: 'If the other person doesn\'t treasure you in the relationship, it\'s better to temporarily withdraw. Give each other space to think.',
+        wealth: 'When the market is overheated, withdrawing to observe is wise. Don\'t cling to the last penny of profit.',
+        career: 'When company politics are complex, protect yourself wisely. Don\'t act on impulse and force yourself into the spotlight.',
+        health: 'When overly exhausted, know to step back and rest. Pushing too hard only hurts yourself.',
+        study: 'When hitting a bottleneck, temporarily let go. Return after shifting your mindset.',
+        travel: 'Cancel or adjust dangerous travel plans. Safety first.',
+        general: 'The test between advance and retreat is one of wisdom, not courage. Knowing when to retreat requires more wisdom than knowing when to advance. Take one step back — the sea and sky open wide.',
+      },
+    },
+    ja: {
+      title: '急流に勇退す',
+      content: '天山の上にありて勢い将に闌めんとす、\n帥深宮に退き九関を守る。\n急流に勇退するは真の君子、\n退を以て進と為して平安を保つ。',
+      vernacular: '中平の籤。遯卦は退避と隠藏を象徴。将棋で将帥が九宮の奥深くに退くように——退をもって進とする。時に退くことは懦弱ではなく智慧の選択。小人が道を塞ぎあるいは時機が合わない時は、一時的に鋒を避けて実力を保持するのが明智の挙。',
+      story: '遯卦は上乾下艮、天山の上にあり君子退隱。将棋で将帥が危険に遭った時、退守が最良の選択。范蠡は越王勾践の復国を助けた後、五湖に舟を泛かべ——急流勇退して善終を得た。',
+      jieYue: {
+        marriage: '相手があなたを大切にしないなら、一時的に退いた方が良い。互いに考えるスペースを与えよ。',
+        wealth: '市場が過熱した時、退場して観望するのが賢明。最後の一銭の利益に執着するな。',
+        career: '会社政治が複雑な時は、身を明らかにして保て。意気に駆られて強出するな。',
+        health: '過度に疲れた時は一歩退いて休むことを知れ。無理をしても自分を傷つけるだけ。',
+        study: '瓶頸に当たったら一時的に手放せ。気分転換してから戻れ。',
+        travel: '危険な旅行計画は取り消すか調整せよ。安全第一。',
+        general: '進退の間で試されるのは勇気ではなく智慧。いつ退くべきかを知ることは、いつ進むべきかを知るより智慧がいる。一歩退けば、海闊天空。',
+      },
+    },
+  },
+
+  34: {
+    en: {
+      title: 'Great Strength Strikes',
+      content: 'Thunder above heaven — momentum surges and breaks,\nThe horse leaps past hill and pass, through the enemy it takes.\nWith upright brilliance, launch the mighty deed —\nPrevail through strength; do not delay or concede.',
+      vernacular: 'An upper-good fortune sign. The Da Zhuang hexagram symbolizes robust power and great strength. Like the Horse in chess — vigorous and unstoppable. You are at your strongest phase; it\'s time to show your strength and strike decisively. But Da Zhuang also reminds: use strength with integrity and fairness — never bully the weak.',
+      story: 'Da Zhuang — Zhen above, Qian below: thunder in heaven — a mighty, resounding force. In chess, the Horse\'s agility combined with attacking power can sweep away all resistance. Wei Qing and Huo Qubing struck north against the Xiongnu — the momentum of Da Zhuang swept across the northern desert.',
+      jieYue: {
+        marriage: 'Show confidence and charm; take the initiative. But don\'t be too aggressive and frighten the other person.',
+        wealth: 'The time for bold action has come. But manage risk well — it\'s not blind recklessness.',
+        career: 'The best moment for proposals, presentations, and negotiations. Your professional ability and presence are at their peak.',
+        health: 'Full of vitality — suitable for challenging high-intensity sports or physical training.',
+        study: 'Face exams or competitions with full confidence. Your strength is sufficient for the challenge.',
+        travel: 'Suitable for adventurous travel — challenge your limits.',
+        general: 'This is a sign full of power. When you have the strength, bravely show it. But remember: the truly strong win people over with virtue, not force.',
+      },
+    },
+    ja: {
+      title: '強勢出撃',
+      content: '雷天上にありて勢い奔騰し、\n馬関山を躍りて敵層を破る。\n正大光明にして壮挙を行い、\n強を以て勝を制し遅疑する莫かれ。',
+      vernacular: '上吉の籤。大壮卦は剛強壮大を象徴。将棋の馬のように——矯健有力、勢い止められない。あなたは実力が最も強い段階にあり、力を示し果断に出撃する時。しかし大壮は同時に戒める：強を用いるには正大光明でなければならず、強を恃んで弱を凌いではならない。',
+      story: '大壮卦は上震下乾、雷天上にあり声勢浩大。将棋で馬の柔軟さと攻撃力が適切に組み合わされば向かうところ敵なし。衛青霍去病が匈奴を北に撃ち、大壮の勢いで漠北を横掃した。',
+      jieYue: {
+        marriage: '自信と魅力を示し、主動的に出撃せよ。ただし強すぎて相手を怯えさせないように。',
+        wealth: '大胆に出撃する時は来た。ただしリスク管理をしっかりと——盲目的な冒進ではない。',
+        career: '提案、プレゼン、交渉の絶好のタイミング。あなたの専門能力と気勢はピークにある。',
+        health: '体力充実——高強度の運動やトレーニングに挑戦する時期。',
+        study: '自信満々で試験や試合に臨め。あなたの実力は挑戦に十分応えられる。',
+        travel: '冒険型の旅行に適す——自分の限界に挑戦せよ。',
+        general: '力に満ちた籤。実力がある時は、勇敢にそれを示すべきだ。ただし忘れるな：真の強者は徳を以て人を服し、力を以て人を圧しない。',
+      },
+    },
+  },
+
+  35: {
+    en: {
+      title: 'Rising Sun',
+      content: 'Fire emerging from the earth — the sun rises at dawn,\nThe cannon shows its might — the enemy\'s courage is gone.\nStep by step you\'ll rise like the morning sun —\nA bright and open road on which to fly and run.',
+      vernacular: 'An upper-good fortune sign. The Jin hexagram symbolizes advancement and progress. Like the Cannon in chess — once it finds its mount, its power is fully revealed. Your career or studies are in a rising phase — like the morning sun climbing higher. Past efforts are beginning to be noticed; good news of promotion, awards, or acceptance is on its way.',
+      story: 'Jin — Li above, Kun below: fire emerging from earth — the rising sun. In chess, the Cannon\'s power is often magnified in the endgame, becoming a critical force. Su Qin went from a destitute scholar to wearing the seals of six states — the perfect portrait of the rising sun.',
+      jieYue: {
+        marriage: 'The relationship moves to the next level. Singles\' social circles expand — chances to meet quality potential partners.',
+        wealth: 'Investment returns continue to grow. Career success brings stable income.',
+        career: 'Promotion is in sight! Your performance is being noticed by upper management. Prepare for greater responsibility.',
+        health: 'Physical condition continues to improve. A positive mindset greatly benefits your health.',
+        study: 'Top honors are within reach. Exam or school application results will be positive.',
+        travel: 'A great opportunity for a business trip or reward travel. The journey will be pleasant and meaningful.',
+        general: 'The rising sun — a bright future ahead. This is a good sign about "ascending." Maintain this upward momentum, and a bright path lies right before you.',
+      },
+    },
+    ja: {
+      title: '旭日 東へ昇る',
+      content: '火地の上に出でて日初めて昇り、\n砲威光を顕して敵胆崩る。\n歩々高く陞ること旭日の如く、\n光明の大道 飛騰に任す。',
+      vernacular: '上吉の籤。晋卦は昇進と進歩を象徴。将棋の炮のように——一旦砲架を見つければ、威力は存分に発揮される。あなたの事業や学業は上昇期にあり、旭日東昇の如く蒸蒸日上。過去の努力が注目され始め、昇進、受賞、合格の良い知らせが近づいている。',
+      story: '晋卦は上離下坤、火地の上に出で旭日東昇。将棋で残局段階の炮の威力は往往にして拡大され、肝心な戦力となる。蘇秦は落魄の書生から六国の相印を佩びるに至る——まさに旭日東昇の最良の描写。',
+      jieYue: {
+        marriage: '感情関係がさらに一歩進む。独身者の社交圏が拡大し、良質な相手と知り合うチャンスあり。',
+        wealth: '投資収益は持続的に成長。事業の成功が安定した財源をもたらす。',
+        career: '昇進の見込みあり！あなたの貢献はすでに上層部の目に留まっている。より大きな責任を担う準備を。',
+        health: '体調は持続的に改善中。前向きな心持ちが健康に大きく寄与する。',
+        study: '金榜題名の望みあり。試験や学校申請の結果は良好。',
+        travel: '事業出張や褒賞旅行の良い機会。道中は愉快で意義深いものになる。',
+        general: '旭日東昇——前途は錦の如し。これは「上昇」についての良い籤。この上向きの勢いを保てば、光明の前途が目の前にある。',
+      },
+    },
+  },
+
+  36: {
+    en: {
+      title: 'Light Hidden Away',
+      content: 'The sun sets beneath the earth — no light, all dark,\nThe cannon hides among the hills — its spark now stark.\nWhen brightness is wounded, keep still and keep your peace —\nIn secret build your strength, and wait for dawn\'s release.',
+      vernacular: 'A low-luck sign. The Ming Yi hexagram symbolizes brightness wounded — darkness descends. Like the Cannon in chess losing its mount — its power gone. You may be in a low period of life — misunderstood, suppressed, or facing poor fortune. The most important thing now is to protect your inner light and wait for the dark night to pass.',
+      story: 'Ming Yi — Kun above, Li below: the sun sets beneath the earth — darkness envelops all. In chess, the Cannon without a mount is like a useless piece. King Wen of Zhou was imprisoned by King Zhou of Shang at Youli — in the darkness he delved deep into the I Ching and created the sixty-four hexagrams.',
+      jieYue: {
+        marriage: 'May encounter betrayal or disappointment in love. Protect your heart; don\'t rush into a new relationship.',
+        wealth: 'May face hidden financial losses or unexpected deficits. Handle quietly — don\'t broadcast.',
+        career: 'May be schemed against by petty people or suppressed by superiors. Endure the humiliation and quietly strengthen yourself.',
+        health: 'Pay attention to mental health. Dark times can easily trigger depression and anxiety.',
+        study: 'Study progress may stall due to external factors. Don\'t give up — continue self-study in secret.',
+        travel: 'Avoid traveling at night or going to unsafe places.',
+        general: 'The darkness before dawn is always the deepest. But believe — the sun will surely rise again. Protect the light within your heart; it will guide you through the darkness.',
+      },
+    },
+    ja: {
+      title: '光を韜み晦を養う',
+      content: '日地下に落ちて暗く光無く、\n砲山間に隱れて暫く芒を斂む。\n明夷の時は宜しく静を守り、\n暗中力を蓄えて朝陽を待つ。',
+      vernacular: '下下の籤。明夷卦は光明が損なわれ暗黒が訪れることを象徴。将棋の炮が砲架を失い威力が尽きるように。あなたは人生の低潮期にあるかも——誤解され、抑圧され、運勢が不順。今最も大事なのは自分の光を守り、闇夜が過ぎ去るのを待つこと。',
+      story: '明夷卦は上坤下離、日地下に落ち暗黒籠罩。将棋で炮に砲架なければ廃子同然。商紂王が周文王を羑里に囚禁——文王は暗中で易経を鑽研し、終に六十四卦を成した。',
+      jieYue: {
+        marriage: '感情で裏切りや失望に遭うかも。心を守り、急いで新しい恋に飛び込まない。',
+        wealth: '財務に暗虧や予期せぬ損失の恐れ。低調に処理し、声を張るな。',
+        career: '小人に暗算され上司に抑圧されるかも。辱めに耐え、暗中で自己充実を。',
+        health: '心の健康に注意。暗黒期は鬱や不安を誘発しやすい。',
+        study: '学習の進捗が外部要因で停滞するかも。諦めず、暗中で自学せよ。',
+        travel: '夜間の外出や安全でない場所への出行を避けよ。',
+        general: '夜明け前の闇はいつも最も深い。しかし信じよ——太陽は必ず再び昇る。あなたの内なる光を守れ——それがあなたを闇の中から導き出す。',
+      },
+    },
+  },
+
+  37: {
+    en: {
+      title: 'Family Harmony',
+      content: 'Wind fuels the fire — the family hall grows warm,\nThe elephant guards the field\'s heart — protecting home\'s form.\nRule the family, govern the state, bring peace to all below —\nWhen the family is in harmony, ten thousand blessings flow.',
+      vernacular: 'A medium-good fortune sign. The Jia Ren hexagram symbolizes family and inner relationships. Like the Elephant in chess protecting the field grid (symbolizing home) — stable and reliable. It\'s time to return to family and focus on the people closest to you. Family harmony is the foundation of all success — set things right at home before you venture outward.',
+      story: 'Jia Ren — Xun above, Li below: wind fueling fire — the family warmly united. In chess, the Elephant\'s role is to defend the home territory (never crossing the river). Zhu Xi\'s Household Management Motto: "Rise at dawn, sweep the courtyard." Only when the family is in order can the state be governed.',
+      jieYue: {
+        marriage: 'Family harmony is crucial to relationships. A good time to introduce your partner to family or discuss future family plans.',
+        wealth: 'Family business or property investments have good prospects. Family support is the strongest backing.',
+        career: 'The balance between family and work is your most important consideration right now.',
+        health: 'Family health needs attention. Spend more time with family and care for elders\' well-being.',
+        study: 'Family support and encouragement are the greatest motivation for learning.',
+        travel: 'Suitable for family trips or returning to your hometown.',
+        general: 'Home is every person\'s original root. No matter how fierce the storms outside, having a warm home to return to is the greatest happiness. Cherish your family — harmony at home brings ten thousand blessings.',
+      },
+    },
+    ja: {
+      title: '家和して万事興る',
+      content: '風火勢いを助けて家堂暖かく、\n相田心を守り宅疆を護る。\n家を斉え国を治め天下を平らげ、\n家和して万事自ずから禎祥。',
+      vernacular: '中吉の籤。家人卦は家庭と内部関係を象徴。将棋の相が田字格（家園を象徴）を守るように——安定して信頼できる。家族に回帰し、身近な人々に関心を向ける時。家庭の調和こそがすべての成功の基礎——外に出る前にまず内を整えよ。',
+      story: '家人卦は上巽下離、風火勢いを助け家庭温暖。将棋で相・象の職責は家園を防守すること（河を渡らず）。朱子家訓：「黎明即ち起き、庭除を灑掃す」。家が斉ってこそ国を治められる。',
+      jieYue: {
+        marriage: '家族の調和は感情にとって極めて重要。パートナーを家族に紹介したり将来の家庭計画を話し合う良い時期。',
+        wealth: '家族事業や不動産投資に良い発展あり。家族の支持が最強の後ろ盾。',
+        career: '家庭と仕事のバランスが今最も重要な課題。',
+        health: '家族の健康に注意を。家族と過ごす時間を増やし、年長者の身体を気遣え。',
+        study: '家族の支持と励ましが学習の最大の動力。',
+        travel: '家族旅行や帰省に適す。',
+        general: '家は誰にとっても最初の根。外の風雨がどんなに激しくても、帰るべき暖かい家があることが最大の幸福。家族を大切に——家和して万事興る。',
+      },
+    },
+  },
+
+  38: {
+    en: {
+      title: 'Divergent Paths',
+      content: 'Fire above, marsh below — they go their separate ways,\nRed and black confront each other — each at the world\'s far edge stays.\nIn times of divergence, seek the small common ground —\nPreserve differences while seeking unity — the path so found.',
+      vernacular: 'A low-luck sign. The Kui hexagram symbolizes divergence and division. Like red and black in chess each occupying one side — as incompatible as fire and water. You may be facing serious disagreement with someone important — conflicts of values or estrangement. Don\'t force complete agreement; finding common ground while preserving differences is the path to resolution.',
+      story: 'Kui — Li above, Dui below: fire above, marsh below — moving in opposite directions. In chess, red and black have opposite goals, yet strangely enough they need each other to complete a game. Zhuge Liang and Zhou Yu — allies yet often at odds — finding common ground while setting aside differences allowed them to jointly resist Cao Cao.',
+      jieYue: {
+        marriage: 'May face serious differences with your partner. Calm down and find small areas where you can reach agreement.',
+        wealth: 'Business partnerships are strained. Renegotiate and find a bottom line both sides can accept.',
+        career: 'Relationships with colleagues or superiors may show cracks. Don\'t intensify the conflict — stay professional.',
+        health: 'Emotional fluctuations are significant — prone to conflict with others. Practice deep breathing and the pause before reacting.',
+        study: 'Philosophical differences with classmates or teachers. Respect the differences and learn to see issues from different angles.',
+        travel: 'Friction may arise among travel companions. Each person should reserve some free time.',
+        general: 'Differences don\'t mean hostility. No two people in the world are exactly alike. Learning to find a way to coexist amid differences is an important step toward maturity.',
+      },
+    },
+    ja: {
+      title: '背道而馳す',
+      content: '火上にありて沢下にあり、\n紅黒対峙して各々天涯。\n睽違の時は小同を求め、\n異を存し同を求めて路は差わず。',
+      vernacular: '下下の籤。睽卦は背離と分岐を象徴。将棋で紅黒双方が各々一方を占め——水火相容れず。あなたは大切な人との意見不一致、価値観の衝突、関係の疎遠に直面しているかも。完全な一致を強要せず、小異を残して大同を求めることが解決の道。',
+      story: '睽卦は上離下兌、火上にあり沢下にあり方向相反。将棋で紅黒双方は目標が相反する——しかし不思議なことに、彼らは互いを必要としてこそ一局の棋を完成させる。諸葛亮と周瑜は盟友ながら時に矛盾——異を存し同を求めることで共に曹操に抗った。',
+      jieYue: {
+        marriage: 'パートナーと深刻な意見の不一致が生じるかも。冷静になり、合意できる小さな点を探せ。',
+        wealth: '協力パートナー関係が緊張。再交渉し、互いに受け入れられる底線を見つけよ。',
+        career: '同僚や上司との関係にひびが入るかも。衝突を激化させず、プロフェッショナルを保て。',
+        health: '感情の波が大きく、人と衝突しやすい。深呼吸と反応一時停止を練習せよ。',
+        study: '同級生や教師との理念が異なる。違いを尊重し、異なる視点から問題を見ることを学べ。',
+        travel: '旅行仲間との間に摩擦が生じるかも。各自多少の自由時間を確保せよ。',
+        general: '異なることは敵対ではない。世界にまったく同じ人間は二人といない。違いの中で共に生きる道を見つけることを学ぶことが、成熟への重要な一歩。',
+      },
+    },
+  },
+
+  39: {
+    en: {
+      title: 'Obstacles Ahead',
+      content: 'Mountains high, waters treacherous — the road is hard to pass,\nThe chariot stuck in mud, the horse caged and grasping grass.\nWhen obstacles block the way, you must halt your course —\nSeek aid and wait for help; don\'t play the hero\'s force.',
+      vernacular: 'A low-luck sign. The Jian hexagram symbolizes difficulty and obstruction. Like the Chariot trapped in mud, the Horse caged — unable to advance or retreat. You may be facing a major obstacle in life — no path forward, no support behind. At this point, pushing harder will only make things worse. Stop, and seek help — this is the correct choice.',
+      story: 'Jian — Kan above, Gen below: mountain and water overlapping — danger upon danger. In chess, when Chariot and Horse are trapped, charging blindly only sacrifices pieces. Liu Bei suffered devastating defeat at Yiling and retreated to Baidi City — continuing to fight would have meant certain death.',
+      jieYue: {
+        marriage: 'Problems in the relationship exceed what you can handle alone. Consider seeking professional counseling.',
+        wealth: 'The financial crisis may be more serious than you think. Seek professional financial advice.',
+        career: 'The project has encountered major obstacles. Don\'t bear it alone — ask superiors or colleagues for help.',
+        health: 'A more serious health issue may arise. Don\'t delay — seek medical attention promptly.',
+        study: 'You\'ve hit a bottleneck that\'s hard to break through. Get a tutor or ask your teacher.',
+        travel: 'Sudden changes may occur during travel. Cancel or significantly adjust your itinerary.',
+        general: 'Admitting you\'ve encountered problems you can\'t solve alone is not weakness — it\'s wisdom. Extend a hand for help, and you\'ll find more people willing to assist than you imagined.',
+      },
+    },
+    ja: {
+      title: '歩を挙げること維れ艱し',
+      content: '山高く水険しく路通じ難し、\n車泥潭に陥り馬籠に困る。\n蹇難頭に当たりて須く歩を止むべし、\n援けを求め助けを待ち雄を称する莫かれ。',
+      vernacular: '下下の籤。蹇卦は艱難と險阻を象徴。将棋で車が泥潭に陥り、馬が牢籠に困らされるように——進退両難。あなたは人生の重大な障害に直面しているかも——前には道なく、後ろには援けなし。この時、無理に突き進めば事態は悪化するだけ。立ち止まり、助けを求めることが正しい選択。',
+      story: '蹇卦は上坎下艮、山水相畳み危険の上に危険。将棋で車馬が困らされた時、無理に突っ込めば駒を送るだけ。劉備夷陵の戦い大敗後、白帝城に退守——もし戦い続ければ死あるのみ。',
+      jieYue: {
+        marriage: '感情の問題があなた一人で処理できる範囲を超えている。専門カウンセリングを検討せよ。',
+        wealth: '財務危機が想像以上に深刻かも。専門の理財アドバイスを求めよ。',
+        career: 'プロジェクトが重大な障害に直面。一人で抱え込まず、上司や同僚に援けを求めよ。',
+        health: 'より深刻な健康問題が発生するかも。遅延せず、早急に受診せよ。',
+        study: '突破困難な瓶頸に当たっている。家庭教師や教師に教えを請え。',
+        travel: '旅の途中で突発的な変事が発生するかも。旅程をキャンセルか大幅に調整せよ。',
+        general: '一人では解決できない困難に遭遇したと認めることは、弱さではなく知恵。周囲に援助の手を差し伸べれば、助けてくれる人が想像以上に多いことに気づく。',
+      },
+    },
+  },
+
+  40: {
+    en: {
+      title: 'Spring Thunder Thaws',
+      content: 'Thunder and rain sweep through — the winter\'s chill undone,\nThe horse escapes its cage to gallop free and run.\nAll hardships dissolve — heaven and earth stretch wide —\nIn the spring breeze, horse hooves dance with joyful pride.',
+      vernacular: 'An upper-good fortune sign. The Xie hexagram symbolizes difficulties dissolving, all things set free. Like the Horse in chess freeing itself from a blocked leg — returning to freedom. A long-standing predicament has finally met its turning point! Problems are resolved, misunderstandings cleared, obstacles finally removed. This is a moment worth celebrating.',
+      story: 'Xie — Zhen above, Kan below: after thunder and rain, clouds part and mists scatter. In chess, the Horse freed from a blocked leg reveals its full power. Guan Yu flooded seven armies, lifting the siege of Fancheng — his might shook all of China.',
+      jieYue: {
+        marriage: 'Misunderstandings in the relationship are finally resolved. The cold war ends — reconciliation blossoms.',
+        wealth: 'Trapped funds have hope of release. Previous bad debts may also be recovered.',
+        career: 'The long-troubling project problem has finally found a solution. All shadows are swept away.',
+        health: 'Chronic illness or old injuries show marked improvement. Long-standing pain is finally relieved.',
+        study: 'The learning bottleneck suddenly breaks through. What was previously incomprehensible suddenly becomes clear.',
+        travel: 'The long-delayed journey can finally take place. Smooth travels all the way.',
+        general: 'A long drought met with sweet rain — the predicament is finally resolved. This sign brings the good news of "liberation." Fully enjoy this hard-won freedom and ease!',
+      },
+    },
+    ja: {
+      title: '春雷凍を解く',
+      content: '雷雨大いに作り冬寒を解き、\n馬樊籠を脱し任せて往還す。\n困難消除して天地闊く、\n春風意を得て馬蹄歓ぶ。',
+      vernacular: '上吉の籤。解卦は困難が消え万物が解脱することを象徴。将棋で馬が蹩脚から抜け出し自由を取り戻すように。長期の苦境がついに転機を迎えた！問題は解決し、誤解は解消され、障害はついに取り除かれた。これは祝うに値する瞬間。',
+      story: '解卦は上震下坎、雷雨交じった後雲開霧散。将棋で馬が蹩脚から脱した後 威力を存分に示す。関羽水を以て七軍を淹れ、樊城の囲みを一解——威は華夏を震わした。',
+      jieYue: {
+        marriage: '感情の誤解がついに解けた。冷戦が終わり、和解して初めの如し。',
+        wealth: '凍結された資金に解放の見込み。以前の貸倒れも回収できるかも。',
+        career: '長く悩まされてきたプロジェクト問題がついに解決策を見つけた。陰霾一掃。',
+        health: '慢性病や古傷が明らかに好転。長期の痛みがついに緩和。',
+        study: '学習の瓶頸が突然突破できた。今まで分からなかった箇所が豁然開朗。',
+        travel: '延び延びになっていた旅がついに実現できる。一路順風。',
+        general: '久旱に甘霖——苦境ついに解除。この籤は「解脱」の吉報をもたらす。この得難い自由と安らぎを存分に楽しめ！',
+      },
+    },
+  },
+
+  41: {
+    en: {
+      title: 'Diminish for Others',
+      content: 'The mountain above — the marsh below takes loss,\nPawns sacrifice themselves to guard the general\'s cause.\nTo lose oneself for others — this is great righteousness —\nGain and loss are one; don\'t let your heart grow listless.',
+      vernacular: 'A balanced-even sign. The Sun hexagram symbolizes diminishment and sacrifice. Like Pawns in chess sacrificing themselves to protect the General. You may need to make some sacrifices — time, money, or personal interests — in exchange for a greater goal. There is no gain without loss; the current loss is for a long-term return.',
+      story: 'Sun — Gen above, Dui below: the mountain is high, the marsh is low — the marsh receives the mountain\'s diminishment. In chess, sacrificing pieces to attack is a common tactic — trading small advantages for the larger situation. Fan Zhongyan: "Be the first to bear the world\'s worries, and the last to enjoy its pleasures" — the classic model of diminishing oneself for others.',
+      jieYue: {
+        marriage: 'Relationships need appropriate compromise and concession. You don\'t have to win every argument.',
+        wealth: 'Short-term financial loss may occur, but it\'s for a larger investment return.',
+        career: 'For long-term career development, you may need to temporarily accept lower pay or position.',
+        health: 'Weight loss or quitting smoking requires "diminishing" bad habits. Short-term discomfort buys long-term health.',
+        study: 'Reduce leisure time to invest in studies. Sacrifice present pleasures for future achievements.',
+        travel: 'Cancel unnecessary trips and focus resources on the most important journey.',
+        general: 'Life has both gain and loss — don\'t be discouraged by temporary losses. What you let go of today is so you can pick up something more important tomorrow.',
+      },
+    },
+    ja: {
+      title: '己を損して人を利す',
+      content: '山上にあり沢下方にありて虧を受く、\n兵卒身を捨てて帥を護り帰す。\n己を損し人を利するに大義存し、\n失有り得有り心灰する莫かれ。',
+      vernacular: '中平の籤。損卦は減損と犠牲を象徴。将棋で兵卒が将帥を守るために己を犠牲にするように。あなたは何らかの犠牲——時間、お金、個人の利益——を払ってより大きな目標と交換する必要があるかも。失わずして得るはなし。目の前の損失は長期的なリターンのため。',
+      story: '損卦は上艮下兌、山高く沢低く——沢は山の損を受く。将棋で棄子攻殺は常見の戦術——小利を犠牲にして大局を得る。范仲淹「天下の憂いに先んじて憂い、天下の楽しみに後れて楽しむ」——まさに損己利人の典型。',
+      jieYue: {
+        marriage: '感情では適切な妥協と譲歩が必要。毎回勝たなくてもいい。',
+        wealth: '短期的な財務損失があるかも——しかしそれはより大きな投資リターンのため。',
+        career: '長期的なキャリア発展のため、一時的に低い待遇や職位を受け入れる必要があるかも。',
+        health: '減量や禁煙は不良習慣を「損去」する必要がある。短期の不調で長期の健康を得る。',
+        study: '娯楽時間を減らして学習に投入。今の享楽を犠牲にして未来の成就を得る。',
+        travel: '不要な行程を取り消し、最も重要な旅に資源を集中せよ。',
+        general: '人生には得もあれば失もある——一時の損失に落ち込むな。今日手放したものは、明日より重要なものを手にするため。',
+      },
+    },
+  },
+
+  42: {
+    en: {
+      title: 'Wind and Thunder Benefit',
+      content: 'Wind and thunder spur each other — benefit without bounds,\nHorse and Elephant call in response — their combined strength resounds.\nSeeing goodness, turn toward it — increase virtue and insight —\nWalk with the times, and embrace a thousand blessings bright.',
+      vernacular: 'An upper-good fortune sign. The Yi hexagram symbolizes increase and growth. Like the Horse and Elephant in chess coordinating with each other — advancing and retreating with proper support. This is a good sign about "growth" — knowledge growth, wealth growth, network growth. Learn humbly and widely accept good advice, and you will welcome comprehensive elevation.',
+      story: 'Yi — Xun above, Zhen below: wind and thunder mutually reinforcing. In chess, Horse and Elephant coordinated is the optimal defensive formation. Confucius said: "Three kinds of friends bring benefit; three kinds bring harm." Making fine teachers and helpful friends is life\'s greatest gain.',
+      jieYue: {
+        marriage: 'Relationships grow more stable through mutual learning and growth. Your partner is the best growth companion.',
+        wealth: 'Wealth is growing steadily — a good time to learn new financial knowledge. Investing in yourself is best.',
+        career: 'The best moment for further education and new skill acquisition. Elevating yourself is the best investment.',
+        health: 'Physical condition continues to improve. Learning new wellness knowledge is very helpful.',
+        study: 'Academic progress is substantial. See the worthy and emulate them — learn from excellent classmates.',
+        travel: 'Rich rewards from travel — broadening knowledge and experience.',
+        general: 'Life\'s best investment is investing in yourself. Turn toward goodness when you see it; correct errors when you have them. Every day, be better than yesterday\'s self.',
+      },
+    },
+    ja: {
+      title: '風雷相益す',
+      content: '風雷相激して益すこと疆り無く、\n馬相呼応して勢い更に強し。\n善を見ては則ち遷り徳慧を増し、\n時に与に偕に行き千祥を納る。',
+      vernacular: '上吉の籤。益卦は増益と成長を象徴。将棋で馬と相が互いに配合し——進退に拠り所がある。これは「増長」についての良い籤——知識の増長、財富の増長、人脈の増長。虚心に学び、広く善言を納れれば、全面的な向上を迎える。',
+      story: '益卦は上巽下震、風雷相得益彰。将棋で馬相配合は防守の最良陣形。孔子曰く「益者三友、損者三友」。良師益友を得ることは人生最大の増益。',
+      jieYue: {
+        marriage: '感情は互いに学び成長する中でより穩固になる。パートナーは最良の成長仲間。',
+        wealth: '財産は安定して増加中——新しい理財知識を学ぶ好機。自分への投資が最良。',
+        career: '進学や新スキル習得の絶好のタイミング。自分を高めることが最高の投資。',
+        health: '体調は持続的に改善中。新しい養生知識の学習が大いに役立つ。',
+        study: '学業は大幅に進歩。賢を見ては斉しく——優秀な同級生から学べ。',
+        travel: '旅の収穫は豊かで、見聞を広げる。',
+        general: '人生最良の投資は自分への投資。善を見ては則ち遷り、過ち有れば則ち改む——毎日昨日の自分より良くなれ。',
+      },
+    },
+  },
+
+  43: {
+    en: {
+      title: 'Resolute Severance',
+      content: 'The marsh above heaven — the situation will burst,\nThe cannon clears the floating clouds — the sun appears first.\nSeize the moment decisively — cut out the deep-rooted blight —\nOne clean stroke with no mercy — and the future turns bright.',
+      vernacular: 'A medium-good fortune sign. The Guai hexagram symbolizes decision and separation. Like using the Cannon in chess to decisively capture — leaving no future trouble. You need to make an important decision — break up, resign, or end an unhealthy relationship. Hesitation only makes things worse; decisive action ushers in a new beginning.',
+      story: 'Guai — Dui above, Qian below: the marsh above heaven — about to burst through. In chess, "sacrifice for initiative" is the essence of the aggressive opening — let go of what you must without hesitation. Xiang Yu broke the cauldrons and sank the boats — decisively cutting off retreat to defeat the Qin army.',
+      jieYue: {
+        marriage: 'If a relationship needs to end, end it decisively. The longer you drag it out, the deeper the wounds.',
+        wealth: 'Cut losses decisively. Don\'t keep putting money into investments that are already losing.',
+        career: 'Consider resigning or switching careers. If the current situation is unbearable, bravely make a change.',
+        health: 'Break bad habits (smoking, drinking, staying up late) — cut them off with a single stroke.',
+        study: 'Decisively abandon an unsuitable major or study direction. Switch tracks.',
+        travel: 'Cancel unreasonable or dangerous travel arrangements.',
+        general: 'There are moments in life that demand decisiveness. Not all persistence is right — sometimes letting go is the true bravery. After a clean cut, you\'ll find the sky is wider.',
+      },
+    },
+    ja: {
+      title: '決断して悪を去る',
+      content: '沢天上にあり勢い将に傾かんとす、\n炮浮雲を決して日明を見る。\n機に当たりて断を立て積弊を除き、\n一刀両断す——情を留むる莫かれ。',
+      vernacular: '中吉の籤。夬卦は決断と分離を象徴。将棋で炮を使って果断に駒を取るように——後患を残さない。あなたは重要な決断——別れ、退職、不健康な関係の終了——をする必要がある。躊躇は事態を悪化させるだけ。果断な行動が新しい始まりを迎え入れる。',
+      story: '夬卦は上兌下乾、沢天上にあり——まさに決壊せんとす。将棋で「棄子争先」は先手棋の精髄——棄てるべきは棄て決して躊躇せず。項羽破釜沈舟——果断に退路を断ち、大いに秦軍を破る。',
+      jieYue: {
+        marriage: '終わらせるべき感情は果断に終わらせよ。長引かせれば傷は深くなるだけ。',
+        wealth: '果断に損切りせよ。すでに損失している投資に資金を投入し続けるな。',
+        career: '退職や転職を検討せよ。現状がすでに耐え難いなら、勇敢に変化を起こせ。',
+        health: '悪習（喫煙、飲酒、夜更かしなど）を断て——一刀両断。',
+        study: '合わない学科や学習方向は果断に放棄し、路線を転換せよ。',
+        travel: '不合理または危険な旅程はキャンセルせよ。',
+        general: '人生には果断さが求められる瞬間がある。すべての堅持が正しいとは限らない——時に手放すことが真の勇気。一刀両断の後、空がより広く感じられる。',
+      },
+    },
+  },
+
+  44: {
+    en: {
+      title: 'Chance Encounter',
+      content: 'Heaven and wind meet — unexpected, unplanned,\nElephant and Horse cross paths, neither to understand.\nFate brings together, fate tears apart — all heaven\'s design —\nGo with what comes; don\'t cling too tight to any line.',
+      vernacular: 'A balanced-even sign. The Gou hexagram symbolizes unexpected encounters. Like the Elephant and Horse meeting by chance on the chessboard — sparks fly. You may encounter unexpected people or opportunities — but stay alert: not every encounter is a good connection. Go with the flow, but keep your clarity.',
+      story: 'Gou — Qian above, Xun below: heaven and wind meeting — chance encounter. In chess, coincidences and serendipities often determine the direction of a game. Cui Hu: "This very day last year, within this gate — a maiden\'s face and peach blossoms reflected each other\'s beauty" — the romantic portrait of Gou.',
+      jieYue: {
+        marriage: 'Chance for love at first sight — but don\'t let passion cloud your judgment. Get to know them slowly before deciding.',
+        wealth: 'Unexpected investment opportunities may appear. Evaluate carefully — don\'t act on impulse.',
+        career: 'Unexpected opportunities or benefactors may appear in the workplace. But there could also be traps.',
+        health: 'Sudden bodily changes may occur. Always heed your body\'s warning signals.',
+        study: 'A field you encounter by chance may spark interest. Keep an open mind.',
+        travel: 'Unexpected delights may occur during the journey.',
+        general: 'One of life\'s most beautiful things is the unexpected encounter. But "Gou" also reminds: maintain clear judgment — not every chance meeting is a good connection.',
+      },
+    },
+    ja: {
+      title: '期せずして遇う',
+      content: '天風相遇すること本より期無く、\n相馬相い逢うも各々知らず。\n縁起縁滅皆天意、\n遇いに随いて安んじ強いて持する莫かれ。',
+      vernacular: '中平の籤。姤卦は不期の遭遇を象徴。将棋で相と馬が棋盤上で偶然出会い火花を散らすように。あなたは予想外の人や機会に出会うかも——しかし警戒を保て：すべての出会いが善縁とは限らない。流れに任せつつも、清醒さを保て。',
+      story: '姤卦は上乾下巽、天風相遇——偶然の邂逅。将棋の巧遇と偶合は往往にして一局の棋の方向を決定する。崔護「去年今日此の門の中、人面桃花相映じて紅なり」——まさに姤卦の浪漫的描写。',
+      jieYue: {
+        marriage: '一目惚れのチャンスあり——しかし情熱に判断を曇らせられるな。ゆっくり知ってから決めよ。',
+        wealth: '意外な投資機会が現れるかも。慎重に評価し——衝動的に動くな。',
+        career: '職場で予期せぬチャンスや貴人が現れるかも。しかし罠の可能性もある。',
+        health: '身体に突然の変化が起こるかも。常に身体の警告信号に注意を。',
+        study: '偶然触れた分野が興味を引き出すかも。開かれた心を持て。',
+        travel: '旅の途中で予期せぬ驚きがあるかも。',
+        general: '人生で最も美しいことの一つは不期の遭遇。しかし「姤」はまた戒める：清醒な判断力を保て——すべての偶然の出会いが良縁とは限らない。',
+      },
+    },
+  },
+
+  // ═══════════════════ 45-56 ═══════════════════
+  45: {
+    en: {
+      title: 'Elite Gathering',
+      content: 'The marsh upon the earth — the finest gather as one,\nPawns form a mighty army — their gathered strength is done.\nWhen elites converge, great enterprises are born —\nMany wills as a fortress — the great endeavor shall be sworn.',
+      vernacular: 'An upper-good fortune sign. The Cui hexagram symbolizes gathering and convergence. Like five Pawns crossing the river in chess — their momentum is unstoppable. Excellent people will gather around you, or you will participate in an important meeting, conference, or team. This is the moment when "many hands make light work."',
+      story: 'Cui — Dui above, Kun below: the marsh upon the earth — water gathers into a lake. In chess, Pawns may be humble, but five Pawns united can form a mighty force. Cao Cao gathered the world\'s finest talents in Xudu — civil advisors like Xun Yu and Guo Jia, military commanders like Zhang Liao and Xu Huang — only thus could he achieve hegemony.',
+      jieYue: {
+        marriage: 'Attending social events may bring romantic encounters. Gatherings are great opportunities to expand your love life.',
+        wealth: 'A good time for crowdfunding, joint investment, or team investing. Collective wisdom surpasses individual judgment.',
+        career: 'A prime time for teamwork or cross-departmental projects. Pooling wisdom yields twice the result with half the effort.',
+        health: 'Join group sports or fitness classes. Collective energy gives you more motivation.',
+        study: 'Join a study group or seminar. Collective learning is more efficient.',
+        travel: 'Suitable for group tours or traveling with a crowd of friends. More people, more fun.',
+        general: 'Elites converge — many wills become a fortress. When the right people gather, nothing is impossible. Cherish the team and companions around you — they are your greatest asset.',
+      },
+    },
+    ja: {
+      title: '精英匯聚す',
+      content: '沢地の上にありて群英を聚め、\n兵卒軍を成して気勢盈つ。\n精英薈萃して大業を成し、\n衆志成城——事成るべし。',
+      vernacular: '上吉の籤。萃卦は聚集と薈萃を象徴。将棋で五兵河を渡り——気勢は虹の如し。あなたの周りに優秀な人材が集まり、あるいは重要な会合、会議、チームに参加する。これは「衆人柴を拾いて火焰高し」の好機。',
+      story: '萃卦は上兌下坤、沢地の上にあり水聚まりて沢と成る。将棋で兵卒は微かなれど、五兵連なれば大勢を成す。曹操天下の英才を許都に集め——文に荀彧郭嘉あり、武に張遼徐晃あり——方に霸業を成し得た。',
+      jieYue: {
+        marriage: '社交イベント参加時に良縁に出会うかも。集まりは感情を広げる良い機会。',
+        wealth: 'クラウドファンディング、合資、チーム投資の良い時期。衆人の知恵は一人の判断に勝る。',
+        career: 'チームワークや部門横断的プロジェクトの絶好のタイミング。知恵を集めれば事半功倍。',
+        health: 'グループスポーツやフィットネスクラスに参加せよ。群れの力がモチベーションを高める。',
+        study: '読書会や研究会に参加せよ。集団学習の効率はより高い。',
+        travel: 'グループ旅行や大勢の友達との旅行に適す。人多いほど楽しい。',
+        general: '精英匯聚——衆志成城。正しい人が集まれば、できないことはない。周りのチームや仲間を大切に——彼らこそが最大の財産。',
+      },
+    },
+  },
+
+  46: {
+    en: {
+      title: 'Rising Step by Step',
+      content: 'A tree within the earth grows toward the sky,\nThe elephant\'s eye gazes far — seeing rivers on high.\nFeet planted on solid ground, rise steadily —\nAchievement and renown shall come this year — you\'ll see.',
+      vernacular: 'An upper-good fortune sign. The Sheng hexagram symbolizes rising and growth. Like the Elephant in chess — it moves one step at a time, yet aims far. This is a sign about "gradual success." Don\'t rush for instant results — steady and true, step by step, you are climbing steadily upward.',
+      story: 'Sheng — Kun above, Xun below: a tree within the earth — gradually growing. In chess, the Elephant walks the field pattern — slow but every step is grounded. Wang Anshi: "Fear not that floating clouds obscure your view — you stand yourself at the highest level." This is the highest state of gradual ascent.',
+      jieYue: {
+        marriage: 'The relationship develops steadily — one step at a time toward a deeper bond.',
+        wealth: 'Assets are growing steadily — the power of compound interest is fermenting. Keep it up.',
+        career: 'Your position is rising steadily — your efforts are being recognized. No need to rush; everything is moving in a good direction.',
+        health: 'Physical functions are gradually improving. Good health habits have been established.',
+        study: 'Academics continue to improve. Daily accumulation is producing effects.',
+        travel: 'A meaningful long journey is taking shape. Plan step by step.',
+        general: 'Growth doesn\'t need to shake heaven and earth — steady, grounded progress is the most valuable. You are moving upward — perhaps not fast, but every step is solid and secure.',
+      },
+    },
+    ja: {
+      title: '歩々高く昇る',
+      content: '地中に木生じて漸く天に参し、\n相眼高く瞻て遠川を望む。\n脚を地に踏み実にして徐徐に進み、\n功成り名遂ぐること今年に在り。',
+      vernacular: '上吉の籤。升卦は上昇と成長を象徴。将棋の相のように——一歩一歩進むが目標は遠大。これは「漸進式成功」についての籤。速成を求めず、着実に、順を追って進め——あなたは確実に上に向かって昇っている。',
+      story: '升卦は上坤下巽、地中に木生じ徐々に成長。将棋で相は田字を歩み——遅いが一歩一歩が確実。王安石「浮雲の望眼を遮るを畏れず、自ら最高層に在るが故に」——これこそ循序漸進の最高境地。',
+      jieYue: {
+        marriage: '感情は安定して発展——一歩一脚印、より深い関係へ。',
+        wealth: '資産は穩やかに増加中——複利の力が発酵している。継続せよ。',
+        career: '職位は穩やかに上昇中——あなたの努力は認められている。急ぐ必要なし——すべてが良い方向へ。',
+        health: '身体機能が徐々に改善中。良い健康習慣が確立された。',
+        study: '学業は持続的に進歩中。日々の蓄積が効果を生んでいる。',
+        travel: '意義深い長旅が形になりつつある。順を追って計画せよ。',
+        general: '成長は天地を驚かす必要はない——着実な進歩が最も貴い。あなたは上に向かっている——速くはないかもしれないが、一歩一歩が確実で穩固。',
+      },
+    },
+  },
+
+  47: {
+    en: {
+      title: 'Trapped in Despair',
+      content: 'The marsh without water traps the dragon deep,\nThe horse stuck in mud can barely stir from sleep.\nWhen trapped and weary, do not thrash about —\nGuard your heart, await deliverance, and find your way out.',
+      vernacular: 'A low-luck sign. The Kun hexagram symbolizes entrapment and restriction. Like the Horse in chess stuck in a swamp — unable to move an inch. You may feel completely stuck — resources depleted, besieged on all sides, no one to turn to. But the core teaching of Kun is: in difficulty, guard your inner heart and treat the predicament as a test.',
+      story: 'Kun — Dui above, Kan below: the marsh without water — a dragon stranded in shallows. In chess, the Horse trapped in a swamp is the greatest predicament. Han Xin once endured the humiliation of crawling between legs and begged food from a washerwoman — utterly destitute — yet he guarded the great ambition in his heart and ultimately achieved greatness.',
+      jieYue: {
+        marriage: 'Your romantic life may be at a low point — feeling lonely and helpless. This is temporary; keep faith.',
+        wealth: 'Financially tight — may be unable to make ends meet. Strictly control expenses and seek new income sources.',
+        career: 'Work has hit a bottleneck — feeling stuck between advance and retreat. Don\'t bring anxiety home.',
+        health: 'Physically and mentally exhausted — feel trapped. Rest appropriately; don\'t pressure yourself too much.',
+        study: 'Lack of motivation to study; it feels like nothing sinks in. Change your environment and method.',
+        travel: 'Travel plans may be delayed or canceled for various reasons. Go with the flow.',
+        general: 'Predicaments are temporary. Your mindset determines whether you sink in difficulty or grow through it. Guard your faith and wait for the turning point.',
+      },
+    },
+    ja: {
+      title: '坐して愁城に困る',
+      content: '沢中に水無く蛟龍を困らしめ、\n馬泥塗に陥り鬃を展じ難し。\n坐困の時は妄りに動くこと休めよ、\n心を守り援けを待ちて生踪を覓めよ。',
+      vernacular: '下下の籤。困卦は困頓と受制を象徴。将棋の馬が泥沼に陥り寸歩も難しいように。あなたは身動きが取れないと感じているかも——資源が枯渇し、四面楚歌、助けを求めようにも門路がない。しかし困卦の核心的教えは：困境の中でも内心を守り、困境を試練として受け止めよ。',
+      story: '困卦は上兌下坎、沢中に水無く——龍浅瀬に困す。将棋で馬が泥沼に陥るは最大の困境。韓信はかつて胯下の辱めを受け、漂母に食を乞う——困頓至極——しかし内心の大志を守り、終に大業を成した。',
+      jieYue: {
+        marriage: '感情生活が低谷に陥り、孤独無援に感じるかも。これは一時的——信念を保て。',
+        wealth: '財務が逼迫——収入が支出に追いつかないかも。支出を厳しく管理し、新たな収入源を探せ。',
+        career: '仕事が瓶頸に当たり——進退維谷。不安を家に持ち帰るな。',
+        health: '心身ともに疲弊——閉じ込められた感じ。適度に休息し、自分にプレッシャーをかけすぎるな。',
+        study: '学習の動力不足——どう読んでも頭に入らない感じ。環境と方法を変えよ。',
+        travel: '旅行計画がさまざまな理由で遅延またはキャンセルに。縁に随え。',
+        general: '困境は一時的。あなたの心構えが——困境に沈むか、困境で成長するかを決める。信念を守り、転機を待て。',
+      },
+    },
+  },
+
+  48: {
+    en: {
+      title: 'The Well — Inexhaustible',
+      content: 'Wood over water — the well spring runs deep,\nThe chariot turns the pulley — sweet water to keep.\nLike the well that nourishes without ever running dry —\nDraw without end — the secret lies in patience, by and by.',
+      vernacular: 'A medium-good fortune sign. The Jing hexagram symbolizes nourishment and resources. Like the Chariot in chess — moving back and forth, never exhausting. This is a sign about "resources" — you possess deep, unfathomable potential and resources, but you need patience and tools to draw them out. The inner well of wisdom never runs dry.',
+      story: 'Jing — Kan above, Xun below: wood over water — the well spring never exhausts. In chess, the Chariot\'s power never diminishes at any stage of the game — like the well\'s infinity. Zhuangzi said, "A frog in a well cannot speak of the sea" — don\'t be a frog in a well, but also don\'t forget the well\'s virtue of nourishing people.',
+      jieYue: {
+        marriage: 'The depth of a relationship matters more than surface passion. Cultivate with care — love, like well water, is inexhaustible.',
+        wealth: 'Cultivate passive income or long-term revenue streams. Build your own "financial well."',
+        career: 'Dig deep into your professional field; build your core competitiveness. Expertise is like a well — the deeper, the clearer the water.',
+        health: 'The way of health lies in daily persistence. Good habits are like well water — endlessly nourishing the body.',
+        study: 'Depth of knowledge matters more than breadth. Dig deep within your own field.',
+        travel: 'Revisiting familiar old places — each time brings new rewards.',
+        general: 'The truly valuable things are all at depth. Rather than digging shallow pits everywhere, better to focus on digging one deep well. The well of inner wisdom — draw from it without end.',
+      },
+    },
+    ja: {
+      title: '井養 窮まり無し',
+      content: '木上に水あり井泉深く、\n車轆轤転じて甘霖を汲む。\n人を養うこと尽き無きは井徳の如く、\n取りて竭きざるは耐心に在り。',
+      vernacular: '中吉の籤。井卦は養育と資源を象徴。将棋の車のように——行き来し穿梭し永く枯れない。これは「資源」についての籤——あなたは深く測り知れない潜在能力と資源を持っているが、忍耐と道具を使って汲み出す必要がある。内なる知恵の井戸は決して枯れない。',
+      story: '井卦は上坎下巽、木上に水あり井泉竭きず。将棋で車の威力は棋局のどの段階でも衰えない——井の無窮の如し。荘子「井蛙は以って海を語るべからず」——井底の蛙になるな、しかし井水の養人の徳も忘れるな。',
+      jieYue: {
+        marriage: '感情の深さは表面の熱情より重要。心を込めて経営せよ——愛は井水の如く汲めども尽きぬ。',
+        wealth: '不労所得や長期収入源を育てよ。自分自身の「財務の井戸」を築け。',
+        career: '専門領域を深く耕し、自分の核心的競争力を築け。専門は井の如く——深ければ深いほど水は清い。',
+        health: '養生の道は日常の堅持にあり。良い習慣は井水の如く——絶え間なく身体を滋養する。',
+        study: '知識の深さは広さより重要。自分の領域内で深く掘れ。',
+        travel: '慣れ親しんだ旧地を再訪——毎回新たな収穫がある。',
+        general: '本当に価値あるものはすべて深いところにある。あちこちに浅い穴を掘るより、一つの深い井戸を掘ることに専念せよ。あなたの内なる知恵の井戸——取れども尽きず、用いれども竭きず。',
+      },
+    },
+  },
+
+  49: {
+    en: {
+      title: 'Leather and New Vessel',
+      content: 'Fire within the marsh — opposing forces clash and burn,\nCannon fire clears the forest — a new heaven in turn.\nTo strip the old and spread the new, be resolute and bold —\nClearing out and building fresh — this is your year to hold.',
+      vernacular: 'A medium-good fortune sign. The Ge hexagram symbolizes transformation and innovation. Like the Cannon in chess firing at full force — breaking the old pattern. It\'s time to make major changes — change jobs, move house, or thoroughly transform your lifestyle. The old doesn\'t go, the new cannot come. Bravely welcome transformation.',
+      story: 'Ge — Dui above, Li below: fire in the marsh — water and fire transforming each other. In chess, sacrificing pieces to change formation is the key to breaking a stalemate. Shang Yang\'s reforms turned Qin from a frontier weak state into a Warring States hegemon — the power of transformation is not to be underestimated.',
+      jieYue: {
+        marriage: 'Old relationship patterns need to change. Change the way you interact, or simply start a new relationship.',
+        wealth: 'Change your financial strategy or find new income sources. Old methods may no longer work.',
+        career: 'A good moment to switch tracks, change jobs, or entirely transform your work approach.',
+        health: 'Old health habits need renovation. New exercise or diet plans are worth trying.',
+        study: 'Change your study method or shift your research direction.',
+        travel: 'Try a different type of travel — you\'ll have a completely new experience.',
+        general: 'Change is painful, but stagnation is more frightening. The Ge hexagram tells you: it\'s time to shed old skin and welcome a renewed self.',
+      },
+    },
+    ja: {
+      title: '故を革め新を鼎く',
+      content: '沢中に火あり勢い相煎り、\n砲火林を焚きて新天に換う。\n故を革め新を鼎くには須く果断に、\n旧を除き新たに布くは正に当年。',
+      vernacular: '中吉の籤。革卦は変革と革新を象徴。将棋の炮が火を全開にして古い格局を打破するように。重大な変化を起こす時——転職、引っ越し、ライフスタイルの徹底的変革。旧が去らねば新は来らず——勇敢に変革を迎えよ。',
+      story: '革卦は上兌下離、沢中に火あり水火相革。将棋で棄子変陣は膠着突破の鍵。商鞅変法は秦を辺陲の弱国から戦国霸主に変えた——変革の力は軽視できない。',
+      jieYue: {
+        marriage: '古い感情パターンは変革が必要。付き合い方を変えるか、全く新しい関係を始めよ。',
+        wealth: '理財戦略を変えるか新たな収入源を見つけよ。古い方法はすでに通じないかも。',
+        career: '路線転換、転職、仕事のやり方を徹底的に変える好機。',
+        health: '古い健康習慣は革新が必要。新しい運動や食事計画は試す価値あり。',
+        study: '学習方法を変えるか研究方向を転換せよ。',
+        travel: '異なるタイプの旅行を試してみよ——全く新しい体験ができる。',
+        general: '変化は痛みを伴う——しかし停滞はもっと恐ろしい。革卦が伝えること：古い皮を脱ぎ捨て、新生の自己を迎え入れる時。',
+      },
+    },
+  },
+
+  50: {
+    en: {
+      title: 'The Cauldron Established',
+      content: 'Wood feeds the fire — the cauldron cooks the sacred feast,\nCannon and Horse in joint defense — their bond has never ceased.\nNurture the worthy, gather the wise — forge the great vessel true —\nStand like a tripod at the center — passed down for ages new.',
+      vernacular: 'An upper-good fortune sign. The Ding hexagram symbolizes establishment and stability. Like the Cannon and Horse in chess forming a solid defensive formation. This is the best moment to establish your career, family, or life foundation. The Ding represents power, status, and responsibility — you have the opportunity to "claim the cauldron" of an important position.',
+      story: 'Ding — Li above, Xun below: wood on fire — the image of cooking. In chess, Cannon and Horse joint defense is the most stable defensive formation. Yu the Great cast the Nine Cauldrons symbolizing the Nine Provinces — seeking the cauldron of the central plains has been the dream of heroes through the ages.',
+      jieYue: {
+        marriage: 'A good time to establish a family or further consolidate the relationship. Love, like a cauldron, is stable and weighty.',
+        wealth: 'A good time to start a business or establish a long-term enterprise. Laying a good foundation matters more than growing fast.',
+        career: 'Build your own team or department. A leader should be as stable and reliable as a cauldron.',
+        health: 'Establish a solid health foundation. Building the base is more important than chasing quick results.',
+        study: 'Build a solid academic foundation. Scholarship, like casting a cauldron, requires time and patience.',
+        travel: 'Suitable for planning a deep, meaningful journey.',
+        general: 'Building is harder than destroying, but what is built can be passed down for generations. You are at the best moment for "establishing." Lay the foundation well — seek the cauldron of the world.',
+      },
+    },
+    ja: {
+      title: '鼎を新たに業を立つ',
+      content: '木上に火あり鼎に鮮を烹、\n砲馬聯防して固きこと堅の若し。\n賢を養い士を納れて大器を成し、\n中原に鼎力して万世伝う。',
+      vernacular: '上吉の籤。鼎卦は建立と穩固を象徴。将棋で炮と馬が穩固な防御陣形を形成するように。これは事業、家庭、人生の基礎を築く最良のタイミング。鼎は権力、地位、責任を代表する——あなたは重要なポジションを「問鼎」する機会がある。',
+      story: '鼎卦は上離下巽、木上に火あり烹飪の象。将棋で砲馬聯防は最も穩固な防守陣形。夏禹九鼎を鋳て九州を象徴——中原を問鼎することは歴代英雄の夢。',
+      jieYue: {
+        marriage: '家庭を築くか関係をさらに固める好機。感情は鼎の如く——穩固にして重みあり。',
+        wealth: '起業や長期事業を立ち上げる好機。急速な成長より基礎固めが重要。',
+        career: '自分のチームや部門を築け。リーダーは鼎のように穩固で信頼できるべし。',
+        health: '穩固な健康基礎を築け。基礎固めは速効を追うより重要。',
+        study: 'しっかりした学術基礎を築け。学問は鋳鼎の如く——時間と忍耐が必要。',
+        travel: '深みのある意義深い旅を計画するのに適す。',
+        general: '建てることは壊すことより難しい——しかし建てたものは長く伝わる。あなたは「建立」の最良の時にいる。基礎をしっかりと——天下を問鼎せよ。',
+      },
+    },
+  },
+
+  51: {
+    en: {
+      title: 'Thunder\'s Warning',
+      content: 'Crashing thunder rolls — shaking for a hundred miles around,\nHorse hooves trample scattered clouds upon the battleground.\nIn crisis keep your calm — let your heart be your guide —\nTurn danger into safety — see the turning of the tide.',
+      vernacular: 'A balanced-even sign. The Zhen hexagram symbolizes shock and alarm. Like the Horse in chess suddenly encountering a change — needing quick reaction. You may face sudden disruptions — whether good or bad news, it can be a "shock." Keep a cool head; after the shaking settles, you\'ll find new opportunities.',
+      story: 'Zhen — both above and below are Zhen: peal after peal of thunder. In chess, the Horse most fears sudden leg blocks or traps. Xie An, when news of victory at the Battle of Fei River arrived, was calmly playing chess — unperturbed in crisis — that is the mark of true character.',
+      jieYue: {
+        marriage: 'Sudden events may occur in the relationship. Don\'t let momentary emotions sway your judgment.',
+        wealth: 'Markets may experience violent fluctuations. Don\'t engage in panic selling or chasing highs.',
+        career: 'The company may experience major changes (mergers, restructuring). Stay calm and adapt as needed.',
+        health: 'Watch for sudden health issues, especially heart and nervous system.',
+        study: 'Unexpected situations may arise during exams or interviews. Respond calmly — panic only makes things worse.',
+        travel: 'Unexpected situations may arise during travel. Stay calm — safety first.',
+        general: 'There are always earthquake-like moments in life. The shaking itself is not scary — what\'s scary is losing your judgment because of it. Steady your mind, and the shaking will eventually subside.',
+      },
+    },
+    ja: {
+      title: '震動警戒',
+      content: '洊雷震震として百里を驚かし、\n馬蹄乱雲を踏み砕いて飛ぶ。\n危に臨みて乱れざれば心方に定まり、\n危を転じて安と為し転機を見る。',
+      vernacular: '中平の籤。震卦は震動と驚嚇を象徴。将棋の馬が突然変局に遭遇し快速な反応が必要なように。あなたは突然の変事に直面するかも——吉報も凶報も共に「震」となり得る。冷静な頭を保て——震動が過ぎ去った後、新たな生機を発見するだろう。',
+      story: '震卦は上下皆震、雷声陣々。将棋で馬が最も恐れるのは突然の蹩脚や罠。謝安は淝水の戦いの捷報が来た時も従容として棋を打っていた——危に臨みて乱れず、方に真の名士。',
+      jieYue: {
+        marriage: '感情で突発的事件が発生するかも。一時の感情に判断を左右されるな。',
+        wealth: '市場が激しい変動を見せるかも。パニック売却や高値追跡をするな。',
+        career: '会社が重大な変動（合併、再編）に見舞われるかも。鎮定を保ち、変化に応じて対応せよ。',
+        health: '突発的な健康問題に注意——特に心臓と神経系。',
+        study: '試験や面接で予期せぬ状況が起きるかも。沈着に対応せよ——慌てればもっと悪くなる。',
+        travel: '旅の途中で突発的な状況が発生するかも。冷静を保ち——安全第一。',
+        general: '人生にはいつも地震のような瞬間がある。震動は怖くない——怖いのは震動に嚇されて判断力を失うこと。心を穩やかにすれば、震動はやがて鎮まる。',
+      },
+    },
+  },
+
+  52: {
+    en: {
+      title: 'Mountain\'s Stillness',
+      content: 'Twin mountains stand in stillness — immovable, secure,\nPawns guard the front line — steady and sure.\nKnow when to stop — this is the art of staying whole —\nAs steady as a boulder, at peace within the soul.',
+      vernacular: 'A balanced-even sign. The Gen hexagram symbolizes stopping and stability. Like Pawns in chess guarding the front line — solid as a rock. When you feel confused or anxious, sometimes the best action is "no action." Stop, be still, reorganize your thoughts, and the answers will emerge naturally.',
+      story: 'Gen — both above and below are Gen: two mountains standing side by side — stopping where one should stop. In chess, Pawns before crossing the river can only advance one step at a time, but sometimes "not moving" is the best strategy. Zhuge Liang\'s Empty Fortress Strategy is the classic of "using stillness to govern movement" — complete stillness actually made the enemy suspicious.',
+      jieYue: {
+        marriage: 'If confused in love, first stop and think. Don\'t make hasty decisions under pressure.',
+        wealth: 'Suspend all investment decisions. When the market is unclear, not moving is the best move.',
+        career: 'Don\'t rush to change jobs or resign. First stop and assess the overall situation.',
+        health: 'Sitting meditation benefits physical and mental wellness. Learn the ability to "stop."',
+        study: 'When hitting a learning bottleneck, temporarily stop to organize what you\'ve learned. After settling, advance again.',
+        travel: 'Cancel or postpone travel plans. Sometimes staying home is actually the best choice.',
+        general: 'The hardest thing for modern people to learn is "stopping." But true wisdom often emerges in stillness. As unmoving as a mountain — steady as Mount Tai.',
+      },
+    },
+    ja: {
+      title: '止まるを知れば殆うからず',
+      content: '兼山艮止して穩かなること山の如し、\n兵陣前に守りて顔を動かさず。\n止まるを知れば殆うからず明らかに進退し、\n安きこと磐石の如く自ずから悠閒。',
+      vernacular: '中平の籤。艮卦は停止と安穩を象徴。将棋の兵卒が陣前に守るように——堅きこと磐石の如し。迷いや不安を感じる時、往々にして最良の行動は「行動しない」こと。立ち止まり、静かにし、思考を整理せよ——答えは自然と浮かび上がる。',
+      story: '艮卦は上下皆艮、両山並び立ち——止まるべき所に止まる。将棋で兵卒は河を渡る前は一歩しか進めない——しかし時に「動かない」ことが最良の策。諸葛亮空城計は「静を以て動を制す」の典型——完全な静止がかえって敵を疑わせた。',
+      jieYue: {
+        marriage: '感情に戸惑いを感じたら、まず立ち止まって考えよ。プレッシャーで軽率に決めるな。',
+        wealth: 'すべての投資決定を一時停止せよ。市場が不透明な時——動かないことが最良の行動。',
+        career: '急いで転職や辞職をするな。まず立ち止まって全局を評価せよ。',
+        health: '静坐瞑想が身心健康に有益。「立ち止まる」能力を学べ。',
+        study: '学習が瓶頸に当たったら、一時的に立ち止まり学んだことを整理せよ。沈殿してから再び前進。',
+        travel: '旅行計画をキャンセルか延期せよ。時には家にいることが最良の選択。',
+        general: '現代人が最も学びにくいのが「立ち止まること」。しかし真の知恵は往往にして静止の中で浮かび上がる。如如として動かず——泰山の如く安し。',
+      },
+    },
+  },
+
+  53: {
+    en: {
+      title: 'Gradual Advance',
+      content: 'A tree upon the mountain grows toward the sky,\nThe elephant treads the field\'s heart — step by step drawing nigh.\nAdvance in order — never rush or race —\nWhen effort is complete, blessings find their place.',
+      vernacular: 'A medium-good fortune sign. The Jian hexagram symbolizes gradual progress and accumulation. Like the Elephant in chess stepping one step at a time on the field pattern — not fast, but steady. Good things take time — don\'t expect to reach the sky in a single bound. Romance needs slow cultivation; career needs steady management. Every step counts — advance steadily.',
+      story: 'Jian — Xun above, Gen below: a tree on the mountain — growing slowly. In chess, the Elephant steps one field diagonal at a time — rhythmic and steady. The story of the Foolish Old Man who moved the mountain teaches us: persistent, gradual effort can eventually accomplish great things.',
+      jieYue: {
+        marriage: 'Romance needs time to cultivate slowly. Don\'t rush to push the relationship forward — enjoy the courtship phase.',
+        wealth: 'Results from regular fixed-amount investing are becoming visible. Keep up the discipline.',
+        career: 'Career development is steady — don\'t envy others\' leap-forward growth.',
+        health: 'Gradual fitness plans are more lasting and effective than intense exercise bursts.',
+        study: 'Improve a little each day — the power of accumulation is astonishing.',
+        travel: 'Suited for slow-paced travel — carefully savor the scenery along the way.',
+        general: 'Slow and steady wins the race. Life is a marathon, not a sprint. Every day\'s small progress will eventually gather into magnificent achievement.',
+      },
+    },
+    ja: {
+      title: '循序 漸く進む',
+      content: '山上に木あり漸く天に参し、\n相田心を歩み歩々前にす。\n循序漸進——躁急にする莫かれ、\n功到りて自然に福田あり。',
+      vernacular: '中吉の籤。漸卦は漸進と蓄積を象徴。将棋の相が一歩一歩田字格を歩むように——速くはないが穩やか。好事は多磨——一足飛びを期待するな。感情はゆっくり育む必要があり、事業は一歩ずつ経営する必要がある。一歩一歩がすべて計算される——穩やかに前進せよ。',
+      story: '漸卦は上巽下艮、山上に木あり緩慢に生長。将棋で相・象は一度に一歩田字対角を歩み——規律正しく安定。愚公山を移すの物語が教えること——堅持不抜の漸進がついに大事を成す。',
+      jieYue: {
+        marriage: '感情は時間をかけてゆっくり育むもの。急いで関係を進展させようとせず——曖昧期を楽しめ。',
+        wealth: '定期定額投資の成果が現れている。紀律を保ち続けよ。',
+        career: 'キャリア発展は安定——他人の飛躍的成長を羨むな。',
+        health: '漸進的なフィットネス計画は激しい運動より持続的で効果的。',
+        study: '毎日少しずつ進歩——蓄積の力は驚くべきもの。',
+        travel: 'スローペースの旅に適す——道中の風景をじっくり味わえ。',
+        general: 'ゆっくり、しかし着実に——こちらの方が速い。人生はマラソンであって短距離走ではない。毎日の小さな進歩が、最終的に巨大な成果へと集約する。',
+      },
+    },
+  },
+
+  54: {
+    en: {
+      title: 'The Returning Bride',
+      content: 'Thunder above the marsh — the bride journeys on her way,\nThe horse follows the general\'s command toward the coming day.\nA homecoming, in time, will surely find its place —\nFollow fate, follow the moment — no need to push or race.',
+      vernacular: 'A medium-good fortune sign. The Gui Mei hexagram symbolizes belonging and marriage. Like the Horse in chess moving toward the goal under the General\'s leadership. This is a sign about "homecoming" — it might be marriage, finding the ideal job, or a spiritual home. No need to force it; when destiny aligns, everything flows naturally.',
+      story: 'Gui Mei — Zhen above, Dui below: thunder above the marsh — the image of a maiden marrying. In chess, each piece has its rightful place — the General returns to the nine-palace, the Elephant returns within the river. Wang Zhaojun departing for the frontier — though not what she wished, she ultimately found her place.',
+      jieYue: {
+        marriage: 'A crucial sign about marriage. Those already partnered may consider engagement or wedding. Singles will eventually find their home.',
+        wealth: 'Investments will eventually return to their rightful value. Don\'t give up due to short-term fluctuations.',
+        career: 'You will find the career home that truly suits you. If a bit lost now, direction will soon become clear.',
+        health: 'Body and mind will eventually find balance. Seek the wellness path that suits you.',
+        study: 'You will eventually find the field and direction of study that fits you.',
+        travel: 'A journey "homeward" or "returning to your hometown" is deeply meaningful.',
+        general: 'Everyone has a home — a place or person that makes you feel at peace. No need to rush; the time of homecoming is ordained by heaven.',
+      },
+    },
+    ja: {
+      title: '帰宿に期あり',
+      content: '雷沢上に動き嫁娘行き、\n馬将の令に随って前程に赴く。\n帰宿に時あり終には到る、\n縁に随い分に随いて争うを須いず。',
+      vernacular: '中吉の籤。帰妹卦は帰宿と婚姻を象徴。将棋で馬が将帥の導きの下で目標に向かうように。これは「帰宿」についての籤——婚姻かもしれないし、理想の仕事を見つけることかもしれないし、心の帰宿かもしれない。強く求めず——縁が至れば自然に水到り渠成る。',
+      story: '帰妹卦は上震下兌、雷沢上にあり女子出嫁の象。将棋で各駒にはその帰位がある——将は九宮に帰り、相は河内に帰る。昭君塞を出づ——願いには非ざりしも、終に帰宿あり。',
+      jieYue: {
+        marriage: '婚姻に関する重要な籤。パートナーがいる人は婚約や結婚を検討する時期。独身者もついに帰宿を見つける。',
+        wealth: '投資はついに本来の価値に戻る。短期の変動で諦めるな。',
+        career: '本当に自分に合った職業の帰宿を見つけるだろう。やや迷っているなら、すぐに方向が見えてくる。',
+        health: '心身はついにバランスを見つける。自分に合った養生の道を探せ。',
+        study: 'ついに自分に合った学習領域と方向を見つけるだろう。',
+        travel: '「帰宅」または「帰郷」の旅は非常に意義深い。',
+        general: '誰にでも帰宿がある——安心できる場所や人。焦る必要はない——帰期は天が定める。',
+      },
+    },
+  },
+
+  55: {
+    en: {
+      title: 'Abundant Harvest',
+      content: 'Thunder and lightning blaze — the fire roars and leaps,\nCannon and Horse in linked assault — their mighty onslaught sweeps.\nIn time of harvest, remember to give thanks and stay true —\nFor at the peak, decline may come — guard your original virtue too.',
+      vernacular: 'A great fortune sign. The Feng hexagram symbolizes abundance and plenty. Like the Cannon and Horse in chess achieving perfect coordination — their momentum is unstoppable. This is your season of harvest! Career, wealth, and relationships are all in a state of abundance. But Feng also warns — at the peak, decline begins. In times of plenty, remain humble and grateful.',
+      story: 'Feng — Zhen above, Li below: thunder and fire blazing together — brilliantly grand. In chess, Cannon and Horse joint attack is the most ferocious offensive formation. Tang Xuanzong\'s Kaiyuan Golden Age — abundant goods and prosperous people — but the principle of "at the peak comes decline" is also hidden within the Feng hexagram.',
+      jieYue: {
+        marriage: 'Romantic life is rich and colorful. Singles — romance blossoms everywhere. Those partnered — love is sweet.',
+        wealth: 'Financial fortune reaches its peak. Investment gains, bonuses, or unexpected windfalls may all appear.',
+        career: 'Career reaches a periodic peak. Celebrate well, but don\'t become complacent.',
+        health: 'Physical condition is at a high point. But don\'t over-consume — at the peak, decline may come.',
+        study: 'Excellent exam or competition results. Your efforts have received their best reward.',
+        travel: 'A great time for luxurious travel. Reward yourself for all your persistent effort.',
+        general: 'Feng is one of the most brilliant hexagrams in the I Ching. Fully enjoy this season of abundance! But remember: when the moon is full, it begins to wane. Maintain gratitude and humility to sustain prosperity.',
+      },
+    },
+    ja: {
+      title: '豊收満盈',
+      content: '雷電交輝して火焰熊たり、\n砲馬連環して気勢雄なり。\n豊收の際は須く感恩すべし、\n盛極まれば衰えを防ぎ初心を守れ。',
+      vernacular: '大吉の籤。豊卦は豊盛と豊収を象徴。将棋で砲と馬の完璧な配合——勢いは破竹の如し。これはあなたの収穫の季節！事業、財富、感情のすべてが豊盛期にある。しかし豊卦はまた戒める——盛極まれば必ず衰う。豊収の時に謙虚さと感恩の心を保て。',
+      story: '豊卦は上震下離、雷火交じり光明盛大。将棋で砲馬聯攻は最も凌厲な攻勢。唐玄宗開元盛世——物阜民豊——しかし盛極まりて衰うる理もまた豊卦の中に蔵されている。',
+      jieYue: {
+        marriage: '感情生活は豊かで多彩。独身者——桃花満開。パートナーがいる人——愛情は甜蜜。',
+        wealth: '財運はピークに達する。投資収益、ボーナス、臨時収入のいずれも可能性あり。',
+        career: '事業が段階的なピークに達する。よく祝え——しかし自満するな。',
+        health: '体調は高水準にある。しかし過度に消耗するな——盛極まれば衰う。',
+        study: '試験や試合の成績は優異。あなたの努力は最良の報いを受けた。',
+        travel: '贅沢な旅行の好機。これまでの自分の努力にご褒美を。',
+        general: '豊卦は易経で最も燦爛たる卦の一つ。この豊作の季節を存分に楽しめ！ただし忘れるな：月満つれば則ち虧く——感恩と謙虚を保ってこそ豊盛は長続きする。',
+      },
+    },
+  },
+
+  56: {
+    en: {
+      title: 'Traveler Abroad',
+      content: 'Fire on the mountain lights the traveler\'s road ahead,\nThe horse treads foreign soil — a stranger seeking bread.\nWhen sojourning away from home, be careful and be wise —\nWith softness overcome the hard — keep safety in your eyes.',
+      vernacular: 'A balanced-even sign. The Lü hexagram symbolizes travel and sojourning. Like the Horse in chess walking on foreign soil. You may be traveling, considering a move, or in an unfamiliar environment. The traveler\'s code: keep a low profile, follow local customs, act as the situation demands. The experiences of a foreign land will eventually become precious knowledge.',
+      story: 'Lü — Li above, Gen below: fire on the mountain — the traveler raises fire to go forward. In chess, a piece leaving its original position (like the Horse leaping across the Chu River) is like a traveler entering a foreign land. Xuanzang\'s journey to the West for scriptures — ten thousand miles alone, sojourning in foreign lands for many years — ultimately obtained the true scriptures.',
+      jieYue: {
+        marriage: 'A testing period for long-distance relationships. Or a chance encounter with someone during travel.',
+        wealth: 'Investment or business opportunities away from home are worth attention, but must be examined carefully.',
+        career: 'A good time for business trips or overseas assignments. Working in a different place can broaden your horizons.',
+        health: 'During travel, be careful with food hygiene and safety. Acclimatization issues are common.',
+        study: 'A great opportunity for studying abroad or interning in another city.',
+        travel: 'Travel fortune is strong! Set out — explore the unknown world.',
+        general: 'Life is a journey — we are all travelers passing through. Carry an open heart to experience everything a foreign land offers; those experiences will make your life richer and more colorful.',
+      },
+    },
+    ja: {
+      title: '旅居 外に在り',
+      content: '山上に火あり途程を照らし、\n馬他郷を踏み客として行く。\n旅居在外は須く謹慎すべし、\n柔を以て剛を克して保安平。',
+      vernacular: '中平の籤。旅卦は旅行と客居を象徴。将棋の馬が異郷の土地を歩くように。あなたは旅行中か、引っ越しを検討中か、慣れない環境にいるかも。旅人のルール：低姿勢を保ち、郷に入っては郷に従い、機を見て行動せよ。異郷での経験はやがて貴重な財産となる。',
+      story: '旅卦は上離下艮、山上に火あり旅人火を挙げて前行。将棋で駒が本位を離れること（馬が楚河を躍えるように）は旅人が異郷に入るが如し。玄奘西行取経——万里孤身、異郷に旅居多年——終に真経を得た。',
+      jieYue: {
+        marriage: '遠距離恋愛の試練期。あるいは旅先で縁ある人と邂逅するかも。',
+        wealth: '外地での投資や商機は注目に値する——ただし必ず審慎に。',
+        career: '出張や海外赴任の好機。異地での仕事が視野を広げる。',
+        health: '旅先では飲食衛生と安全に注意。水土不服はよくある問題。',
+        study: '海外留学や外地実習の良い機会。',
+        travel: '旅行運は旺盛！出発せよ——未知の世界を探索せよ。',
+        general: '人生は旅のようなもの——私たちは皆通り過ぎる客。開かれた心で異郷のすべてを体験せよ——それらの経験があなたの人生をより豊かで多彩にする。',
+      },
+    },
+  },
+
+  // ═══════════════════ 57-64 ═══════════════════
+  57: {
+    en: {
+      title: 'Gentle as Wind',
+      content: 'The following wind enters softly — without a sound,\nThe elephant\'s eye watches the game — seeing all around.\nWith softness overcome the hard — subtle, unseen power —\nQuiet transformation brings success in its own hour.',
+      vernacular: 'A medium-good fortune sign. The Xun hexagram symbolizes gentleness and penetration. Like the Elephant in chess — quiet and unassuming, yet with deep vision. Using hard force may not solve the problem — try the gentle way, "like the wind entering by night." Soft power sometimes touches hearts more deeply than military force.',
+      story: 'Xun — both above and below are Xun: the wind moves, penetrating everything. In chess, the Elephant seems to move little, yet is the core of defense. Yan Ying (Yan Zi) on a diplomatic mission to Chu — neither servile nor overbearing — overcame hardness with softness, earning the Chu king\'s heartfelt respect.',
+      jieYue: {
+        marriage: 'Move the other person with gentleness and patience. Aggressive pursuit often backfires.',
+        wealth: 'In negotiation or sales, gentle persuasion is more effective than hard posturing.',
+        career: 'When driving reform, subtle and gradual approaches face less resistance than direct confrontation.',
+        health: 'Gentle exercise like Tai Chi and yoga benefits physical and mental wellness.',
+        study: 'Steady, subtle daily learning is more effective than last-minute cramming.',
+        travel: 'Travel with the wind — don\'t set rigid itineraries. Let the journey unfold naturally.',
+        general: 'The soft overcomes the strong. Wind has no form, yet can wear through stone. Try handling problems with a gentler approach, and you\'ll find things are easier than you imagined.',
+      },
+    },
+    ja: {
+      title: '柔順にして入る',
+      content: '風に随いて巽入す——細やかにして声無く、\n相眼局を旁観して勢い明らかなり。\n柔を以て剛を克すは潛移の力、\n潛移默化して自ずから功成る。',
+      vernacular: '中吉の籤。巽卦は柔順と滲透を象徴。将棋の相のように——声高くないが眼光深遠。強硬な方法で問題が解決するとは限らない——「風に随いて夜に入る」ような柔軟なやり方を試してみよ。優しい力は、時に武力よりも深く人の心に届く。',
+      story: '巽卦は上下皆巽、風行きて孔無く入らざるはなし。将棋で相は動作が少なく見えるが、防御の核心。晏子楚を使す——不卑不亢——柔を以て剛を克し、楚王を心服させた。',
+      jieYue: {
+        marriage: '優しさと忍耐で相手を動かせ。強引な追求は往往にして逆効果。',
+        wealth: '交渉や販売では、柔らかな説得力が強硬な姿勢より効果的。',
+        career: '改革を推進する際——潛移默化の方法が正面衝突より受け入れられやすい。',
+        health: '太極拳、ヨガなどの柔性運動が身心健康に有益。',
+        study: '潛移默化の持続的学習は、一夜漬けより効果的。',
+        travel: '風に随いて行け——固い旅程表を設定するな。旅を自然に展開させよ。',
+        general: '柔弱は剛強に勝る。風は無形なれど、石を穿つことができる。もっと柔らかな方法で問題を処理してみよ——物事は想像より簡単だと気づくだろう。',
+      },
+    },
+  },
+
+  58: {
+    en: {
+      title: 'Joyful Resonance',
+      content: 'Twin marshes joined as one — joy rises pure and free,\nRed and black contest — yet in the play, what glee!\nAlways wear a smiling face — like the face of spring —\nHarmony attracts good fortune — let every blessing ring.',
+      vernacular: 'A medium-good fortune sign. The Dui hexagram symbolizes joy and communication. Like red and black in chess — the contest itself is a form of joy. Communicate more with others, share happiness, and joyful energy will attract more good things. This is a sign that encourages you to open your heart and embrace social connection.',
+      story: 'Dui — both above and below are Dui: two marshes joined — joyful resonance. Chess, though competitive, at its highest level becomes "hand-talking" — making friends through the game. Boya played the qin and Zhong Ziqi understood his melody — this is the perfect portrait of Dui\'s resonance of kindred souls.',
+      jieYue: {
+        marriage: 'A joyful, happy mindset is the best charm for attracting romance. Gather more with friends.',
+        wealth: 'Joyful spending (travel, fine dining) is worth investing in. When your mood is good, financial luck follows.',
+        career: 'Maintain good interaction and communication with colleagues. Workplace interpersonal relationships flow smoothly.',
+        health: 'Laughter is the best medicine. A joyful mood greatly benefits the immune system.',
+        study: 'In a pleasant atmosphere, learning is most effective. Form discussion groups with classmates.',
+        travel: 'Travel with a few good friends — endless laughter along the way.',
+        general: 'Joy is contagious. When you are happy, those around you feel that happiness too. Smile more, speak kind words, share with others — blessings will naturally come.',
+      },
+    },
+    ja: {
+      title: '喜悅 共に鳴り響く',
+      content: '麗沢双び連なり喜悅生じ、\n紅黑対弈して楽しみ中に争う。\n口を開き常に笑えば春風の面、\n和気祥を致して万事亨る。',
+      vernacular: '中吉の籤。兌卦は喜びと交流を象徴。将棋の紅黑対弈は本来が一つの楽しみ。多く人と交流し、喜びを分かち合えば、喜悅のエネルギーがより多くの好事を引き寄せる。これは心を開き、社交を受け入れるよう励ます籤。',
+      story: '兌卦は上下皆兌、両沢相連なり喜悅共鳴。将棋は競技ながら、最高の境地は「手談」——棋を以て友と会す。伯牙琴を鼓し鍾子期音を知る——まさに兌卦知音共鳴の最良の描写。',
+      jieYue: {
+        marriage: '楽しく愉快な気持ちが桃花を引き寄せる最良の法門。友人と多く集まれ。',
+        wealth: '楽しい消費（旅行、美食）は投資に値する。気分が良ければ財運も自然と良くなる。',
+        career: '同僚との良好な交流とコミュニケーションを保て。職場の人間関係は円滑。',
+        health: '笑いは最良の薬。愉悅な気持ちは免疫力に大きく寄与する。',
+        study: '愉悅な雰囲気の中で学習効果は最良。同級生とグループ討論せよ。',
+        travel: '三五の親友と共に旅を——笑い声が絶えない。',
+        general: '喜びは伝染する。あなたが楽しければ、周りの人もその喜びを感じる。多く笑い、良い言葉をかけ、人と分かち合えば、福気は自然に来る。',
+      },
+    },
+  },
+
+  59: {
+    en: {
+      title: 'Scattered but Regathered',
+      content: 'Wind over water — scattered waves disperse and flow,\nThe chariot trapped mid-stream, the horse must ford and go.\nWhat breaks apart regathers — seek the new way through —\nRally the flags and banners, and sing the song anew.',
+      vernacular: 'A balanced-even sign. The Huan hexagram symbolizes dispersion and reunification. Like the Chariot and Horse in chess scattered then regrouping. Your plans or team may be temporarily dispersed, but this is not the end — it\'s an opportunity to regroup. Strength reunified after dispersion is often stronger than before.',
+      story: 'Huan — Xun above, Kan below: wind over water — waves scatter yet ultimately reunite. In chess, rallying when the position is unfavorable is the key to reversing the tide. Liu Bang lost battle after battle but kept fighting, and at Gaixia, one decisive battle settled the world.',
+      jieYue: {
+        marriage: 'Brief separation or a cooling-off period can actually be good for the relationship. Reunited after scattering, you\'ll treasure each other more.',
+        wealth: 'Asset allocation may need readjustment. Temporary dispersion is for better concentration.',
+        career: 'Team restructuring or project reorganization. Break the old structure and start anew.',
+        health: 'A weakened body needs recuperation. Scattered energy needs time to regroup.',
+        study: 'After being distracted too long, refocus. Find new study motivation and methods.',
+        travel: 'Several small scattered trips are more suitable right now than one long journey.',
+        general: 'Sometimes we need to "scatter" first to better "gather" later. Don\'t fear temporary dispersion — it is the necessary path to reorganization.',
+      },
+    },
+    ja: {
+      title: '渙散し復た聚まる',
+      content: '風水上に行き渙離の波を起こし、\n車河中に陥り馬河を渡る。\n散じて復た聚まり新路を尋ね、\n旗鼓を整え直して再び高歌す。',
+      vernacular: '中平の籤。渙卦は渙散と再凝聚を象徴。将棋で車馬が困らされた後に再集結するように。あなたの計画やチームは一時的に渙散するかも——しかしこれは終わりではなく、再整隊の機会。散じて復た聚まる力は往往にして以前より強い。',
+      story: '渙卦は上巽下坎、風水上に行き波浪渙散して終には復た聚まる。将棋で局面不利の時、旗鼓を整え直すことが逆転の鍵。劉邦は戦うたびに敗れたが、敗れるたびに立ち上がり、垓下の囲みで一戦して天下を定めた。',
+      jieYue: {
+        marriage: '短期の分離や冷却期間はかえって感情に良い。散じて復た聚まれば、より互いを珍惜する。',
+        wealth: '資産配置は再調整が必要かも。一時的な渙散はより良い集中のため。',
+        career: 'チーム再編やプロジェクト重整。古い構造を打破し再出発せよ。',
+        health: '弱った身体は養生が必要。渙散した精神を再凝聚するには時間がかかる。',
+        study: '長く注意散漫だった後、再び専注せよ。新しい学習動力と方法を見つけよ。',
+        travel: '一回の長旅より、何回かの分散した小旅行が今は適している。',
+        general: '時に私たちはまず「散る」ことが必要——そうすればより良く「聚まる」ことができる。一時的な渙散を恐れるな——それは再整頓の必要な道のり。',
+      },
+    },
+  },
+
+  60: {
+    en: {
+      title: 'Moderation and Restraint',
+      content: 'Water above the marsh — the flow is checked and slowed,\nPawns advance in order — their measured pace bestowed.\nIn all things know restraint — the measured way is best —\nToo far is as bad as too short — turn back before unrest.',
+      vernacular: 'A medium-good fortune sign. The Jie hexagram symbolizes restraint and proper measure. Like Pawns in chess — their movement has strict rules: before crossing the river, they can only advance one step straight. This is a sign reminding you of "restraint." Control spending, moderate eating, regulate emotions. Everything has its measure — excess becomes disaster.',
+      story: 'Jie — Kan above, Dui below: water above the marsh — held in check by embankments. In chess, every move is bound by rules — yet these very limits create infinite possibility. Zeng Guofan took the character "Jie" as the core of his family teachings — a lifetime of diligence and self-restraint.',
+      jieYue: {
+        marriage: 'Maintain appropriate distance and space in relationships. Excessive clinging suffocates the other person.',
+        wealth: 'Economize spending; live within your means. Establish a budget system to control unnecessary consumption.',
+        career: 'Balance work and life. Excessive overtime actually hurts efficiency.',
+        health: 'Eat and rest with moderation. The body needs rhythm, not extremes.',
+        study: 'Create a reasonable study plan. Don\'t overload — absorb a moderate amount each day.',
+        travel: 'Control the travel budget. You don\'t need the most expensive itinerary to have fun.',
+        general: 'The noble person has restraint. Those who know moderation can go far. Maintaining "just right" in every aspect is life\'s hardest and most important wisdom.',
+      },
+    },
+    ja: {
+      title: '節制 度有り',
+      content: '沢上に水あり其の流れを節し、\n兵行くこと序ありて籌を乱さず。\n凡事度有りて節制を知れ——\n過ぎたるは猶及ばざるが如し早く頭を回らせ。',
+      vernacular: '中吉の籤。節卦は節制と分寸を象徴。将棋の兵卒の行動に厳格な規則があるように——河を渡る前は真っ直ぐ一歩しか進めない。これは「節制」を戒める籤。出費を節し、飲食を節し、感情も節せよ。すべてに度があり——過ぎれば災いとなる。',
+      story: '節卦は上坎下兌、沢上に水あり堤防もて節制。将棋で一歩一歩に規則の制限があり、これらの制限がかえって無限の可能性を創造する。曾国藩は「節」の字を家訓の核心とし——一生勤倹自持。',
+      jieYue: {
+        marriage: '感情では適切な距離とスペースが必要。過度のベタベタは相手を窒息させる。',
+        wealth: '出費を節約し、収入に応じて支出せよ。予算制度を確立し不必要な消費を制御せよ。',
+        career: '仕事と生活のバランスが必要。過度の残業はかえって効率を下げる。',
+        health: '飲食に節あり、作息に度あり。身体は規則正しさを必要とし、極端を必要としない。',
+        study: '合理的な学習計画を立てよ。欲張らず、毎日適量を吸収せよ。',
+        travel: '旅行予算をコントロールせよ。最も高い旅程でなくても楽しめる。',
+        general: '君子に節あり。節制を知る者こそ遠くまで行ける。「ちょうど良い」を各方面で保つことが、人生で最も難しく最も重要な知恵。',
+      },
+    },
+  },
+
+  61: {
+    en: {
+      title: 'Inner Sincerity',
+      content: 'Wind over the marsh — sincerity flows and connects,\nPawns keep their oath — a vow that never deflects.\nA sincere heart moves heaven and earth as one —\nTreat all with truth — ten thousand matters are won.',
+      vernacular: 'An upper-good fortune sign. The Zhong Fu hexagram symbolizes sincerity and trust. Like Pawns in chess — advancing bravely, never retreating — this is commitment to a promise kept. Sincerity is your greatest asset. As long as you maintain authenticity, whether in love, business, or relationships, you will earn trust and support.',
+      story: 'Zhong Fu — Xun above, Dui below: wind over the marsh — sincerity reaching all things. In chess, Pawns can only advance, never retreat — symbolizing absolute loyalty to the mission. Ji Zha hung his sword at the tomb of the Lord of Xu — a promise worth a thousand gold pieces.',
+      jieYue: {
+        marriage: 'Sincerity is the most important foundation in love. Be honest with yourself and the other person.',
+        wealth: 'Trustworthiness is the greatest wealth. Keep your word, and opportunities will come naturally.',
+        career: 'Be a person of your word. Integrity makes you stand out in the workplace.',
+        health: 'Be honest with your body — if you\'re tired, rest. Face your health situation truthfully.',
+        study: 'Face your shortcomings honestly and learn with humility. Pretending to know what you don\'t is the biggest obstacle to learning.',
+        travel: 'Keep travel promises — trustworthy people have especially smooth journeys.',
+        general: 'A person cannot stand without trust. In a world full of uncertainty, honesty is the rarest and most valuable asset. Be a person worthy of trust, and blessings will flow endlessly.',
+      },
+    },
+    ja: {
+      title: '誠信感孚す',
+      content: '風沢上に行き信孚通じ、\n兵卒誓言して公に負かず。\n誠心以て天と地を感格し、\n信を以て人に待てば万事融く。',
+      vernacular: '上吉の籤。中孚卦は誠信と感孚を象徴。将棋の兵卒のように——勇往邁進し決して退かない——これは約束への堅守。誠信はあなたの最大の資産。真摯さを保てば、恋愛でもビジネス協力でも人間関係でも、信頼と支持を得られる。',
+      story: '中孚卦は上巽下兌、風沢上に行き信万物に及ぶ。将棋で兵卒は前進のみで後退できない——使命への絶対的忠誠を象徴。季札剣を徐君の墓に掛く——一諾千金。',
+      jieYue: {
+        marriage: '誠実さこそ感情で最も重要な基礎。自分にも相手にも正直であれ。',
+        wealth: '信頼こそ最大の財産。言ったことを実行すれば、商機は自然と来る。',
+        career: '言ったことを実行する人であれ。誠信が職場であなたを際立たせる。',
+        health: '自分の身体に正直であれ——疲れたら休め。健康状態を誠実に受け止めよ。',
+        study: '自分の不足を誠実に認め、謙虚に学べ。知ったかぶりは学習の最大の障害。',
+        travel: '旅行の約束を守れ——信を守る人の旅路は特に順調。',
+        general: '人にして信なくんば立たず。不確かな世界で、誠信は最も稀少で最も価値ある資産。信頼に値する人になれ——福報は自然と源々として絶えない。',
+      },
+    },
+  },
+
+  62: {
+    en: {
+      title: 'Small Excess Corrected',
+      content: 'Thunder on the mountain — small trespasses may appear,\nPawns march a touch too fast — their path a touch unclear.\nSmall faults can be made right — this is no small skill —\nKnowing wrong and changing course — many blessings will.',
+      vernacular: 'A balanced-even sign. The Xiao Guo hexagram symbolizes small transgressions. Like Pawns in chess advancing too hastily — perhaps deviating from the optimal path. Everyone makes small mistakes; what matters is catching them and correcting them in time. Don\'t be overly self-critical about small errors — just fix them.',
+      story: 'Xiao Guo — Zhen above, Gen below: thunder on the mountain — small excesses. In chess, beginners often make small mistakes, and even masters can\'t avoid slip-ups — the point is learning from them. Zengzi said, "I examine myself three times each day" — daily reflection on small faults is the path to sagehood.',
+      jieYue: {
+        marriage: 'Small frictions in relationships are normal. Apologize and correct them in time.',
+        wealth: 'Small financial mistakes (impulse spending, investment errors) must be corrected promptly. A small hole unplugged leads to a big hole.',
+        career: 'Made a small mistake at work? Admit it and fix it boldly. Covering up small mistakes only leads to catastrophe.',
+        health: 'Treat minor illnesses promptly — don\'t let them become major ones.',
+        study: 'Be especially mindful of careless errors in exams. Develop the habit of reviewing your work.',
+        travel: 'If a small mistake happens during the journey, don\'t let it ruin your mood. Adjust promptly.',
+        general: 'No one is a sage — who can be without fault? To err and be able to change — there is no greater good. Small mistakes aren\'t scary; what\'s scary is not correcting them. Starting today, fix one small error.',
+      },
+    },
+    ja: {
+      title: '小過は改むべし',
+      content: '山上に雷鳴り微かに過ち有り、\n兵行くこと稍や急にして略や偏頗。\n小過能く改むれば善は大なり、\n過ちを知りて即ち改むれば福来ること多し。',
+      vernacular: '中平の籤。小過卦は小さな過失を象徴。将棋で兵卒が急ぎすぎて——最良の路線からやや逸れるかのように。誰にでも小さな間違いはある——大事なのは発見したらすぐ修正すること。小さなミスで過度に自分を責めるな——直せば良い。',
+      story: '小過卦は上震下艮、雷山上にあり小さく越えることあり。将棋で初学者はよく小さな間違いを犯し、達人も時にうっかりする——大事なのは間違いから学ぶこと。曾子「吾日に三たび吾が身を省みる」——日々反省してこそ聖人になれる。',
+      jieYue: {
+        marriage: '感情の小さな軋轢は当たり前。すぐに謝り修正せよ。',
+        wealth: '小さな財務の失敗（衝動買い、投資ミス）はすぐに修正せよ。小さな穴を塞がねば大きな穴になる。',
+        career: '仕事で小さな間違いをしたら——勇敢に認めて修正せよ。隠蔽は大禍を招く。',
+        health: '小さな病気はすぐに処理し、大病に発展させるな。',
+        study: '試験でのうっかりミスに特に注意せよ。見直しの習慣を身につけよ。',
+        travel: '旅の途中で小さなミスがあっても気分を壊すな。すぐに調整せよ。',
+        general: '人にして聖賢にあらず——誰か能く過ち無からん？過ちて改むること——善より大なるは莫し。小さな間違いは怖くない——怖いのは修正しないこと。今日から一つの小さな間違いを修正せよ。',
+      },
+    },
+  },
+
+  63: {
+    en: {
+      title: 'Achievement Fulfilled',
+      content: 'Water over fire — the cooking is complete and done,\nChariot and Cannon united — the great deed is won.\nIn this moment of crossing, guard against what\'s to come —\nHolding success is hard; don\'t let your grip grow numb.',
+      vernacular: 'A great fortune sign. The Ji Ji hexagram symbolizes success and completion. Like the Chariot and Cannon in chess coordinating for the final checkmate. Congratulations! The goal you\'ve been pursuing is about to be achieved — project completed, exam passed, relationship blossoming. But Ji Ji also reminds: after success, be even more vigilant, for "what begins well often ends poorly" is the common pattern.',
+      story: 'Ji Ji — Kan above, Li below: water over fire — cooking successful. In chess, the most perfect checkmate is the Chariot-Cannon absolute kill. Tang Taizong\'s Zhenguan Golden Age can be called Ji Ji — yet in his later years, he too sighed at "the difficulty of maintaining achievement."',
+      jieYue: {
+        marriage: 'The relationship has reached a perfect balance. An excellent time to commit for life.',
+        wealth: 'Investments have reached target prices. Consider taking some profits. Preserving wealth is harder than creating it.',
+        career: 'The project has been successfully completed — worth celebrating well. But don\'t relax — follow-up maintenance is equally important.',
+        health: 'Physical condition has reached an ideal state. Maintaining is harder than achieving — keep up the good habits.',
+        study: 'Exams passed or academic goals reached. Celebrate, but also plan the next step.',
+        travel: 'A perfect journey is about to conclude. Cherish the final moments.',
+        general: 'Success is hard-won; preserving it requires even more wisdom. While celebrating victory, don\'t forget to stay vigilant. Knowing when you have enough brings no disgrace; knowing when to stop brings no danger.',
+      },
+    },
+    ja: {
+      title: '功成り名就ぐ',
+      content: '水火の上にありて烹ること成功す、\n車砲心を同じくして大功を立つ。\n既済の時は須く戒慎すべし、\n守成の難きを——疎鬆にする莫かれ。',
+      vernacular: '大吉の籤。既済卦は成功と完成を象徴。将棋で車炮配合が絶殺を完成させるように。おめでとう！あなたが追い求めてきた目標はまさに達成されようとしている——プロジェクト完了、試験合格、感情開花。しかし既済はまた戒める：成功の後はさらに警戒せよ——「初吉終乱」は常態だから。',
+      story: '既済卦は上坎下離、水火の上にあり烹飪成功。将棋で最も完璧な殺局は車炮絶殺。唐太宗貞観の治は既済と言える——しかし彼も晩年「守成の難き」を嘆じた。',
+      jieYue: {
+        marriage: '感情関係が完璧なバランス点に達した。終身を誓う好機。',
+        wealth: '投資が目標価格に達した——一部の利益確定を検討せよ。守成は創富より難しい。',
+        career: 'プロジェクトが大功を成した——大いに祝うに値する。しかし緩んではならない——後続メンテナンスも同様に重要。',
+        health: '健康状態が理想状態に達した。維持は達成より難しい——良い習慣を保て。',
+        study: '試験合格や学業の段階的目標達成。祝うと同時に次のステップも計画せよ。',
+        travel: '完璧な旅がまもなく幕を閉じようとしている。最後の時間を珍惜せよ。',
+        general: '成功は得難く、守成は更に知恵を要する。勝利を祝うと同時に、警戒を忘れるな。足るを知れば辱められず、止まるを知れば危うからず。',
+      },
+    },
+  },
+
+  64: {
+    en: {
+      title: 'Not Yet Complete',
+      content: 'Fire over water — the cooking is not yet done,\nThe horse leaps the stream — the path not yet won.\nWhen crossing is incomplete, don\'t rush or race —\nThe saddest thing is to fall short at the final pace.',
+      vernacular: 'A balanced-even sign. The Wei Ji hexagram symbolizes incompletion — things not yet finished. Like a chess game not yet ended — victory and defeat not yet decided. Your matters are still in progress, just one step from completion. Don\'t give up or rush through this final mile — falling short at the last step is the greatest shame. Persist a little longer; the finish line is right ahead.',
+      story: 'Wei Ji — Li above, Kan below: fire over water — unable to complete the cooking. In chess, the saddest thing is holding all the advantages yet falling short at the final move — being overturned for a comeback loss. Wang Anshi\'s reforms — just short of success — is the portrait of Wei Ji.',
+      jieYue: {
+        marriage: 'The relationship is still developing. Don\'t label or pressure it. Let it develop naturally.',
+        wealth: 'The investment plan is still in progress. Don\'t rush to harvest, but don\'t give up either.',
+        career: 'The project or goal is not yet achieved. The final mile is the hardest but also the most important.',
+        health: 'Treatment or rehabilitation is not yet complete. Persist to the end to see results.',
+        study: 'The semester or exam preparation is not over. Slacking off now means all previous efforts are wasted.',
+        travel: 'The journey is not yet over. Enjoy every final moment.',
+        general: 'Walking a hundred miles — ninety is only halfway. The final mile is always the hardest, but also the most critical. Don\'t let your previous efforts go to waste — persist, and complete it.',
+      },
+    },
+    ja: {
+      title: '未だ完成せず',
+      content: '火水上にあり未だ烹を成さず、\n馬檀溪を躍りて路未だ明らかならず。\n未済の時は急躁すること休めよ、\n功虧一簣——最も情を傷つける。',
+      vernacular: '中平の籤。未済卦はまだ完成していないことを象徴。将棋で棋局が未だ終わらず——勝負未だ分かれず。あなたのこと事はまだ進行中で、完成まであと一歩。最後の一里で焦ったり諦めたりするな——功虧一簣が最も惜しい。もう少しだけ持ちこたえよ——ゴールはすぐ目の前にある。',
+      story: '未済卦は上離下坎、火水上にあり未だ烹ること能わず。将棋で最も惜しいのは優勢を占めながら功虧一簣——人に逆転翻盤されること。王安石変法——功成るの一歩手前で敗れる——まさに未済の描写。',
+      jieYue: {
+        marriage: '感情はまだ発展中。レッテルを貼ったりプレッシャーをかけたりせず、自然に発展させよ。',
+        wealth: '投資計画はまだ進行中。急いで収穫するな——しかし諦めるな。',
+        career: 'プロジェクトや目標はまだ達成されていない。最後の一里が最も困難で最も重要。',
+        health: '治療やリハビリはまだ完了していない。最後まで堅持してこそ成果が見える。',
+        study: '学期や試験準備はまだ終わっていない。今緩めば全てが水の泡。',
+        travel: '旅はまだ終わっていない。最後の一瞬まで楽しめ。',
+        general: '百里を行く者は九十をもって半ばとす。最後の一里は常に最も難しい——しかし最も肝心でもある。これまでの努力を水の泡にするな——堅持して、完成させよ。',
+      },
+    },
+  },
+};

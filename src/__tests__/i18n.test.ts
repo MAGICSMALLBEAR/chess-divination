@@ -191,3 +191,186 @@ describe('翻譯資料完整性', () => {
     expect(leaked).toEqual([]);
   });
 });
+
+// ── localizePoem / localizePiece / localizeAchievement ──
+
+import { localizePoem, localizePiece, localizeAchievement } from '../services/localize';
+import { getPoemById, type Poem } from '../data/poems';
+import { ALL_PIECES, type ChessPiece } from '../data/pieces';
+import type { Achievement } from '../services/achievements';
+
+describe('localizePoem', () => {
+  test('zh-TW 回傳原始物件（不產生新參考也無妨，欄位一致即為正確）', () => {
+    setLang('zh-TW');
+    const poem = getPoemById(1);
+    const result = localizePoem(poem);
+    expect(result.title).toBe(poem.title);
+    expect(result.content).toBe(poem.content);
+    expect(result.vernacular).toBe(poem.vernacular);
+    expect(result.story).toBe(poem.story);
+  });
+
+  test('en 回傳翻譯後的詩籤', () => {
+    setLang('en');
+    const poem = getPoemById(1);
+    const result = localizePoem(poem);
+    expect(result.title).not.toBe(poem.title);
+    expect(result.title!.length).toBeGreaterThan(0);
+    expect(result.vernacular!.length).toBeGreaterThan(20);
+    expect(result.story!.length).toBeGreaterThan(20);
+    expect(result.content!.split('\n').length).toBe(4);
+  });
+
+  test('ja 回傳翻譯後的詩籤', () => {
+    setLang('ja');
+    const poem = getPoemById(64);
+    const result = localizePoem(poem);
+    expect(result.title!.length).toBeGreaterThan(0);
+    expect(result.vernacular!.length).toBeGreaterThan(20);
+    expect(result.content!.split('\n').length).toBe(4);
+  });
+
+  test('jieYue 各面向皆被翻譯', () => {
+    setLang('en');
+    const result = localizePoem(getPoemById(11));
+    expect(result.jieYue.marriage).not.toBe(getPoemById(11).jieYue.marriage);
+    expect(result.jieYue.wealth!.length).toBeGreaterThan(5);
+    expect(result.jieYue.career!.length).toBeGreaterThan(5);
+    expect(result.jieYue.health!.length).toBeGreaterThan(5);
+    expect(result.jieYue.study!.length).toBeGreaterThan(5);
+    expect(result.jieYue.travel!.length).toBeGreaterThan(5);
+    expect(result.jieYue.general!.length).toBeGreaterThan(5);
+  });
+
+  test('全部 64 首籤詩在 en/ja 下都有翻譯', () => {
+    const missing: string[] = [];
+    for (const lang of ['en', 'ja'] as Lang[]) {
+      setLang(lang);
+      for (let id = 1; id <= 64; id++) {
+        const poem = getPoemById(id);
+        const localized = localizePoem(poem);
+        if (!localized.title || localized.title === poem.title) {
+          missing.push(`poem ${id} title (${lang})`);
+        }
+        if (!localized.vernacular || localized.vernacular === poem.vernacular) {
+          missing.push(`poem ${id} vernacular (${lang})`);
+        }
+        if (!localized.story || localized.story === poem.story) {
+          missing.push(`poem ${id} story (${lang})`);
+        }
+        for (const cat of ['marriage', 'wealth', 'career', 'health', 'study', 'travel', 'general']) {
+          const origCat = (poem.jieYue as any)[cat];
+          const locCat = (localized.jieYue as any)[cat];
+          if (!locCat || locCat === origCat) {
+            missing.push(`poem ${id} jieYue.${cat} (${lang})`);
+          }
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  test('localizePoem 接受 explicit lang 參數', () => {
+    setLang('zh-TW');
+    const result = localizePoem(getPoemById(1), 'en');
+    expect(result.title).not.toBe(getPoemById(1).title);
+  });
+});
+
+describe('localizePiece', () => {
+  test('zh-TW 回傳原始棋子', () => {
+    setLang('zh-TW');
+    const piece = ALL_PIECES[0];
+    const result = localizePiece(piece);
+    expect(result.meaning).toBe(piece.meaning);
+    expect(result.keywords).toEqual(piece.keywords);
+  });
+
+  test('en 回傳翻譯後的棋子', () => {
+    setLang('en');
+    const piece = ALL_PIECES[0]; // red-king-1
+    const result = localizePiece(piece);
+    expect(result.meaning).not.toBe(piece.meaning);
+    expect(result.meaning!.length).toBeGreaterThan(20);
+    expect(result.keywords!.length).toBe(5);
+    // keywords 應為英文
+    for (const kw of result.keywords!) {
+      expect(/^[A-Z]/.test(kw)).toBe(true);
+    }
+  });
+
+  test('ja 回傳翻譯後的棋子', () => {
+    setLang('ja');
+    const piece = ALL_PIECES[15]; // black-chariot-1
+    const result = localizePiece(piece);
+    expect(result.meaning!.length).toBeGreaterThan(10);
+    expect(result.keywords!.length).toBe(5);
+  });
+
+  test('全部 32 顆棋子在 en/ja 下都有翻譯', () => {
+    const missing: string[] = [];
+    for (const lang of ['en', 'ja'] as Lang[]) {
+      setLang(lang);
+      for (const piece of ALL_PIECES) {
+        const localized = localizePiece(piece);
+        if (!localized.meaning || localized.meaning === piece.meaning) {
+          missing.push(`${piece.id} meaning (${lang})`);
+        }
+        if (!localized.keywords || localized.keywords === piece.keywords) {
+          missing.push(`${piece.id} keywords (${lang})`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('localizeAchievement', () => {
+  const mockAchievement: Achievement = {
+    id: 'first_draw',
+    title: '初窺棋道',
+    desc: '完成第一次抽棋占卜',
+    icon: '🎲',
+    unlocked: true,
+  };
+
+  test('zh-TW 回傳原始成就', () => {
+    setLang('zh-TW');
+    const result = localizeAchievement(mockAchievement);
+    expect(result.title).toBe('初窺棋道');
+    expect(result.desc).toBe('完成第一次抽棋占卜');
+  });
+
+  test('en 回傳翻譯後的成就', () => {
+    setLang('en');
+    const result = localizeAchievement(mockAchievement);
+    expect(result.title).toBe('First Glimpse of the Way');
+    expect(result.desc).toBe('Complete your first chess piece divination');
+  });
+
+  test('ja 回傳翻譯後的成就', () => {
+    setLang('ja');
+    const result = localizeAchievement(mockAchievement);
+    expect(result.title).toBe('初めて棋道を窺う');
+    expect(result.desc!.length).toBeGreaterThan(5);
+  });
+
+  test('八項成就全部有 en 和 ja 翻譯', () => {
+    const ids = ['first_draw', 'ten_draws', 'fifty_draws', 'first_board', 'first_favorite', 'week_streak', 'both_modes', 'all_levels'];
+    const missing: string[] = [];
+    for (const lang of ['en', 'ja'] as Lang[]) {
+      setLang(lang);
+      for (const id of ids) {
+        const ach: Achievement = { id, title: 'orig', desc: 'orig', icon: '🎲', unlocked: false };
+        const result = localizeAchievement(ach);
+        if (!result.title || result.title === 'orig') {
+          missing.push(`${id} title (${lang})`);
+        }
+        if (!result.desc || result.desc === 'orig') {
+          missing.push(`${id} desc (${lang})`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});

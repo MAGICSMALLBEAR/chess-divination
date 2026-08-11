@@ -9,6 +9,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useGrid } from '@/hooks/useGrid';
 import { getAchievements, getStreak, type Achievement } from '@/services/achievements';
+import { localizeAchievement } from '@/services/localize';
 import { getHistory } from '@/services/storage';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
@@ -90,29 +91,29 @@ export default function AchievementsScreen() {
 
         {/* 成就列表。寬螢幕改為多欄，每張成就自成一卡 */}
         <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
-          {achievements.map(ach => (
-            <View key={ach.id} style={[
+          {achievements.map(ach => { const a = localizeAchievement(ach); return (
+            <View key={a.id} style={[
               styles.achRow,
               { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
               cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
-              ach.unlocked && styles.achUnlocked,
+              a.unlocked && styles.achUnlocked,
             ]}>
-              <View style={[styles.achIcon, !ach.unlocked && { opacity: 0.3 }]}>
-                <Icon name={achievementIcon(ach.icon)} size={28} color={ach.unlocked ? theme.gold : theme.textMuted} />
+              <View style={[styles.achIcon, !a.unlocked && { opacity: 0.3 }]}>
+                <Icon name={achievementIcon(a.icon)} size={28} color={a.unlocked ? theme.gold : theme.textMuted} />
               </View>
               <View style={styles.achInfo}>
-                <Text style={[styles.achTitle, { color: ach.unlocked ? theme.textPrimary : theme.textMuted }]}>
-                  {ach.title}
+                <Text style={[styles.achTitle, { color: a.unlocked ? theme.textPrimary : theme.textMuted }]}>
+                  {a.title}
                 </Text>
                 <Text style={[styles.achDesc, { color: theme.textMuted }]}>
-                  {ach.desc}
+                  {a.desc}
                 </Text>
               </View>
-              <View style={[styles.achStatus, ach.unlocked && { backgroundColor: theme.gold + '30' }]}>
-                <Icon name={ach.unlocked ? 'check' : 'lock'} size={14} color={ach.unlocked ? theme.gold : theme.textMuted} />
+              <View style={[styles.achStatus, a.unlocked && { backgroundColor: theme.gold + '30' }]}>
+                <Icon name={a.unlocked ? 'check' : 'lock'} size={14} color={a.unlocked ? theme.gold : theme.textMuted} />
               </View>
             </View>
-          ))}
+          ); })}
         </View>
 
         {/* 回到首頁 */}

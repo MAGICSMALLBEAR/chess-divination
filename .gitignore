@@ -48,3 +48,6 @@ yarn-error.*
 /blob-report/
 /playwright/.cache/
 /.shots/
+
+# Screenshot outputs
+/screenshots/out/
