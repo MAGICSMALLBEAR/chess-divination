@@ -17,13 +17,26 @@ const LEVEL_TONE: Record<string, 'good' | 'neutral' | 'bad'> = {
   大吉: 'good', 吉: 'good', 平: 'neutral', 小凶: 'bad', 凶: 'bad',
 };
 
+/** 旺相為得時、休為持平、囚死為失時 */
+const STRENGTH_TONE: Record<string, 'good' | 'neutral' | 'bad'> = {
+  旺: 'good', 相: 'good', 休: 'neutral', 囚: 'bad', 死: 'bad',
+};
+
 export default function LiuYaoPanel({ reading, hourBranch }: Props) {
   const { theme } = useAppTheme();
-  const { primary, nuclear, changed, movingLine, movingLineName, bodyUse } = reading;
+  const {
+    primary, nuclear, changed, movingLine, movingLineName,
+    bodyUse, strength, finalLevel,
+  } = reading;
 
-  const tone = LEVEL_TONE[bodyUse.level] || 'neutral';
-  const toneColor =
-    tone === 'good' ? theme.success : tone === 'bad' ? theme.danger : theme.warning;
+  function colorFor(tone: 'good' | 'neutral' | 'bad') {
+    return tone === 'good' ? theme.success : tone === 'bad' ? theme.danger : theme.warning;
+  }
+
+  // 徽章顯示調整後的斷語——那才是使用者該據以行動的結論
+  const toneColor = colorFor(LEVEL_TONE[finalLevel] || 'neutral');
+  const strengthColor = colorFor(STRENGTH_TONE[strength.state] || 'neutral');
+  const adjusted = finalLevel !== bodyUse.level;
 
   const columns: { info: HexagramInfo; caption: string; hint: string; moving?: number }[] = [
     { info: primary, caption: '本卦', hint: '目前處境', moving: movingLine },
@@ -70,11 +83,30 @@ export default function LiuYaoPanel({ reading, hourBranch }: Props) {
         </Text>
         <View style={[styles.badge, { borderColor: toneColor }]}>
           <Text style={[styles.badgeText, { color: toneColor }]}>
-            {bodyUse.relation} · {bodyUse.level}
+            {bodyUse.relation} · {finalLevel}
           </Text>
         </View>
       </View>
       <Text style={[styles.bodyUseText, { color: theme.textSecondary }]}>{bodyUse.text}</Text>
+
+      {/* 月建旺衰：體卦五行在起卦當月是否得時 */}
+      <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
+      <View style={styles.bodyUseRow}>
+        <Text style={[styles.bodyUseLabel, { color: theme.textMuted }]}>
+          {strength.monthBranchName}（{strength.season}）令{strength.seasonElement}當權
+          {' · '}體屬{strength.bodyElement}
+        </Text>
+        <View style={[styles.badge, { borderColor: strengthColor }]}>
+          <Text style={[styles.badgeText, { color: strengthColor }]}>{strength.state}</Text>
+        </View>
+      </View>
+      <Text style={[styles.bodyUseText, { color: theme.textSecondary }]}>{strength.text}</Text>
+      {adjusted && (
+        <Text style={[styles.adjustNote, { color: theme.textMuted }]}>
+          綜合時令，斷語由「{bodyUse.level}」調整為「
+          <Text style={{ color: toneColor, fontWeight: '700' }}>{finalLevel}</Text>」。
+        </Text>
+      )}
     </View>
   );
 }
@@ -111,4 +143,5 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: FontSize.caption, fontWeight: '700' },
   bodyUseText: { fontSize: FontSize.small, lineHeight: 22 },
+  adjustNote: { fontSize: FontSize.caption, lineHeight: 20, marginTop: Spacing.sm },
 });

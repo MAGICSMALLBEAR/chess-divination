@@ -24,6 +24,8 @@ export interface InterpretRequestBody {
     changedName?: string;
     movingLineName?: string;
     bodyUseRelation?: string;
+    /** 體卦在起卦當月的旺衰，如「寅月（春）令木當權，體屬金為囚」 */
+    seasonalStrength?: string;
   };
 }
 
@@ -65,6 +67,9 @@ export function buildPrompt(body: InterpretRequestBody): string {
     }
     if (body.hexagram.bodyUseRelation) {
       parts.push(`體用關係：${body.hexagram.bodyUseRelation}`);
+    }
+    if (body.hexagram.seasonalStrength) {
+      parts.push(`月建旺衰：${body.hexagram.seasonalStrength}`);
     }
   }
 

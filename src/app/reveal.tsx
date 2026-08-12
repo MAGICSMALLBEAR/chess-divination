@@ -12,12 +12,15 @@ import PieceEntryFlyIn from '@/components/PieceEntryFlyIn';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
+import OutcomeMarker from '@/components/OutcomeMarker';
 import Spinner from '@/components/Spinner';
 import { Icon } from '@/components/icons';
 import { buildLiuYaoReading } from '@/services/liuyao';
 import { trigramsFromIndex } from '@/services/hexagram';
-import type { DivinationRecord } from '@/services/storage';
-import { getHistory, toggleFavorite, isLegacyRecord } from '@/services/storage';
+import type { DivinationRecord, OutcomeStatus } from '@/services/storage';
+import {
+  getHistory, toggleFavorite, isLegacyRecord, setOutcome, clearOutcome,
+} from '@/services/storage';
 import { getPoemById } from '@/data/poems';
 import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
@@ -27,7 +30,7 @@ import { fetchAiInterpretation } from '@/services/aiInterpretation';
 import { shareNative, shareToLine, shareToFacebook, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
 import { t } from '@/services/i18n';
 import { localizePoem } from '@/services/localize';
-import { recordUsage } from '@/services/achievements';
+import { recordUsage, syncAchievements } from '@/services/achievements';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -60,13 +63,18 @@ export default function RevealScreen() {
       return null;
     }
     const [upper, lower] = trigramsFromIndex(record.hexagramIndex);
-    return buildLiuYaoReading(upper, lower, record.movingLine);
+    // 帶入記錄的 timestamp，讓月建旺衰還原成「起卦當時」的時令。
+    // 用現在時間會讓同一筆舊記錄每個月重看都得到不同斷語。
+    return buildLiuYaoReading(upper, lower, record.movingLine, new Date(record.timestamp));
   }, [record]);
 
   useEffect(() => {
     loadRecord();
     playRevealSound();
     recordUsage();
+    // 每次看到籤詩就重算成就。先前沒有任何畫面呼叫 checkAchievements，
+    // 除了「七日問道」之外的成就對所有使用者永遠是鎖住的。
+    syncAchievements().catch(e => console.warn('成就檢查失敗', e));
   }, [recordId]);
 
   async function loadRecord() {
@@ -103,13 +111,29 @@ export default function RevealScreen() {
             primaryName: reading.primary.name,
             changedName: reading.changed.name,
             movingLineName: reading.movingLineName,
-            bodyUseRelation: reading.bodyUse.relation,
+            bodyUseRelation: `${reading.bodyUse.relation} · ${reading.finalLevel}`,
+            seasonalStrength:
+              `${reading.strength.monthBranchName}（${reading.strength.season}）令` +
+              `${reading.strength.seasonElement}當權，體屬${reading.strength.bodyElement}為${reading.strength.state}`,
           }
         : undefined,
     });
 
     if (result.status === 'ok') setAiState({ kind: 'done', text: result.interpretation });
     else setAiState({ kind: 'failed', message: result.message });
+  }
+
+  async function handleSaveOutcome(status: OutcomeStatus, note?: string) {
+    if (!record) return;
+    await setOutcome(record.id, status, note);
+    hapticSuccess();
+    await loadRecord();
+  }
+
+  async function handleClearOutcome() {
+    if (!record) return;
+    await clearOutcome(record.id);
+    await loadRecord();
   }
 
   async function handleToggleFavorite() {
@@ -142,7 +166,7 @@ export default function RevealScreen() {
           changedName: reading.changed.name,
           movingLineName: reading.movingLineName,
           relation: reading.bodyUse.relation,
-          level: reading.bodyUse.level,
+          level: reading.finalLevel,
         } : undefined,
       });
 
@@ -335,6 +359,14 @@ export default function RevealScreen() {
           )}
         </View>
 
+        {/* 占驗回填。放在解讀之後——剛揭曉時結果還沒發生，先問「準不準」只會困惑 */}
+        <OutcomeMarker
+          outcome={record.outcome}
+          timestamp={record.timestamp}
+          onSave={handleSaveOutcome}
+          onClear={handleClearOutcome}
+        />
+
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.newBtn} onPress={handleNewDraw}>
           <Icon name={mode === 'board' ? 'chess-board' : 'dice'} size={18} color={theme.gold} />
@@ -367,7 +399,7 @@ export default function RevealScreen() {
           hexagramIndex={record.hexagramIndex}
           movingLine={record.movingLine}
           changedName={reading?.changed.name}
-          bodyUseRelation={reading ? `${reading.bodyUse.relation} · ${reading.bodyUse.level}` : undefined}
+          bodyUseRelation={reading ? `${reading.bodyUse.relation} · ${reading.finalLevel}` : undefined}
         />
       </View>
     </SafeAreaView>

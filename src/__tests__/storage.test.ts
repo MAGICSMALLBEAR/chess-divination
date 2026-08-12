@@ -25,6 +25,7 @@ import {
   getFolders, addFolder, deleteFolder, addToFolder, removeFromFolder,
   getDailyFortune, saveDailyFortune,
   isLegacyRecord, hasLiuYaoData,
+  setOutcome, clearOutcome,
   type DivinationRecord, type DailyFortune,
 } from '../services/storage';
 import { todayString } from '../services/date';
@@ -330,5 +331,112 @@ describe('記錄版本判定', () => {
     expect(hasLiuYaoData({ ...makeRecord({ hexagramIndex: 12 }), id: 'x' } as DivinationRecord)).toBe(false);
     expect(hasLiuYaoData({ ...makeRecord({ movingLine: 3 }), id: 'x' } as DivinationRecord)).toBe(false);
     expect(hasLiuYaoData({ ...makeRecord(), id: 'x' } as DivinationRecord)).toBe(false);
+  });
+});
+
+describe('占驗回填', () => {
+  test('新記錄沒有 outcome', async () => {
+    const r = await addHistory(makeRecord());
+    expect(r.outcome).toBeUndefined();
+  });
+
+  test('setOutcome 寫入狀態、備註與回填時間', async () => {
+    const r = await addHistory(makeRecord());
+    const before = Date.now();
+    await setOutcome(r.id, 'accurate', '面試上了');
+
+    const [saved] = await getHistory();
+    expect(saved.outcome?.status).toBe('accurate');
+    expect(saved.outcome?.note).toBe('面試上了');
+    expect(saved.outcome?.verifiedAt).toBeGreaterThanOrEqual(before);
+  });
+
+  test('備註留白或只有空白時存為 undefined，不留空字串', async () => {
+    const r = await addHistory(makeRecord());
+    await setOutcome(r.id, 'partial');
+    expect((await getHistory())[0].outcome?.note).toBeUndefined();
+
+    await setOutcome(r.id, 'partial', '   ');
+    expect((await getHistory())[0].outcome?.note).toBeUndefined();
+  });
+
+  test('備註前後空白會被修掉', async () => {
+    const r = await addHistory(makeRecord());
+    await setOutcome(r.id, 'accurate', '  真的應驗了  ');
+    expect((await getHistory())[0].outcome?.note).toBe('真的應驗了');
+  });
+
+  test('重複 setOutcome 以最後一次為準', async () => {
+    const r = await addHistory(makeRecord());
+    await setOutcome(r.id, 'accurate', '第一次');
+    await setOutcome(r.id, 'inaccurate', '想想其實沒中');
+
+    const [saved] = await getHistory();
+    expect(saved.outcome?.status).toBe('inaccurate');
+    expect(saved.outcome?.note).toBe('想想其實沒中');
+  });
+
+  test('clearOutcome 讓記錄回到未驗狀態', async () => {
+    const r = await addHistory(makeRecord());
+    await setOutcome(r.id, 'accurate', '中了');
+    await clearOutcome(r.id);
+
+    const [saved] = await getHistory();
+    expect(saved.outcome).toBeUndefined();
+    expect('outcome' in saved).toBe(false);
+  });
+
+  /**
+   * 收藏清單存的是記錄的完整副本。只更新歷史的話，
+   * 從收藏頁點進去看到的會是沒有占驗的舊副本，同一筆記錄在兩頁顯示不一致。
+   */
+  test('已收藏的記錄，歷史與收藏兩份副本同步更新', async () => {
+    const r = await addHistory(makeRecord());
+    await toggleFavorite(r);
+
+    await setOutcome(r.id, 'partial', '一半準');
+
+    expect((await getHistory())[0].outcome?.status).toBe('partial');
+    expect((await getFavorites())[0].outcome?.status).toBe('partial');
+  });
+
+  test('清除占驗同樣同步到收藏副本', async () => {
+    const r = await addHistory(makeRecord());
+    await toggleFavorite(r);
+    await setOutcome(r.id, 'accurate');
+
+    await clearOutcome(r.id);
+
+    expect((await getHistory())[0].outcome).toBeUndefined();
+    expect((await getFavorites())[0].outcome).toBeUndefined();
+  });
+
+  test('只改到指定的記錄，其餘不受影響', async () => {
+    const a = await addHistory(makeRecord({ poemTitle: 'A' }));
+    const b = await addHistory(makeRecord({ poemTitle: 'B' }));
+
+    await setOutcome(b.id, 'accurate');
+
+    const history = await getHistory();
+    expect(history.find(r => r.id === b.id)?.outcome?.status).toBe('accurate');
+    expect(history.find(r => r.id === a.id)?.outcome).toBeUndefined();
+  });
+
+  test('對不存在的 id 操作不拋錯，也不新增記錄', async () => {
+    await addHistory(makeRecord());
+    await expect(setOutcome('no-such-id', 'accurate')).resolves.toBeDefined();
+    await expect(clearOutcome('no-such-id')).resolves.toBeUndefined();
+    expect(await getHistory()).toHaveLength(1);
+  });
+
+  test('回填不動到記錄的其他欄位', async () => {
+    const r = await addHistory(makeRecord({ questionText: '這次面試如何', hexagramIndex: 42 }));
+    await setOutcome(r.id, 'accurate');
+
+    const [saved] = await getHistory();
+    expect(saved.questionText).toBe('這次面試如何');
+    expect(saved.hexagramIndex).toBe(42);
+    expect(saved.poemTitle).toBe('乾為天');
+    expect(saved.id).toBe(r.id);
   });
 });

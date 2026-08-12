@@ -48,6 +48,23 @@ export interface DivinationRecord {
   movingLine?: number;
   /** 起卦時辰數 1–12 */
   hourBranch?: number;
+  /**
+   * 占驗：事後回填的實際結果。
+   * 未回填者為 undefined——「還沒驗」與「驗過但不準」是兩件事，
+   * 不可用預設值混為一談，否則應驗率會被大量未驗記錄稀釋成無意義的數字。
+   */
+  outcome?: DivinationOutcome;
+}
+
+/** 占驗結果三態。刻意不做五級量表——事後回想本就模糊，選項太細只會降低回填率 */
+export type OutcomeStatus = 'accurate' | 'partial' | 'inaccurate';
+
+export interface DivinationOutcome {
+  status: OutcomeStatus;
+  /** 使用者自述實際發生了什麼 */
+  note?: string;
+  /** 回填當下的時間，用於「占卜後多久才驗」的分析 */
+  verifiedAt: number;
 }
 
 /**
@@ -192,6 +209,49 @@ async function updateHistoryFavorite(id: string, isFavorited: boolean): Promise<
 export async function isFavorited(id: string): Promise<boolean> {
   const favorites = await getFavorites();
   return favorites.some(f => f.id === id);
+}
+
+// ====== 占驗（事後回填實際結果）======
+
+/**
+ * 記下某次占卜的實際結果。
+ *
+ * 收藏清單存的是記錄的完整副本，兩邊都要更新——只改歷史的話，
+ * 從收藏頁進去看到的會是沒有占驗的舊副本，同一筆記錄在兩個頁面顯示不一致。
+ */
+export async function setOutcome(
+  id: string,
+  status: OutcomeStatus,
+  note?: string,
+): Promise<DivinationOutcome> {
+  const outcome: DivinationOutcome = {
+    status,
+    note: note?.trim() || undefined,
+    verifiedAt: Date.now(),
+  };
+  await patchRecord(id, r => ({ ...r, outcome }));
+  return outcome;
+}
+
+/** 清除占驗，讓記錄回到「未驗」狀態 */
+export async function clearOutcome(id: string): Promise<void> {
+  await patchRecord(id, ({ outcome, ...rest }) => rest);
+}
+
+/** 同時套用到歷史與收藏兩份副本 */
+async function patchRecord(
+  id: string,
+  patch: (r: DivinationRecord) => DivinationRecord,
+): Promise<void> {
+  const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
+
+  const nextHistory = history.map(r => (r.id === id ? patch(r) : r));
+  const nextFavorites = favorites.map(r => (r.id === id ? patch(r) : r));
+
+  await Promise.all([
+    AsyncStorage.setItem(KEYS.HISTORY, JSON.stringify(nextHistory)),
+    AsyncStorage.setItem(KEYS.FAVORITES, JSON.stringify(nextFavorites)),
+  ]);
 }
 
 // ====== Settings ======

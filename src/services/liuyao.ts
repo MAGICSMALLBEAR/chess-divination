@@ -13,6 +13,10 @@ import {
   trigramFromLines, trigramsFromLines, lineName,
   type LineValue,
 } from './hexagram';
+import {
+  monthBranchNumber, monthBranchName, seasonOf, SEASON_ELEMENT,
+  type Season,
+} from './date';
 
 // ====== 型別 ======
 
@@ -41,6 +45,25 @@ export interface BodyUseReading {
   text: string;
 }
 
+/** 五行在當令季節下的強弱五態 */
+export type StrengthState = '旺' | '相' | '休' | '囚' | '死';
+
+export interface SeasonalStrength {
+  /** 月建地支數 1–12 */
+  monthBranch: number;
+  /** 月建名，如「寅月」 */
+  monthBranchName: string;
+  season: Season;
+  /** 當令五行 */
+  seasonElement: string;
+  /** 體卦五行 */
+  bodyElement: string;
+  state: StrengthState;
+  /** 對吉凶的位移量：旺 +1、相 +1、休 0、囚 −1、死 −1 */
+  shift: number;
+  text: string;
+}
+
 export interface LiuYaoReading {
   /** 本卦 — 目前的處境 */
   primary: HexagramInfo;
@@ -53,6 +76,14 @@ export interface LiuYaoReading {
   /** 動爻名，如「六三」 */
   movingLineName: string;
   bodyUse: BodyUseReading;
+  /** 體卦在起卦當月的旺衰 */
+  strength: SeasonalStrength;
+  /**
+   * 生剋吉凶再經旺衰調整後的最終判定。
+   * `bodyUse.level` 保留未調整的原值，兩者並存讓使用者看得出調整是從何而來，
+   * 也讓既有記錄與分享卡的語意不變。
+   */
+  finalLevel: BodyUseReading['level'];
 }
 
 // ====== 五行生剋 ======
@@ -140,15 +171,90 @@ function buildBodyUse(upper: number, lower: number, movingLine: number): BodyUse
   return { body, use, bodyElement, useElement, relation, level, text };
 }
 
+// ====== 月建旺衰 ======
+
+/**
+ * 五行在當令之下的五態，以「當令者為旺」為原點推出：
+ *   旺 — 與當令同（春木旺）
+ *   相 — 受當令所生（春水生木？不，是當令所生者：木生火，故春火相）
+ *   休 — 生當令者，已盡其功而休（水生木，故春水休）
+ *   囚 — 剋當令者，反被令氣所抗而囚（金剋木，故春金囚）
+ *   死 — 受當令所剋（木剋土，故春土死）
+ *
+ * 這是判「體卦有沒有力氣」的依據。同樣是「體剋用」，
+ * 體卦當令則真能剋得動，體卦入死則有心無力，吉凶不該相同。
+ */
+const STRENGTH_TEXT: Readonly<Record<StrengthState, string>> = {
+  旺: '體卦當令而旺，己身氣足，所斷之吉更實、所斷之凶亦能扛。',
+  相: '體卦受令氣所生而相，得時之助，氣勢正在積蓄。',
+  休: '體卦生令氣而休，功已外洩，力道平平，宜守成勿擴張。',
+  囚: '體卦剋令氣而囚，逆時而動，處處受阻，用力多而見效少。',
+  死: '體卦受令氣所剋而死，最為無力，此時不宜主動求成，靜候時轉。',
+};
+
+/** 位移量：旺相為得時（+1）、休為持平（0）、囚死為失時（−1） */
+const STRENGTH_SHIFT: Readonly<Record<StrengthState, number>> = {
+  旺: 1, 相: 1, 休: 0, 囚: -1, 死: -1,
+};
+
+/** 由體卦五行與當令五行判五態 */
+export function strengthState(bodyElement: string, seasonElement: string): StrengthState {
+  if (bodyElement === seasonElement) return '旺';
+  if (GENERATES[seasonElement] === bodyElement) return '相';
+  if (GENERATES[bodyElement] === seasonElement) return '休';
+  if (OVERCOMES[bodyElement] === seasonElement) return '囚';
+  return '死';   // OVERCOMES[seasonElement] === bodyElement
+}
+
+function buildStrength(bodyElement: string, at: Date): SeasonalStrength {
+  const monthBranch = monthBranchNumber(at);
+  const season = seasonOf(monthBranch);
+  const seasonElement = SEASON_ELEMENT[season];
+  const state = strengthState(bodyElement, seasonElement);
+
+  return {
+    monthBranch,
+    monthBranchName: monthBranchName(monthBranch),
+    season,
+    seasonElement,
+    bodyElement,
+    state,
+    shift: STRENGTH_SHIFT[state],
+    text: `${monthBranchName(monthBranch)}（${season}）令${seasonElement}當權，體卦屬${bodyElement}為「${state}」。${STRENGTH_TEXT[state]}`,
+  };
+}
+
+/** 吉凶由凶至吉的序列，供旺衰位移用 */
+const LEVEL_SCALE: readonly BodyUseReading['level'][] = ['凶', '小凶', '平', '吉', '大吉'];
+
+/**
+ * 以旺衰位移調整生剋吉凶，並夾在序列兩端。
+ * 位移僅 ±1 級：旺衰是輔助條件，不該把「用剋體」翻成大吉。
+ */
+export function applyStrength(
+  level: BodyUseReading['level'],
+  shift: number,
+): BodyUseReading['level'] {
+  const i = LEVEL_SCALE.indexOf(level);
+  if (i < 0) return level;
+  return LEVEL_SCALE[Math.min(LEVEL_SCALE.length - 1, Math.max(0, i + shift))];
+}
+
 /**
  * 由上下卦與動爻推演完整卦例。
+ *
+ * `at` 決定月建，預設為現在。傳入記錄的 timestamp 可還原當時的旺衰，
+ * 否則翻看三個月前的舊記錄會套上今天的月令，同一筆記錄每個月解讀都不同。
  */
 export function buildLiuYaoReading(
   upper: number,
   lower: number,
   movingLine: number,
+  at: Date = new Date(),
 ): LiuYaoReading {
   const primary = buildInfo(upper, lower);
+  const bodyUse = buildBodyUse(upper, lower, movingLine);
+  const strength = buildStrength(bodyUse.bodyElement, at);
 
   return {
     primary,
@@ -156,7 +262,9 @@ export function buildLiuYaoReading(
     nuclear: buildNuclear(primary.lines),
     movingLine,
     movingLineName: lineName(primary.lines, movingLine),
-    bodyUse: buildBodyUse(upper, lower, movingLine),
+    bodyUse,
+    strength,
+    finalLevel: applyStrength(bodyUse.level, strength.shift),
   };
 }
 
@@ -167,11 +275,11 @@ export function trigramLabel(trigram: number): string {
   return `${TRIGRAM_NAMES[trigram]}${TRIGRAM_GLYPHS[trigram]}${TRIGRAM_SYMBOLS[trigram]}`;
 }
 
-/** 產生三卦與體用的文字摘要，供分享與離線解讀使用 */
+/** 產生三卦、體用與旺衰的文字摘要，供分享與離線解讀使用 */
 export function summarizeReading(reading: LiuYaoReading): string {
-  const { primary, changed, nuclear, movingLineName, bodyUse } = reading;
+  const { primary, changed, nuclear, movingLineName, bodyUse, strength, finalLevel } = reading;
 
-  return [
+  const lines = [
     `本卦：${primary.name}——目前的處境。`,
     `動爻：${movingLineName}（第 ${reading.movingLine} 爻）——變化的關鍵所在。`,
     `互卦：${nuclear.name}——過程中未浮上檯面的因素。`,
@@ -179,5 +287,14 @@ export function summarizeReading(reading: LiuYaoReading): string {
     '',
     `體卦${trigramLabel(bodyUse.body)}（我）、用卦${trigramLabel(bodyUse.use)}（事）。`,
     bodyUse.text,
-  ].join('\n');
+    '',
+    strength.text,
+  ];
+
+  // 只在旺衰真的改動了判定時說明，否則多一句話卻沒有資訊
+  if (finalLevel !== bodyUse.level) {
+    lines.push(`綜合時令，斷語由「${bodyUse.level}」調整為「${finalLevel}」。`);
+  }
+
+  return lines.join('\n');
 }

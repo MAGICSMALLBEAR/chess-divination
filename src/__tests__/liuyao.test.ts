@@ -2,7 +2,11 @@ import {
   hexagramLines, trigramLine, trigramsFromLines,
   lineName, hexagramIndex, YANG, YIN,
 } from '../services/hexagram';
-import { buildLiuYaoReading, summarizeReading } from '../services/liuyao';
+import {
+  buildLiuYaoReading, summarizeReading, strengthState, applyStrength,
+  type StrengthState,
+} from '../services/liuyao';
+import { TRIGRAM_ELEMENTS } from '../services/hexagram';
 import { computeHexagram } from '../services/divination';
 import { ALL_PIECES } from '../data/pieces';
 import { hourBranchNumber, hourBranchName } from '../services/date';
@@ -236,5 +240,195 @@ describe('時辰', () => {
     expect(hourBranchName(1)).toBe('子時');
     expect(hourBranchName(7)).toBe('午時');
     expect(hourBranchName(12)).toBe('亥時');
+  });
+});
+
+// ── 月建旺衰 ──
+
+/** 各月中旬的日期，用來固定月建 */
+const MID = (m: number) => new Date(2026, m - 1, 15, 12, 0, 0);
+const SPRING = MID(2);   // 二月 → 寅月 → 春 → 木當令
+const SUMMER = MID(6);   // 六月 → 午月 → 夏 → 火當令
+const AUTUMN = MID(9);   // 九月 → 酉月 → 秋 → 金當令
+const WINTER = MID(12);  // 十二月 → 子月 → 冬 → 水當令
+const EARTH = MID(4);    // 四月 → 辰月 → 土旺 → 土當令
+
+describe('五行旺衰五態', () => {
+  /**
+   * 以春（木當令）為例逐一驗證五態的定義：
+   *   木旺（同令）、火相（令所生）、水休（生令）、金囚（剋令）、土死（令所剋）
+   * 這五句是判斷體卦有沒有力氣的全部依據，錯一個就會全盤誤判。
+   */
+  test('春月木當令：木旺、火相、水休、金囚、土死', () => {
+    expect(strengthState('木', '木')).toBe('旺');
+    expect(strengthState('火', '木')).toBe('相');
+    expect(strengthState('水', '木')).toBe('休');
+    expect(strengthState('金', '木')).toBe('囚');
+    expect(strengthState('土', '木')).toBe('死');
+  });
+
+  test('秋月金當令：金旺、水相、土休、火囚、木死', () => {
+    expect(strengthState('金', '金')).toBe('旺');
+    expect(strengthState('水', '金')).toBe('相');
+    expect(strengthState('土', '金')).toBe('休');
+    expect(strengthState('火', '金')).toBe('囚');
+    expect(strengthState('木', '金')).toBe('死');
+  });
+
+  /** 每個當令五行之下，五種體卦五行必須恰好分到五種不同的態，不得重複或遺漏 */
+  test('任一當令五行下，五種五行剛好對應五種相異的態', () => {
+    const ELEMENTS = ['金', '木', '水', '火', '土'];
+    for (const season of ELEMENTS) {
+      const states = ELEMENTS.map(e => strengthState(e, season));
+      expect(new Set(states).size).toBe(5);
+      expect(new Set(states)).toEqual(new Set(['旺', '相', '休', '囚', '死']));
+    }
+  });
+});
+
+describe('旺衰對吉凶的位移', () => {
+  test('旺相上調一級、囚死下調一級、休不動', () => {
+    expect(applyStrength('平', 1)).toBe('吉');
+    expect(applyStrength('平', -1)).toBe('小凶');
+    expect(applyStrength('平', 0)).toBe('平');
+  });
+
+  /**
+   * 旺衰只是輔助條件，不該把「用剋體」翻成大吉。
+   * 位移限定 ±1 且夾在序列兩端，避免最凶被推過頭或最吉溢位。
+   */
+  test('位移在序列兩端夾住，不溢位', () => {
+    expect(applyStrength('大吉', 1)).toBe('大吉');
+    expect(applyStrength('凶', -1)).toBe('凶');
+  });
+
+  test('至多位移一級，凶不會因得時直接變吉', () => {
+    expect(applyStrength('凶', 1)).toBe('小凶');
+    expect(applyStrength('大吉', -1)).toBe('吉');
+  });
+});
+
+describe('卦例的月建旺衰', () => {
+  test('reading 帶出月建、季節、當令五行與體卦五行', () => {
+    const r = buildLiuYaoReading(KAN, ZHEN, 2, SPRING);
+    expect(r.strength.monthBranchName).toBe('寅月');
+    expect(r.strength.season).toBe('春');
+    expect(r.strength.seasonElement).toBe('木');
+    // 動爻在下卦 → 上卦坎為體，坎屬水
+    expect(r.strength.bodyElement).toBe(TRIGRAM_ELEMENTS[KAN]);
+    expect(r.strength.text.length).toBeGreaterThan(20);
+  });
+
+  /**
+   * 這是本功能存在的理由：同一卦在不同月份必須能給出不同的斷語。
+   * 舊版沒有月建，一月和七月看同一卦得到一模一樣的結論。
+   */
+  test('同一卦在不同月份的旺衰不同', () => {
+    const spring = buildLiuYaoReading(QIAN, DUI, 1, SPRING); // 體為金
+    const autumn = buildLiuYaoReading(QIAN, DUI, 1, AUTUMN);
+    expect(spring.strength.state).not.toBe(autumn.strength.state);
+    // 金在春為囚（剋令木）、在秋為旺（同令金）
+    expect(spring.strength.state).toBe('囚');
+    expect(autumn.strength.state).toBe('旺');
+  });
+
+  test('生剋關係不受月份影響，只有旺衰與最終斷語會變', () => {
+    const a = buildLiuYaoReading(KAN, ZHEN, 2, SUMMER);
+    const b = buildLiuYaoReading(KAN, ZHEN, 2, WINTER);
+    expect(a.bodyUse.relation).toBe(b.bodyUse.relation);
+    expect(a.bodyUse.level).toBe(b.bodyUse.level);
+    expect(a.strength.state).not.toBe(b.strength.state);
+  });
+
+  test('finalLevel 等於原斷語套用旺衰位移的結果', () => {
+    for (let upper = 0; upper < 8; upper++) {
+      for (let lower = 0; lower < 8; lower++) {
+        for (const moving of [1, 4]) {
+          for (const at of [SPRING, SUMMER, AUTUMN, WINTER, EARTH]) {
+            const r = buildLiuYaoReading(upper, lower, moving, at);
+            expect(r.finalLevel).toBe(applyStrength(r.bodyUse.level, r.strength.shift));
+          }
+        }
+      }
+    }
+  });
+
+  test('shift 與 state 一致：旺相為 +1、休為 0、囚死為 −1', () => {
+    const expected: Record<StrengthState, number> = {
+      旺: 1, 相: 1, 休: 0, 囚: -1, 死: -1,
+    };
+    for (let upper = 0; upper < 8; upper++) {
+      for (let lower = 0; lower < 8; lower++) {
+        const r = buildLiuYaoReading(upper, lower, 1, AUTUMN);
+        expect(r.strength.shift).toBe(expected[r.strength.state]);
+      }
+    }
+  });
+
+  /** 未傳 at 時以現在為準，仍須產出合法的旺衰 */
+  test('省略 at 參數時使用當下月份', () => {
+    const r = buildLiuYaoReading(QIAN, QIAN, 1);
+    expect(['旺', '相', '休', '囚', '死']).toContain(r.strength.state);
+    expect(r.strength.monthBranch).toBeGreaterThanOrEqual(1);
+    expect(r.strength.monthBranch).toBeLessThanOrEqual(12);
+  });
+
+  test('全部 64 卦 × 6 動爻 × 五季皆能產出合法斷語', () => {
+    for (let upper = 0; upper < 8; upper++) {
+      for (let lower = 0; lower < 8; lower++) {
+        for (let moving = 1; moving <= 6; moving++) {
+          for (const at of [SPRING, SUMMER, AUTUMN, WINTER, EARTH]) {
+            const r = buildLiuYaoReading(upper, lower, moving, at);
+            expect(['大吉', '吉', '平', '小凶', '凶']).toContain(r.finalLevel);
+            expect(['旺', '相', '休', '囚', '死']).toContain(r.strength.state);
+          }
+        }
+      }
+    }
+  });
+});
+
+describe('摘要含旺衰', () => {
+  test('summarizeReading 帶入月建與旺衰說明', () => {
+    const text = summarizeReading(buildLiuYaoReading(QIAN, DUI, 1, AUTUMN));
+    expect(text).toContain('酉月');
+    expect(text).toContain('旺');
+  });
+
+  /**
+   * 旺衰沒有改動判定時不該多印一句「調整為…」——
+   * 那會讓使用者以為有調整卻看到前後相同的等級。
+   */
+  test('旺衰未改動判定時不出現調整說明', () => {
+    // 找一組 shift 為 0（休）的卦例
+    let found = false;
+    for (let upper = 0; upper < 8 && !found; upper++) {
+      for (let lower = 0; lower < 8 && !found; lower++) {
+        const r = buildLiuYaoReading(upper, lower, 1, AUTUMN);
+        if (r.strength.shift === 0) {
+          expect(r.finalLevel).toBe(r.bodyUse.level);
+          expect(summarizeReading(r)).not.toContain('調整為');
+          found = true;
+        }
+      }
+    }
+    expect(found).toBe(true);
+  });
+
+  test('旺衰改動判定時明確寫出前後等級', () => {
+    let found = false;
+    for (let upper = 0; upper < 8 && !found; upper++) {
+      for (let lower = 0; lower < 8 && !found; lower++) {
+        const r = buildLiuYaoReading(upper, lower, 1, AUTUMN);
+        if (r.finalLevel !== r.bodyUse.level) {
+          const text = summarizeReading(r);
+          expect(text).toContain('調整為');
+          expect(text).toContain(r.bodyUse.level);
+          expect(text).toContain(r.finalLevel);
+          found = true;
+        }
+      }
+    }
+    expect(found).toBe(true);
   });
 });

@@ -8,7 +8,9 @@ import type { IconName } from '@/components/icons/Icon';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useGrid } from '@/hooks/useGrid';
-import { getAchievements, getStreak, type Achievement } from '@/services/achievements';
+import {
+  getAchievements, getStreak, syncAchievements, type Achievement,
+} from '@/services/achievements';
 import { localizeAchievement } from '@/services/localize';
 import { getHistory } from '@/services/storage';
 import type { ThemeColors } from '@/constants/theme';
@@ -25,6 +27,10 @@ export default function AchievementsScreen() {
 
   useEffect(() => { loadData(); }, []);
   async function loadData() {
+    // 先補算再讀取——既有使用者的歷史記錄早已滿足多項條件，
+    // 但因為過去從未有畫面呼叫檢查，那些成就一直沒被解鎖。
+    await syncAchievements().catch(e => console.warn('成就檢查失敗', e));
+
     const [ach, strk, hist] = await Promise.all([
       getAchievements(), getStreak(), getHistory(),
     ]);
@@ -43,6 +49,7 @@ export default function AchievementsScreen() {
       '🎲': 'dice', '🔮': 'crystal-ball', '👑': 'trophy',
       '♟️': 'chess-board', '❤️': 'heart', '🔥': 'flame',
       '☯️': 'refresh', '📜': 'scroll',
+      '🔍': 'lightbulb', '📖': 'scroll',
     };
     return map[emoji] || 'star';
   }

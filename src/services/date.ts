@@ -49,3 +49,49 @@ export function hourBranchNumber(date: Date = new Date()): number {
 export function hourBranchName(branchNumber: number): string {
   return `${EARTHLY_BRANCHES[branchNumber - 1]}時`;
 }
+
+// ====== 月建與季節（供六爻旺衰判斷） ======
+
+/**
+ * 月建的地支。正月建寅、二月建卯……十一月建子、十二月建丑。
+ *
+ * 嚴格的月建以節氣交接為界（立春才入寅月，非國曆 2/1），
+ * 精確判定需要每年的節氣時刻表。此處以國曆月份近似，
+ * 誤差最多在月初數日之內——對「旺相休囚死」這種五級粗判影響有限，
+ * 而換取的是零外部資料、可離線、可測試。
+ * 若日後要精確化，只需改寫本函式，下游的旺衰邏輯不必動。
+ */
+export function monthBranchNumber(date: Date = new Date()): number {
+  // getMonth() 0=一月。國曆一月建丑(2)、二月建寅(3)…十二月建子(1)
+  return ((date.getMonth() + 1) % 12) + 1;
+}
+
+/** 月建名，如「寅月」 */
+export function monthBranchName(branchNumber: number): string {
+  return `${EARTHLY_BRANCHES[branchNumber - 1]}月`;
+}
+
+/** 四季與四季末的土旺月（辰未戌丑）*/
+export type Season = '春' | '夏' | '秋' | '冬' | '土旺';
+
+/**
+ * 由月建判季節。
+ *
+ * 寅卯為春、巳午為夏、申酉為秋、亥子為冬，
+ * 辰未戌丑（四季之末各十八日）為「土旺」，五行以土當令。
+ * 這是五行旺衰的傳統分法——土不獨占一季，而是寄旺於四季之末。
+ */
+export function seasonOf(monthBranch: number): Season {
+  switch (monthBranch) {
+    case 3: case 4: return '春';   // 寅 卯
+    case 6: case 7: return '夏';   // 巳 午
+    case 9: case 10: return '秋';  // 申 酉
+    case 12: case 1: return '冬';  // 亥 子
+    default: return '土旺';         // 辰(5) 未(8) 戌(11) 丑(2)
+  }
+}
+
+/** 當令五行：春木、夏火、秋金、冬水、四季末土 */
+export const SEASON_ELEMENT: Readonly<Record<Season, string>> = {
+  春: '木', 夏: '火', 秋: '金', 冬: '水', 土旺: '土',
+};

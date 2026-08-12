@@ -35,6 +35,7 @@ export interface AiInterpretationInput {
     changedName?: string;
     movingLineName?: string;
     bodyUseRelation?: string;
+    seasonalStrength?: string;
   };
 }
 

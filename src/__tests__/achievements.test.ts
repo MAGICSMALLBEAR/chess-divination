@@ -18,8 +18,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { getAchievements, checkAchievements, getStreak, recordUsage } from '../services/achievements';
-import { saveSettings, getSettings } from '../services/storage';
+import {
+  getAchievements, checkAchievements, getStreak, recordUsage, syncAchievements,
+} from '../services/achievements';
+import {
+  saveSettings, getSettings, addHistory, toggleFavorite, setOutcome,
+  type DivinationRecord,
+} from '../services/storage';
 import { todayString, yesterdayString } from '../services/date';
 
 /** 無任何成就達成的基準統計 */
@@ -37,10 +42,28 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+/** 建一筆歷史記錄。只填成就統計會用到的欄位 */
+function makeRecord(over: Partial<DivinationRecord> = {}): Omit<DivinationRecord, 'id'> {
+  return {
+    poemId: 1,
+    poemTitle: '乾為天',
+    poemContent: '天行健',
+    poemLevel: '大吉',
+    drawnPieceTypes: ['king'],
+    drawnPieceColors: ['red'],
+    drawnPieceChars: ['帥'],
+    mode: 'draw',
+    timestamp: Date.now(),
+    isFavorited: false,
+    engineVersion: 3,
+    ...over,
+  };
+}
+
 describe('成就清單', () => {
-  test('回傳全部 8 種成就', async () => {
+  test('回傳全部 10 種成就', async () => {
     const list = await getAchievements();
-    expect(list).toHaveLength(8);
+    expect(list).toHaveLength(10);
   });
 
   test('初始狀態全部未解鎖', async () => {
@@ -232,5 +255,95 @@ describe('連續使用天數', () => {
     const s = await getSettings();
     const count = (s.unlockedAchievements ?? []).filter(id => id === 'week_streak').length;
     expect(count).toBe(1);
+  });
+});
+
+describe('占驗成就', () => {
+  test('回填一次即解鎖「占而後驗」', async () => {
+    const unlocked = await checkAchievements({ ...EMPTY_STATS, totalVerified: 1 });
+    expect(unlocked).toContain('first_verify');
+    expect(unlocked).not.toContain('ten_verify');
+  });
+
+  test('回填十次同時解鎖兩項', async () => {
+    const unlocked = await checkAchievements({ ...EMPTY_STATS, totalVerified: 10 });
+    expect(unlocked).toEqual(expect.arrayContaining(['first_verify', 'ten_verify']));
+  });
+
+  /** 舊呼叫端沒有這個欄位，不該因此意外解鎖 */
+  test('未提供 totalVerified 時視為 0，不解鎖占驗成就', async () => {
+    const unlocked = await checkAchievements(EMPTY_STATS);
+    expect(unlocked).not.toContain('first_verify');
+    expect(unlocked).not.toContain('ten_verify');
+  });
+});
+
+/**
+ * syncAchievements 是為了修掉一個實際存在的缺陷：
+ * checkAchievements 先前沒有任何畫面在呼叫，除了「七日問道」之外
+ * 所有成就對使用者永遠是鎖住的。以下測的是「有歷史記錄就真的會解鎖」。
+ */
+describe('syncAchievements 由歷史推算', () => {
+  test('有抽棋記錄即解鎖初窺棋道', async () => {
+    await addHistory(makeRecord({ mode: 'draw' }));
+    const unlocked = await syncAchievements();
+    expect(unlocked).toContain('first_draw');
+  });
+
+  test('有棋盤記錄即解鎖佈局新手；兩種都有則加解雙修圓滿', async () => {
+    await addHistory(makeRecord({ mode: 'draw' }));
+    await addHistory(makeRecord({ mode: 'board' }));
+
+    const unlocked = await syncAchievements();
+    expect(unlocked).toEqual(expect.arrayContaining([
+      'first_draw', 'first_board', 'both_modes',
+    ]));
+  });
+
+  test('累積 10 筆解鎖棋道修行者', async () => {
+    for (let i = 0; i < 10; i++) await addHistory(makeRecord());
+    expect(await syncAchievements()).toContain('ten_draws');
+  });
+
+  test('五種等級都抽過解鎖知天命', async () => {
+    for (const level of ['大吉', '上吉', '中吉', '中平', '下下']) {
+      await addHistory(makeRecord({ poemLevel: level }));
+    }
+    expect(await syncAchievements()).toContain('all_levels');
+  });
+
+  test('收藏一筆解鎖慧眼識籤', async () => {
+    const r = await addHistory(makeRecord());
+    await toggleFavorite(r);
+    expect(await syncAchievements()).toContain('first_favorite');
+  });
+
+  test('回填占驗後解鎖占而後驗', async () => {
+    const r = await addHistory(makeRecord());
+    await setOutcome(r.id, 'accurate');
+    expect(await syncAchievements()).toContain('first_verify');
+  });
+
+  test('沒有任何記錄時不解鎖任何成就', async () => {
+    expect(await syncAchievements()).toEqual([]);
+  });
+
+  test('重複呼叫不重複回報已解鎖的成就', async () => {
+    await addHistory(makeRecord({ mode: 'draw' }));
+
+    const first = await syncAchievements();
+    expect(first).toContain('first_draw');
+
+    const second = await syncAchievements();
+    expect(second).not.toContain('first_draw');
+  });
+
+  test('解鎖結果實際寫入設定，getAchievements 讀得到', async () => {
+    await addHistory(makeRecord({ mode: 'draw' }));
+    await syncAchievements();
+
+    const list = await getAchievements();
+    expect(list.find(a => a.id === 'first_draw')?.unlocked).toBe(true);
+    expect(list.find(a => a.id === 'first_board')?.unlocked).toBe(false);
   });
 });

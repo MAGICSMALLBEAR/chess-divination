@@ -88,4 +88,24 @@ export const achievementTranslations: Record<string, Partial<Record<Lang, Achiev
       desc: '5種類すべての吉凶レベルの詩を引く',
     },
   },
+  first_verify: {
+    en: {
+      title: 'Divine, Then Verify',
+      desc: 'Record the real outcome of your first divination',
+    },
+    ja: {
+      title: '占いて後に験す',
+      desc: '初めての占いの実際の結果を記録する',
+    },
+  },
+  ten_verify: {
+    en: {
+      title: 'Keeper of the Journal',
+      desc: 'Record the outcomes of 10 divinations',
+    },
+    ja: {
+      title: '占験簿を持つ者',
+      desc: '10回の占いの実際の結果を記録する',
+    },
+  },
 };

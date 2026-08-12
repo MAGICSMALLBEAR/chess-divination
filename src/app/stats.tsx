@@ -10,6 +10,11 @@ import TrendChart from '@/components/TrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getHistory, type DivinationRecord } from '@/services/storage';
+import {
+  computeAccuracy, accuracyByLevel, accuracyByCategory,
+  bestCategory, medianVerifyDelay, pendingVerification,
+  type AccuracyBreakdown,
+} from '@/services/verification';
 import { POEM_LEVELS, getLevelColor } from '@/data/poems';
 import { t } from '@/services/i18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -55,6 +60,24 @@ export default function StatsScreen() {
   });
 
   const maxLevel = Math.max(...Object.values(levelCounts), 1);
+
+  // 占驗統計。分母只算已回填的記錄——把未驗的當成不準，
+  // 應驗率會隨占卜次數單調下降，反映的是回填勤勞度而非準確度。
+  const accuracy = React.useMemo(() => computeAccuracy(filtered), [filtered]);
+  const byLevel = React.useMemo(() => accuracyByLevel(filtered), [filtered]);
+  const byCategory = React.useMemo(() => accuracyByCategory(filtered), [filtered]);
+  const best = React.useMemo(() => bestCategory(filtered), [filtered]);
+  const medianDelay = React.useMemo(() => medianVerifyDelay(filtered), [filtered]);
+  // 提醒用未經日期篩選的完整清單：待回填的多半是較舊的記錄，
+  // 若跟著「本週」篩選會整批消失，正好漏掉最該提醒的那些。
+  const pending = React.useMemo(() => pendingVerification(records), [records]);
+
+  /** 應驗率的色調：七成以上為吉、四成以下為凶 */
+  function rateColor(rate: number) {
+    if (rate >= 70) return theme.success;
+    if (rate >= 40) return theme.warning;
+    return theme.danger;
+  }
 
   // 趨勢圖資料：最近 7 天每日占卜次數與吉凶分佈
   const trendData = React.useMemo(() => {
@@ -127,6 +150,69 @@ export default function StatsScreen() {
           </View>
         </View>
 
+        {/* 占驗總覽 */}
+        <View style={[styles.accuracyCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎占驗簿</Text>
+
+          {accuracy.rate === null ? (
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+              尚無占驗記錄。回到任一次占卜的籤詩頁，在最下方記下實際結果，
+              累積數則之後這裡就會顯示你的應驗率。
+            </Text>
+          ) : (
+            <>
+              <View style={styles.accuracyTop}>
+                <View style={styles.rateBlock}>
+                  <Text style={[styles.rateNum, { color: rateColor(accuracy.rate) }]}>
+                    {accuracy.rate}
+                    <Text style={[styles.ratePct, { color: theme.textMuted }]}>%</Text>
+                  </Text>
+                  <Text style={[styles.rateLabel, { color: theme.textSecondary }]}>加權應驗率</Text>
+                </View>
+
+                <View style={styles.tallyBlock}>
+                  {([
+                    ['應驗', accuracy.accurate, theme.success],
+                    ['部分', accuracy.partial, theme.warning],
+                    ['未應驗', accuracy.inaccurate, theme.danger],
+                  ] as const).map(([label, count, color]) => (
+                    <View key={label} style={styles.tallyRow}>
+                      <View style={[styles.tallyDot, { backgroundColor: color }]} />
+                      <Text style={[styles.tallyLabel, { color: theme.textSecondary }]}>{label}</Text>
+                      <Text style={[styles.tallyCount, { color: theme.textPrimary }]}>{count}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              <Text style={[styles.accuracyMeta, { color: theme.textMuted }]}>
+                已驗 {accuracy.verified} 則 · 未驗 {accuracy.unverified} 則
+                {medianDelay !== null ? ` · 平均占後 ${medianDelay} 天回填` : ''}
+              </Text>
+
+              {/* 部分應驗計半分，說明清楚以免使用者對不上數字 */}
+              <Text style={[styles.accuracyNote, { color: theme.textMuted }]}>
+                應驗計 1 分、部分應驗計 0.5 分、未應驗計 0 分，除以已驗則數。
+              </Text>
+
+              {best && (
+                <View style={[styles.insight, { borderColor: theme.goldFaint, backgroundColor: theme.bgCard }]}>
+                  <Text style={[styles.insightText, { color: theme.textSecondary }]}>
+                    你問「{best.label}」最準——{best.stats.verified} 則已驗，
+                    應驗率 <Text style={{ color: theme.textGold, fontWeight: '700' }}>{best.stats.rate}%</Text>。
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+
+          {pending.length > 0 && (
+            <Text style={[styles.pendingText, { color: theme.textMuted }]}>
+              有 {pending.length} 則兩週前的占卜還沒回填結果。
+            </Text>
+          )}
+        </View>
+
         {/* 趨勢圖表 */}
         <TrendChart data={trendData} title="近 7 天占卜趨勢" />
 
@@ -166,9 +252,67 @@ export default function StatsScreen() {
             </View>
           ))}
         </View>
+
+        {/* 應驗率分項。只在有回填資料時出現，空表格沒有閱讀價值 */}
+        {byCategory.length > 0 && (
+          <AccuracySection
+            title="各類問事的應驗率"
+            rows={byCategory}
+            theme={theme}
+            styles={styles}
+            // 依應驗率上色，凸顯自己在哪類問題上判得準
+            colorOf={row => rateColor(row.stats.rate ?? 0)}
+          />
+        )}
+        {byLevel.length > 0 && (
+          <AccuracySection
+            title="各吉凶等級的應驗率"
+            rows={byLevel}
+            theme={theme}
+            styles={styles}
+            // 依籤詩等級本身的色系上色，與吉凶分佈圖對得起來
+            colorOf={row => getLevelColor(row.key)}
+          />
+        )}
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/**
+ * 應驗率分項表。
+ * 每列一個分組，長條寬度即為應驗率，右側標註已驗則數——
+ * 只給百分比會讓「1 則全中 = 100%」和「20 則 100%」看起來一樣可信。
+ */
+function AccuracySection({ title, rows, theme, styles, colorOf }: {
+  title: string;
+  rows: AccuracyBreakdown[];
+  theme: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  colorOf: (row: AccuracyBreakdown) => string;
+}) {
+  return (
+    <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+      <Text style={[styles.sectionTitle, { color: theme.gold }]}>{title}</Text>
+      {rows.map(row => (
+        <View key={row.key} style={styles.barRow}>
+          <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{row.label}</Text>
+          <View style={styles.barTrack}>
+            <View style={[styles.barFill, {
+              width: `${row.stats.rate ?? 0}%`,
+              backgroundColor: colorOf(row),
+            }]} />
+          </View>
+          <Text style={[styles.ratePill, { color: theme.textPrimary }]}>
+            {row.stats.rate}%
+          </Text>
+          <Text style={[styles.rateSample, { color: theme.textMuted }]}>
+            /{row.stats.verified}
+          </Text>
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -222,4 +366,33 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
   filterText: { fontSize: FontSize.small, color: t.textMuted },
+
+  // ── 占驗簿 ──
+  accuracyCard: {
+    borderRadius: 12, borderWidth: 1, padding: Spacing.md, marginBottom: Spacing.md,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
+  accuracyTop: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: Spacing.lg, marginBottom: Spacing.md,
+  },
+  rateBlock: { alignItems: 'center', minWidth: 96 },
+  rateNum: { fontSize: 40, fontWeight: '900', lineHeight: 46 },
+  ratePct: { fontSize: FontSize.body, fontWeight: '400' },
+  rateLabel: { fontSize: FontSize.caption, marginTop: 2 },
+  tallyBlock: { flex: 1, gap: 4 },
+  tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tallyDot: { width: 8, height: 8, borderRadius: 4 },
+  tallyLabel: { fontSize: FontSize.small, flex: 1 },
+  tallyCount: { fontSize: FontSize.small, fontWeight: '700' },
+  accuracyMeta: { fontSize: FontSize.caption, marginBottom: 4 },
+  accuracyNote: { fontSize: FontSize.overline, lineHeight: 16 },
+  insight: {
+    borderWidth: 1, borderRadius: 10, padding: Spacing.sm, marginTop: Spacing.md,
+  },
+  insightText: { fontSize: FontSize.small, lineHeight: 20 },
+  pendingText: { fontSize: FontSize.caption, marginTop: Spacing.md, lineHeight: 18 },
+  // 應驗率列比吉凶分佈多兩欄（百分比 + 樣本數），沿用同一組 barRow/barTrack
+  ratePill: { fontSize: FontSize.small, fontWeight: '700', width: 38, textAlign: 'right' },
+  rateSample: { fontSize: FontSize.caption, width: 26 },
 });

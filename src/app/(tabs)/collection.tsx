@@ -9,8 +9,9 @@ import {
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
-import type { DivinationRecord, Folder } from '@/services/storage';
+import type { DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
+import { OUTCOME_LABELS } from '@/services/verification';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/services/i18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -27,6 +28,14 @@ export default function CollectionScreen() {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+
+  /** 占驗三態的色調：應驗為吉、部分為平、未應驗為凶 */
+  function outcomeColor(status: OutcomeStatus): string {
+    if (status === 'accurate') return theme.success;
+    if (status === 'partial') return theme.warning;
+    return theme.danger;
+  }
+
   const { onLayout: onGridLayout, cardWidth } = useGrid();
   const { width: windowWidth } = useWindowDimensions();
   const horizScrollRef = useRef<ScrollView>(null);
@@ -210,7 +219,17 @@ export default function CollectionScreen() {
           <Text style={styles.cardTitle} numberOfLines={1}>
             {record.poemTitle}
           </Text>
-          <Text style={styles.cardDate}>{formatDate(record.timestamp)}</Text>
+          <View style={styles.cardMetaRow}>
+            <Text style={styles.cardDate}>{formatDate(record.timestamp)}</Text>
+            {/* 占驗結果。清單上只給一枚小點，讓使用者一眼看出哪些已驗、驗得如何 */}
+            {record.outcome && (
+              <View style={[styles.outcomeChip, { borderColor: outcomeColor(record.outcome.status) }]}>
+                <Text style={[styles.outcomeChipText, { color: outcomeColor(record.outcome.status) }]}>
+                  {OUTCOME_LABELS[record.outcome.status]}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
         <View style={styles.cardRight}>
           <TouchableOpacity onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
@@ -511,6 +530,12 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   modeLabel: { fontSize: 11, color: t.textMuted },
   cardTitle: { fontSize: FontSize.body, fontWeight: '600', color: t.textPrimary },
   cardDate: { fontSize: FontSize.caption, color: t.textMuted, marginTop: 2 },
+  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  outcomeChip: {
+    borderWidth: 1, borderRadius: 8,
+    paddingHorizontal: 6, paddingVertical: 1, marginTop: 2,
+  },
+  outcomeChipText: { fontSize: FontSize.overline, fontWeight: '700' },
   cardRight: { gap: Spacing.sm, alignItems: 'center' },
   favIcon: { fontSize: 22 },
   folderIcon: { fontSize: 18, marginBottom: 2 },

@@ -44,6 +44,15 @@ const BODY_USE_ACTION: Record<string, string> = {
   '用剋體': '外部壓力大於自身條件，先守住現有的，不要在此時擴張。',
 };
 
+/** 體卦旺衰 → 節奏建議。生剋定方向，旺衰定該用幾分力 */
+const STRENGTH_ACTION: Record<string, string> = {
+  '旺': '本月時令站在你這邊，該推的事趁現在推，力道可以放足。',
+  '相': '氣勢正在往上走，適合佈局與鋪路，成果會在後面顯現。',
+  '休': '時令不助也不阻，維持既有節奏即可，別勉強加碼。',
+  '囚': '本月時令與你相逆，凡事預留比平常更多的時間與備案。',
+  '死': '本月最無力，把目標降到「不出錯」而非「求突破」。',
+};
+
 export interface InterpretationInput {
   poem: Poem;
   questionText?: string;
@@ -76,6 +85,7 @@ export function buildInterpretation(input: InterpretationInput): Interpretation 
       `體用而論，體卦${trigramLabel(bodyUse.body)}屬${bodyUse.bodyElement}為己身，` +
       `用卦${trigramLabel(bodyUse.use)}屬${bodyUse.useElement}為所問之事。${bodyUse.text}`,
     );
+    parts.push(`時令而論，${reading.strength.text}`);
   }
 
   // 所問類別的針對性解讀
@@ -103,6 +113,7 @@ function buildActionPlan(
 
   if (reading) {
     plan.push(BODY_USE_ACTION[reading.bodyUse.relation]);
+    plan.push(STRENGTH_ACTION[reading.strength.state]);
     plan.push(
       `留意${reading.changed.name}的走向——${reading.movingLineName}是這件事的轉折點，` +
       `變化多半由此發生。`,
