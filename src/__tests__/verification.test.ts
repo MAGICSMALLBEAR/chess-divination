@@ -1,6 +1,7 @@
 import {
   isVerified, daysSince, pendingVerification,
   computeAccuracy, breakdownBy, accuracyByLevel, accuracyByCategory, accuracyByMode,
+  accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
   bestCategory, medianVerifyDelay,
   OUTCOME_LABELS, OUTCOME_STATUSES, VERIFY_REMINDER_DAYS,
 } from '../services/verification';
@@ -265,6 +266,39 @@ describe('分項統計', () => {
   test('空輸入回空陣列', () => {
     expect(accuracyByLevel([])).toEqual([]);
     expect(accuracyByCategory([])).toEqual([]);
+  });
+});
+
+describe('六爻條件應驗率', () => {
+  const modern = (status: OutcomeStatus, over: Partial<DivinationRecord> = {}) => verified(status, {
+    engineVersion: 3,
+    // 水雷屯，動在初爻：下卦震為用、上卦坎為體，體生用。
+    hexagramIndex: 5 * 8 + 3,
+    movingLine: 1,
+    timestamp: new Date(2026, 1, 10, 12).getTime(),
+    ...over,
+  });
+
+  test('依體用、動爻與時令分組', () => {
+    const records = [
+      modern('accurate'),
+      modern('partial', { movingLine: 4 }),
+    ];
+
+    expect(accuracyByBodyUse(records).map(row => row.key)).toEqual(['體生用', '用生體']);
+    expect(accuracyByMovingLine(records).map(row => row.label)).toEqual(['第1爻', '第4爻']);
+    expect(accuracyBySeason(records)[0]).toMatchObject({ key: '春', stats: { verified: 2, rate: 75 } });
+  });
+
+  test('舊版或損毀的六爻資料不混入分析', () => {
+    const invalid = [
+      verified('accurate'),
+      modern('accurate', { movingLine: 0 }),
+      modern('accurate', { hexagramIndex: 64 }),
+    ];
+    expect(accuracyByBodyUse(invalid)).toEqual([]);
+    expect(accuracyByMovingLine(invalid)).toEqual([]);
+    expect(accuracyBySeason(invalid)).toEqual([]);
   });
 });
 

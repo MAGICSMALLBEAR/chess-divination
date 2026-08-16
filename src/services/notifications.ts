@@ -5,8 +5,11 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { t } from './i18n';
+import type { DivinationRecord } from './storage';
 
 const REMINDER_ID = 'daily-divination-reminder';
+const VERIFICATION_REMINDER_PREFIX = 'verification-reminder-';
 
 /** 設定通知處理器（顯示方式） */
 export function setupNotificationHandler() {
@@ -30,6 +33,36 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
+/** 不主動彈權限框；占卜完成時只在使用者已同意通知時排程。 */
+export async function hasNotificationPermission(): Promise<boolean> {
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === 'granted';
+}
+
+export function verificationReminderId(recordId: string): string {
+  return `${VERIFICATION_REMINDER_PREFIX}${recordId}`;
+}
+
+/** 在占卜滿 14 天時提醒一次。 */
+export async function scheduleVerificationReminder(record: DivinationRecord): Promise<boolean> {
+  if (Platform.OS === 'web' || record.outcome || !(await hasNotificationPermission())) return false;
+  const trigger = new Date(record.timestamp + 14 * 86_400_000);
+  if (trigger.getTime() <= Date.now()) return false;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: verificationReminderId(record.id),
+      content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: record.poemTitle }), data: { screen: '/stats', recordId: record.id } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger },
+    });
+    return true;
+  } catch (e) { console.warn('占驗提醒排程失敗:', e); return false; }
+}
+
+export async function cancelVerificationReminder(recordId: string): Promise<void> {
+  try { await Notifications.cancelScheduledNotificationAsync(verificationReminderId(recordId)); }
+  catch { console.warn('取消占驗提醒排程失敗'); }
+}
+
 /** 排程每日占卜提醒（每天上午 9:00） */
 export async function scheduleDailyReminder(): Promise<boolean> {
   // 先取消舊的排程
@@ -51,8 +84,10 @@ export async function scheduleDailyReminder(): Promise<boolean> {
     await Notifications.scheduleNotificationAsync({
       identifier: REMINDER_ID,
       content: {
-        title: '🏮 今日占卜',
-        body: '靜心片刻，讓象棋的智慧引領您今天的方向。',
+        // 排程當下就把文字寫死進通知，故切換語言後需重新排程才會改變。
+        // 設定頁的每日提醒開關關掉再開即可。
+        title: t('notify.title'),
+        body: t('notify.body'),
         data: { screen: '/(tabs)' },
       },
       trigger: {

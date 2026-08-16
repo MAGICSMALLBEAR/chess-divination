@@ -8,6 +8,7 @@ import ChessPiece from './ChessPiece';
 import type { ThemeColors } from '@/constants/theme';
 import { BOARD, Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useI18n } from '@/hooks/useI18n';
 
 export interface PlacedPiece {
   piece: ChessPieceType;
@@ -24,6 +25,7 @@ interface ChessBoardProps {
   selectedPiece?: ChessPieceType | null;
   cellSize?: number;
   maxPieces?: number;
+  allowRepeatedPieces?: boolean;
   style?: ViewStyle;
 }
 
@@ -36,9 +38,11 @@ export default function ChessBoard({
   selectedPiece,
   cellSize = 40,
   maxPieces = 3,
+  allowRepeatedPieces = false,
   style,
 }: ChessBoardProps) {
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const boardRef = useRef<View>(null);
   const boardLayoutRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const cols = BOARD.cols;    // 9
@@ -219,7 +223,7 @@ export default function ChessBoard({
       {availablePieces.length > 0 && (
         <View style={styles.availableArea}>
           <Text style={styles.availableTitle}>
-            選擇棋子放置 ({placedPieces.length}/{maxPieces})
+            {t('board.place')} ({placedPieces.length}/{maxPieces})
           </Text>
           <View style={styles.availableRow}>
             {availablePieces.map((piece) => {
@@ -227,7 +231,7 @@ export default function ChessBoard({
                 pp => pp.piece.id === piece.id
               );
               const isSelected = selectedPiece?.id === piece.id;
-              const canSelect = !isPlaced && placedPieces.length < maxPieces;
+              const canSelect = (allowRepeatedPieces || !isPlaced) && placedPieces.length < maxPieces;
               return (
                 <View
                   key={piece.id}
@@ -251,8 +255,8 @@ export default function ChessBoard({
                       }
                     } : undefined}
                   />
-                  {isPlaced && <Text style={styles.placedLabel}>已放置</Text>}
-                  {isSelected && <Text style={styles.selectedLabel}>已選中</Text>}
+                  {isPlaced && <Text style={styles.placedLabel}>{t('board.placedTag')}</Text>}
+                  {isSelected && <Text style={styles.selectedLabel}>{t('board.selected')}</Text>}
                 </View>
               );
             })}

@@ -9,6 +9,7 @@ import { Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 
 interface ModeSelectorProps {
   onSelectMode: (mode: 'draw' | 'board') => void;
@@ -18,12 +19,13 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
   const styles = useThemedStyles(makeStyles);
   const { theme } = useAppTheme();
   const { contentWidth } = useLayout();
+  const { t } = useI18n();
   const cardWidth = (contentWidth - Spacing.md) / 2;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>選擇占卜方式</Text>
-      <Text style={styles.subtitle}>以棋問道，觀象知機</Text>
+      <Text style={styles.title}>{t('mode.pick')}</Text>
+      <Text style={styles.subtitle}>{t('home.tagline')}</Text>
 
       <View style={styles.cards}>
         {/* 抽棋式 */}
@@ -32,18 +34,18 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           onPress={() => onSelectMode('draw')}
           activeOpacity={0.8}
           accessibilityRole="button"
-          accessibilityLabel="抽棋占卜 從32顆棋子中隨機抽取"
+          accessibilityLabel={`${t('mode.draw')} ${t('mode.drawDesc')}`}
         >
           <View style={styles.cardInner}>
             <View style={styles.cardIcon}>
               <Icon name="dice" size={40} color={theme.gold} />
             </View>
-            <Text style={styles.cardTitle}>抽棋占卜</Text>
+            <Text style={styles.cardTitle}>{t('mode.draw')}</Text>
             <Text style={styles.cardDesc}>
-              從32顆棋子中{'\n'}隨機抽取1-3顆{'\n'}觀棋象而知天機
+              {t('mode.drawDesc')}{'\n'}{t('mode.drawHint')}
             </Text>
             <View style={styles.cardBadge}>
-              <Text style={styles.badgeText}>快速便捷</Text>
+              <Text style={styles.badgeText}>{t('mode.drawTag')}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -58,19 +60,19 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
             <View style={styles.cardIcon}>
               <Icon name="chess-board" size={40} color={theme.gold} />
             </View>
-            <Text style={styles.cardTitle}>棋盤佈局</Text>
+            <Text style={styles.cardTitle}>{t('mode.board')}</Text>
             <Text style={styles.cardDesc}>
-              在棋盤上親手{'\n'}擺放棋子位置{'\n'}佈局問道更深層
+              {t('mode.boardDesc')}{'\n'}{t('mode.boardHint')}
             </Text>
             <View style={[styles.cardBadge, styles.cardBadgeAlt]}>
-              <Text style={styles.badgeTextAlt}>深度體驗</Text>
+              <Text style={styles.badgeTextAlt}>{t('mode.boardTag')}</Text>
             </View>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* 裝飾 */}
-      <Text style={styles.footer}>── 棋中有道，心誠則靈 ──</Text>
+      <Text style={styles.footer}>── {t('mode.footer')} ──</Text>
     </View>
   );
 }

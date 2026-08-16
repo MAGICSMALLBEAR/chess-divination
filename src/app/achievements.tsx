@@ -6,6 +6,7 @@ import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useGrid } from '@/hooks/useGrid';
 import {
@@ -20,6 +21,7 @@ export default function AchievementsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const { onLayout, cardWidth } = useGrid();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [streak, setStreak] = useState(0);
@@ -29,7 +31,7 @@ export default function AchievementsScreen() {
   async function loadData() {
     // 先補算再讀取——既有使用者的歷史記錄早已滿足多項條件，
     // 但因為過去從未有畫面呼叫檢查，那些成就一直沒被解鎖。
-    await syncAchievements().catch(e => console.warn('成就檢查失敗', e));
+    await syncAchievements().catch(e => console.warn(t('achievement.checkFailed'), e));
 
     const [ach, strk, hist] = await Promise.all([
       getAchievements(), getStreak(), getHistory(),
@@ -60,9 +62,9 @@ export default function AchievementsScreen() {
       <InkBackground />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.backText, { color: theme.textSecondary }]}>← 返回</Text>
+          <Text style={[styles.backText, { color: theme.textSecondary }]}>← {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>成就徽章</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('achievement.title')}</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -71,7 +73,7 @@ export default function AchievementsScreen() {
         <View style={[styles.overviewCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           <View style={styles.overviewTitleRow}>
             <Icon name="trophy" size={18} color={theme.gold} />
-            <Text style={[styles.overviewTitle, { color: theme.gold }]}> 成就進度</Text>
+            <Text style={[styles.overviewTitle, { color: theme.gold }]}> {t('achievement.progress')}</Text>
           </View>
           <View style={styles.progressRow}>
             {/* 進度環 */}
@@ -85,12 +87,12 @@ export default function AchievementsScreen() {
             </View>
             <View style={styles.overviewStats}>
               <Text style={[styles.statBig, { color: theme.textPrimary }]}>{unlocked}<Text style={[styles.statSmall, { color: theme.textMuted }]}>/{total}</Text></Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>已解鎖</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('achievement.unlocked')}</Text>
               <View style={styles.statExtraRow}>
                 <Icon name="flame" size={14} color={theme.textMuted} />
-                <Text style={[styles.statExtra, { color: theme.textMuted }]}> 連續 {streak} 天 · </Text>
+                <Text style={[styles.statExtra, { color: theme.textMuted }]}> {t('achievement.streakDays', { n: streak })} · </Text>
                 <Icon name="scroll" size={14} color={theme.textMuted} />
-                <Text style={[styles.statExtra, { color: theme.textMuted }]}> {totalDraws} 次占卜</Text>
+                <Text style={[styles.statExtra, { color: theme.textMuted }]}> {t('achievement.totalDraws', { n: totalDraws })}</Text>
               </View>
             </View>
           </View>
@@ -127,7 +129,7 @@ export default function AchievementsScreen() {
         <TouchableOpacity style={[styles.homeBtn, { borderColor: theme.bgMedium }]}
           onPress={() => router.replace('/(tabs)')}>
           <Icon name="home" size={16} color={theme.textSecondary} />
-          <Text style={[styles.homeBtnText, { color: theme.textSecondary }]}> 回首頁</Text>
+          <Text style={[styles.homeBtnText, { color: theme.textSecondary }]}> {t('reveal.home')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

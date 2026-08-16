@@ -12,6 +12,7 @@ import type { IconName } from '@/components/icons/Icon';
 import type { CustomCategory } from '@/services/storage';
 import { getSettings, saveSettings } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
@@ -30,6 +31,7 @@ interface Props {
 export default function CustomCategoriesSection({ onChanged }: Props) {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const [categories, setCategories] = useState<CustomCategory[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -85,9 +87,9 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
   }
 
   async function handleDelete(index: number) {
-    Alert.alert('刪除類別', `確定要刪除「${categories[index].label}」嗎？`, [
-      { text: '取消', style: 'cancel' },
-      { text: '刪除', style: 'destructive', onPress: async () => {
+    Alert.alert(t('category.deleteTitle'), t('category.deleteDesc', { name: categories[index].label }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         const updated = categories.filter((_, i) => i !== index);
         await saveCategories(updated);
       }},
@@ -96,9 +98,9 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
 
   return (
     <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-      <Text style={[styles.sectionTitle, { color: theme.gold }]}>自訂問事類別</Text>
+      <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('category.title')}</Text>
       <Text style={[styles.hint, { color: theme.textMuted }]}>
-        新增您常用的問事類別，它們會出現在抽棋與棋盤頁面的類別選單中
+        {t('category.desc')}
       </Text>
 
       {categories.map((cat, i) => (
@@ -106,7 +108,7 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
           <Icon name={cat.icon as IconName} size={18} color={theme.gold} />
           <Text style={[styles.catLabel, { color: theme.textPrimary }]}>{cat.label}</Text>
           <TouchableOpacity onPress={() => openEdit(i)} style={styles.actionBtn}>
-            <Text style={{ color: theme.textMuted, fontSize: 12 }}>編輯</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12 }}>{t('common.edit')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleDelete(i)} style={styles.actionBtn}>
             <Icon name="trash" size={14} color={theme.textRed} />
@@ -116,12 +118,12 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
 
       {categories.length === 0 && (
         <Text style={[styles.emptyHint, { color: theme.textMuted }]}>
-          尚無自訂類別。點擊下方按鈕新增。
+          {t('category.empty')}
         </Text>
       )}
 
       <TouchableOpacity style={[styles.addBtn, { borderColor: theme.textGold }]} onPress={openAdd}>
-        <Text style={{ color: theme.textGold }}>＋ 新增類別</Text>
+        <Text style={{ color: theme.textGold }}>＋ {t('category.add')}</Text>
       </TouchableOpacity>
 
       {/* 編輯 Modal */}
@@ -129,21 +131,21 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={[styles.modalTitle, { color: theme.gold }]}>
-              {editingIndex !== null ? '編輯類別' : '新增類別'}
+              {editingIndex !== null ? t('category.edit') : t('category.add')}
             </Text>
 
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>名稱</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t('common.name')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.bgInk, borderColor: theme.bgMedium, color: theme.textPrimary }]}
               value={editLabel}
               onChangeText={setEditLabel}
-              placeholder="類別名稱"
+              placeholder={t('category.namePlaceholder')}
               placeholderTextColor={theme.textMuted}
               maxLength={8}
               autoFocus
             />
 
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>圖示</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t('common.icon')}</Text>
             <TouchableOpacity
               style={[styles.iconSelectBtn, { backgroundColor: theme.bgCard, borderColor: theme.bgMedium }]}
               onPress={() => setShowIconPicker(!showIconPicker)}
@@ -172,10 +174,10 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
 
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setShowEditor(false)} style={[styles.modalBtn, { borderColor: theme.bgMedium }]}>
-                <Text style={{ color: theme.textMuted }}>取消</Text>
+                <Text style={{ color: theme.textMuted }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleSave} style={[styles.modalBtn, { backgroundColor: theme.gold }]}>
-                <Text style={{ color: theme.textInverse, fontWeight: '600' }}>儲存</Text>
+                <Text style={{ color: theme.textInverse, fontWeight: '600' }}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>

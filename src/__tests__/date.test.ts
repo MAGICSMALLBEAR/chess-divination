@@ -1,6 +1,6 @@
 import {
   toLocalDateString, todayString, yesterdayString,
-  monthBranchNumber, monthBranchName, seasonOf, SEASON_ELEMENT,
+  monthBranchNumber, monthBranchName, monthBranchContext, seasonOf, SEASON_ELEMENT,
   EARTHLY_BRANCHES,
 } from '../services/date';
 
@@ -37,7 +37,7 @@ describe('本地日期', () => {
 // ── 月建與季節（六爻旺衰的輸入） ──
 
 describe('月建', () => {
-  /** 以「國曆 n 月」建立一個日期，日與時固定在月中避免邊界干擾 */
+  /** 以「國曆 n 月」建立一個日期，日與時固定在月中避免節氣邊界干擾 */
   const inMonth = (m: number) => new Date(2026, m - 1, 15, 12, 0, 0);
 
   test('正月建寅、二月建卯，依序推至十二月建丑', () => {
@@ -67,6 +67,19 @@ describe('月建', () => {
       expect(n).toBeGreaterThanOrEqual(1);
       expect(n).toBeLessThanOrEqual(12);
     }
+  });
+
+  test('月建在立春、驚蟄交節日切換，而不是國曆每月一日', () => {
+    // 2026 年此離線日算法：立春 2/4、驚蟄 3/5。
+    expect(monthBranchNumber(new Date(2026, 1, 3, 12))).toBe(2); // 立春前仍丑月
+    expect(monthBranchContext(new Date(2026, 1, 4, 12))).toMatchObject({ branch: 3, term: '立春', isFallback: false });
+    expect(monthBranchNumber(new Date(2026, 2, 4, 12))).toBe(3); // 驚蟄前仍寅月
+    expect(monthBranchContext(new Date(2026, 2, 5, 12))).toMatchObject({ branch: 4, term: '驚蟄' });
+  });
+
+  test('一月小寒前仍是子月，小寒後才切入丑月', () => {
+    expect(monthBranchNumber(new Date(2026, 0, 4, 12))).toBe(1);
+    expect(monthBranchContext(new Date(2026, 0, 5, 12))).toMatchObject({ branch: 2, term: '小寒' });
   });
 
   test('monthBranchName 回傳對應地支加「月」', () => {

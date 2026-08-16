@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { t, setLang, getLang, subscribe, LANG_OPTIONS, type Lang } from '../services/i18n';
+import { t, setLang, getLang, subscribe, categoryLabel, LANG_OPTIONS, type Lang } from '../services/i18n';
 
 const ALL_LANGS: Lang[] = ['zh-TW', 'en', 'ja'];
 
@@ -189,6 +189,92 @@ describe('翻譯資料完整性', () => {
     setLang('en');
     const leaked = declaredKeys.filter(k => /[一-鿿぀-ヿ]/.test(t(k)));
     expect(leaked).toEqual([]);
+  });
+
+  test('帶佔位符的 key 三種語言都必須保留同一組佔位符', () => {
+    // 少一個佔位符，那個語言就會靜靜少掉一段數字；
+    // 多一個則會在畫面上留下沒被填掉的 {n}
+    const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort();
+    const mismatched: string[] = [];
+    for (const key of declaredKeys) {
+      setLang('zh-TW');
+      const base = placeholders(t(key));
+      if (base.length === 0) continue;
+      for (const lang of ['en', 'ja'] as Lang[]) {
+        setLang(lang);
+        if (placeholders(t(key)).join(',') !== base.join(',')) {
+          mismatched.push(`${key} (${lang})`);
+        }
+      }
+    }
+    expect(mismatched).toEqual([]);
+  });
+});
+
+describe('t 的佔位符插值', () => {
+  test('以 params 填入佔位符', () => {
+    setLang('zh-TW');
+    expect(t('stats.times', { n: 3 })).toBe('3 次');
+    setLang('ja');
+    expect(t('stats.times', { n: 3 })).toBe('3 回');
+  });
+
+  test('同一 key 的數字位置隨語言而異', () => {
+    setLang('zh-TW');
+    expect(t('home.streak', { n: 7 })).toBe('連續 7 天');
+    setLang('en');
+    expect(t('home.streak', { n: 7 })).toBe('7-day streak');
+  });
+
+  test('同一佔位符出現多次時全部填入', () => {
+    // replace 搭配正則的 g 旗標，非只換第一個
+    expect(t('collection.confirmBatch', { n: 2 })).toContain('2');
+  });
+
+  test('未傳 params 時佔位符原樣保留', () => {
+    // 留著 {n} 很顯眼；換成空字串則會靜靜少一段文字，更難發現漏傳
+    expect(t('stats.times')).toBe('{n} 次');
+  });
+
+  test('params 少傳一個 key 時，該佔位符原樣保留', () => {
+    setLang('zh-TW');
+    const result = t('stats.verifiedMeta', { v: 5 });
+    expect(result).toContain('5');
+    expect(result).toContain('{u}');
+  });
+
+  test('params 帶了字典裡沒有的 key 不影響輸出', () => {
+    expect(t('stats.times', { n: 1, unused: 'x' })).toBe('1 次');
+  });
+
+  test('查無此 key 時回傳 key 本身，不做插值', () => {
+    expect(t('no.such.key', { n: 1 })).toBe('no.such.key');
+  });
+});
+
+describe('categoryLabel', () => {
+  test('內建類別回傳當前語言的譯文', () => {
+    setLang('zh-TW');
+    expect(categoryLabel('marriage')).toBe('感情');
+    setLang('en');
+    expect(categoryLabel('marriage')).toBe('Love');
+    setLang('ja');
+    expect(categoryLabel('marriage')).toBe('恋愛');
+  });
+
+  test('七個內建類別在三種語言下都有譯文', () => {
+    const keys = ['general', 'marriage', 'career', 'wealth', 'health', 'study', 'travel'];
+    for (const lang of ALL_LANGS) {
+      setLang(lang);
+      for (const key of keys) {
+        expect(categoryLabel(key)).not.toBe(key);
+      }
+    }
+  });
+
+  test('自訂類別的 key 原樣回傳', () => {
+    // 使用者自己取的名字沒有譯文，硬套 t() 只會顯示出那串 key
+    expect(categoryLabel('custom-1699999999')).toBe('custom-1699999999');
   });
 });
 

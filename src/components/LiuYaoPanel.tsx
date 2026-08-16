@@ -6,11 +6,17 @@ import HexagramLines from './HexagramLines';
 import { trigramLabel, type LiuYaoReading, type HexagramInfo } from '@/services/liuyao';
 import { hourBranchName } from '@/services/date';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { Spacing, FontSize } from '@/constants/theme';
+import { getMovingLineGuidance } from '@/services/yaoReading';
+import { buildNaJiaReading, transformedLineRelation } from '@/services/najja';
+import { useGodForCategory } from '@/services/useGod';
 
 interface Props {
   reading: LiuYaoReading;
   hourBranch?: number;
+  castAt?: Date;
+  questionCategory?: string;
 }
 
 const LEVEL_TONE: Record<string, 'good' | 'neutral' | 'bad'> = {
@@ -22,8 +28,9 @@ const STRENGTH_TONE: Record<string, 'good' | 'neutral' | 'bad'> = {
   旺: 'good', 相: 'good', 休: 'neutral', 囚: 'bad', 死: 'bad',
 };
 
-export default function LiuYaoPanel({ reading, hourBranch }: Props) {
+export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCategory }: Props) {
   const { theme } = useAppTheme();
+  const { t } = useI18n();
   const {
     primary, nuclear, changed, movingLine, movingLineName,
     bodyUse, strength, finalLevel,
@@ -37,20 +44,29 @@ export default function LiuYaoPanel({ reading, hourBranch }: Props) {
   const toneColor = colorFor(LEVEL_TONE[finalLevel] || 'neutral');
   const strengthColor = colorFor(STRENGTH_TONE[strength.state] || 'neutral');
   const adjusted = finalLevel !== bodyUse.level;
+  const movingGuidance = getMovingLineGuidance(primary.poemId, movingLine, finalLevel);
+  const naJia = buildNaJiaReading(primary.upper, primary.lower, primary.poemId, primary.lines, castAt);
+  const changedNaJia = buildNaJiaReading(changed.upper, changed.lower, changed.poemId, changed.lines, castAt);
+  const primaryMovingNaJia = naJia?.lines[movingLine - 1];
+  const changedMovingNaJia = changedNaJia?.lines[movingLine - 1];
+  const changingRelation = primaryMovingNaJia && changedMovingNaJia
+    ? transformedLineRelation(primaryMovingNaJia.element, changedMovingNaJia.element)
+    : null;
+  const useGod = useGodForCategory(questionCategory);
 
   const columns: { info: HexagramInfo; caption: string; hint: string; moving?: number }[] = [
-    { info: primary, caption: '本卦', hint: '目前處境', moving: movingLine },
-    { info: nuclear, caption: '互卦', hint: '隱藏因素' },
-    { info: changed, caption: '變卦', hint: '發展結果' },
+    { info: primary, caption: t('liuyao.primary'), hint: t('liuyao.primaryHint'), moving: movingLine },
+    { info: nuclear, caption: t('liuyao.nuclear'), hint: t('liuyao.nuclearHint') },
+    { info: changed, caption: t('liuyao.changed'), hint: t('liuyao.changedHint') },
   ];
 
   return (
     <View style={[styles.box, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.gold }]}>▎卦例推演</Text>
+        <Text style={[styles.title, { color: theme.gold }]}>▎{t('liuyao.title')}</Text>
         {hourBranch ? (
           <Text style={[styles.hour, { color: theme.textMuted }]}>
-            {hourBranchName(hourBranch)}起卦
+            {t('liuyao.castAt', { hour: hourBranchName(hourBranch) })}
           </Text>
         ) : null}
       </View>
@@ -69,17 +85,75 @@ export default function LiuYaoPanel({ reading, hourBranch }: Props) {
 
       {/* 動爻 */}
       <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
-      <Text style={[styles.movingText, { color: theme.textSecondary }]}>
-        動爻在
-        <Text style={{ color: theme.gold, fontWeight: '700' }}> {movingLineName} </Text>
-        （第 {movingLine} 爻）——變化的關鍵所在。
+      <Text style={[styles.movingText, { color: theme.textSecondary }]}> 
+        {t('liuyao.moving', { name: movingLineName, n: movingLine })}
       </Text>
+      <View style={[styles.yaoBox, { borderColor: theme.bgMedium, backgroundColor: theme.bgInk }]}>
+        <Text style={[styles.yaoLabel, { color: theme.gold }]}>{t('liuyao.yaoReading')}</Text>
+        {movingGuidance.classicalText ? (
+          <>
+            <Text style={[styles.classicalText, { color: theme.textPrimary }]}>
+              {movingGuidance.classicalText}
+            </Text>
+            <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.yaoSource')}</Text>
+          </>
+        ) : (
+          <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.yaoPending')}</Text>
+        )}
+        <Text style={[styles.yaoPlain, { color: theme.textSecondary }]}>{movingGuidance.plainLanguage}</Text>
+        <Text style={[styles.yaoAction, { color: theme.success }]}>◎ {movingGuidance.action}</Text>
+      </View>
+
+      {naJia && (
+        <View style={[styles.najjaBox, { borderColor: theme.bgMedium, backgroundColor: theme.bgInk }]}>
+          <Text style={[styles.yaoLabel, { color: theme.gold }]}>{t('liuyao.najjaTitle')}</Text>
+          <Text style={[styles.sourceNote, { color: theme.textMuted }]}>
+            {t('liuyao.najjaMeta', { palace: naJia.palace, element: naJia.palaceElement, generation: naJia.generation, day: naJia.dayStemBranch, month: naJia.monthBranch, xun: naJia.xun, void: naJia.voidBranches.join('') })}
+          </Text>
+          {useGod && (
+            <Text style={[styles.useGodText, { color: theme.warning }]}>
+              {useGod.description}
+            </Text>
+          )}
+          {naJia.lines.slice().reverse().map(line => (
+            <View key={line.position} style={styles.najjaRow}>
+              <Text style={[styles.najjaPosition, { color: theme.textMuted }]}>{line.name}</Text>
+              <Text style={[styles.najjaText, { color: theme.textSecondary }]}>{line.spirit}　{line.relative}　{line.stemBranch} {line.element}</Text>
+              <Text style={[styles.najjaMarker, { color: theme.success }]}> 
+                {[
+                  line.isWorld ? t('liuyao.world') : line.isResponding ? t('liuyao.responding') : '',
+                  useGod?.relatives.includes(line.relative) ? t('liuyao.useGod') : '',
+                  line.isVoid ? t('liuyao.void') : '',
+                  line.isMonthBroken ? t('liuyao.monthBroken') : '',
+                  line.isDayClashed ? t('liuyao.dayClash') : '',
+                ].join('')}
+              </Text>
+            </View>
+          ))}
+          {primaryMovingNaJia && changedMovingNaJia && changingRelation && (
+            <View style={[styles.transformBox, { borderColor: theme.bgMedium }]}>
+              <Text style={[styles.transformTitle, { color: theme.gold }]}>{t('liuyao.transformTitle')}</Text>
+              <Text style={[styles.transformText, { color: theme.textSecondary }]}>
+                {t('liuyao.transformText', {
+                  from: `${primaryMovingNaJia.stemBranch}${primaryMovingNaJia.element}`,
+                  to: `${changedMovingNaJia.stemBranch}${changedMovingNaJia.element}`,
+                  relation: changingRelation,
+                })}
+              </Text>
+            </View>
+          )}
+          <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.najjaNote')}</Text>
+        </View>
+      )}
 
       {/* 體用 */}
       <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
       <View style={styles.bodyUseRow}>
         <Text style={[styles.bodyUseLabel, { color: theme.textMuted }]}>
-          體{trigramLabel(bodyUse.body)}（我） · 用{trigramLabel(bodyUse.use)}（事）
+          {t('liuyao.bodyUse', {
+            body: trigramLabel(bodyUse.body),
+            use: trigramLabel(bodyUse.use),
+          })}
         </Text>
         <View style={[styles.badge, { borderColor: toneColor }]}>
           <Text style={[styles.badgeText, { color: toneColor }]}>
@@ -93,8 +167,13 @@ export default function LiuYaoPanel({ reading, hourBranch }: Props) {
       <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
       <View style={styles.bodyUseRow}>
         <Text style={[styles.bodyUseLabel, { color: theme.textMuted }]}>
-          {strength.monthBranchName}（{strength.season}）令{strength.seasonElement}當權
-          {' · '}體屬{strength.bodyElement}
+          {t('liuyao.season', {
+            month: strength.monthBranchName,
+            term: strength.solarTerm,
+            season: strength.season,
+            element: strength.seasonElement,
+            bodyElement: strength.bodyElement,
+          })}
         </Text>
         <View style={[styles.badge, { borderColor: strengthColor }]}>
           <Text style={[styles.badgeText, { color: strengthColor }]}>{strength.state}</Text>
@@ -103,8 +182,7 @@ export default function LiuYaoPanel({ reading, hourBranch }: Props) {
       <Text style={[styles.bodyUseText, { color: theme.textSecondary }]}>{strength.text}</Text>
       {adjusted && (
         <Text style={[styles.adjustNote, { color: theme.textMuted }]}>
-          綜合時令，斷語由「{bodyUse.level}」調整為「
-          <Text style={{ color: toneColor, fontWeight: '700' }}>{finalLevel}</Text>」。
+          {t('liuyao.adjusted', { from: bodyUse.level, to: finalLevel })}
         </Text>
       )}
     </View>
@@ -132,6 +210,21 @@ const styles = StyleSheet.create({
   hint: { fontSize: FontSize.overline, marginTop: 2, textAlign: 'center' },
   divider: { height: 1, marginVertical: Spacing.md },
   movingText: { fontSize: FontSize.small, lineHeight: 22 },
+  yaoBox: { borderWidth: 1, borderRadius: 10, padding: Spacing.sm, marginTop: Spacing.sm },
+  yaoLabel: { fontSize: FontSize.caption, fontWeight: '700', marginBottom: 4 },
+  classicalText: { fontSize: FontSize.body, fontWeight: '600', lineHeight: 26 },
+  sourceNote: { fontSize: FontSize.overline, lineHeight: 18, marginTop: 3 },
+  yaoPlain: { fontSize: FontSize.small, lineHeight: 22, marginTop: Spacing.sm },
+  yaoAction: { fontSize: FontSize.small, lineHeight: 22, marginTop: Spacing.sm, fontWeight: '600' },
+  najjaBox: { borderWidth: 1, borderRadius: 10, padding: Spacing.sm, marginTop: Spacing.sm },
+  najjaRow: { flexDirection: 'row', alignItems: 'center', minHeight: 22 },
+  najjaPosition: { fontSize: FontSize.overline, width: 34 },
+  najjaText: { fontSize: FontSize.small, flex: 1 },
+  najjaMarker: { fontSize: FontSize.caption, fontWeight: '700', width: 42, textAlign: 'right' },
+  useGodText: { fontSize: FontSize.caption, lineHeight: 18, marginTop: Spacing.sm, marginBottom: Spacing.xs },
+  transformBox: { borderTopWidth: 1, marginTop: Spacing.sm, paddingTop: Spacing.sm },
+  transformTitle: { fontSize: FontSize.caption, fontWeight: '700', marginBottom: 3 },
+  transformText: { fontSize: FontSize.small, lineHeight: 20 },
   bodyUseRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.sm,

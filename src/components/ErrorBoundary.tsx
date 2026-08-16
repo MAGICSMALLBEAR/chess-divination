@@ -5,6 +5,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Icon } from '@/components/icons';
+// 直接取 t 而非 useI18n：class component 不能用 hook。
+// i18n 是模組層級的 singleton，不經 React context，故即使
+// context 樹已經壞掉這裡仍取得到譯文。代價是切換語言不會即時
+// 重繪這個畫面——錯誤畫面不需要。
+import { t } from '@/services/i18n';
 import { FallbackPalette, Spacing, FontSize } from '@/constants/theme';
 
 interface Props { children: React.ReactNode; }
@@ -30,12 +35,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <SafeAreaView style={styles.container}>
           <View style={styles.content}>
             <Icon name="warning" size={56} color={FallbackPalette.gold} />
-            <Text style={styles.title}>發生了一些問題</Text>
+            <Text style={styles.title}>{t('error.title')}</Text>
             <Text style={styles.message}>
-              {this.state.error?.message || '未知錯誤'}
+              {this.state.error?.message || t('error.unknown')}
             </Text>
             <TouchableOpacity style={styles.retryBtn} onPress={this.handleRetry}>
-              <Text style={styles.retryText}>重新載入</Text>
+              <Text style={styles.retryText}>{t('error.reload')}</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

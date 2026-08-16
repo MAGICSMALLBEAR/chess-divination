@@ -55,15 +55,82 @@ export function hourBranchName(branchNumber: number): string {
 /**
  * 月建的地支。正月建寅、二月建卯……十一月建子、十二月建丑。
  *
- * 嚴格的月建以節氣交接為界（立春才入寅月，非國曆 2/1），
- * 精確判定需要每年的節氣時刻表。此處以國曆月份近似，
- * 誤差最多在月初數日之內——對「旺相休囚死」這種五級粗判影響有限，
- * 而換取的是零外部資料、可離線、可測試。
- * 若日後要精確化，只需改寫本函式，下游的旺衰邏輯不必動。
+ * 月建以十二個「節」（立春、驚蟄……小寒）交接為界，而不是國曆每月一日。
+ * 本檔以常用的二十四節氣年差近似式計算 1900–2100 年的交節日期，
+ * 不需網路或第三方 API。它用於「日」級的月建判斷；若未來需要精確到
+ * 交節當下的時分，才需換成天文曆或受信任的節氣資料表。
  */
+const SOLAR_TERM_MINUTES = [
+  0, 21208, 42467, 63836, 85337, 107014, 128867, 150921,
+  173149, 195551, 218072, 240693, 263343, 285989, 308563, 331033,
+  353350, 375494, 397447, 419210, 440795, 462224, 483532, 504758,
+] as const;
+
+const TROPICAL_YEAR_MS = 31556925974.7;
+const SOLAR_TERM_BASE_UTC_MS = Date.UTC(1900, 0, 6, 2, 5);
+
+interface MonthBoundary {
+  term: string;
+  termIndex: number;
+  branch: number;
+}
+
+// 只有「節」交接會換月建；雨水、春分等中氣不換月建。
+const MONTH_BOUNDARIES: readonly MonthBoundary[] = [
+  { term: '小寒', termIndex: 0, branch: 2 },
+  { term: '立春', termIndex: 2, branch: 3 },
+  { term: '驚蟄', termIndex: 4, branch: 4 },
+  { term: '清明', termIndex: 6, branch: 5 },
+  { term: '立夏', termIndex: 8, branch: 6 },
+  { term: '芒種', termIndex: 10, branch: 7 },
+  { term: '小暑', termIndex: 12, branch: 8 },
+  { term: '立秋', termIndex: 14, branch: 9 },
+  { term: '白露', termIndex: 16, branch: 10 },
+  { term: '寒露', termIndex: 18, branch: 11 },
+  { term: '立冬', termIndex: 20, branch: 12 },
+  { term: '大雪', termIndex: 22, branch: 1 },
+];
+
+/** 可供畫面說明目前月建從哪一節開始。 */
+export interface MonthBranchContext {
+  branch: number;
+  term: string;
+  /** 年份不在離線演算法可判範圍時會為 true。 */
+  isFallback: boolean;
+}
+
+function solarTermCalendarDate(year: number, termIndex: number): Date {
+  const estimate = new Date(
+    SOLAR_TERM_BASE_UTC_MS
+      + TROPICAL_YEAR_MS * (year - 1900)
+      + SOLAR_TERM_MINUTES[termIndex] * 60_000,
+  );
+  // 演算法的日界以 UTC 日曆欄位表示，將它轉成本地日曆日期，避免時區改變月建。
+  return new Date(year, estimate.getUTCMonth(), estimate.getUTCDate());
+}
+
+/** 取得以節氣切換後的月建與交節名。 */
+export function monthBranchContext(date: Date = new Date()): MonthBranchContext {
+  const year = date.getFullYear();
+  if (year < 1900 || year > 2100) {
+    return {
+      branch: ((date.getMonth() + 1) % 12) + 1,
+      term: '國曆月近似',
+      isFallback: true,
+    };
+  }
+
+  const calendarDate = new Date(year, date.getMonth(), date.getDate());
+  let current: MonthBoundary = MONTH_BOUNDARIES[MONTH_BOUNDARIES.length - 1];
+  for (const boundary of MONTH_BOUNDARIES) {
+    if (calendarDate >= solarTermCalendarDate(year, boundary.termIndex)) current = boundary;
+    else break;
+  }
+  return { branch: current.branch, term: current.term, isFallback: false };
+}
+
 export function monthBranchNumber(date: Date = new Date()): number {
-  // getMonth() 0=一月。國曆一月建丑(2)、二月建寅(3)…十二月建子(1)
-  return ((date.getMonth() + 1) % 12) + 1;
+  return monthBranchContext(date).branch;
 }
 
 /** 月建名，如「寅月」 */

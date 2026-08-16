@@ -3,17 +3,19 @@ import { StyleSheet, View, Text } from 'react-native';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function NotFoundScreen() {
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
 
   return (
     <>
-      <Stack.Screen options={{ title: '找不到頁面' }} />
+      <Stack.Screen options={{ title: t('notFound.title') }} />
       <View style={styles.container}>
-        <Text style={styles.title}>此頁面不存在</Text>
+        <Text style={styles.title}>{t('notFound.desc')}</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>回到首頁</Text>
+          <Text style={styles.linkText}>{t('notFound.home')}</Text>
         </Link>
       </View>
     </>

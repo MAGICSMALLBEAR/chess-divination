@@ -3,6 +3,7 @@
 // 以及 Web Share API / 複製到剪貼簿等通用方案。
 
 import { Platform, Linking, Share } from 'react-native';
+import { t } from './i18n';
 
 export interface ShareContent {
   title: string;
@@ -89,27 +90,34 @@ export function formatDivinationShareText(params: {
   };
 }): string {
   const parts = [
-    `🏮【象棋占卜】${params.poemLevel} · ${params.poemTitle}`,
-    `卦：${params.hexagramName}`,
+    `🏮【${t('home.title')}】${params.poemLevel} · ${params.poemTitle}`,
+    t('share.hexagram', { name: params.hexagramName }),
     '',
     ...params.lines,
     '',
     `📜 ${params.vernacular.slice(0, 80)}...`,
     '',
-    `🎲 抽得：${params.pieceChars.join(' ')}`,
+    `🎲 ${t('share.drawn', { pieces: params.pieceChars.join(' ') })}`,
   ];
 
   if (params.reading) {
     parts.push(
-      `☯ ${params.reading.primaryName} → ${params.reading.changedName}（動爻 ${params.reading.movingLineName}）`,
-      `　 體用：${params.reading.relation} · ${params.reading.level}`,
+      `☯ ${t('share.changed', {
+        from: params.reading.primaryName,
+        to: params.reading.changedName,
+        line: params.reading.movingLineName,
+      })}`,
+      `　 ${t('share.bodyUse', {
+        relation: params.reading.relation,
+        level: params.reading.level,
+      })}`,
     );
   }
 
   parts.push(
     '',
     '🔗 chess-divination-app.vercel.app',
-    '以棋問道 · 觀象知機',
+    t('home.tagline'),
   );
 
   return parts.join('\n');

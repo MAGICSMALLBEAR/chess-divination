@@ -14,7 +14,7 @@ import {
   type LineValue,
 } from './hexagram';
 import {
-  monthBranchNumber, monthBranchName, seasonOf, SEASON_ELEMENT,
+  monthBranchContext, monthBranchName, seasonOf, SEASON_ELEMENT,
   type Season,
 } from './date';
 
@@ -53,6 +53,8 @@ export interface SeasonalStrength {
   monthBranch: number;
   /** 月建名，如「寅月」 */
   monthBranchName: string;
+  /** 月建起始節氣，如「立春」 */
+  solarTerm: string;
   season: Season;
   /** 當令五行 */
   seasonElement: string;
@@ -207,7 +209,8 @@ export function strengthState(bodyElement: string, seasonElement: string): Stren
 }
 
 function buildStrength(bodyElement: string, at: Date): SeasonalStrength {
-  const monthBranch = monthBranchNumber(at);
+  const monthContext = monthBranchContext(at);
+  const monthBranch = monthContext.branch;
   const season = seasonOf(monthBranch);
   const seasonElement = SEASON_ELEMENT[season];
   const state = strengthState(bodyElement, seasonElement);
@@ -215,12 +218,13 @@ function buildStrength(bodyElement: string, at: Date): SeasonalStrength {
   return {
     monthBranch,
     monthBranchName: monthBranchName(monthBranch),
+    solarTerm: monthContext.term,
     season,
     seasonElement,
     bodyElement,
     state,
     shift: STRENGTH_SHIFT[state],
-    text: `${monthBranchName(monthBranch)}（${season}）令${seasonElement}當權，體卦屬${bodyElement}為「${state}」。${STRENGTH_TEXT[state]}`,
+    text: `${monthBranchName(monthBranch)}（${monthContext.term}後，${season}）令${seasonElement}當權，體卦屬${bodyElement}為「${state}」。${STRENGTH_TEXT[state]}`,
   };
 }
 

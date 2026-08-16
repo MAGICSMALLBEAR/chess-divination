@@ -15,7 +15,7 @@ import { backupData, restoreData } from '@/services/backup';
 import { clearHistory } from '@/services/storage';
 import CustomCategoriesSection from '@/components/CustomCategoriesSection';
 import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission } from '@/services/notifications';
-import { uploadToCloud, downloadFromCloud, mergeFromCloud } from '@/services/cloudSync';
+import { getSyncKey, saveSyncKey, syncWithCloud } from '@/services/cloudSync';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { LANG_OPTIONS, type Lang } from '@/services/i18n';
@@ -35,13 +35,16 @@ export default function SettingsScreen() {
   const [nameText, setNameText] = useState('');
   const [reminderOn, setReminderOn] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [editingSyncKey, setEditingSyncKey] = useState(false);
+  const [syncKeyText, setSyncKeyText] = useState('');
 
   useEffect(() => { loadSettings(); checkReminder(); }, []);
 
   async function loadSettings() {
-    const s = await getSettings();
+    const [s, syncKey] = await Promise.all([getSettings(), getSyncKey()]);
     setSettings(s);
     setNameText(s.userName);
+    setSyncKeyText(syncKey || '');
   }
 
   async function update(key: keyof AppSettings, value: any) {
@@ -51,7 +54,7 @@ export default function SettingsScreen() {
 
   async function handleBackup() {
     const result = await backupData();
-    if (result) Alert.alert('備份成功', '資料已匯出');
+    if (result) Alert.alert(t('settings.backupOk'), t('settings.backupOkDesc'));
   }
 
   async function checkReminder() {
@@ -65,7 +68,7 @@ export default function SettingsScreen() {
       const ok = await scheduleDailyReminder();
       if (!ok) {
         setReminderOn(false);
-        Alert.alert('無法設定', '請先授予通知權限後再試。');
+        Alert.alert(t('settings.notifyDenied'), t('settings.notifyDeniedDesc'));
       }
     } else {
       await cancelDailyReminder();
@@ -73,33 +76,24 @@ export default function SettingsScreen() {
   }
 
   async function handleRestore() {
-    Alert.alert('還原資料', '將覆蓋現有資料，確定要還原嗎？', [
-      { text: '取消', style: 'cancel' },
-      { text: '確定', onPress: async () => {
+    Alert.alert(t('settings.restore'), t('settings.restoreConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.confirm'), onPress: async () => {
         const ok = await restoreData();
-        if (ok) { Alert.alert('還原成功'); loadSettings(); }
-        else Alert.alert('還原失敗', '請選擇正確的備份檔案');
+        if (ok) { Alert.alert(t('settings.restoreOk')); loadSettings(); }
+        else Alert.alert(t('settings.restoreFail'), t('settings.restoreFailDesc'));
       }},
     ]);
   }
 
   async function handleCloudSync() {
     setSyncing(true);
-    // 先上傳
-    const uploaded = await uploadToCloud();
-    if (!uploaded) {
-      Alert.alert('雲端同步', '尚未設定雲端同步伺服器。\n請設定 EXPO_PUBLIC_CLOUD_SYNC_URL 環境變數。');
-      setSyncing(false);
-      return;
-    }
-    // 再下載合併
-    const cloud = await downloadFromCloud();
-    if (cloud) {
-      await mergeFromCloud(cloud);
+    const result = await syncWithCloud();
+    if (result === 'ok') {
       await loadSettings();
-      Alert.alert('雲端同步', '同步完成！');
+      Alert.alert(t('settings.cloudSync'), t('settings.syncOk'));
     } else {
-      Alert.alert('雲端同步', '上傳成功，但無法下載遠端資料。');
+      Alert.alert(t('settings.cloudSync'), t('settings.syncUnset'));
     }
     setSyncing(false);
   }
@@ -109,7 +103,7 @@ export default function SettingsScreen() {
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
         <InkBackground />
         <View style={styles.loading}>
-          <Text style={{ color: theme.textSecondary }}>載入中...</Text>
+          <Text style={{ color: theme.textSecondary }}>{t('common.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -119,19 +113,19 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <InkBackground />
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>設定</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('settings.title')}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* 用戶名稱 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>個人資訊</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.personal')}</Text>
           {editingName ? (
             <View style={styles.row}>
               <TextInput
                 style={[styles.nameInput, { backgroundColor: theme.bgInk, borderColor: theme.bgMedium, color: theme.textPrimary }]}
                 value={nameText}
                 onChangeText={setNameText}
-                placeholder="輸入您的名字"
+                placeholder={t('settings.namePlaceholder')}
                 placeholderTextColor={theme.textMuted}
                 autoFocus
               />
@@ -139,22 +133,22 @@ export default function SettingsScreen() {
                 await update('userName', nameText);
                 setEditingName(false);
               }}>
-                <Text style={{ color: theme.gold, fontWeight: '600' }}>儲存</Text>
+                <Text style={{ color: theme.gold, fontWeight: '600' }}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity style={styles.row} onPress={() => setEditingName(true)}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>用戶名稱</Text>
-              <Text style={{ color: theme.textPrimary }}>{settings.userName || '點擊設定'}</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.userName')}</Text>
+              <Text style={{ color: theme.textPrimary }}>{settings.userName || t('settings.nameUnset')}</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* 主題 & 語言 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>外觀設定</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.appearance')}</Text>
           <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>主題模式</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.theme')}</Text>
             <View style={styles.options}>
               {(['dark', 'light', 'system'] as const).map((mode) => (
                 <TouchableOpacity key={mode}
@@ -163,7 +157,7 @@ export default function SettingsScreen() {
                   <View style={styles.optionInner}>
                     <Icon name={mode === 'dark' ? 'moon' : mode === 'light' ? 'sun' : 'refresh'} size={16} color={settings.themeMode === mode ? theme.gold : theme.textMuted} />
                     <Text style={[styles.optionText, settings.themeMode === mode && { color: theme.gold }]}>
-                      {mode === 'dark' ? ' 墨色' : mode === 'light' ? ' 宣紙' : ' 跟隨系統'}
+                      {' '}{t(mode === 'dark' ? 'settings.themeDark' : mode === 'light' ? 'settings.themeLight' : 'settings.themeSystem')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -171,7 +165,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>語言</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.lang')}</Text>
             <View style={styles.options}>
               {LANG_OPTIONS.map((opt) => (
                 <TouchableOpacity key={opt.key}
@@ -188,14 +182,14 @@ export default function SettingsScreen() {
 
         {/* 預設抽棋數量 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>預設抽棋數量</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.preset')}</Text>
           <View style={styles.row}>
             <View style={styles.options}>
               {([1, 2, 3] as const).map((n) => (
                 <TouchableOpacity key={n}
                   style={[styles.option, settings.pieceCountPreset === n && { borderColor: theme.gold }]}
                   onPress={() => update('pieceCountPreset', n)}>
-                  <Text style={[styles.optionText, settings.pieceCountPreset === n && { color: theme.gold }]}>{n}顆</Text>
+                  <Text style={[styles.optionText, settings.pieceCountPreset === n && { color: theme.gold }]}>{t('settings.pieces', { n })}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -204,21 +198,21 @@ export default function SettingsScreen() {
 
         {/* 音效 & 觸覺 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>體驗設定</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.experience')}</Text>
           <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>音效</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.sound')}</Text>
             <Switch value={settings.soundEnabled}
               onValueChange={(v) => { update('soundEnabled', v); setSoundEnabled(v); }}
               trackColor={{ false: theme.bgMedium, true: theme.gold }} />
           </View>
           <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>觸覺回饋</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.haptic')}</Text>
             <Switch value={settings.hapticEnabled}
               onValueChange={(v) => { update('hapticEnabled', v); setHapticEnabled(v); }}
               trackColor={{ false: theme.bgMedium, true: theme.gold }} />
           </View>
           <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>每日提醒</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.dailyReminder')}</Text>
             <Switch value={reminderOn}
               onValueChange={toggleReminder}
               trackColor={{ false: theme.bgMedium, true: theme.gold }} />
@@ -230,84 +224,106 @@ export default function SettingsScreen() {
 
         {/* 工具 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>工具</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.tools')}</Text>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/library')}>
             <View style={styles.optionInner}>
               <Icon name="scroll" size={16} color={theme.textSecondary} />
-              <Text style={[styles.label, { color: theme.textSecondary }]}> 籤詩圖鑑</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.library')}</Text>
             </View>
-            <Text style={{ color: theme.textMuted }}>瀏覽 64 首籤詩 →</Text>
+            <Text style={{ color: theme.textMuted }}>{t('settings.libraryDesc')} →</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/stats')}>
             <View style={styles.optionInner}>
               <Icon name="chart" size={16} color={theme.textSecondary} />
-              <Text style={[styles.label, { color: theme.textSecondary }]}> 占卜統計</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.stats')}</Text>
             </View>
-            <Text style={{ color: theme.textMuted }}>查看統計數據 →</Text>
+            <Text style={{ color: theme.textMuted }}>{t('settings.statsDesc')} →</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/achievements')}>
             <View style={styles.optionInner}>
               <Icon name="trophy" size={16} color={theme.textSecondary} />
-              <Text style={[styles.label, { color: theme.textSecondary }]}> 成就徽章</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.achievements')}</Text>
             </View>
-            <Text style={{ color: theme.textMuted }}>查看解鎖進度 →</Text>
+            <Text style={{ color: theme.textMuted }}>{t('settings.achievementsDesc')} →</Text>
           </TouchableOpacity>
         </View>
 
         {/* 備份 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>資料管理</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.data')}</Text>
           <TouchableOpacity style={styles.row} onPress={handleBackup}>
             <View style={styles.optionInner}>
               <Icon name="save" size={16} color={theme.textSecondary} />
-              <Text style={[styles.label, { color: theme.textSecondary }]}> 備份資料</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.backup')}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={handleCloudSync}>
             <View style={styles.optionInner}>
               <Icon name="refresh" size={16} color={syncing ? theme.gold : theme.textSecondary} />
               <Text style={[styles.label, { color: theme.textSecondary }]}>
-                {syncing ? ' 同步中...' : ' 雲端同步'}
+                {' '}{syncing ? t('settings.syncing') : t('settings.cloudSync')}
               </Text>
             </View>
           </TouchableOpacity>
+          {editingSyncKey ? (
+            <View style={styles.syncKeyEditor}>
+              <TextInput
+                style={[styles.nameInput, { backgroundColor: theme.bgInk, borderColor: theme.bgMedium, color: theme.textPrimary }]}
+                value={syncKeyText}
+                onChangeText={setSyncKeyText}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={48}
+              />
+              <TouchableOpacity onPress={async () => {
+                if (await saveSyncKey(syncKeyText)) setEditingSyncKey(false);
+                else Alert.alert(t('settings.cloudSync'), t('settings.syncKeyInvalid'));
+              }}><Text style={{ color: theme.gold, fontWeight: '600' }}>{t('common.save')}</Text></TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.row} onPress={() => setEditingSyncKey(true)}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.syncKey')}</Text>
+              <Text style={{ color: theme.textMuted }}>{syncKeyText ? '••••••••••••' : '—'}</Text>
+            </TouchableOpacity>
+          )}
+          {editingSyncKey && <Text style={{ color: theme.textMuted, fontSize: FontSize.small }}>{t('settings.syncKeyHint')}</Text>}
           <TouchableOpacity style={styles.row} onPress={handleRestore}>
             <View style={styles.optionInner}>
               <Icon name="download" size={16} color={theme.textSecondary} />
-              <Text style={[styles.label, { color: theme.textSecondary }]}> 還原資料</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.restore')}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={async () => {
             await update('hasCompletedOnboarding', false);
-            Alert.alert('已重置', '下次開啟App時將重新顯示引導');
+            Alert.alert(t('settings.onboardingReset'), t('settings.onboardingResetDesc'));
           }}>
             <View style={styles.optionInner}>
               <Icon name="graduation" size={16} color={theme.textSecondary} />
-              <Text style={[styles.label, { color: theme.textSecondary }]}> 重新觀看引導</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.replayOnboarding')}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => {
-            Alert.alert('清除所有歷史', '確定要清除所有占卜記錄嗎？此操作無法復原。', [
-              { text: '取消', style: 'cancel' },
-              { text: '清除', style: 'destructive', onPress: async () => { await clearHistory(); Alert.alert('已清除'); } },
+            Alert.alert(t('settings.clearHistory'), t('settings.clearConfirm'), [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: t('common.clear'), style: 'destructive', onPress: async () => { await clearHistory(); Alert.alert(t('settings.cleared')); } },
             ]);
           }}>
             <View style={styles.optionInner}>
               <Icon name="trash" size={16} color={theme.textRed} />
-              <Text style={[styles.label, { color: theme.textRed }]}> 清除所有歷史</Text>
+              <Text style={[styles.label, { color: theme.textRed }]}> {t('settings.clearHistory')}</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* 關於 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>關於</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.about')}</Text>
           <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>版本</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.version')}</Text>
             <Text style={{ color: theme.textPrimary }}>1.0.0</Text>
           </View>
           <View style={styles.row}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>技術</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.tech')}</Text>
             <Text style={{ color: theme.textPrimary }}>Expo SDK 57 + React Native</Text>
           </View>
         </View>
@@ -342,4 +358,5 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flex: 1, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8,
     fontSize: FontSize.body, marginRight: Spacing.sm,
   },
+  syncKeyEditor: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm },
 });

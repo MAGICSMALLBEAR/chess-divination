@@ -10,6 +10,7 @@ import { computeHexagram } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
 import { playPlacePieceSound } from '@/services/sound';
 import { hapticLight } from '@/services/haptics';
+import { scheduleVerificationReminder } from '@/services/notifications';
 import { generatePositionSummaryDeep } from '@/services/position';
 import { BOARD } from '@/constants/theme';
 
@@ -29,6 +30,7 @@ export function useBoardDivination() {
   const [selectedPoem, setSelectedPoem] = useState<Poem | null>(null);
   const [questionCategory, setQuestionCategory] = useState<string>('general');
   const [questionText, setQuestionText] = useState<string>('');
+  const [allowRepeatedPieces, setAllowRepeatedPieces] = useState(false);
 
   const availablePieces = ALL_PIECES;
   const maxPieces = 3;
@@ -36,9 +38,9 @@ export function useBoardDivination() {
   // 選擇棋子
   const selectPiece = useCallback((piece: ChessPiece) => {
     if (placedPieces.length >= maxPieces) return;
-    if (placedPieces.some(pp => pp.piece.id === piece.id)) return;
+    if (!allowRepeatedPieces && placedPieces.some(pp => pp.piece.id === piece.id)) return;
     setSelectedPiece(piece);
-  }, [placedPieces]);
+  }, [placedPieces, allowRepeatedPieces]);
 
   // 放置棋子到棋盤
   const placePieceOnBoard = useCallback((col: number, row: number) => {
@@ -98,6 +100,7 @@ export function useBoardDivination() {
       },
     );
     const saved = await addHistory(record);
+    void scheduleVerificationReminder(saved);
     setStep('result');
 
     router.push({
@@ -126,6 +129,8 @@ export function useBoardDivination() {
     availablePieces,
     maxPieces,
     questionCategory,
+    allowRepeatedPieces,
+    setAllowRepeatedPieces,
     setQuestionCategory,
     selectPiece,
     placePieceOnBoard,

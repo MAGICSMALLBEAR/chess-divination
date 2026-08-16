@@ -24,11 +24,12 @@ import {
 import { getPoemById } from '@/data/poems';
 import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
+import { cancelVerificationReminder } from '@/services/notifications';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
 import { shareNative, shareToLine, shareToFacebook, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
-import { t } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import { localizePoem } from '@/services/localize';
 import { recordUsage, syncAchievements } from '@/services/achievements';
 import type { ThemeColors } from '@/constants/theme';
@@ -41,6 +42,7 @@ export default function RevealScreen() {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const { t } = useI18n();
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
@@ -74,7 +76,7 @@ export default function RevealScreen() {
     recordUsage();
     // 每次看到籤詩就重算成就。先前沒有任何畫面呼叫 checkAchievements，
     // 除了「七日問道」之外的成就對所有使用者永遠是鎖住的。
-    syncAchievements().catch(e => console.warn('成就檢查失敗', e));
+    syncAchievements().catch(e => console.warn(t('achievement.checkFailed'), e));
   }, [recordId]);
 
   async function loadRecord() {
@@ -126,6 +128,7 @@ export default function RevealScreen() {
   async function handleSaveOutcome(status: OutcomeStatus, note?: string) {
     if (!record) return;
     await setOutcome(record.id, status, note);
+    await cancelVerificationReminder(record.id);
     hapticSuccess();
     await loadRecord();
   }
@@ -171,16 +174,17 @@ export default function RevealScreen() {
       });
 
       // 優先使用原生分享選單
-      const nativeOk = await shareNative({ title: '象棋占卜結果', text: shareText });
+      const nativeOk = await shareNative({ title: t('reveal.shareTitle'), text: shareText });
       if (nativeOk) return;
 
       // 降級：LINE / FB / 複製
-      if (typeof window !== 'undefined' && window.confirm('分享到 LINE？\n(取消則複製到剪貼簿)')) {
-        shareToLine({ title: '象棋占卜結果', text: shareText });
+      const confirmText = `${t('reveal.shareLine')}\n(${t('reveal.shareLineDesc')})`;
+      if (typeof window !== 'undefined' && window.confirm(confirmText)) {
+        shareToLine({ title: t('reveal.shareTitle'), text: shareText });
       } else {
         const ok = await copyToClipboard(shareText);
         if (typeof window !== 'undefined') {
-          window.alert(ok ? '已複製到剪貼簿' : '複製失敗，請手動選取文字複製');
+          window.alert(t(ok ? 'reveal.copied' : 'reveal.copyManual'));
         }
       }
     }
@@ -199,7 +203,7 @@ export default function RevealScreen() {
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
         <InkBackground />
         <View style={styles.loading}>
-          <Spinner text="載入中..." />
+          <Spinner text={t('common.loading')} />
         </View>
       </SafeAreaView>
     );
@@ -231,7 +235,7 @@ export default function RevealScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← 返回</Text>
+            <Text style={styles.backText}>← {t('common.back')}</Text>
           </TouchableOpacity>
           <Text style={styles.title}>{t('reveal.title')}</Text>
           <View style={styles.backBtn} />
@@ -241,9 +245,7 @@ export default function RevealScreen() {
         {isLegacyRecord(record) && (
           <View style={[styles.legacyBox, { borderColor: theme.warning, backgroundColor: theme.bgDark }]}>
             <Text style={[styles.legacyText, { color: theme.textMuted }]}>
-              ⓘ 此記錄以舊版卦法產生。舊版的卦序對應有誤（先天序誤作文王序），
-              籤詩與卦象可能不符。為保留原始占卜結果，此記錄維持原樣不予改寫；
-              重新占卜即採用修正後的卦法。
+              {t('reveal.legacyNotice')}
             </Text>
           </View>
         )}
@@ -251,11 +253,16 @@ export default function RevealScreen() {
         {/* 卦例推演：本卦／互卦／變卦 + 體用 */}
         {reading ? (
           <View style={styles.panelWrap}>
-            <LiuYaoPanel reading={reading} hourBranch={record.hourBranch} />
+            <LiuYaoPanel
+              reading={reading}
+              hourBranch={record.hourBranch}
+              castAt={new Date(record.timestamp)}
+              questionCategory={record.questionCategory}
+            />
           </View>
         ) : record.hexagramName ? (
           <View style={[styles.hexBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.hexLabel, { color: theme.textMuted }]}>本卦</Text>
+            <Text style={[styles.hexLabel, { color: theme.textMuted }]}>{t('reveal.hexPrimary')}</Text>
             <Text style={[styles.hexName, { color: theme.gold }]}>{record.hexagramName}</Text>
           </View>
         ) : null}
@@ -271,7 +278,7 @@ export default function RevealScreen() {
         {/* 棋盤位置解讀 */}
         {record.positionSummary ? (
           <View style={[styles.positionBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.positionTitle, { color: theme.gold }]}>▎棋盤佈局解讀</Text>
+            <Text style={[styles.positionTitle, { color: theme.gold }]}>▎{t('reveal.position')}</Text>
             <Text style={[styles.positionText, { color: theme.textSecondary }]}>{record.positionSummary}</Text>
           </View>
         ) : null}
@@ -297,23 +304,23 @@ export default function RevealScreen() {
 
         {/* AI 深度解讀。取不到時不影響下方的規則式解讀 */}
         <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎AI 深度解讀</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎{t('reveal.aiTitle')}</Text>
 
           {aiState.kind === 'idle' && (
             <TouchableOpacity
               style={[styles.aiBtn, { borderColor: theme.gold }]}
               onPress={handleAiInterpret}
               accessibilityRole="button"
-              accessibilityLabel="請 AI 為這支籤詩提供深度解讀"
+              accessibilityLabel={t('reveal.aiPrompt')}
             >
               <Icon name="crystal-ball" size={16} color={theme.gold} />
-              <Text style={[styles.aiBtnText, { color: theme.gold }]}> 請 AI 解讀此卦</Text>
+              <Text style={[styles.aiBtnText, { color: theme.gold }]}> {t('reveal.aiAsk')}</Text>
             </TouchableOpacity>
           )}
 
           {aiState.kind === 'loading' && (
             <View style={styles.aiLoading}>
-              <Spinner text="解讀中..." />
+              <Spinner text={t('reveal.aiLoading')} />
             </View>
           )}
 
@@ -332,10 +339,10 @@ export default function RevealScreen() {
                 style={[styles.aiBtn, { borderColor: theme.bgMedium }]}
                 onPress={handleAiInterpret}
                 accessibilityRole="button"
-                accessibilityLabel="重新嘗試 AI 解讀"
+                accessibilityLabel={t('reveal.aiRetryLabel')}
               >
                 <Icon name="refresh" size={14} color={theme.textMuted} />
-                <Text style={[styles.aiBtnText, { color: theme.textMuted }]}> 重試</Text>
+                <Text style={[styles.aiBtnText, { color: theme.textMuted }]}> {t('common.retry')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -343,13 +350,13 @@ export default function RevealScreen() {
 
         {/* 規則式深度解讀 */}
         <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎深度解讀</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎{t('reveal.deepTitle')}</Text>
           <Text style={[styles.bodyText, { color: theme.textSecondary }]}>
             {deepReading.interpretation}
           </Text>
           {deepReading.actionPlan.length > 0 && (
             <View style={styles.actionList}>
-              <Text style={[styles.actionTitle, { color: theme.gold }]}>建議行動</Text>
+              <Text style={[styles.actionTitle, { color: theme.gold }]}>{t('reveal.deepActions')}</Text>
               {deepReading.actionPlan.map((step, i) => (
                 <Text key={i} style={[styles.actionItem, { color: theme.textSecondary }]}>
                   {i + 1}. {step}
@@ -371,7 +378,7 @@ export default function RevealScreen() {
         <TouchableOpacity style={styles.newBtn} onPress={handleNewDraw}>
           <Icon name={mode === 'board' ? 'chess-board' : 'dice'} size={18} color={theme.gold} />
           <Text style={styles.newBtnText}>
-            {mode === 'board' ? ' 重新佈局' : ' 再次抽棋'}
+            {' '}{t(mode === 'board' ? 'reveal.retryBoard' : 'reveal.retry')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -379,7 +386,7 @@ export default function RevealScreen() {
           onPress={() => router.replace('/(tabs)')}
         >
           <Icon name="home" size={16} color={theme.textSecondary} />
-          <Text style={styles.homeBtnText}> 回首頁</Text>
+          <Text style={styles.homeBtnText}> {t('reveal.home')}</Text>
         </TouchableOpacity>
        </View>
       </ScrollView>

@@ -18,7 +18,14 @@ import { Icon } from '@/components/icons';
 import { HexagramGlyph } from '@/components/icons/TrigramGlyph';
 import { hexagramLines, trigramsFromIndex, trigramLine } from '@/services/hexagram';
 import type { LineValue } from '@/services/hexagram';
+import { useI18n } from '@/hooks/useI18n';
+import { getLang } from '@/services/i18n';
 import { ShareCardPalette as P, ShareCardLevelColors } from '@/constants/theme';
+
+/** 日期格式跟隨介面語言：卡片上的色彩固定，文字則該是使用者讀得懂的語言 */
+const DATE_LOCALES: Record<string, string> = {
+  'zh-TW': 'zh-TW', en: 'en-US', ja: 'ja-JP',
+};
 
 const CARD_WIDTH = 400;
 const CARD_HEIGHT = 680;
@@ -47,21 +54,26 @@ export interface ShareCardHandle { share: () => Promise<void>; }
 const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
   function ShareCardView(props, ref) {
     const viewShotRef = useRef<any>(null);
+    const { t } = useI18n();
 
     useImperativeHandle(ref, () => ({
       share: async () => {
         try {
           const uri = await viewShotRef.current?.capture?.();
           if (uri && (await Sharing.isAvailableAsync())) {
-            await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '象棋占卜 - 分享籤詩' });
+            await Sharing.shareAsync(uri, {
+              mimeType: 'image/png',
+              dialogTitle: `${t('home.title')} - ${t('share.title')}`,
+            });
           }
-        } catch { console.warn('分享圖片擷取失敗'); }
+        } catch { console.warn(t('share.captureFailed')); }
       },
     }));
 
-    const dateStr = new Date(props.timestamp).toLocaleDateString('zh-TW', {
-      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
+    const dateStr = new Date(props.timestamp).toLocaleDateString(
+      DATE_LOCALES[getLang()] ?? 'zh-TW',
+      { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' },
+    );
 
     const levelColor = ShareCardLevelColors[props.poemLevel] || ShareCardLevelColors['中平'];
     const poems = props.poemContent.split('\n');
@@ -83,7 +95,7 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
 
           {/* 頂部金色飾條 */}
           <View style={styles.goldBar}>
-            <Text style={styles.goldBarText}>▬ ◈ 象棋占卜 ◈ ▬</Text>
+            <Text style={styles.goldBarText}>▬ ◈ {t('home.title')} ◈ ▬</Text>
           </View>
 
           {/* 棋子展示 */}
@@ -163,12 +175,12 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
             <View style={styles.footerModeRow}>
               <Icon name={props.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={P.inkMuted} />
               <Text style={styles.footerMode}>
-                {' '}{props.mode === 'draw' ? '抽棋占卜' : '棋盤佈局'}
+                {' '}{t(props.mode === 'draw' ? 'mode.draw' : 'mode.board')}
               </Text>
             </View>
             <Text style={styles.footerDate}>{dateStr}</Text>
             <Text style={styles.footerUrl}>chess-divination-app.vercel.app</Text>
-            <Text style={styles.footerTagline}>以棋問道 · 觀象知機</Text>
+            <Text style={styles.footerTagline}>{t('home.tagline')}</Text>
           </View>
 
           {/* 底部金條 */}

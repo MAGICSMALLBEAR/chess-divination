@@ -16,8 +16,23 @@ import { requestInterpretation, type InterpretRequestBody } from '../src/service
 
 /** 允許的請求來源大小上限，避免被塞入過大的 payload */
 const MAX_BODY_BYTES = 16 * 1024;
+const MAX_REQUESTS = 12;
+const WINDOW_MS = 60_000;
+const requests = new Map<string, number[]>();
+
+function limited(request: Request): boolean {
+  const client = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown';
+  const now = Date.now();
+  const recent = (requests.get(client) || []).filter(time => now - time < WINDOW_MS);
+  if (recent.length >= MAX_REQUESTS) { requests.set(client, recent); return true; }
+  requests.set(client, [...recent, now]);
+  return false;
+}
 
 export async function POST(request: Request): Promise<Response> {
+  if (limited(request)) {
+    return Response.json({ error: 'RATE_LIMITED', message: '請稍後再試。' }, { status: 429, headers: { 'Retry-After': '60' } });
+  }
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     return Response.json(
@@ -47,11 +62,16 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  if (!body?.poem?.title) {
+  if (!body?.poem?.title || !body.poem.content || !body.poem.vernacular) {
     return Response.json(
       { error: 'MISSING_POEM', message: '缺少籤詩資料。' },
       { status: 400 },
     );
+  }
+
+  // 防止單一欄位將模型 context 與費用放大；整體大小已在上方限制。
+  if ([body.question, body.questionCategory, body.poem.title, body.poem.content, body.poem.vernacular].some(v => typeof v === 'string' && v.length > 4_000)) {
+    return Response.json({ error: 'FIELD_TOO_LARGE', message: '請求欄位過長。' }, { status: 413 });
   }
 
   const outcome = await requestInterpretation(body, {

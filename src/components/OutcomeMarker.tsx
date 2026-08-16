@@ -9,8 +9,9 @@ import {
 } from 'react-native';
 import { Icon } from './icons';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { OUTCOME_LABELS, OUTCOME_STATUSES, daysSince } from '@/services/verification';
+import { OUTCOME_STATUSES, daysSince } from '@/services/verification';
 import type { DivinationOutcome, OutcomeStatus } from '@/services/storage';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
@@ -33,6 +34,7 @@ function toneOf(theme: ThemeColors, status: OutcomeStatus): string {
 export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: Props) {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
 
   const [editing, setEditing] = useState(false);
   const [picked, setPicked] = useState<OutcomeStatus | null>(outcome?.status ?? null);
@@ -78,20 +80,20 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
     return (
       <View style={[styles.box, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: theme.gold }]}>▎占驗</Text>
-          <TouchableOpacity onPress={startEditing} accessibilityLabel="修改占驗">
-            <Text style={[styles.editLink, { color: theme.textMuted }]}>修改</Text>
+          <Text style={[styles.title, { color: theme.gold }]}>▎{t('outcome.title')}</Text>
+          <TouchableOpacity onPress={startEditing} accessibilityLabel={t('outcome.editLabel')}>
+            <Text style={[styles.editLink, { color: theme.textMuted }]}>{t('outcome.edit')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.resultRow}>
           <View style={[styles.badge, { borderColor: tone }]}>
             <Text style={[styles.badgeText, { color: tone }]}>
-              {OUTCOME_LABELS[outcome.status]}
+              {t(`outcome.${outcome.status}`)}
             </Text>
           </View>
           <Text style={[styles.delay, { color: theme.textMuted }]}>
-            占卜後 {delay} 天回填
+            {t('outcome.delay', { n: delay })}
           </Text>
         </View>
 
@@ -106,16 +108,16 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
   return (
     <View style={[styles.box, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.gold }]}>▎占驗</Text>
+        <Text style={[styles.title, { color: theme.gold }]}>▎{t('outcome.title')}</Text>
         {editing && outcome ? (
           <TouchableOpacity onPress={() => setEditing(false)}>
-            <Text style={[styles.editLink, { color: theme.textMuted }]}>取消</Text>
+            <Text style={[styles.editLink, { color: theme.textMuted }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
       <Text style={[styles.prompt, { color: theme.textSecondary }]}>
-        後來實際如何？記下結果，日後才看得出自己在哪類事上判得準。
+        {t('outcome.prompt')}
       </Text>
 
       <View style={styles.options}>
@@ -135,7 +137,7 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
               onPress={() => setPicked(status)}
             >
               <Text style={[styles.optionText, { color: active ? tone : theme.textMuted }]}>
-                {OUTCOME_LABELS[status]}
+                {t(`outcome.${status}`)}
               </Text>
             </TouchableOpacity>
           );
@@ -148,7 +150,7 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
           borderColor: theme.goldFaint,
           color: theme.textPrimary,
         }]}
-        placeholder="實際發生了什麼？（可留白）"
+        placeholder={t('outcome.notePlaceholder')}
         placeholderTextColor={theme.textMuted}
         value={note}
         onChangeText={setNote}
@@ -164,7 +166,7 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
             disabled={saving}
           >
             <Icon name="trash" size={14} color={theme.textMuted} />
-            <Text style={[styles.clearText, { color: theme.textMuted }]}> 清除</Text>
+            <Text style={[styles.clearText, { color: theme.textMuted }]}> {t('common.clear')}</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -180,7 +182,7 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
         >
           <Icon name="check" size={14} color={picked ? theme.gold : theme.textMuted} />
           <Text style={[styles.saveText, { color: picked ? theme.gold : theme.textMuted }]}>
-            {saving ? ' 儲存中…' : ' 記下結果'}
+            {' '}{t(saving ? 'common.saving' : 'outcome.saveBtn')}
           </Text>
         </TouchableOpacity>
       </View>

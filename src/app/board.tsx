@@ -11,7 +11,7 @@ import { Icon } from '@/components/icons';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { t } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -36,10 +36,12 @@ export default function BoardScreen() {
   // 量測內容容器而非視窗：Web 靜態匯出取不到視窗尺寸（見 useGrid.ts 檔頭），
   // 沿用視窗寬會讓棋盤格子縮到最小值，棋盤在桌面上明顯偏小。
   const { onLayout: onInnerLayout, width: innerWidth } = useMeasuredWidth();
+  const { t } = useI18n();
   const categories = useQuestionCategories();
   const {
     placedPieces, selectedPiece, availablePieces, maxPieces,
     selectPiece, placePieceOnBoard, removePieceFromBoard, interpret, reset,
+    allowRepeatedPieces, setAllowRepeatedPieces,
   } = useBoardDivination();
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
@@ -55,9 +57,9 @@ export default function BoardScreen() {
 
   const handleBack = () => {
     if (placedPieces.length > 0) {
-      Alert.alert('確定要返回嗎？', '已放置的棋子將會被清除。', [
-        { text: '取消', style: 'cancel' },
-        { text: '確定返回', style: 'destructive', onPress: () => router.back() },
+      Alert.alert(t('board.confirmExit'), t('board.confirmExitDesc'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('board.confirmExitOk'), style: 'destructive', onPress: () => router.back() },
       ]);
     } else {
       router.back();
@@ -78,24 +80,25 @@ export default function BoardScreen() {
             onSelectAvailable={selectPiece}
             cellSize={cellSz}
             maxPieces={maxPieces}
+            allowRepeatedPieces={allowRepeatedPieces}
             style={styles.fsBoard}
           />
           <View style={styles.fsControls}>
             <TouchableOpacity style={styles.fsExitBtn} onPress={() => setIsFullscreen(false)}>
-              <Text style={{ color: theme.textSecondary }}>← 退出全螢幕</Text>
+              <Text style={{ color: theme.textSecondary }}>← {t('board.exitFullscreen')}</Text>
             </TouchableOpacity>
             <View style={styles.fsPoolTabs}>
               <TouchableOpacity
                 style={[styles.fsPoolTab, showRedPieces && styles.fsPoolTabActive]}
                 onPress={() => setShowRedPieces(true)}
               >
-                <Text style={[styles.fsPoolTabText, showRedPieces && { color: theme.textGold }]}>紅方</Text>
+                <Text style={[styles.fsPoolTabText, showRedPieces && { color: theme.textGold }]}>{t('board.red')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.fsPoolTab, !showRedPieces && styles.fsPoolTabActive]}
                 onPress={() => setShowRedPieces(false)}
               >
-                <Text style={[styles.fsPoolTabText, !showRedPieces && { color: theme.textGold }]}>黑方</Text>
+                <Text style={[styles.fsPoolTabText, !showRedPieces && { color: theme.textGold }]}>{t('board.black')}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.fsActions}>
@@ -104,11 +107,11 @@ export default function BoardScreen() {
                 if (last) removePieceFromBoard(last.col, last.row);
               }}>
                 <Icon name="undo" size={16} color={theme.textGold} />
-                <Text style={{ color: theme.textGold, marginLeft: 4 }}>撤銷</Text>
+                <Text style={{ color: theme.textGold, marginLeft: 4 }}>{t('board.undo')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.fsActionBtn} onPress={reset}>
                 <Icon name="refresh" size={16} color={theme.textSecondary} />
-                <Text style={{ color: theme.textSecondary, marginLeft: 4 }}>重置</Text>
+                <Text style={{ color: theme.textSecondary, marginLeft: 4 }}>{t('board.reset2')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.fsInterpretBtn, placedPieces.length === 0 && { opacity: 0.4 }]}
@@ -117,7 +120,7 @@ export default function BoardScreen() {
               >
                 <Icon name="crystal-ball" size={14} color={theme.textInverse} />
                 <Text style={{ color: theme.textInverse, fontWeight: '600', marginLeft: 4 }}>
-                  解讀 ({placedPieces.length}/{maxPieces})
+                  {t('board.read')} ({placedPieces.length}/{maxPieces})
                 </Text>
               </TouchableOpacity>
             </View>
@@ -133,9 +136,9 @@ export default function BoardScreen() {
             {/* 標題 */}
             <View style={styles.header}>
               <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-                <Text style={styles.backText}>← 返回</Text>
+                <Text style={styles.backText}>← {t('common.back')}</Text>
               </TouchableOpacity>
-              <Text style={styles.title}>棋盤佈局</Text>
+              <Text style={styles.title}>{t('board.title')}</Text>
               <TouchableOpacity
                 style={styles.fullscreenBtn}
                 onPress={() => setIsFullscreen(!isFullscreen)}
@@ -165,7 +168,7 @@ export default function BoardScreen() {
         {/* 問題輸入 */}
         <TextInput
           style={styles.questionInput}
-          placeholder="寫下您想問的問題..."
+          placeholder={t('common.questionPlaceholder')}
           placeholderTextColor={theme.textMuted}
           value={questionText}
           onChangeText={setQuestionText}
@@ -177,7 +180,7 @@ export default function BoardScreen() {
           <View style={styles.hintRow}>
             <Icon name="lightbulb" size={16} color={theme.textMuted} />
             <Text style={[styles.hintText, { color: theme.textMuted }]}>
-              {' '}先從下方棋子庫選擇一顆棋子，再點擊棋盤上的 + 號放置
+              {' '}{t('board.hint')}
             </Text>
           </View>
         )}
@@ -192,6 +195,7 @@ export default function BoardScreen() {
           onSelectAvailable={selectPiece}
           cellSize={cellSz}
           maxPieces={maxPieces}
+          allowRepeatedPieces={allowRepeatedPieces}
           style={styles.boardStyle}
         />
 
@@ -203,7 +207,7 @@ export default function BoardScreen() {
           >
             <View style={styles.poolTabInner}>
               <View style={[styles.colorDot, { backgroundColor: theme.cinnabar }]} />
-              <Text style={[styles.poolTabText, showRedPieces && styles.poolTabTextActive]}> 紅方</Text>
+              <Text style={[styles.poolTabText, showRedPieces && styles.poolTabTextActive]}> {t('board.red')}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -212,10 +216,15 @@ export default function BoardScreen() {
           >
             <View style={styles.poolTabInner}>
               <View style={[styles.colorDot, { backgroundColor: theme.ink }]} />
-              <Text style={[styles.poolTabText, !showRedPieces && styles.poolTabTextActive]}> 黑方</Text>
+              <Text style={[styles.poolTabText, !showRedPieces && styles.poolTabTextActive]}> {t('board.black')}</Text>
             </View>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity style={styles.duplicateRule} onPress={() => setAllowRepeatedPieces(!allowRepeatedPieces)}>
+          <Text style={[styles.duplicateRuleText, allowRepeatedPieces && { color: theme.gold }]}>
+            {allowRepeatedPieces ? '✓ ' : '○ '}{t('board.allowDuplicates')}
+          </Text>
+        </TouchableOpacity>
 
         {/* 控制按鈕 */}
         <View style={styles.controls}>
@@ -225,14 +234,14 @@ export default function BoardScreen() {
             disabled={placedPieces.length === 0}
           >
             <Text style={styles.interpretBtnText}>
-              已放置 {placedPieces.length}/{maxPieces} 顆 —{' '}
+              {t('board.placed', { n: `${placedPieces.length}/${maxPieces}` })} —{' '}
             </Text>
             <Icon name="crystal-ball" size={16} color={theme.textInverse} />
-            <Text style={styles.interpretBtnText}> 解讀佈局</Text>
+            <Text style={styles.interpretBtnText}> {t('board.interpret')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.resetBtn} onPress={reset}>
             <Icon name="refresh" size={16} color={theme.textSecondary} />
-            <Text style={styles.resetBtnText}> 重新佈局</Text>
+            <Text style={styles.resetBtnText}> {t('board.reset')}</Text>
           </TouchableOpacity>
           {placedPieces.length > 0 && (
             <TouchableOpacity style={styles.undoBtn} onPress={() => {
@@ -240,7 +249,7 @@ export default function BoardScreen() {
               if (last) removePieceFromBoard(last.col, last.row);
             }}>
               <Icon name="undo" size={16} color={theme.textSecondary} />
-              <Text style={styles.undoBtnText}> 撤銷上一步</Text>
+              <Text style={styles.undoBtnText}> {t('board.undoLast')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -312,6 +321,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   poolTabInner: { flexDirection: 'row', alignItems: 'center' },
   poolTabText: { fontSize: 14, color: t.textMuted },
   poolTabTextActive: { color: t.textGold, fontWeight: '600' },
+  duplicateRule: { alignSelf: 'center', paddingVertical: Spacing.sm },
+  duplicateRuleText: { color: t.textMuted, fontSize: FontSize.small },
   colorDot: { width: 10, height: 10, borderRadius: 5 },
   controls: {
     width: '100%',

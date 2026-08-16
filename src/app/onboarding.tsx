@@ -9,24 +9,24 @@ import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { saveSettings } from '@/services/storage';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 
-const STEPS: { icon: IconName; title: string; desc: string }[] = [
-  { icon: 'dice', title: '歡迎來到象棋占卜',
-    desc: '以棋問道，觀象知機。\n從古老的象棋智慧中，\n尋找人生的方向與啟發。' },
-  { icon: 'chess-board', title: '雙重占卜模式',
-    desc: '抽棋占卜：從32顆棋子中\n隨機抽取，快速獲得指引。\n\n棋盤佈局：親手擺放棋子，\n深入探索心中的疑問。' },
-  { icon: 'scroll', title: '64首原創籤詩',
-    desc: '每首籤詩對應易經64卦，\n融入象棋意象，\n七言絕句搭配全方位解讀。' },
-  { icon: 'heart', title: '記錄與收藏',
-    desc: '每次占卜結果都會自動儲存，\n方便回顧與反思。\n喜歡的結果可以加入收藏。' },
+// 存譯文 key 而非文字：這個陣列在模組載入時就固定了，
+// 存成文字會被凍結在當時的語言。
+const STEPS: { icon: IconName; titleKey: string; descKey: string }[] = [
+  { icon: 'dice', titleKey: 'onboarding.welcome', descKey: 'onboarding.step1desc' },
+  { icon: 'chess-board', titleKey: 'onboarding.step2', descKey: 'onboarding.step2desc' },
+  { icon: 'scroll', titleKey: 'onboarding.step3', descKey: 'onboarding.step3desc' },
+  { icon: 'heart', titleKey: 'onboarding.step4', descKey: 'onboarding.step4desc' },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const { t } = useI18n();
   const [currentStep, setCurrentStep] = useState(0);
   const styles = useThemedStyles(makeStyles);
 
@@ -53,15 +53,15 @@ export default function OnboardingScreen() {
         {/* 跳過按鈕 */}
         {currentStep < STEPS.length - 1 && (
           <TouchableOpacity style={styles.skipBtn} onPress={handleFinish}>
-            <Text style={styles.skipText}>跳過</Text>
+            <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
           </TouchableOpacity>
         )}
 
         {/* 內容 */}
         <View style={styles.content}>
           <Icon name={step.icon} size={80} color={theme.gold} />
-          <Text style={styles.title}>{step.title}</Text>
-          <Text style={styles.desc}>{step.desc}</Text>
+          <Text style={styles.title}>{t(step.titleKey)}</Text>
+          <Text style={styles.desc}>{t(step.descKey)}</Text>
         </View>
 
         {/* 進度指示器 */}
@@ -78,7 +78,7 @@ export default function OnboardingScreen() {
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
           <Text style={styles.nextBtnText}>
             <Text style={styles.nextBtnText}>
-              {currentStep < STEPS.length - 1 ? '下一步 →' : '開始占卜'}
+              {currentStep < STEPS.length - 1 ? `${t('onboarding.next')} →` : t('onboarding.start')}
             </Text>
             {currentStep === STEPS.length - 1 && (
               <Icon name="crystal-ball" size={18} color={theme.textInverse} />

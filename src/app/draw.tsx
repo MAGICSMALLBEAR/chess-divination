@@ -14,7 +14,7 @@ import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { t } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import { getSettings, saveSettings } from '@/services/storage';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
@@ -25,6 +25,7 @@ export default function DrawScreen() {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const { t } = useI18n();
   const categories = useQuestionCategories();
   const {
     step, drawnPieces, selectedPoem, drawSummary,
@@ -57,13 +58,13 @@ export default function DrawScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← {t('common.back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>抽棋占卜</Text>
+          <Text style={styles.title}>{t('mode.draw')}</Text>
           <View style={styles.backBtn} />
         </View>
 
         {step === 'select-count' && (
           <View style={styles.content}>
-            <Text style={styles.subtitle}>請問您想問什麼？</Text>
+            <Text style={styles.subtitle}>{t('draw.question')}</Text>
             {/* 問題輸入框 */}
             <TextInput
               style={[styles.questionInput, {
@@ -72,7 +73,7 @@ export default function DrawScreen() {
                 borderColor: theme.bgMedium,
                 color: theme.textPrimary,
               }]}
-              placeholder={t('draw.question')}
+              placeholder={t('common.questionPlaceholder')}
               placeholderTextColor={theme.textMuted}
               value={questionText}
               onChangeText={setQuestionText}
@@ -104,7 +105,7 @@ export default function DrawScreen() {
               ))}
             </View>
 
-            <Text style={styles.subtitle}>選擇抽取棋子數量</Text>
+            <Text style={styles.subtitle}>{t('draw.count')}</Text>
             <View style={styles.countRow}>
               {([1, 2, 3] as const).map((n) => (
                 <TouchableOpacity
@@ -114,10 +115,10 @@ export default function DrawScreen() {
                 >
                   <Text style={styles.countNum}>{n}</Text>
                   <Text style={styles.countLabel}>
-                    {n === 1 ? '單棋' : n === 2 ? '雙棋' : '三棋'}
+                    {t(n === 1 ? 'draw.single' : n === 2 ? 'draw.double' : 'draw.triple')}
                   </Text>
                   <Text style={styles.countDesc}>
-                    {n === 1 ? '一針見血' : n === 2 ? '陰陽互濟' : '天地人合'}
+                    {t(n === 1 ? 'draw.singleDesc' : n === 2 ? 'draw.doubleDesc' : 'draw.tripleDesc')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -136,7 +137,7 @@ export default function DrawScreen() {
 
         {step === 'result' && selectedPoem && (
           <View style={styles.content}>
-            <Text style={styles.loadingText}>正在為您解讀...</Text>
+            <Text style={styles.loadingText}>{t('draw.interpreting')}</Text>
           </View>
         )}
       </ScrollView>

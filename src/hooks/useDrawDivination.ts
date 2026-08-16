@@ -9,6 +9,7 @@ import { getPoemById } from '@/data/poems';
 import type { HexagramResult } from '@/services/divination';
 import { drawPieces, computeHexagram, generateDrawSummary } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
+import { scheduleVerificationReminder } from '@/services/notifications';
 
 export type DrawStep = 'select-count' | 'drawing' | 'result';
 
@@ -66,6 +67,7 @@ export function useDrawDivination() {
         : undefined,
     );
     const saved = await addHistory(record);
+    void scheduleVerificationReminder(saved);
     setStep('result');
 
     // 導航到 reveal 頁面

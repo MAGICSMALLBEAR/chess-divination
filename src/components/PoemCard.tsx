@@ -12,6 +12,7 @@ import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import type { ThemeColors } from '@/constants/theme';
@@ -26,14 +27,16 @@ interface PoemCardProps {
   onShare?: () => void;
 }
 
-const CATEGORIES: { key: string; label: string; icon: IconName }[] = [
-  { key: 'general', label: '綜合', icon: 'crystal-ball' },
-  { key: 'marriage', label: '感情', icon: 'love' },
-  { key: 'career', label: '事業', icon: 'career' },
-  { key: 'wealth', label: '財運', icon: 'wealth' },
-  { key: 'health', label: '健康', icon: 'health' },
-  { key: 'study', label: '學業', icon: 'study' },
-  { key: 'travel', label: '出行', icon: 'travel' },
+// label 存的是譯文 key 而非文字：這個陣列在模組載入時就固定了，
+// 存成文字會被凍結在當時的語言，之後切語言也不會變。
+const CATEGORIES: { key: string; labelKey: string; icon: IconName }[] = [
+  { key: 'general', labelKey: 'poem.catGeneral', icon: 'crystal-ball' },
+  { key: 'marriage', labelKey: 'poem.catMarriage', icon: 'love' },
+  { key: 'career', labelKey: 'poem.catCareer', icon: 'career' },
+  { key: 'wealth', labelKey: 'poem.catWealth', icon: 'wealth' },
+  { key: 'health', labelKey: 'poem.catHealth', icon: 'health' },
+  { key: 'study', labelKey: 'poem.catStudy', icon: 'study' },
+  { key: 'travel', labelKey: 'poem.catTravel', icon: 'travel' },
 ];
 
 export default function PoemCard({
@@ -49,6 +52,7 @@ export default function PoemCard({
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const { t } = useI18n();
   const localized = localizePoem(poem);
   const scrollAnim = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -124,7 +128,7 @@ export default function PoemCard({
           {/* 棋象 */}
           {drawnPieceChars.length > 0 && (
             <Text style={styles.pieceChars}>
-              棋象：{drawnPieceChars.join(' ')}
+              {t('poem.pieces')}{drawnPieceChars.join(' ')}
             </Text>
           )}
 
@@ -134,7 +138,7 @@ export default function PoemCard({
               <Text style={styles.levelText}>{localized.level}</Text>
             </View>
             <Text style={styles.hexagramName}>
-              第{localized.number}籤 · {localized.hexagramName}
+              {t('poem.number', { n: localized.number, hexagram: localized.hexagramName })}
             </Text>
           </View>
 
@@ -169,13 +173,13 @@ export default function PoemCard({
 
           {/* 白話解釋 */}
           <Animated.View style={{ opacity: contentOpacity }}>
-            <Text style={styles.vernacularTitle}>▎白話解釋</Text>
+            <Text style={styles.vernacularTitle}>▎{t('poem.vernacular')}</Text>
             <Text style={styles.vernacular}>{localized.vernacular}</Text>
           </Animated.View>
 
           {/* 典故 */}
           <Animated.View style={[styles.storySection, { opacity: contentOpacity }]}>
-            <Text style={styles.storyTitle}>▎典故參考</Text>
+            <Text style={styles.storyTitle}>▎{t('poem.story')}</Text>
             <Text style={styles.storyText}>{localized.story}</Text>
           </Animated.View>
         </View>
@@ -190,7 +194,7 @@ export default function PoemCard({
       <Animated.View
         style={[styles.categoriesSection, { width: contentWidth, opacity: contentOpacity }]}
       >
-        <Text style={styles.sectionTitle}>▎各面向詳解</Text>
+        <Text style={styles.sectionTitle}>▎{t('poem.categories')}</Text>
         <View style={styles.categoryTabs}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
@@ -208,7 +212,7 @@ export default function PoemCard({
                   expandedCategory === cat.key && styles.categoryLabelActive,
                 ]}
               >
-                {cat.label}
+                {t(cat.labelKey)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -227,12 +231,12 @@ export default function PoemCard({
         <TouchableOpacity style={styles.favBtn} onPress={onToggleFavorite}>
           <Icon name={isFavorited ? 'heart-filled' : 'heart'} size={16} color={isFavorited ? theme.textRed : theme.textSecondary} />
           <Text style={styles.favBtnText}>
-            {isFavorited ? ' 已收藏' : ' 收藏'}
+            {' '}{t(isFavorited ? 'common.unfavorite' : 'common.favorite')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.shareBtn} onPress={onShare}>
           <Icon name="share" size={16} color={theme.textInverse} />
-          <Text style={styles.shareBtnText}> 分享</Text>
+          <Text style={styles.shareBtnText}> {t('common.share')}</Text>
         </TouchableOpacity>
       </View>
     </View>

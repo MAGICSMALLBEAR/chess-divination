@@ -3,6 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { Platform } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { getSettings } from '@/services/storage';
@@ -14,6 +15,7 @@ function TabIcon({ name, color }: { name: IconName; color: string | { toString()
 export default function TabLayout() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const { t } = useI18n();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -51,21 +53,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '首頁',
+          title: t('tab.home'),
           tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="collection"
         options={{
-          title: '收藏',
+          title: t('tab.collection'),
           tabBarIcon: ({ color }) => <TabIcon name="scroll" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: '設定',
+          title: t('tab.settings'),
           tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
         }}
       />

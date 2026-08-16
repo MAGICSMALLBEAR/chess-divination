@@ -11,6 +11,8 @@
 // 設計上刻意不拋錯：AI 解讀是加值內容，任何失敗都應退回既有的
 // 規則式深度解讀，而不是讓籤詩頁壞掉。
 
+import { t } from './i18n';
+
 const ENDPOINT = '/api/interpret';
 
 /** 呼叫結果。用可辨識聯集而非拋錯，讓呼叫端能分別處理三種情況 */
@@ -39,7 +41,8 @@ export interface AiInterpretationInput {
   };
 }
 
-const UNAVAILABLE_MESSAGE = 'AI 解讀尚未啟用，以下為規則式深度解讀。';
+// 函式而非常數：常數會在模組載入時就把譯文定死在當時的語言
+const unavailableMessage = () => t('ai.unavailable');
 
 /** 逾時毫秒數。模型回應偏慢，但不該讓使用者無限等待 */
 const TIMEOUT_MS = 30_000;
@@ -60,16 +63,16 @@ export async function fetchAiInterpretation(
 
     // 501：後端明確表示未設定金鑰
     if (response.status === 501) {
-      return { status: 'unavailable', message: UNAVAILABLE_MESSAGE };
+      return { status: 'unavailable', message: unavailableMessage() };
     }
 
     // 404：API Route 未部署（web.output 仍是 static 時就是這種情況）
     if (response.status === 404) {
-      return { status: 'unavailable', message: UNAVAILABLE_MESSAGE };
+      return { status: 'unavailable', message: unavailableMessage() };
     }
 
     if (!response.ok) {
-      return { status: 'error', message: `解讀服務回應異常（${response.status}）。` };
+      return { status: 'error', message: t('ai.badResponse', { status: response.status }) };
     }
 
     const data = await response.json();
@@ -77,7 +80,7 @@ export async function fetchAiInterpretation(
     // 靜態站台上 /api/interpret 可能被導回 index.html，
     // 這時 response.ok 為真但內容不是預期的 JSON 結構。
     if (!data || typeof data.interpretation !== 'string' || !data.interpretation.trim()) {
-      return { status: 'unavailable', message: UNAVAILABLE_MESSAGE };
+      return { status: 'unavailable', message: unavailableMessage() };
     }
 
     return { status: 'ok', interpretation: data.interpretation };
@@ -85,7 +88,7 @@ export async function fetchAiInterpretation(
     const aborted = e instanceof Error && e.name === 'AbortError';
     return {
       status: 'error',
-      message: aborted ? '解讀逾時，請稍後再試。' : '無法連線至解讀服務。',
+      message: t(aborted ? 'ai.timeout' : 'ai.offline'),
     };
   } finally {
     clearTimeout(timer);

@@ -13,6 +13,8 @@
 import type {
   DivinationRecord, DivinationOutcome, OutcomeStatus,
 } from './storage';
+import { trigramsFromIndex } from './hexagram';
+import { buildLiuYaoReading } from './liuyao';
 
 // ====== 常數 ======
 
@@ -163,22 +165,70 @@ const CATEGORY_LABELS: Record<string, string> = {
   study: '學業', travel: '出行', general: '綜合',
 };
 
-/** 依所問類別分組 */
-export function accuracyByCategory(records: DivinationRecord[]): AccuracyBreakdown[] {
+/**
+ * 依所問類別分組。
+ *
+ * `labelOf` 可由呼叫端注入以取得譯文——本模組是純統計，
+ * 不引入 i18n：它被大量測試直接呼叫，讓結果隨全域語言狀態而變
+ * 會使測試相依於執行順序。預設值維持 zh-TW，故舊呼叫端行為不變。
+ */
+export function accuracyByCategory(
+  records: DivinationRecord[],
+  labelOf: (key: string) => string = k => CATEGORY_LABELS[k] ?? k,
+): AccuracyBreakdown[] {
+  return breakdownBy(records, r => r.questionCategory || null, labelOf);
+}
+
+/** 依占卜模式分組。`labelOf` 同上，可注入譯文 */
+export function accuracyByMode(
+  records: DivinationRecord[],
+  labelOf: (key: string) => string = k => (k === 'draw' ? '抽棋' : '棋盤'),
+): AccuracyBreakdown[] {
+  return breakdownBy(records, r => r.mode || null, labelOf);
+}
+
+/**
+ * 還原歷史記錄的六爻讀法。v1 或缺少卦象資料的舊記錄直接略過，
+ * 不能拿錯卦序的資料來檢驗新引擎。
+ */
+function readingForRecord(record: DivinationRecord) {
+  if (
+    (record.engineVersion ?? 1) < 2 ||
+    record.hexagramIndex === undefined || record.movingLine === undefined ||
+    record.hexagramIndex < 0 || record.hexagramIndex > 63 ||
+    record.movingLine < 1 || record.movingLine > 6
+  ) return null;
+
+  const [upper, lower] = trigramsFromIndex(record.hexagramIndex);
+  return buildLiuYaoReading(upper, lower, record.movingLine, new Date(record.timestamp));
+}
+
+/** 依體用生剋分組，檢驗「用生體／用剋體」等判斷在個人記錄中的表現。 */
+export function accuracyByBodyUse(records: DivinationRecord[]): AccuracyBreakdown[] {
+  return breakdownBy(records, record => readingForRecord(record)?.bodyUse.relation ?? null);
+}
+
+/** 依動爻位置分組，找出哪一個變化階段的判讀最穩定。 */
+export function accuracyByMovingLine(
+  records: DivinationRecord[],
+  labelOf: (key: string) => string = key => `第${key}爻`,
+): AccuracyBreakdown[] {
   return breakdownBy(
     records,
-    r => r.questionCategory || null,
-    k => CATEGORY_LABELS[k] ?? k,
+    record => {
+      const line = readingForRecord(record)?.movingLine;
+      return line ? String(line) : null;
+    },
+    labelOf,
   );
 }
 
-/** 依占卜模式分組 */
-export function accuracyByMode(records: DivinationRecord[]): AccuracyBreakdown[] {
-  return breakdownBy(
-    records,
-    r => r.mode || null,
-    k => (k === 'draw' ? '抽棋' : '棋盤'),
-  );
+/** 依起卦時的季令分組，檢驗旺相休囚死所依據的時令條件。 */
+export function accuracyBySeason(
+  records: DivinationRecord[],
+  labelOf: (key: string) => string = key => key,
+): AccuracyBreakdown[] {
+  return breakdownBy(records, record => readingForRecord(record)?.strength.season ?? null, labelOf);
 }
 
 /**
@@ -188,8 +238,9 @@ export function accuracyByMode(records: DivinationRecord[]): AccuracyBreakdown[]
 export function bestCategory(
   records: DivinationRecord[],
   minSamples: number = 5,
+  labelOf?: (key: string) => string,
 ): AccuracyBreakdown | null {
-  const eligible = accuracyByCategory(records).filter(b => b.stats.verified >= minSamples);
+  const eligible = accuracyByCategory(records, labelOf).filter(b => b.stats.verified >= minSamples);
   return eligible[0] ?? null;
 }
 

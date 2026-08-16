@@ -11,7 +11,7 @@ import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { t } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -22,6 +22,7 @@ export default function HomeScreen() {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const { t } = useI18n();
   const [dailyFortune, setDailyFortune] = useState<DailyFortune | null>(null);
   const [recentRecords, setRecentRecords] = useState<DivinationRecord[]>([]);
   const [streak, setStreak] = useState(0);
@@ -67,7 +68,7 @@ export default function HomeScreen() {
             <View style={styles.iconRow}>
               <Icon name="flame" size={14} color={theme.gold} />
               <Text style={[styles.streakText, { color: theme.gold }]}>
-                {' '}連續 {streak} 天
+                {' '}{t('home.streak', { n: streak })}
               </Text>
             </View>
           )}
@@ -87,9 +88,9 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity onPress={() => {
                 if (!dailyFortune) return;
-                const text = `今日棋運：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n幸運棋子：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n幸運方位：${dailyFortune.luckyDirection}\n幸運數字：${dailyFortune.luckyNumber}\n幸運色：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
-                try { navigator.share?.({ title: '象棋占卜 - 今日運勢', text }); } catch { console.warn('分享失敗'); }
-                try { navigator.clipboard?.writeText(text); } catch { console.warn('複製到剪貼簿失敗'); }
+                const text = `${t('home.daily')}：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n${t('home.luckyPiece')}：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n${t('home.luckyDir')}：${dailyFortune.luckyDirection}\n${t('home.luckyNum')}：${dailyFortune.luckyNumber}\n${t('home.luckyColor')}：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
+                try { navigator.share?.({ title: `${t('home.title')} - ${t('home.todayFortune')}`, text }); } catch { console.warn(t('home.shareFailed')); }
+                try { navigator.clipboard?.writeText(text); } catch { console.warn(t('home.copyFailed')); }
               }}>
                 <Icon name="share" size={18} color={theme.textSecondary} />
               </TouchableOpacity>
@@ -101,22 +102,22 @@ export default function HomeScreen() {
               </View>
               <View style={styles.dailyDetails}>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>幸運棋子</Text>
+                  <Text style={styles.detailLabel}>{t('home.luckyPiece')}</Text>
                   <View style={styles.iconRow}>
                     <PieceIcon type={dailyFortune.luckyPiece} color="red" size={20} />
                     <Text style={styles.detailValue}> {PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}</Text>
                   </View>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>幸運方位</Text>
+                  <Text style={styles.detailLabel}>{t('home.luckyDir')}</Text>
                   <Text style={styles.detailValue}>{dailyFortune.luckyDirection}</Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>幸運數字</Text>
+                  <Text style={styles.detailLabel}>{t('home.luckyNum')}</Text>
                   <Text style={styles.detailValue}>{dailyFortune.luckyNumber}</Text>
                 </View>
                 <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>幸運色</Text>
+                  <Text style={styles.detailLabel}>{t('home.luckyColor')}</Text>
                   <Text style={styles.detailValue}>{dailyFortune.luckyColor}</Text>
                 </View>
               </View>
@@ -129,7 +130,7 @@ export default function HomeScreen() {
           <View style={[styles.recentSection, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <View style={styles.iconRow}>
               <Icon name="scroll" size={16} color={theme.gold} />
-              <Text style={[styles.recentTitle, { color: theme.gold }]}> 最近占卜</Text>
+              <Text style={[styles.recentTitle, { color: theme.gold }]}> {t('home.recent')}</Text>
             </View>
             {recentRecords.map(r => (
               <TouchableOpacity key={r.id} style={styles.recentRow}
@@ -150,9 +151,9 @@ export default function HomeScreen() {
         >
           <View style={styles.iconRow}>
             <Icon name="dice" size={18} color={theme.textInverse} />
-            <Text style={styles.quickDrawText}> 快速抽一籤</Text>
+            <Text style={styles.quickDrawText}> {t('home.quickDraw')}</Text>
           </View>
-          <Text style={styles.quickDrawSub}>直接抽取 2 顆棋子獲得指引</Text>
+          <Text style={styles.quickDrawSub}>{t('home.quickDrawDesc')}</Text>
         </TouchableOpacity>
 
         {/* 模式選擇 */}
@@ -161,7 +162,7 @@ export default function HomeScreen() {
         {/* 棋道箴言 */}
         <View style={styles.quoteCard}>
           <Text style={styles.quote}>
-            「棋局如人生，落子無悔。{'\n'}觀棋不語真君子，起手無回大丈夫。」
+            「{t('home.motto1')}{'\n'}{t('home.motto2')}」
           </Text>
         </View>
       </ScrollView>

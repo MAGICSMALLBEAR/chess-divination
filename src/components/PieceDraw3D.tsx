@@ -12,6 +12,7 @@ import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { useLayout } from '@/hooks/useLayout';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface, Highlight } from '@/constants/theme';
@@ -31,6 +32,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
   const reducedMotion = useReducedMotion();
   const styles = useThemedStyles(makeStyles);
   const { theme } = useAppTheme();
+  const { t } = useI18n();
   const { height, contentWidth } = useLayout();
   const [phase, setPhase] = useState<'shaking' | 'flying' | 'landed'>('shaking');
 
@@ -335,7 +337,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
             <View style={styles.bowlBody}>
               <View style={styles.bowlRim} />
               <View style={styles.bowlContent}>
-                <Text style={styles.bowlText}>誠心問道</Text>
+                <Text style={styles.bowlText}>{t('draw.focus')}</Text>
               </View>
               <View style={styles.bowlBase} />
             </View>
@@ -454,7 +456,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                   >
                     <Text style={styles.pieceName}>{piece.chineseName}</Text>
                     <Text style={styles.pieceColor}>
-                      {isRed ? '紅方' : '黑方'} · {getPieceTrigramName(piece)}
+                      {t(isRed ? 'board.red' : 'board.black')} · {getPieceTrigramName(piece)}
                       {getPieceTrigramGlyph(piece)} {piece.guaElement}
                     </Text>
                   </Animated.View>
@@ -498,11 +500,11 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
         >
           <TouchableOpacity style={styles.revealBtn} onPress={onReveal}>
             <Icon name="crystal-ball" size={18} color={theme.textInverse} />
-            <Text style={styles.revealBtnText}> 揭露籤詩</Text>
+            <Text style={styles.revealBtnText}> {t('draw.reveal')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.redrawBtn} onPress={onRedraw}>
             <Icon name="refresh" size={18} color={theme.textSecondary} />
-            <Text style={styles.redrawBtnText}> 重新抽取</Text>
+            <Text style={styles.redrawBtnText}> {t('draw.redraw')}</Text>
           </TouchableOpacity>
         </Animated.View>
       )}

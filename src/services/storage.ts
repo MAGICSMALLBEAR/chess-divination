@@ -10,7 +10,7 @@ import { FolderColors } from '@/constants/theme';
 
 // ====== Keys ======
 
-const KEYS = {
+export const STORAGE_KEYS = {
   HISTORY: '@chess_divination_history',
   FAVORITES: '@chess_divination_favorites',
   SETTINGS: '@chess_divination_settings',
@@ -148,7 +148,7 @@ function normalizeSettings(raw: string | null): AppSettings {
 // ====== History ======
 
 export async function getHistory(): Promise<DivinationRecord[]> {
-  const raw = await AsyncStorage.getItem(KEYS.HISTORY);
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.HISTORY);
   return normalizeRecords(raw);
 }
 
@@ -158,24 +158,24 @@ export async function addHistory(record: Omit<DivinationRecord, 'id'>): Promise<
   history.unshift(newRecord);
   // Keep last 500 records max
   const trimmed = history.slice(0, 500);
-  await AsyncStorage.setItem(KEYS.HISTORY, JSON.stringify(trimmed));
+  await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(trimmed));
   return newRecord;
 }
 
 export async function removeHistory(id: string): Promise<void> {
   const history = await getHistory();
   const filtered = history.filter(r => r.id !== id);
-  await AsyncStorage.setItem(KEYS.HISTORY, JSON.stringify(filtered));
+  await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(filtered));
 }
 
 export async function clearHistory(): Promise<void> {
-  await AsyncStorage.setItem(KEYS.HISTORY, JSON.stringify([]));
+  await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([]));
 }
 
 // ====== Favorites ======
 
 export async function getFavorites(): Promise<DivinationRecord[]> {
-  const raw = await AsyncStorage.getItem(KEYS.FAVORITES);
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.FAVORITES);
   return normalizeRecords(raw);
 }
 
@@ -185,13 +185,13 @@ export async function toggleFavorite(record: DivinationRecord): Promise<boolean>
 
   if (exists >= 0) {
     favorites.splice(exists, 1);
-    await AsyncStorage.setItem(KEYS.FAVORITES, JSON.stringify(favorites));
+    await AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
     // Also update the history record
     await updateHistoryFavorite(record.id, false);
     return false;
   } else {
     favorites.unshift({ ...record, isFavorited: true });
-    await AsyncStorage.setItem(KEYS.FAVORITES, JSON.stringify(favorites));
+    await AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
     await updateHistoryFavorite(record.id, true);
     return true;
   }
@@ -202,7 +202,7 @@ async function updateHistoryFavorite(id: string, isFavorited: boolean): Promise<
   const idx = history.findIndex(r => r.id === id);
   if (idx >= 0) {
     history[idx].isFavorited = isFavorited;
-    await AsyncStorage.setItem(KEYS.HISTORY, JSON.stringify(history));
+    await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
   }
 }
 
@@ -249,22 +249,22 @@ async function patchRecord(
   const nextFavorites = favorites.map(r => (r.id === id ? patch(r) : r));
 
   await Promise.all([
-    AsyncStorage.setItem(KEYS.HISTORY, JSON.stringify(nextHistory)),
-    AsyncStorage.setItem(KEYS.FAVORITES, JSON.stringify(nextFavorites)),
+    AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory)),
+    AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(nextFavorites)),
   ]);
 }
 
 // ====== Settings ======
 
 export async function getSettings(): Promise<AppSettings> {
-  const raw = await AsyncStorage.getItem(KEYS.SETTINGS);
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.SETTINGS);
   return normalizeSettings(raw);
 }
 
 export async function saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
   const current = await getSettings();
   const updated = { ...current, ...settings };
-  await AsyncStorage.setItem(KEYS.SETTINGS, JSON.stringify(updated));
+  await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updated));
   return updated;
 }
 
@@ -329,7 +329,7 @@ export interface DailyFortune {
 }
 
 export async function getDailyFortune(): Promise<DailyFortune | null> {
-  const raw = await AsyncStorage.getItem(KEYS.DAILY_FORTUNE);
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.DAILY_FORTUNE);
   if (!raw) return null;
   try {
     const fortune = JSON.parse(raw);
@@ -341,7 +341,7 @@ export async function getDailyFortune(): Promise<DailyFortune | null> {
 }
 
 export async function saveDailyFortune(fortune: DailyFortune): Promise<void> {
-  await AsyncStorage.setItem(KEYS.DAILY_FORTUNE, JSON.stringify(fortune));
+  await AsyncStorage.setItem(STORAGE_KEYS.DAILY_FORTUNE, JSON.stringify(fortune));
 }
 
 // ====== Export helpers for records ======

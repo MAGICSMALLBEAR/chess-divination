@@ -10,18 +10,22 @@ import { Icon } from '@/components/icons';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { localizePoem } from '@/services/localize';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useGrid } from '@/hooks/useGrid';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
+import { parseHexagramName, TRIGRAM_ELEMENTS } from '@/services/hexagram';
 
 export default function LibraryScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useI18n();
   const { onLayout, cardWidth } = useGrid();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
+  const [elementFilter, setElementFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   function handleRandomScroll() {
@@ -33,6 +37,10 @@ export default function LibraryScreen() {
   const filtered = useMemo(() => {
     let poems = ALL_POEMS;
     if (levelFilter) poems = poems.filter(p => p.level === levelFilter);
+    if (elementFilter) poems = poems.filter(p => {
+      const trigrams = parseHexagramName(p.hexagramName);
+      return !!trigrams && trigrams.some(index => TRIGRAM_ELEMENTS[index] === elementFilter);
+    });
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       poems = poems.filter(p =>
@@ -41,7 +49,7 @@ export default function LibraryScreen() {
       );
     }
     return poems;
-  }, [search, levelFilter]);
+  }, [search, levelFilter, elementFilter]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
@@ -49,9 +57,9 @@ export default function LibraryScreen() {
       <InkBackground />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.backText, { color: theme.textSecondary }]}>← 返回</Text>
+          <Text style={[styles.backText, { color: theme.textSecondary }]}>← {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>籤詩圖鑑</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('library.title')}</Text>
         <TouchableOpacity onPress={handleRandomScroll}>
           <Icon name="dice" size={22} color={theme.gold} />
         </TouchableOpacity>
@@ -61,7 +69,7 @@ export default function LibraryScreen() {
       <View style={styles.controls}>
       <TextInput
         style={[styles.searchInput, { backgroundColor: theme.bgCard, borderColor: theme.goldFaint, color: theme.textPrimary }]}
-        placeholder="搜尋籤詩..."
+        placeholder={t('library.search')}
         placeholderTextColor={theme.textMuted}
         value={search}
         onChangeText={setSearch}
@@ -73,7 +81,7 @@ export default function LibraryScreen() {
         <TouchableOpacity
           style={[styles.filterChip, !levelFilter && { borderColor: theme.gold }]}
           onPress={() => setLevelFilter(null)}>
-          <Text style={[styles.filterText, !levelFilter && { color: theme.textGold }]}>全部</Text>
+          <Text style={[styles.filterText, !levelFilter && { color: theme.textGold }]}>{t('library.all')}</Text>
         </TouchableOpacity>
         {POEM_LEVELS.map(level => (
           <TouchableOpacity key={level}
@@ -87,8 +95,17 @@ export default function LibraryScreen() {
         ))}
       </ScrollView>
 
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
+        <Text style={[styles.filterLabel, { color: theme.textMuted }]}>{t('library.element')}</Text>
+        {[...new Set(TRIGRAM_ELEMENTS)].map(element => (
+          <TouchableOpacity key={element} style={[styles.filterChip, elementFilter === element && { borderColor: theme.gold }]} onPress={() => setElementFilter(element === elementFilter ? null : element)}>
+            <Text style={[styles.filterText, elementFilter === element && { color: theme.gold }]}>{element}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <Text style={[styles.count, { color: theme.textMuted }]}>
-        共 {filtered.length} 首
+        {t('library.count', { n: filtered.length })}
       </Text>
       </View>
 
@@ -130,17 +147,17 @@ export default function LibraryScreen() {
                 onPress={() => router.push('/draw')}
               >
                 <Icon name="dice" size={16} color={theme.gold} />
-                <Text style={[styles.drawBtnText, { color: theme.gold }]}> 以此卦占卜</Text>
+                <Text style={[styles.drawBtnText, { color: theme.gold }]}> {t('library.divineWith')}</Text>
               </TouchableOpacity>
             )}
             <Text style={[styles.expandHint, { color: theme.textMuted }]}>
-              {expandedId === p.id ? '▲ 收起' : '▼ 展開詳情'}
+              {expandedId === p.id ? `▲ ${t('library.collapse')}` : `▼ ${t('library.expand')}`}
             </Text>
           </TouchableOpacity>
         ); })}
         </View>
         {filtered.length === 0 && (
-          <Text style={[styles.empty, { color: theme.textMuted }]}>找不到符合的籤詩</Text>
+          <Text style={[styles.empty, { color: theme.textMuted }]}>{t('library.notFound')}</Text>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -177,6 +194,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   filterDot: { width: 8, height: 8, borderRadius: 4 },
   filterText: { fontSize: FontSize.caption, color: t.textMuted },
+  filterLabel: { fontSize: FontSize.caption, fontWeight: '600' },
   count: {
     fontSize: 12, marginBottom: Spacing.sm,
     width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',

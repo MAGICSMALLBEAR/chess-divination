@@ -12,11 +12,13 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getHistory, type DivinationRecord } from '@/services/storage';
 import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
+  accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
   bestCategory, medianVerifyDelay, pendingVerification,
   type AccuracyBreakdown,
 } from '@/services/verification';
 import { POEM_LEVELS, getLevelColor } from '@/data/poems';
-import { t } from '@/services/i18n';
+import { categoryLabel } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
 
@@ -24,6 +26,7 @@ export default function StatsScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t, lang } = useI18n();
   const [records, setRecords] = useState<DivinationRecord[]>([]);
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
@@ -48,8 +51,9 @@ export default function StatsScreen() {
 
   // 棋子統計
   const typeCounts: Record<string, number> = {};
-  filtered.forEach(r => r.drawnPieceTypes.forEach(t => {
-    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  // 迴圈變數不叫 t——會遮蔽 useI18n 的譯文函式
+  filtered.forEach(r => r.drawnPieceTypes.forEach(type => {
+    typeCounts[type] = (typeCounts[type] || 0) + 1;
   }));
   const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
 
@@ -65,8 +69,16 @@ export default function StatsScreen() {
   // 應驗率會隨占卜次數單調下降，反映的是回填勤勞度而非準確度。
   const accuracy = React.useMemo(() => computeAccuracy(filtered), [filtered]);
   const byLevel = React.useMemo(() => accuracyByLevel(filtered), [filtered]);
-  const byCategory = React.useMemo(() => accuracyByCategory(filtered), [filtered]);
-  const best = React.useMemo(() => bestCategory(filtered), [filtered]);
+  const byBodyUse = React.useMemo(() => accuracyByBodyUse(filtered), [filtered]);
+  const byMovingLine = React.useMemo(
+    () => accuracyByMovingLine(filtered, n => t('stats.movingLine', { n })), [filtered, t]);
+  const bySeason = React.useMemo(
+    () => accuracyBySeason(filtered, season => t(`stats.season${season}`)), [filtered, t]);
+  // 類別標籤依語言而定，故 lang 必須是依賴之一，否則切換語言後仍是舊譯文
+  const byCategory = React.useMemo(
+    () => accuracyByCategory(filtered, categoryLabel), [filtered, lang]);
+  const best = React.useMemo(
+    () => bestCategory(filtered, undefined, categoryLabel), [filtered, lang]);
   const medianDelay = React.useMemo(() => medianVerifyDelay(filtered), [filtered]);
   // 提醒用未經日期篩選的完整清單：待回填的多半是較舊的記錄，
   // 若跟著「本週」篩選會整批消失，正好漏掉最該提醒的那些。
@@ -110,7 +122,7 @@ export default function StatsScreen() {
       <InkBackground />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.backText, { color: theme.textSecondary }]}>← 返回</Text>
+          <Text style={[styles.backText, { color: theme.textSecondary }]}>← {t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: theme.textPrimary }]}>{t('settings.stats')}</Text>
         <View style={{ width: 60 }} />
@@ -124,7 +136,7 @@ export default function StatsScreen() {
               style={[styles.filterBtn, dateFilter === f && { borderColor: theme.gold }]}
               onPress={() => setDateFilter(f)}>
               <Text style={[styles.filterText, dateFilter === f && { color: theme.textGold }]}>
-                {f === 'all' ? '全部' : f === 'week' ? '本週' : '本月'}
+                {t(f === 'all' ? 'stats.filterAll' : f === 'week' ? 'stats.filterWeek' : 'stats.filterMonth')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -146,18 +158,17 @@ export default function StatsScreen() {
           </View>
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={styles.statNum}>{favCount}</Text>
-            <Text style={[styles.statLabel, { color: theme.textMuted }]}>收藏</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>{t('stats.fav')}</Text>
           </View>
         </View>
 
         {/* 占驗總覽 */}
         <View style={[styles.accuracyCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎占驗簿</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎{t('stats.journal')}</Text>
 
           {accuracy.rate === null ? (
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>
-              尚無占驗記錄。回到任一次占卜的籤詩頁，在最下方記下實際結果，
-              累積數則之後這裡就會顯示你的應驗率。
+              {t('stats.journalEmpty')}
             </Text>
           ) : (
             <>
@@ -167,18 +178,18 @@ export default function StatsScreen() {
                     {accuracy.rate}
                     <Text style={[styles.ratePct, { color: theme.textMuted }]}>%</Text>
                   </Text>
-                  <Text style={[styles.rateLabel, { color: theme.textSecondary }]}>加權應驗率</Text>
+                  <Text style={[styles.rateLabel, { color: theme.textSecondary }]}>{t('stats.rate')}</Text>
                 </View>
 
                 <View style={styles.tallyBlock}>
                   {([
-                    ['應驗', accuracy.accurate, theme.success],
-                    ['部分', accuracy.partial, theme.warning],
-                    ['未應驗', accuracy.inaccurate, theme.danger],
-                  ] as const).map(([label, count, color]) => (
-                    <View key={label} style={styles.tallyRow}>
+                    ['stats.tallyAccurate', accuracy.accurate, theme.success],
+                    ['stats.tallyPartial', accuracy.partial, theme.warning],
+                    ['stats.tallyInaccurate', accuracy.inaccurate, theme.danger],
+                  ] as const).map(([labelKey, count, color]) => (
+                    <View key={labelKey} style={styles.tallyRow}>
                       <View style={[styles.tallyDot, { backgroundColor: color }]} />
-                      <Text style={[styles.tallyLabel, { color: theme.textSecondary }]}>{label}</Text>
+                      <Text style={[styles.tallyLabel, { color: theme.textSecondary }]}>{t(labelKey)}</Text>
                       <Text style={[styles.tallyCount, { color: theme.textPrimary }]}>{count}</Text>
                     </View>
                   ))}
@@ -186,20 +197,23 @@ export default function StatsScreen() {
               </View>
 
               <Text style={[styles.accuracyMeta, { color: theme.textMuted }]}>
-                已驗 {accuracy.verified} 則 · 未驗 {accuracy.unverified} 則
-                {medianDelay !== null ? ` · 平均占後 ${medianDelay} 天回填` : ''}
+                {t('stats.verifiedMeta', { v: accuracy.verified, u: accuracy.unverified })}
+                {medianDelay !== null ? t('stats.medianDelay', { n: medianDelay }) : ''}
               </Text>
 
               {/* 部分應驗計半分，說明清楚以免使用者對不上數字 */}
               <Text style={[styles.accuracyNote, { color: theme.textMuted }]}>
-                應驗計 1 分、部分應驗計 0.5 分、未應驗計 0 分，除以已驗則數。
+                {t('stats.rateNote')}
               </Text>
 
               {best && (
                 <View style={[styles.insight, { borderColor: theme.goldFaint, backgroundColor: theme.bgCard }]}>
                   <Text style={[styles.insightText, { color: theme.textSecondary }]}>
-                    你問「{best.label}」最準——{best.stats.verified} 則已驗，
-                    應驗率 <Text style={{ color: theme.textGold, fontWeight: '700' }}>{best.stats.rate}%</Text>。
+                    {t('stats.insight', {
+                      label: best.label,
+                      n: best.stats.verified,
+                      rate: best.stats.rate ?? 0,
+                    })}
                   </Text>
                 </View>
               )}
@@ -208,18 +222,18 @@ export default function StatsScreen() {
 
           {pending.length > 0 && (
             <Text style={[styles.pendingText, { color: theme.textMuted }]}>
-              有 {pending.length} 則兩週前的占卜還沒回填結果。
+              {t('stats.pending', { n: pending.length })}
             </Text>
           )}
         </View>
 
         {/* 趨勢圖表 */}
-        <TrendChart data={trendData} title="近 7 天占卜趨勢" />
+        <TrendChart data={trendData} title={t('stats.trend')} />
 
         {/* 吉凶分佈與棋子排行。寬螢幕並排，窄螢幕上下堆疊 */}
         <View testID="card-grid" style={styles.grid}>
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>吉凶分佈</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('stats.levelDist')}</Text>
           {POEM_LEVELS.map(level => {
             const count = levelCounts[level] || 0;
             const pct = total > 0 ? (count / total * 100) : 0;
@@ -238,9 +252,9 @@ export default function StatsScreen() {
 
         {/* 最常抽到的棋子 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>最常抽到棋子類型</Text>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('stats.topPieces')}</Text>
           {sortedTypes.length === 0 && (
-            <Text style={[styles.emptyText, { color: theme.textMuted }]}>尚無資料</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>{t('stats.noData')}</Text>
           )}
           {sortedTypes.slice(0, 7).map(([type, count], i) => (
             <View key={type} style={styles.rankRow}>
@@ -248,7 +262,7 @@ export default function StatsScreen() {
               <Text style={[styles.rankType, { color: theme.textPrimary }]}>
                 {PIECE_CHINESE_NAMES[type] ?? type}
               </Text>
-              <Text style={[styles.rankCount, { color: theme.textMuted }]}>{count} 次</Text>
+              <Text style={[styles.rankCount, { color: theme.textMuted }]}>{t('stats.times', { n: count })}</Text>
             </View>
           ))}
         </View>
@@ -256,7 +270,7 @@ export default function StatsScreen() {
         {/* 應驗率分項。只在有回填資料時出現，空表格沒有閱讀價值 */}
         {byCategory.length > 0 && (
           <AccuracySection
-            title="各類問事的應驗率"
+            title={t('stats.byCategory')}
             rows={byCategory}
             theme={theme}
             styles={styles}
@@ -266,12 +280,39 @@ export default function StatsScreen() {
         )}
         {byLevel.length > 0 && (
           <AccuracySection
-            title="各吉凶等級的應驗率"
+            title={t('stats.byLevel')}
             rows={byLevel}
             theme={theme}
             styles={styles}
             // 依籤詩等級本身的色系上色，與吉凶分佈圖對得起來
             colorOf={row => getLevelColor(row.key)}
+          />
+        )}
+        {byBodyUse.length > 0 && (
+          <AccuracySection
+            title={t('stats.byBodyUse')}
+            rows={byBodyUse}
+            theme={theme}
+            styles={styles}
+            colorOf={row => rateColor(row.stats.rate ?? 0)}
+          />
+        )}
+        {byMovingLine.length > 0 && (
+          <AccuracySection
+            title={t('stats.byMovingLine')}
+            rows={byMovingLine}
+            theme={theme}
+            styles={styles}
+            colorOf={row => rateColor(row.stats.rate ?? 0)}
+          />
+        )}
+        {bySeason.length > 0 && (
+          <AccuracySection
+            title={t('stats.bySeason')}
+            rows={bySeason}
+            theme={theme}
+            styles={styles}
+            colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
         )}
         </View>

@@ -11,9 +11,8 @@ import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import type { DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
-import { OUTCOME_LABELS } from '@/services/verification';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { t } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -28,6 +27,7 @@ export default function CollectionScreen() {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
+  const { t } = useI18n();
 
   /** 占驗三態的色調：應驗為吉、部分為平、未應驗為凶 */
   function outcomeColor(status: OutcomeStatus): string {
@@ -66,9 +66,9 @@ export default function CollectionScreen() {
   }
 
   async function batchDelete() {
-    Alert.alert('批量刪除', `確定要刪除 ${selectedIds.size} 筆記錄嗎？`, [
-      { text: '取消', style: 'cancel' },
-      { text: '刪除', style: 'destructive', onPress: async () => {
+    Alert.alert(t('collection.batchDelete'), t('collection.confirmBatch', { n: selectedIds.size }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         for (const id of selectedIds) await removeHistory(id);
         setSelectedIds(new Set());
         setSelectMode(false);
@@ -99,9 +99,9 @@ export default function CollectionScreen() {
   }
 
   async function handleDeleteFolder(id: string) {
-    Alert.alert('刪除資料夾', '確定要刪除嗎？記錄不會被刪除。', [
-      { text: '取消', style: 'cancel' },
-      { text: '刪除', style: 'destructive', onPress: async () => { await deleteFolder(id); await loadData(); } },
+    Alert.alert(t('collection.deleteFolder'), t('collection.deleteFolderDesc'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => { await deleteFolder(id); await loadData(); } },
     ]);
   }
 
@@ -132,10 +132,10 @@ export default function CollectionScreen() {
   const data = tab === 'history' ? historyData : favoritesData;
 
   async function handleDelete(id: string) {
-    Alert.alert('確認刪除', '確定要刪除此記錄嗎？', [
-      { text: '取消', style: 'cancel' },
+    Alert.alert(t('collection.confirmOne'), t('collection.confirmOneDesc'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: '刪除', style: 'destructive',
+        text: t('common.delete'), style: 'destructive',
         onPress: async () => {
           await removeHistory(id);
           await loadData();
@@ -166,9 +166,10 @@ export default function CollectionScreen() {
   }, [windowWidth]);
 
   // 點擊標籤時同時滾動 pager
-  const switchTab = useCallback((t: TabType) => {
-    setTab(t);
-    const idx = TAB_ORDER.indexOf(t);
+  // 參數不叫 t——會遮蔽 useI18n 的譯文函式
+  const switchTab = useCallback((next: TabType) => {
+    setTab(next);
+    const idx = TAB_ORDER.indexOf(next);
     horizScrollRef.current?.scrollTo({ x: idx * windowWidth, animated: true });
   }, [windowWidth]);
 
@@ -213,7 +214,7 @@ export default function CollectionScreen() {
             </View>
             <View style={styles.modeRow}>
               <Icon name={record.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={theme.textMuted} />
-              <Text style={styles.modeLabel}> {record.mode === 'draw' ? '抽棋' : '佈局'}</Text>
+              <Text style={styles.modeLabel}> {t(record.mode === 'draw' ? 'collection.modeDraw' : 'collection.modeBoard')}</Text>
             </View>
           </View>
           <Text style={styles.cardTitle} numberOfLines={1}>
@@ -225,7 +226,7 @@ export default function CollectionScreen() {
             {record.outcome && (
               <View style={[styles.outcomeChip, { borderColor: outcomeColor(record.outcome.status) }]}>
                 <Text style={[styles.outcomeChipText, { color: outcomeColor(record.outcome.status) }]}>
-                  {OUTCOME_LABELS[record.outcome.status]}
+                  {t(`outcome.${record.outcome.status}`)}
                 </Text>
               </View>
             )}
@@ -244,7 +245,7 @@ export default function CollectionScreen() {
         </View>
         {pickingFolderFor === record.id && (
           <View style={styles.folderPicker}>
-            <Text style={[styles.folderPickTitle, { color: theme.textSecondary }]}>加到資料夾：</Text>
+            <Text style={[styles.folderPickTitle, { color: theme.textSecondary }]}>{t('collection.addToFolder')}</Text>
             {folders.map(f => (
               <TouchableOpacity key={f.id} style={styles.folderPickItem}
                 onPress={() => handleAddToFolder(record.id, f.id)}>
@@ -253,7 +254,7 @@ export default function CollectionScreen() {
               </TouchableOpacity>
             ))}
             {folders.length === 0 && (
-              <Text style={{ color: theme.textMuted, fontSize: 12 }}>尚無資料夾，請先建立</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 12 }}>{t('collection.noFolderYet')}</Text>
             )}
           </View>
         )}
@@ -276,7 +277,7 @@ export default function CollectionScreen() {
           onPress={() => switchTab('history')}
         >
           <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>
-            歷史記錄 ({history.length})
+            {t('collection.history')} ({history.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -284,7 +285,7 @@ export default function CollectionScreen() {
           onPress={() => switchTab('favorites')}
         >
           <Text style={[styles.tabText, tab === 'favorites' && styles.tabTextActive]}>
-            我的收藏 ({favorites.length})
+            {t('collection.favorites')} ({favorites.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -292,7 +293,7 @@ export default function CollectionScreen() {
           onPress={() => switchTab('folders')}
         >
           <Text style={[styles.tabText, tab === 'folders' && styles.tabTextActive]}>
-            資料夾 ({folders.length})
+            {t('collection.folders')} ({folders.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -305,7 +306,7 @@ export default function CollectionScreen() {
               style={[styles.sortBtn, sortOrder === o && { borderColor: theme.gold }]}
               onPress={() => setSortOrder(o)}>
               <Text style={[styles.sortText, sortOrder === o && { color: theme.gold }]}>
-                {o === 'newest' ? '最新' : o === 'oldest' ? '最早' : '最佳'}
+                {t(o === 'newest' ? 'collection.sortNewest' : o === 'oldest' ? 'collection.sortOldest' : 'collection.sortBest')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -313,13 +314,13 @@ export default function CollectionScreen() {
             <TouchableOpacity style={[styles.sortBtn, selectMode && { borderColor: theme.textRed }]}
               onPress={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}>
               <Text style={[styles.sortText, selectMode && { color: theme.textRed }]}>
-                {selectMode ? '取消選擇' : '批量刪除'}
+                {t(selectMode ? 'collection.deselect' : 'collection.batchDelete')}
               </Text>
             </TouchableOpacity>
           )}
           {selectMode && selectedIds.size > 0 && (
             <TouchableOpacity style={[styles.sortBtn, { borderColor: theme.textRed }]} onPress={batchDelete}>
-              <Text style={[styles.sortText, { color: theme.textRed }]}>刪除({selectedIds.size})</Text>
+              <Text style={[styles.sortText, { color: theme.textRed }]}>{t('common.delete')}({selectedIds.size})</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -328,7 +329,7 @@ export default function CollectionScreen() {
       {/* 搜尋 */}
       <TextInput
         style={styles.searchInput}
-        placeholder="搜尋籤詩內容..."
+        placeholder={t('collection.search')}
         placeholderTextColor={theme.textMuted}
         value={search}
         onChangeText={setSearch}
@@ -356,8 +357,8 @@ export default function CollectionScreen() {
             {historyData.length === 0 && (
               <View style={styles.empty}>
                 <Icon name="scroll" size={40} color={theme.textMuted} />
-                <Text style={styles.emptyText}>尚無占卜記錄</Text>
-                <Text style={styles.emptyHint}>開始占卜後記錄將顯示於此</Text>
+                <Text style={styles.emptyText}>{t('collection.noHistory')}</Text>
+                <Text style={styles.emptyHint}>{t('collection.noHistoryDesc')}</Text>
               </View>
             )}
             <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
@@ -376,8 +377,8 @@ export default function CollectionScreen() {
             {favoritesData.length === 0 && (
               <View style={styles.empty}>
                 <Icon name="scroll" size={40} color={theme.textMuted} />
-                <Text style={styles.emptyText}>尚無收藏記錄</Text>
-                <Text style={styles.emptyHint}>在占卜結果中點擊收藏即可加入</Text>
+                <Text style={styles.emptyText}>{t('collection.noFav')}</Text>
+                <Text style={styles.emptyHint}>{t('collection.noFavDesc')}</Text>
               </View>
             )}
             <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
@@ -393,30 +394,30 @@ export default function CollectionScreen() {
               <View style={styles.addFolderRow}>
                 <TextInput
                   style={[styles.folderInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
-                  placeholder="資料夾名稱"
+                  placeholder={t('collection.folderName')}
                   placeholderTextColor={theme.textMuted}
                   value={newFolderName}
                   onChangeText={setNewFolderName}
                   autoFocus
                 />
                 <TouchableOpacity style={styles.folderBtn} onPress={handleAddFolder}>
-                  <Text style={{ color: theme.gold, fontWeight: '600' }}>新增</Text>
+                  <Text style={{ color: theme.gold, fontWeight: '600' }}>{t('common.add')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowAddFolder(false)}>
-                  <Text style={{ color: theme.textMuted }}>取消</Text>
+                  <Text style={{ color: theme.textMuted }}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity style={[styles.addFolderBtn, { borderColor: theme.bgMedium }]} onPress={() => setShowAddFolder(true)}>
-                <Text style={{ color: theme.gold }}>＋ 新增資料夾</Text>
+                <Text style={{ color: theme.gold }}>＋ {t('collection.newFolder')}</Text>
               </TouchableOpacity>
             )}
 
             {folders.length === 0 && (
               <View style={styles.empty}>
                 <Icon name="folder" size={40} color={theme.textMuted} />
-                <Text style={styles.emptyText}>尚無資料夾</Text>
-                <Text style={styles.emptyHint}>建立資料夾來分類整理收藏</Text>
+                <Text style={styles.emptyText}>{t('collection.noFolders')}</Text>
+                <Text style={styles.emptyHint}>{t('collection.noFoldersDesc')}</Text>
               </View>
             )}
             {folders.map(folder => (
@@ -424,7 +425,7 @@ export default function CollectionScreen() {
                 <View style={styles.folderHeader}>
                   <View style={[styles.folderDot, { backgroundColor: folder.color }]} />
                   <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
-                  <Text style={[styles.folderCount, { color: theme.textMuted }]}>{folder.recordIds.length} 筆</Text>
+                  <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: folder.recordIds.length })}</Text>
                   <TouchableOpacity onPress={() => handleDeleteFolder(folder.id)}>
                     <Icon name="trash" size={14} color={theme.textRed} />
                   </TouchableOpacity>

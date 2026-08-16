@@ -24,6 +24,7 @@ jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 // 音效與觸覺在測試環境沒有裝置可用，且與狀態機邏輯無關
 jest.mock('@/services/sound', () => ({ playPlacePieceSound: jest.fn() }));
 jest.mock('@/services/haptics', () => ({ hapticLight: jest.fn() }));
+jest.mock('@/services/notifications', () => ({ scheduleVerificationReminder: jest.fn() }));
 
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
