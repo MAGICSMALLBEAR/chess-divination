@@ -228,6 +228,18 @@ const translations: Record<string, Record<Lang, string>> = {
   'liuyao.transformText': { 'zh-TW': '本爻 {from} → 變爻 {to} · {relation}', en: 'Primary {from} → Changed {to} · {relation}', ja: '本爻 {from} → 変爻 {to} · {relation}' },
   'liuyao.najjaNote': { 'zh-TW': '標記：空＝旬空、破＝月建相沖、沖＝日支相沖。日沖不必然為日破，仍須合看旺衰與動靜。', en: 'Marks: V = void, M = month clash, D = day clash. A day clash alone is not necessarily a day break.', ja: '印：空＝旬空、破＝月建との冲、冲＝日支との冲。日支の冲だけでは日破とは限りません。' },
 
+  // 伏神
+  'liuyao.hiddenTitle': { 'zh-TW': '伏神', en: 'Hidden Spirits', ja: '伏神' },
+  'liuyao.hiddenRow': { 'zh-TW': '{relative} {stemBranch}{element}　伏於{position}爻 {flying} 之下', en: '{relative} {stemBranch}{element} hidden beneath line {position} ({flying})', ja: '{relative} {stemBranch}{element}　{position}爻 {flying} の下に伏す' },
+  'liuyao.hiddenBlocked': { 'zh-TW': '（{relation}，難出）', en: '({relation}, cannot emerge)', ja: '（{relation}、出にくい）' },
+  'liuyao.hiddenOpen': { 'zh-TW': '（{relation}，可出）', en: '({relation}, can emerge)', ja: '（{relation}、出られる）' },
+  'liuyao.hiddenNote': { 'zh-TW': '卦中不現的六親，取自本宮首卦。用神不上卦時即看此處。', en: 'Relatives absent from the hexagram, taken from the palace’s pure hexagram. Consulted when the use-god is off-chart.', ja: '卦に現れない六親を本宮首卦から取ったもの。用神が卦にない場合はここを見ます。' },
+
+  // 用神斷語
+  'liuyao.verdictTitle': { 'zh-TW': '用神斷語', en: 'Use-God Judgment', ja: '用神の断' },
+  'liuyao.verdictLine': { 'zh-TW': '用神{relative}　{verdict}', en: 'Use-god {relative} — {verdict}', ja: '用神{relative}　{verdict}' },
+  'liuyao.verdictNote': { 'zh-TW': '以上為規則式加權，逐條列出所採計的條件；非傳統斷語之定論，仍須合看問法與時機。', en: 'A rule-based weighting with every factor listed above. Not an authoritative traditional judgment — the phrasing of the question and its timing still matter.', ja: '上記はルールに基づく加重で、採用した条件をすべて列挙しています。伝統的な断定ではなく、問い方と時機も併せて見る必要があります。' },
+
   // 占驗簿
   'outcome.title': { 'zh-TW': '占驗', en: 'Verification', ja: '占験' },
   'outcome.accurate': { 'zh-TW': '應驗', en: 'Accurate', ja: '的中' },

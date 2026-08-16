@@ -11,6 +11,7 @@ import { Spacing, FontSize } from '@/constants/theme';
 import { getMovingLineGuidance } from '@/services/yaoReading';
 import { buildNaJiaReading, transformedLineRelation } from '@/services/najja';
 import { useGodForCategory } from '@/services/useGod';
+import { judgeUseGod } from '@/services/wenwang';
 
 interface Props {
   reading: LiuYaoReading;
@@ -53,6 +54,17 @@ export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCateg
     ? transformedLineRelation(primaryMovingNaJia.element, changedMovingNaJia.element)
     : null;
   const useGod = useGodForCategory(questionCategory);
+  // 只有語意明確的問事類別才取得到用神；取不到就不出斷語，
+  // 硬猜身分反而會給出看似精確、其實無根據的結論
+  const verdict = naJia && useGod
+    ? judgeUseGod({
+        reading: naJia,
+        changed: changedNaJia,
+        movingLine,
+        relative: useGod.relatives[0],
+        at: castAt,
+      })
+    : null;
 
   const columns: { info: HexagramInfo; caption: string; hint: string; moving?: number }[] = [
     { info: primary, caption: t('liuyao.primary'), hint: t('liuyao.primaryHint'), moving: movingLine },
@@ -142,6 +154,52 @@ export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCateg
               </Text>
             </View>
           )}
+          {/* 伏神：卦中不現的六親，用神不上卦時的唯一依據 */}
+          {naJia.hidden.length > 0 && (
+            <View style={[styles.transformBox, { borderColor: theme.bgMedium }]}>
+              <Text style={[styles.transformTitle, { color: theme.gold }]}>{t('liuyao.hiddenTitle')}</Text>
+              {naJia.hidden.map(h => (
+                <Text
+                  key={`${h.position}-${h.relative}`}
+                  style={[styles.transformText, { color: theme.textSecondary }]}
+                >
+                  {t('liuyao.hiddenRow', {
+                    relative: h.relative,
+                    stemBranch: h.stemBranch,
+                    element: h.element,
+                    position: h.position,
+                    flying: h.flyingStemBranch,
+                  })}
+                  <Text style={{ color: h.canEmerge ? theme.success : theme.danger }}>
+                    {t(h.canEmerge ? 'liuyao.hiddenOpen' : 'liuyao.hiddenBlocked', { relation: h.relation })}
+                  </Text>
+                </Text>
+              ))}
+              <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.hiddenNote')}</Text>
+            </View>
+          )}
+
+          {/* 用神斷語：把整張盤收斂成「所問之事如何」 */}
+          {verdict && (
+            <View style={[styles.transformBox, { borderColor: theme.goldFaint }]}>
+              <Text style={[styles.transformTitle, { color: theme.gold }]}>{t('liuyao.verdictTitle')}</Text>
+              <Text style={[styles.verdictLine, { color: colorFor(LEVEL_TONE[verdict.verdict] || 'neutral') }]}>
+                {t('liuyao.verdictLine', { relative: verdict.relative, verdict: verdict.verdict })}
+              </Text>
+              {verdict.reasons.map((reason, i) => (
+                <Text key={i} style={[styles.verdictReason, { color: theme.textSecondary }]}>
+                  · {reason.label}
+                  {reason.score !== 0 && (
+                    <Text style={{ color: reason.score > 0 ? theme.success : theme.danger }}>
+                      {` ${reason.score > 0 ? '+' : ''}${reason.score}`}
+                    </Text>
+                  )}
+                </Text>
+              ))}
+              <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.verdictNote')}</Text>
+            </View>
+          )}
+
           <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.najjaNote')}</Text>
         </View>
       )}
@@ -225,6 +283,8 @@ const styles = StyleSheet.create({
   transformBox: { borderTopWidth: 1, marginTop: Spacing.sm, paddingTop: Spacing.sm },
   transformTitle: { fontSize: FontSize.caption, fontWeight: '700', marginBottom: 3 },
   transformText: { fontSize: FontSize.small, lineHeight: 20 },
+  verdictLine: { fontSize: FontSize.body, fontWeight: '700', marginBottom: 4 },
+  verdictReason: { fontSize: FontSize.caption, lineHeight: 19 },
   bodyUseRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.sm,

@@ -3,11 +3,31 @@
 // 本模組只負責把已起出的六爻轉成傳統盤面資料；不在沒有日干支、月破、
 // 空亡、六神等條件時，逕自輸出「完整文王六爻斷語」。
 
-import { lineName, type LineValue } from './hexagram';
+import { lineName, TRIGRAM_NAMES, type LineValue } from './hexagram';
 import { monthBranchContext } from './date';
 import { EARTHLY_BRANCHES, branchesClash, sexagenaryDay, sixSpiritsForDate, xunKongForDate } from './sexagenary';
 
 export type SixRelative = '兄弟' | '子孫' | '妻財' | '官鬼' | '父母';
+
+/** 飛神（卦中該爻）與伏神（本宮卦同位爻）的生剋方向 */
+export type FlyingHiddenRelation =
+  | '飛來生伏' | '飛來剋伏' | '伏去生飛' | '伏去剋飛' | '飛伏比和';
+
+export interface HiddenSpirit {
+  /** 伏神所伏的爻位（即飛神的爻位） */
+  position: number;
+  stemBranch: string;
+  branch: string;
+  element: string;
+  relative: SixRelative;
+  /** 壓在伏神上方的飛神 */
+  flyingStemBranch: string;
+  flyingElement: string;
+  flyingRelative: SixRelative;
+  relation: FlyingHiddenRelation;
+  /** 伏神能否透出來作用。飛剋伏則受制，伏剋飛或飛生伏則有力 */
+  canEmerge: boolean;
+}
 
 export interface NaJiaLine {
   position: number;
@@ -36,6 +56,11 @@ export interface NaJiaReading {
   monthBranch: string;
   dayBranch: string;
   lines: NaJiaLine[];
+  /**
+   * 卦中不現的六親，從本宮首卦取出的伏神。
+   * 用神不上卦時就得看這裡——否則整個問事無象可斷。
+   */
+  hidden: HiddenSpirit[];
 }
 
 export type TransformedLineRelation =
@@ -118,6 +143,62 @@ function respondingLineFor(worldLine: number): number {
   return ((worldLine + 2) % 6) + 1;
 }
 
+/** 飛神與伏神的生剋方向。飛在上、伏在下，故以飛對伏的作用為主詞。 */
+export function flyingHiddenRelation(
+  flyingElement: string,
+  hiddenElement: string,
+): FlyingHiddenRelation {
+  if (flyingElement === hiddenElement) return '飛伏比和';
+  if (GENERATES[flyingElement] === hiddenElement) return '飛來生伏';
+  if (OVERCOMES[flyingElement] === hiddenElement) return '飛來剋伏';
+  if (GENERATES[hiddenElement] === flyingElement) return '伏去生飛';
+  return '伏去剋飛';
+}
+
+/**
+ * 伏神：卦中不現的六親，改由本宮首卦（八純卦）同位爻取出。
+ *
+ * 為什麼一定要有這一層：問財而卦中無妻財、問事業而卦中無官鬼，
+ * 是常見到不能再常見的情況。沒有伏神就等於「無用神可斷」，
+ * 整張盤只能停在裝卦，給不出任何答案。
+ *
+ * 八純卦的六個地支必涵蓋五行，故任何缺失的六親都一定找得到伏神。
+ */
+function buildHiddenSpirits(
+  palaceIndex: number,
+  palaceElement: string,
+  lines: readonly NaJiaLine[],
+): HiddenSpirit[] {
+  const pure = TRIGRAM_NAJIA[palaceIndex];
+  if (!pure) return [];
+
+  const present = new Set(lines.map(line => line.relative));
+
+  return pure.flatMap((stemBranch, index) => {
+    const branch = stemBranch.at(-1) ?? '';
+    const element = BRANCH_ELEMENT[branch];
+    const relative = sixRelative(palaceElement, element);
+    // 卦中已現的六親不需要伏神
+    if (present.has(relative)) return [];
+
+    const flying = lines[index];
+    const relation = flyingHiddenRelation(flying.element, element);
+    return [{
+      position: index + 1,
+      stemBranch,
+      branch,
+      element,
+      relative,
+      flyingStemBranch: flying.stemBranch,
+      flyingElement: flying.element,
+      flyingRelative: flying.relative,
+      relation,
+      // 飛剋伏則被壓住透不出來；伏去生飛是洩己之氣，同樣無力
+      canEmerge: relation !== '飛來剋伏' && relation !== '伏去生飛',
+    }];
+  });
+}
+
 /** 由本卦的上下卦、文王序號與六爻陰陽，建立納甲六親世應盤。 */
 export function buildNaJiaReading(
   upper: number,
@@ -137,6 +218,25 @@ export function buildNaJiaReading(
   const xunKong = xunKongForDate(at);
   const day = sexagenaryDay(at);
   const monthBranch = EARTHLY_BRANCHES[monthBranchContext(at).branch - 1];
+  const najiaLines: NaJiaLine[] = stemBranches.map((stemBranch, index) => {
+    const branch = stemBranch.at(-1) ?? '';
+    const element = BRANCH_ELEMENT[branch];
+    return {
+      position: index + 1,
+      name: lineName(lines, index + 1),
+      stemBranch,
+      branch,
+      element,
+      relative: sixRelative(palace.palaceElement, element),
+      spirit: spirits[index],
+      isVoid: xunKong.voidBranches.includes(branch),
+      isMonthBroken: branchesClash(branch, monthBranch),
+      isDayClashed: branchesClash(branch, day.branch),
+      isWorld: index + 1 === palace.worldLine,
+      isResponding: index + 1 === respondingLine,
+    };
+  });
+
   return {
     ...palace,
     respondingLine,
@@ -145,23 +245,11 @@ export function buildNaJiaReading(
     voidBranches: xunKong.voidBranches,
     monthBranch,
     dayBranch: day.branch,
-    lines: stemBranches.map((stemBranch, index) => {
-      const branch = stemBranch.at(-1) ?? '';
-      const element = BRANCH_ELEMENT[branch];
-      return {
-        position: index + 1,
-        name: lineName(lines, index + 1),
-        stemBranch,
-        branch,
-        element,
-        relative: sixRelative(palace.palaceElement, element),
-        spirit: spirits[index],
-        isVoid: xunKong.voidBranches.includes(branch),
-        isMonthBroken: branchesClash(branch, monthBranch),
-        isDayClashed: branchesClash(branch, day.branch),
-        isWorld: index + 1 === palace.worldLine,
-        isResponding: index + 1 === respondingLine,
-      };
-    }),
+    lines: najiaLines,
+    hidden: buildHiddenSpirits(
+      TRIGRAM_NAMES.indexOf(palace.palace as (typeof TRIGRAM_NAMES)[number]),
+      palace.palaceElement,
+      najiaLines,
+    ),
   };
 }
