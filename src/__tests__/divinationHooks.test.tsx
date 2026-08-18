@@ -237,6 +237,30 @@ describe('useBoardDivination', () => {
       expect(result.current.selectedPiece).toBeNull();
     });
 
+    /**
+     * 「允許重複棋子」解掉的是一個命理上的死角：實體棋盤沒有兩顆帥，
+     * 但少了重複子，兩顆棋就永遠組不出乾為天（帥＋帥）與坤為地（將＋將）。
+     * 預設仍為關閉——重複子是刻意的例外，不是常態擺法。
+     */
+    test('允許重複棋子預設關閉', () => {
+      const { result } = renderHook(() => useBoardDivination());
+
+      expect(result.current.allowRepeatedPieces).toBe(false);
+    });
+
+    test('開啟後同一顆棋子可重複選取與放置', () => {
+      const { result } = renderHook(() => useBoardDivination());
+
+      act(() => { result.current.setAllowRepeatedPieces(true); });
+      act(() => { result.current.selectPiece(pieceA); });
+      act(() => { result.current.placePieceOnBoard(0, 0); });
+      act(() => { result.current.selectPiece(pieceA); });
+      act(() => { result.current.placePieceOnBoard(1, 1); });
+
+      expect(result.current.placedPieces).toHaveLength(2);
+      expect(result.current.placedPieces.every(pp => pp.piece === pieceA)).toBe(true);
+    });
+
     test('達到上限三顆後不可再選子', () => {
       const { result } = renderHook(() => useBoardDivination());
 

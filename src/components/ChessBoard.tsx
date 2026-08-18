@@ -200,6 +200,7 @@ export default function ChessBoard({
               return (
                 <TouchableOpacity
                   key={`cell-${row}-${col}`}
+                  testID="board-drop-target"
                   style={[styles.dropTarget, pos, {
                     width: pieceSize,
                     height: pieceSize,
@@ -235,6 +236,7 @@ export default function ChessBoard({
               return (
                 <View
                   key={piece.id}
+                  testID={canSelect ? 'tray-piece-selectable' : 'tray-piece'}
                   style={[
                     styles.availablePiece,
                     isSelected && styles.availablePieceSelected,
