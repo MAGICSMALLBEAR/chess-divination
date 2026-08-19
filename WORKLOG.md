@@ -5,7 +5,7 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 86 個 |
-| Git Commits | 61 次 |
+| Git Commits | 62 次 |
 | Jest 測試 | 567 個 · 33 套件 · 全部通過 |
 | E2E 測試 | 86 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
@@ -935,6 +935,15 @@ Expo Go（待辦 #3 的實機測試方式）吃不到。故用 expo-font 的
    用到新字元測試就紅，重跑 `python scripts/subset-font.py` 即可
 3. 排除清單只允許符號與 emoji：漢字／假名／全形標點不得缺席（測試檔
    不計——`[一-鿿]` 這種正規式範圍界標不需要字形）
+
+### 產出可重現性修正（同 session 後補）
+
+收尾重跑子集腳本時發現 commit 進去的 manifest 宣稱覆蓋 ◈、❤ 兩字，
+但字型 cmap 查無——產出物是在字型套件中繼狀態下生成的。用 fontTools
+逐一查驗 cmap 證實後，以提交版 node_modules 重跑腳本，manifest 與
+字型自此互相一致；排除清單內容未變（◈、❤️ 本來就在系統後備範圍）。
+守門測試兩版皆綠，但「重跑腳本等於原樣還原」這條可重現性，只有
+自洽的那一版才守得住。
 
 ### Session 27 總結
 
