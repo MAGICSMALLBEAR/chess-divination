@@ -1,31 +1,27 @@
-// 原生端書法字體載入 Hook
-// Web 端透過 Google Fonts 的 CSS @import 載入 Noto Serif TC，
-// 原生端透過 expo-font 載入系統字體後備（楷體優先）。
+// 原生端書法字體載入 Hook（web 版見 useFontLoad.web.ts）
 //
-// 完整中文書法字體需子集化（籤詩用字僅約 800 個不重複漢字），
-// 目前原生端依賴系統後備，日後可載入子集化字型檔。
+// 載入子集化字型 assets/fonts/NotoSerifTC-400.ttf——
+// 收錄 src 全部非 ASCII 字元（TC 主體＋JP 新字體補字），約 1.2MB。
+// 產生方式見 scripts/subset-font.py；新字串用到新字元時
+// fontSubset.test.ts 會紅，重跑腳本即可。
+//
+// 載入失敗不阻塞渲染：系統後備字體仍可正常閱讀。
 
-import { useState, useEffect } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import * as Font from 'expo-font';
 
 export function useFontLoad(): { loaded: boolean } {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      // Web: Google Fonts CSS 在 +html.tsx 中載入，直接標記完成
-      // 等待 100ms 確保 CSS 已套用
-      const t = setTimeout(() => setLoaded(true), 100);
-      return () => clearTimeout(t);
-    }
-
-    // 原生端：不阻塞渲染，使用系統後備字體
-    // 日後可載入子集化字型：
-    // import * as Font from 'expo-font';
-    // await Font.loadAsync({
-    //   'NotoSerifTC': require('@/assets/fonts/NotoSerifTC-subset.ttf'),
-    // });
-    setLoaded(true);
+    let cancelled = false;
+    Font.loadAsync({
+      NotoSerifTC: require('../../assets/fonts/NotoSerifTC-400.ttf'),
+    }).finally(() => {
+      // 成功與失敗都放行：loaded 代表「可以渲染」，失敗時用系統後備
+      if (!cancelled) setLoaded(true);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   return { loaded };

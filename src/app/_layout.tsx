@@ -14,10 +14,9 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// 原生端目前不強制依賴特定書法字體檔（完整中文書法字體過大，需子集化）
-// Web 端已透過 +html.tsx 載入 Google Fonts 的 Noto Serif TC。
-// 原生端使用系統 Serif 字體做後備，籤詩使用 fontFamily 'serif'。
-// 若日後要為原生端打包書法字體，請先產生籤詩用字的 Noto Serif TC 子集。
+// Web 端透過 +html.tsx 載入 Google Fonts 的 Noto Serif TC；
+// 原生端由 useFontLoad 載入 assets/fonts 的子集化 Noto Serif TC
+// （scripts/subset-font.py 產生），載入完成前用系統字體後備。
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {

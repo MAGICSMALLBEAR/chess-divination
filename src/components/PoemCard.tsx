@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Animated, TouchableOpacity,
+  View, Text, StyleSheet, Animated, TouchableOpacity, Platform,
 } from 'react-native';
 import type { Poem } from '@/data/poems';
 import { getLevelColor } from '@/data/poems';
@@ -12,6 +12,7 @@ import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useFontLoad } from '@/hooks/useFontLoad';
 import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
@@ -53,6 +54,7 @@ export default function PoemCard({
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
   const { t } = useI18n();
+  const { loaded: fontLoaded } = useFontLoad();
   const localized = localizePoem(poem);
   const scrollAnim = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -109,6 +111,12 @@ export default function PoemCard({
 
   const levelColor = getLevelColor(localized.level);
 
+  // 原生端在子集字型載入完成後才套用；web 沿用 CSS 字體堆疊
+  // （poemLine 的 fontFamily 在原生端不是合法家族名，會被系統後備接住）
+  const poemFont = Platform.OS === 'web'
+    ? null
+    : fontLoaded ? { fontFamily: 'NotoSerifTC' } : null;
+
   return (
     <View style={styles.container}>
       {/* 捲軸效果 */}
@@ -152,6 +160,7 @@ export default function PoemCard({
                 key={i}
                 style={[
                   styles.poemLine,
+                  poemFont,
                   {
                     opacity: lineAnimations[i],
                     transform: [{
