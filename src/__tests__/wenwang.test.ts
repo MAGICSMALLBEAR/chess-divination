@@ -8,7 +8,7 @@ import {
   buildNaJiaReading, flyingHiddenRelation, type SixRelative,
 } from '../services/najja';
 import { judgeUseGod } from '../services/wenwang';
-import { hexagramLines, poemIdFromTrigrams } from '../services/hexagram';
+import { hexagramLines, poemIdFromTrigrams, trigramsFromLines, type LineValue } from '../services/hexagram';
 import { branchesClash } from '../services/sexagenary';
 
 const ALL_RELATIVES: SixRelative[] = ['兄弟', '子孫', '妻財', '官鬼', '父母'];
@@ -272,5 +272,79 @@ describe('喜忌之神發動', () => {
       }
     }
     expect(worse).toEqual([]);
+  });
+});
+
+describe('結構性條件（進退神、暗動、三合局）', () => {
+  /** 翻掉動爻那一爻，取變卦的納甲盤 */
+  function changedFor(upper: number, lower: number, movingLine: number, at = new Date(2026, 0, 1)) {
+    const lines = hexagramLines(upper, lower);
+    const flipped = lines.map((v, i) => (i === movingLine - 1 ? (v === 0 ? 1 : 0) : v)) as LineValue[];
+    const { upper: u, lower: l } = trigramsFromLines(flipped);
+    return buildNaJiaReading(u, l, poemIdFromTrigrams(u, l), flipped, at)!;
+  }
+
+  /** 跑遍六十四卦 × 六爻，蒐集所有斷語 */
+  function everyJudgment(
+    subject: Parameters<typeof judgeUseGod>[0]['subject'] = '世爻',
+    at = new Date(2026, 0, 1),
+  ) {
+    const out: { id: number; movingLine: number; a: ReturnType<typeof judgeUseGod> }[] = [];
+    for (const { upper, lower } of eachHexagram()) {
+      const r = readingFor(upper, lower, at);
+      for (let movingLine = 1; movingLine <= 6; movingLine++) {
+        out.push({
+          id: poemIdFromTrigrams(upper, lower),
+          movingLine,
+          a: judgeUseGod({
+            reading: r, changed: changedFor(upper, lower, movingLine, at), movingLine, subject, at,
+          }),
+        });
+      }
+    }
+    return out;
+  }
+
+  test('進退神只在用神自己發動時採計', () => {
+    // 這一項講的是「用神化成了什麼」，用神沒動就無所謂化不化
+    const offenders: string[] = [];
+    for (const { id, movingLine, a } of everyJudgment()) {
+      const mentions = a.reasons.some(
+        x => x.label.includes('進神') || x.label.includes('退神'),
+      );
+      if (mentions && a.lines[0]?.position !== movingLine) {
+        offenders.push(`#${id} 第${movingLine}爻`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test('暗動採計的一定不是動爻本身', () => {
+    // 己卯日、丑月（土令）：日沖之支為酉金，金在土令為相，暗動成立。
+    // 換成別的日子可能一次都不觸發，那樣這條就只是空轉的測試。
+    const at = new Date(2026, 0, 5);
+    const offenders: string[] = [];
+    let seen = 0;
+    for (const { id, movingLine, a } of everyJudgment('世爻', at)) {
+      for (const reason of a.reasons.filter(x => x.label.includes('暗動'))) {
+        seen += 1;
+        if (reason.label.startsWith(`${movingLine}爻`)) offenders.push(`#${id} 第${movingLine}爻`);
+      }
+    }
+    expect(offenders).toEqual([]);
+    expect(seen).toBeGreaterThan(0);
+  });
+
+  test('三合局的採計必定伴隨動爻——無動不成局', () => {
+    const r = readingFor(0, 0);
+    const noMoving = judgeUseGod({ reading: r, subject: '世爻' });
+    expect(noMoving.reasons.some(x => x.label.includes('局'))).toBe(false);
+  });
+
+  test('補上結構性條件後，斷語仍落在五等第之內且分數等於理由之和', () => {
+    for (const { a } of everyJudgment()) {
+      expect(['大吉', '吉', '平', '小凶', '凶']).toContain(a.verdict);
+      expect(a.score).toBe(a.reasons.reduce((s, x) => s + x.score, 0));
+    }
   });
 });

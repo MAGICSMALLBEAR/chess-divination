@@ -10,12 +10,17 @@
 // 使用者看得到結論是怎麼算出來的，而不是一句沒有來歷的判詞。
 //
 // 未納入的傳統條件（刻意不做，不是遺漏）：
-// 三合局、六沖卦變六合卦、進神退神、反吟伏吟、暗動。
-// 這些需要更多前提（如確切占時、問事人身分），在本 App 的輸入條件下
-// 判進去只會製造看似精確的雜訊。
+// 應期（何時應驗）與問卜者對所問之人的親屬關係。前者要推到日、月甚至
+// 流年，起卦只到日柱就下結論等於編一個日期；後者 App 根本沒有問。
+//
+// 進退神、暗動、三合局原本也列在此處，Session 26 重新檢視後移出：
+// 它們只需要動爻、變爻、日辰與六爻地支，卦本身就已經給足前提，
+// 判定邏輯見 conditions.ts。爻的反吟伏吟則是另一回事——單動爻模型下
+// 根本不可能成立，理由與守門測試都寫在 conditions.ts。
 
 import type { NaJiaLine, NaJiaReading, SixRelative, HiddenSpirit } from './najja';
 import type { UseGodSubject } from './useGod';
+import { advanceOrRetreat, detectTriads, darkMovingLines } from './conditions';
 import { strengthState, type StrengthState } from './liuyao';
 import { monthBranchContext, seasonOf, SEASON_ELEMENT } from './date';
 
@@ -91,6 +96,14 @@ const SCORE = {
   喜神持世: 1,
   忌神發動: -1,
   喜神發動: 1,
+  化進神: 1,
+  化退神: -1,
+  暗動生用神: 1,
+  暗動剋用神: -1,
+  用神入局: 2,
+  合局生用神: 1,
+  合局剋用神: -1,
+  用神洩於局: -1,
 } as const;
 
 function dayRelationOf(useElement: string, useBranch: string, dayBranch: string): DayRelation {
@@ -215,6 +228,18 @@ export function judgeUseGod({
     }
   }
 
+  // ── 暗動 ──
+  // 靜爻旺相而逢日辰沖，暗中有力。與日破的分野只在旺衰，
+  // 兩者同樣是日沖靜爻，不分旺衰就會把有力的爻當成壞掉的爻。
+  for (const dark of darkMovingLines({ reading, movingLine, seasonElement })) {
+    if (dark.position === subjectLine?.position) continue;
+    if (GENERATES[dark.element] === element) {
+      reasons.push({ label: `${dark.position}爻${dark.relative}${dark.stemBranch}逢日辰沖而暗動，生用神`, score: SCORE.暗動生用神 });
+    } else if (OVERCOMES[dark.element] === element) {
+      reasons.push({ label: `${dark.position}爻${dark.relative}${dark.stemBranch}逢日辰沖而暗動，剋用神`, score: SCORE.暗動剋用神 });
+    }
+  }
+
   // ── 動爻對用神的生剋 ──
   if (movingLine !== undefined) {
     const mover = reading.lines[movingLine - 1];
@@ -241,7 +266,7 @@ export function judgeUseGod({
       }
     }
 
-    // 用神自身發動 → 看變爻的回頭生剋
+    // 用神自身發動 → 看變爻的回頭生剋與進退神
     if (isUseGodMoving && changed) {
       const transformed = changed.lines[movingLine - 1];
       if (transformed) {
@@ -250,6 +275,35 @@ export function judgeUseGod({
         } else if (OVERCOMES[transformed.element] === element) {
           reasons.push({ label: `用神發動化${transformed.stemBranch}，回頭剋`, score: SCORE.回頭剋 });
         }
+
+        // 進退神：化出同五行之支，順進逆退。與回頭生剋不重疊——
+        // 同五行必為比和，回頭那兩條本來就不會觸發。
+        const progression = advanceOrRetreat(branch, transformed.branch);
+        if (progression === '進神') {
+          reasons.push({ label: `用神${branch}化${transformed.branch}，為進神`, score: SCORE.化進神 });
+        } else if (progression === '退神') {
+          reasons.push({ label: `用神${branch}化${transformed.branch}，為退神`, score: SCORE.化退神 });
+        }
+      }
+    }
+
+    // ── 三合局 ──
+    // 無動不成局，故整段只在有動爻時判。局成則該五行成勢，
+    // 對用神的作用比單一爻大，這是與「動爻生剋用神」不同層的一件事。
+    for (const triad of detectTriads({ lines: reading.lines, movingLine, dayBranch: reading.dayBranch })) {
+      const where = `${triad.name}合${triad.element}局`;
+      const source = triad.fromDay ? `（${triad.fromDay}由日辰補足）` : '';
+      const inTriad = subjectLine ? triad.positions.includes(subjectLine.position) : false;
+
+      if (triad.element === element) {
+        reasons.push({ label: `${where}成${source}，用神入局得助`, score: SCORE.用神入局 });
+      } else if (GENERATES[triad.element] === element) {
+        reasons.push({ label: `${where}成${source}，局生用神`, score: SCORE.合局生用神 });
+      } else if (OVERCOMES[triad.element] === element) {
+        reasons.push({ label: `${where}成${source}，局剋用神`, score: SCORE.合局剋用神 });
+      } else if (inTriad && GENERATES[element] === triad.element) {
+        // 用神自己在局中卻生局，是把力氣送出去
+        reasons.push({ label: `${where}成${source}，用神在局中而洩氣`, score: SCORE.用神洩於局 });
       }
     }
   }
