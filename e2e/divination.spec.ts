@@ -3,7 +3,7 @@
 // 覆蓋抽棋 → 揭曉籤詩 → 記錄留存 → 收藏 的主線，
 // 這是使用者最常走、也最不能壞的一條路徑。
 
-import { test, expect, HISTORY_KEY } from './fixtures';
+import { test, expect, HISTORY_KEY, SETTINGS_KEY, DEFAULT_SETTINGS } from './fixtures';
 import type { Page } from '@playwright/test';
 
 /** 從首頁進入抽棋頁並完成一次抽棋，停在「揭露籤詩」前 */
@@ -204,4 +204,96 @@ test.describe('頁面可達性', () => {
       expect(errors, `${path} 出現 JS 例外`).toEqual([]);
     });
   }
+});
+
+test.describe('用神斷語', () => {
+  /**
+   * 種一筆有完整卦象的記錄再直接進 reveal。
+   * 走完整抽棋流程會抽到隨機的卦，斷語內容也就跟著隨機——
+   * 要斷言「疾病以世爻為用神」就必須固定卦象。
+   */
+  async function seedRecord(
+    page: Parameters<typeof drawPieces>[0],
+    cat: string,
+    gender?: 'male' | 'female',
+  ) {
+    const record = {
+      id: 'usegod-1',
+      poemId: 3,
+      poemTitle: '水雷屯',
+      poemContent: ['雲雷屯聚待時行', '利建侯王正本源', '磐桓居貞宜守靜', '春回大地萬象新'].join(String.fromCharCode(10)),
+      poemLevel: '中吉',
+      drawnPieceTypes: ['horse', 'pawn'],
+      drawnPieceColors: ['black', 'red'],
+      drawnPieceChars: ['馬', '兵'],
+      mode: 'draw',
+      questionCategory: cat,
+      questionText: '',
+      timestamp: Date.now(),
+      isFavorited: false,
+      engineVersion: 3,
+      hexagramName: '水雷屯',
+      hexagramIndex: 43,
+      movingLine: 2,
+      hourBranch: 3,
+    };
+
+    await page.addInitScript(
+      ([sKey, hKey, settings, rec]) => {
+        window.localStorage.setItem(sKey as string, JSON.stringify(settings));
+        window.localStorage.setItem(hKey as string, JSON.stringify([rec]));
+      },
+      [SETTINGS_KEY, HISTORY_KEY, { ...DEFAULT_SETTINGS, divinerGender: gender }, record] as const,
+    );
+    await page.goto('/reveal?recordId=usegod-1&mode=draw');
+  }
+
+  test('疾病問事以世爻為用神並出斷語', async ({ page }) => {
+    await seedRecord(page, 'health');
+
+    // 提示文字裡也有「用神斷語」四個字，非 exact 會連提示一起選到
+    await expect(page.getByText('用神斷語', { exact: true })).toBeVisible({ timeout: 30_000 });
+    // 世爻為用時盤上沒有六親可標，斷語必須講明是誰持世
+    await expect(page.getByText(/用神世爻（.+持世）/)).toBeVisible();
+  });
+
+  test('感情問事未設定占者性別時不出斷語，改為說明缺什麼', async ({ page }) => {
+    await seedRecord(page, 'marriage');
+
+    await expect(page.getByText(/感情問事的用神取法男女相反/)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('用神斷語', { exact: true })).toHaveCount(0);
+  });
+
+  test('設定占者性別為男後，感情以妻財為用神', async ({ page }) => {
+    await seedRecord(page, 'marriage', 'male');
+
+    await expect(page.getByText('用神斷語', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/用神妻財/)).toBeVisible();
+    await expect(page.getByText(/感情問事的用神取法男女相反/)).toHaveCount(0);
+  });
+});
+
+test.describe('占者性別設定', () => {
+  /**
+   * 不測「重新載入後仍在」：fixture 的 addInitScript 每次導覽都會重寫設定，
+   * 重載本來就會被蓋掉，那樣測到的是 fixture 而不是 App。
+   */
+  const storedGender = (page: Parameters<typeof drawPieces>[0]) =>
+    page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) || '{}').divinerGender,
+      SETTINGS_KEY,
+    );
+
+  test('選擇後寫入設定，改回「不指定」則清除', async ({ page }) => {
+    await page.goto('/settings');
+    await expect(page.getByText('占者性別')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByText('女', { exact: true }).click();
+    await expect.poll(() => storedGender(page)).toBe('female');
+
+    // 「不指定」存的是 undefined，JSON.stringify 會直接把這個鍵拿掉；
+    // 若哪天改成存空字串，感情問事就會拿一個假值去取用神
+    await page.getByText('不指定', { exact: true }).click();
+    await expect.poll(() => storedGender(page)).toBeUndefined();
+  });
 });

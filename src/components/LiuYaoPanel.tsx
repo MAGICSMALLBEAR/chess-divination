@@ -9,8 +9,8 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { Spacing, FontSize } from '@/constants/theme';
 import { getMovingLineGuidance } from '@/services/yaoReading';
-import { buildNaJiaReading, transformedLineRelation } from '@/services/najja';
-import { useGodForCategory } from '@/services/useGod';
+import { buildNaJiaReading, transformedLineRelation, type NaJiaLine } from '@/services/najja';
+import { useGodForCategory, type DivinerGender } from '@/services/useGod';
 import { judgeUseGod } from '@/services/wenwang';
 
 interface Props {
@@ -18,6 +18,8 @@ interface Props {
   hourBranch?: number;
   castAt?: Date;
   questionCategory?: string;
+  /** 占者性別，只影響感情問事的用神取法 */
+  divinerGender?: DivinerGender;
 }
 
 const LEVEL_TONE: Record<string, 'good' | 'neutral' | 'bad'> = {
@@ -29,7 +31,9 @@ const STRENGTH_TONE: Record<string, 'good' | 'neutral' | 'bad'> = {
   旺: 'good', 相: 'good', 休: 'neutral', 囚: 'bad', 死: 'bad',
 };
 
-export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCategory }: Props) {
+export default function LiuYaoPanel({
+  reading, hourBranch, castAt, questionCategory, divinerGender,
+}: Props) {
   const { theme } = useAppTheme();
   const { t } = useI18n();
   const {
@@ -53,18 +57,28 @@ export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCateg
   const changingRelation = primaryMovingNaJia && changedMovingNaJia
     ? transformedLineRelation(primaryMovingNaJia.element, changedMovingNaJia.element)
     : null;
-  const useGod = useGodForCategory(questionCategory);
-  // 只有語意明確的問事類別才取得到用神；取不到就不出斷語，
+  const useGod = useGodForCategory(questionCategory, { gender: divinerGender });
+  // 只有取法明確的問事類別才取得到用神；取不到就不出斷語，
   // 硬猜身分反而會給出看似精確、其實無根據的結論
   const verdict = naJia && useGod
     ? judgeUseGod({
         reading: naJia,
         changed: changedNaJia,
         movingLine,
-        relative: useGod.relatives[0],
+        subject: useGod.subject,
+        favorable: useGod.favorable,
+        taboo: useGod.taboo,
         at: castAt,
       })
     : null;
+  // 感情是唯一取法取決於占者性別的類別。沒設定就靜靜不出斷語，
+  // 使用者只會覺得功能壞了——說明缺什麼才有辦法補。
+  const needsGender = questionCategory === 'marriage' && !divinerGender;
+  // 世爻為用時盤面上沒有六親可標，改標世爻本身
+  const marksUseGod = (line: NaJiaLine) =>
+    useGod?.subject === '世爻'
+      ? line.isWorld
+      : !!useGod?.relatives.includes(line.relative);
 
   const columns: { info: HexagramInfo; caption: string; hint: string; moving?: number }[] = [
     { info: primary, caption: t('liuyao.primary'), hint: t('liuyao.primaryHint'), moving: movingLine },
@@ -127,6 +141,11 @@ export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCateg
               {useGod.description}
             </Text>
           )}
+          {needsGender && (
+            <Text style={[styles.useGodText, { color: theme.textMuted }]}>
+              {t('liuyao.useGodGenderHint')}
+            </Text>
+          )}
           {naJia.lines.slice().reverse().map(line => (
             <View key={line.position} style={styles.najjaRow}>
               <Text style={[styles.najjaPosition, { color: theme.textMuted }]}>{line.name}</Text>
@@ -134,7 +153,7 @@ export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCateg
               <Text style={[styles.najjaMarker, { color: theme.success }]}> 
                 {[
                   line.isWorld ? t('liuyao.world') : line.isResponding ? t('liuyao.responding') : '',
-                  useGod?.relatives.includes(line.relative) ? t('liuyao.useGod') : '',
+                  marksUseGod(line) ? t('liuyao.useGod') : '',
                   line.isVoid ? t('liuyao.void') : '',
                   line.isMonthBroken ? t('liuyao.monthBroken') : '',
                   line.isDayClashed ? t('liuyao.dayClash') : '',
@@ -184,7 +203,12 @@ export default function LiuYaoPanel({ reading, hourBranch, castAt, questionCateg
             <View style={[styles.transformBox, { borderColor: theme.goldFaint }]}>
               <Text style={[styles.transformTitle, { color: theme.gold }]}>{t('liuyao.verdictTitle')}</Text>
               <Text style={[styles.verdictLine, { color: colorFor(LEVEL_TONE[verdict.verdict] || 'neutral') }]}>
-                {t('liuyao.verdictLine', { relative: verdict.relative, verdict: verdict.verdict })}
+                {t('liuyao.verdictLine', {
+                  relative: verdict.subject === '世爻'
+                    ? t('liuyao.verdictWorld', { relative: verdict.relative ?? '' })
+                    : verdict.subject,
+                  verdict: verdict.verdict,
+                })}
               </Text>
               {verdict.reasons.map((reason, i) => (
                 <Text key={i} style={[styles.verdictReason, { color: theme.textSecondary }]}>

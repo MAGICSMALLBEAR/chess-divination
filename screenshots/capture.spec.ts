@@ -35,7 +35,7 @@ const DAILY_FORTUNE = {
 
 const SETTINGS = {
   userName: '',
-  drawAnimationSpeed: 'standard',
+  drawAnimationSpeed: 'normal',
   themeMode: 'dark',
   soundEnabled: false,
   hapticEnabled: false,
@@ -58,7 +58,7 @@ function buildDemoHistory() {
   const seed = [
     { poemId: 1, title: '乾為天', level: '大吉', chars: ['帥', '車'], types: ['king', 'chariot'], colors: ['red', 'red'], hexName: '乾為天', hexIndex: 0, mode: 'draw', cat: 'career', outcome: 'accurate' },
     { poemId: 11, title: '地天泰', level: '大吉', chars: ['仕', '炮'], types: ['advisor', 'cannon'], colors: ['red', 'black'], hexName: '地天泰', hexIndex: 56, mode: 'draw', cat: 'wealth', outcome: 'accurate' },
-    { poemId: 3, title: '水雷屯', level: '中吉', chars: ['馬', '兵'], types: ['horse', 'pawn'], colors: ['black', 'red'], hexName: '水雷屯', hexIndex: 43, mode: 'board', cat: 'love', outcome: 'partial' },
+    { poemId: 3, title: '水雷屯', level: '中吉', chars: ['馬', '兵'], types: ['horse', 'pawn'], colors: ['black', 'red'], hexName: '水雷屯', hexIndex: 43, mode: 'board', cat: 'marriage', outcome: 'partial' },
     { poemId: 24, title: '地雷復', level: '中吉', chars: ['車', '相'], types: ['chariot', 'elephant'], colors: ['red', 'black'], hexName: '地雷復', hexIndex: 59, mode: 'draw', cat: 'health', outcome: 'accurate' },
     { poemId: 46, title: '地風升', level: '上吉', chars: ['炮', '帥'], types: ['cannon', 'king'], colors: ['black', 'black'], hexName: '地風升', hexIndex: 60, mode: 'board', cat: 'study', outcome: 'accurate' },
     { poemId: 2, title: '坤為地', level: '上吉', chars: ['將', '士'], types: ['king', 'advisor'], colors: ['black', 'black'], hexName: '坤為地', hexIndex: 63, mode: 'draw', cat: 'general', outcome: 'partial' },

@@ -84,7 +84,7 @@ describe('伏神', () => {
 describe('用神斷語', () => {
   test('用神上卦時取卦中之爻，不取伏神', () => {
     const r = readingFor(5, 3); // 水雷屯，坎宮
-    const a = judgeUseGod({ reading: r, relative: '官鬼' });
+    const a = judgeUseGod({ reading: r, subject: '官鬼' });
     expect(a.lines.length).toBeGreaterThan(0);
     expect(a.hidden).toBeNull();
     expect(a.element).toBe(a.lines[0].element);
@@ -97,7 +97,7 @@ describe('用神斷語', () => {
       .find(r => r.hidden.length > 0)!;
     const missing = found.hidden[0].relative;
 
-    const a = judgeUseGod({ reading: found, relative: missing });
+    const a = judgeUseGod({ reading: found, subject: missing });
     expect(a.lines).toEqual([]);
     expect(a.hidden).not.toBeNull();
     expect(a.element).toBe(found.hidden[0].element);
@@ -105,7 +105,7 @@ describe('用神斷語', () => {
 
   test('每條斷語都附有可檢查的理由', () => {
     const r = readingFor(0, 0);
-    const a = judgeUseGod({ reading: r, relative: '妻財' });
+    const a = judgeUseGod({ reading: r, subject: '妻財' });
     expect(a.reasons.length).toBeGreaterThan(0);
     // 分數必須等於各條理由之和，不得有隱藏的加減
     expect(a.score).toBe(a.reasons.reduce((s, x) => s + x.score, 0));
@@ -116,7 +116,7 @@ describe('用神斷語', () => {
     for (const { upper, lower } of eachHexagram()) {
       const r = readingFor(upper, lower);
       for (const relative of ALL_RELATIVES) {
-        seen.add(judgeUseGod({ reading: r, relative }).verdict);
+        seen.add(judgeUseGod({ reading: r, subject: relative }).verdict);
       }
     }
     for (const v of seen) {
@@ -133,8 +133,8 @@ describe('用神斷語', () => {
     for (const { upper, lower } of eachHexagram()) {
       const relative: SixRelative = '妻財';
       // 卯月（春，木當權）與酉月（秋，金當權）
-      const spring = judgeUseGod({ reading: readingFor(upper, lower, new Date(2026, 2, 20)), relative });
-      const autumn = judgeUseGod({ reading: readingFor(upper, lower, new Date(2026, 8, 20)), relative });
+      const spring = judgeUseGod({ reading: readingFor(upper, lower, new Date(2026, 2, 20)), subject: relative });
+      const autumn = judgeUseGod({ reading: readingFor(upper, lower, new Date(2026, 8, 20)), subject: relative });
       if (spring.element !== autumn.element) continue;
       if (spring.monthState === '旺' && autumn.monthState === '死' && spring.score <= autumn.score) {
         worse.push(`#${poemIdFromTrigrams(upper, lower)} 旺(${spring.score}) 未高於 死(${autumn.score})`);
@@ -152,9 +152,9 @@ describe('用神斷語', () => {
     const open = pairs.find(p => p.h.canEmerge);
     if (!blocked || !open) return; // 資料不足時不強求
 
-    const blockedReason = judgeUseGod({ reading: blocked.r, relative: blocked.h.relative })
+    const blockedReason = judgeUseGod({ reading: blocked.r, subject: blocked.h.relative })
       .reasons.find(x => x.label.includes('伏於'))!;
-    const openReason = judgeUseGod({ reading: open.r, relative: open.h.relative })
+    const openReason = judgeUseGod({ reading: open.r, subject: open.h.relative })
       .reasons.find(x => x.label.includes('伏於'))!;
 
     expect(blockedReason.score).toBeLessThan(openReason.score);
@@ -171,7 +171,7 @@ describe('用神斷語', () => {
       for (const { upper, lower } of eachHexagram()) {
         const r = readingFor(upper, lower, at);
         for (const h of r.hidden) {
-          const a = judgeUseGod({ reading: r, relative: h.relative, at });
+          const a = judgeUseGod({ reading: r, subject: h.relative, at });
           const hasBreak = a.reasons.some(x => x.label.includes('月破'));
           const shouldBreak = branchesClash(h.branch, r.monthBranch);
           if (hasBreak !== shouldBreak) {
@@ -183,5 +183,94 @@ describe('用神斷語', () => {
       }
     }
     expect(mismatched).toEqual([]);
+  });
+});
+
+describe('世爻為用（自占疾病、出行）', () => {
+  test('取的是世爻，且世爻必在卦中故永無伏神', () => {
+    for (const { upper, lower } of eachHexagram()) {
+      const r = readingFor(upper, lower);
+      const a = judgeUseGod({ reading: r, subject: '世爻' });
+      expect(a.lines.map(l => l.position)).toEqual([r.worldLine]);
+      expect(a.hidden).toBeNull();
+      expect(a.relative).toBe(r.lines[r.worldLine - 1].relative);
+    }
+  });
+
+  test('斷語先講明是誰持世，否則看不出斷的是哪一爻', () => {
+    const r = readingFor(0, 0);
+    const a = judgeUseGod({ reading: r, subject: '世爻' });
+    expect(a.reasons[0].label).toContain('持世');
+    expect(a.reasons[0].score).toBe(0);
+    expect(a.score).toBe(a.reasons.reduce((s, x) => s + x.score, 0));
+  });
+
+  test('忌神持世比同一卦不計喜忌時更差', () => {
+    // 問疾病而官鬼持世，是病纏其身之象；分數必須反映這一點
+    const found = eachHexagram()
+      .map(({ upper, lower }) => readingFor(upper, lower))
+      .find(r => r.lines[r.worldLine - 1].relative === '官鬼')!;
+    expect(found).toBeDefined();
+
+    const plain = judgeUseGod({ reading: found, subject: '世爻' });
+    const withTaboo = judgeUseGod({ reading: found, subject: '世爻', taboo: '官鬼', favorable: '子孫' });
+    expect(withTaboo.score).toBeLessThan(plain.score);
+  });
+
+  test('喜神持世比同一卦不計喜忌時更好', () => {
+    const found = eachHexagram()
+      .map(({ upper, lower }) => readingFor(upper, lower))
+      .find(r => r.lines[r.worldLine - 1].relative === '子孫')!;
+    expect(found).toBeDefined();
+
+    const plain = judgeUseGod({ reading: found, subject: '世爻' });
+    const withFavorable = judgeUseGod({ reading: found, subject: '世爻', taboo: '官鬼', favorable: '子孫' });
+    expect(withFavorable.score).toBeGreaterThan(plain.score);
+  });
+
+  test('喜忌之神只在六親為用時不計持世', () => {
+    // 用神已是某一六親時，「忌神持世」講的是問卜者的處境，不該混進用神的旺衰
+    for (const { upper, lower } of eachHexagram()) {
+      const r = readingFor(upper, lower);
+      const a = judgeUseGod({ reading: r, subject: '妻財', taboo: '兄弟', favorable: '子孫' });
+      expect(a.reasons.some(x => x.label.includes('持世'))).toBe(false);
+    }
+  });
+});
+
+describe('喜忌之神發動', () => {
+  test('同一個動爻不會既算生剋又算喜忌，避免重複計分', () => {
+    const doubled: string[] = [];
+    for (const { upper, lower } of eachHexagram()) {
+      const r = readingFor(upper, lower);
+      for (let movingLine = 1; movingLine <= 6; movingLine++) {
+        const a = judgeUseGod({
+          reading: r, subject: '世爻', movingLine, taboo: '官鬼', favorable: '子孫',
+        });
+        const byElement = a.reasons.some(x => x.label.includes('動而生用神') || x.label.includes('動而剋用神'));
+        const byRole = a.reasons.some(x => x.label.includes('發動，為所問之'));
+        if (byElement && byRole) {
+          doubled.push(`#${poemIdFromTrigrams(upper, lower)} 第${movingLine}爻`);
+        }
+      }
+    }
+    expect(doubled).toEqual([]);
+  });
+
+  test('忌神發動的卦，分數不高於不計喜忌的同一卦', () => {
+    const worse: string[] = [];
+    for (const { upper, lower } of eachHexagram()) {
+      const r = readingFor(upper, lower);
+      for (let movingLine = 1; movingLine <= 6; movingLine++) {
+        const plain = judgeUseGod({ reading: r, subject: '世爻', movingLine });
+        const withRoles = judgeUseGod({
+          reading: r, subject: '世爻', movingLine, taboo: '官鬼',
+        });
+        if (withRoles.score > plain.score) {
+          worse.push(`#${poemIdFromTrigrams(upper, lower)} 第${movingLine}爻`);
+        }
+      }
+    }
+    expect(worse).toEqual([]);
   });
 });

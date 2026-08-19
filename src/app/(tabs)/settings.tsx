@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import type { AppSettings } from '@/services/storage';
+import type { DivinerGender } from '@/services/useGod';
 import { getSettings, saveSettings } from '@/services/storage';
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
@@ -23,6 +24,13 @@ import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
+
+/** 占者性別選項。undefined 為「不指定」——感情問事就不出用神斷語。 */
+const GENDER_OPTIONS: { value: DivinerGender | undefined; labelKey: string }[] = [
+  { value: 'male', labelKey: 'settings.genderMale' },
+  { value: 'female', labelKey: 'settings.genderFemale' },
+  { value: undefined, labelKey: 'settings.genderUnset' },
+];
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -142,6 +150,23 @@ export default function SettingsScreen() {
               <Text style={{ color: theme.textPrimary }}>{settings.userName || t('settings.nameUnset')}</Text>
             </TouchableOpacity>
           )}
+          {/* 占者性別：只用於感情問事的用神取法，男女相反 */}
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.gender')}</Text>
+            <View style={styles.options}>
+              {GENDER_OPTIONS.map(({ value, labelKey }) => (
+                <TouchableOpacity key={labelKey}
+                  style={[styles.option, settings.divinerGender === value && { borderColor: theme.gold }]}
+                  onPress={() => update('divinerGender', value)}
+                  accessibilityLabel={t(labelKey)}>
+                  <Text style={[styles.optionText, settings.divinerGender === value && { color: theme.gold }]}>
+                    {t(labelKey)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <Text style={[styles.note, { color: theme.textMuted }]}>{t('settings.genderNote')}</Text>
         </View>
 
         {/* 主題 & 語言 */}
@@ -358,5 +383,6 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flex: 1, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8,
     fontSize: FontSize.body, marginRight: Spacing.sm,
   },
+  note: { fontSize: FontSize.caption, lineHeight: 18, color: t.textMuted, paddingTop: Spacing.sm },
   syncKeyEditor: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm },
 });

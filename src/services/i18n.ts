@@ -79,6 +79,11 @@ const translations: Record<string, Record<Lang, string>> = {
   'settings.stats': { 'zh-TW': '占卜統計', en: 'Statistics', ja: '統計' },
   'settings.data': { 'zh-TW': '資料管理', en: 'Data Management', ja: 'データ管理' },
   'settings.about': { 'zh-TW': '關於', en: 'About', ja: 'について' },
+  'settings.gender': { 'zh-TW': '占者性別', en: 'Diviner', ja: '占者の性別' },
+  'settings.genderMale': { 'zh-TW': '男', en: 'Male', ja: '男' },
+  'settings.genderFemale': { 'zh-TW': '女', en: 'Female', ja: '女' },
+  'settings.genderUnset': { 'zh-TW': '不指定', en: 'Unset', ja: '未指定' },
+  'settings.genderNote': { 'zh-TW': '僅用於感情問事的用神取法（男占妻財、女占官鬼）。不指定則感情不出用神斷語。', en: 'Used only to pick the use-god for relationship questions (wealth for men, officer for women). Left unset, no judgment is shown for those.', ja: '恋愛問占の用神取りにのみ使用します（男は妻財、女は官鬼）。未指定の場合、恋愛では断を表示しません。' },
   'settings.userName': { 'zh-TW': '用戶名稱', en: 'User Name', ja: 'ユーザー名' },
 
   // 引導
@@ -237,6 +242,8 @@ const translations: Record<string, Record<Lang, string>> = {
 
   // 用神斷語
   'liuyao.verdictTitle': { 'zh-TW': '用神斷語', en: 'Use-God Judgment', ja: '用神の断' },
+  'liuyao.verdictWorld': { 'zh-TW': '世爻（{relative}持世）', en: 'the world line ({relative})', ja: '世爻（{relative}持世）' },
+  'liuyao.useGodGenderHint': { 'zh-TW': '感情問事的用神取法男女相反（男占妻財、女占官鬼）。請先於「設定 → 個人資訊 → 占者性別」指定，才會出用神斷語。', en: 'For relationship questions the use-god depends on the diviner: wealth for men, officer for women. Set it under Settings → Personal Info → Diviner to see a judgment.', ja: '恋愛の用神は占者の性別で逆になります（男は妻財、女は官鬼）。「設定 → 個人情報 → 占者の性別」を指定すると断が表示されます。' },
   'liuyao.verdictLine': { 'zh-TW': '用神{relative}　{verdict}', en: 'Use-god {relative} — {verdict}', ja: '用神{relative}　{verdict}' },
   'liuyao.verdictNote': { 'zh-TW': '以上為規則式加權，逐條列出所採計的條件；非傳統斷語之定論，仍須合看問法與時機。', en: 'A rule-based weighting with every factor listed above. Not an authoritative traditional judgment — the phrasing of the question and its timing still matter.', ja: '上記はルールに基づく加重で、採用した条件をすべて列挙しています。伝統的な断定ではなく、問い方と時機も併せて見る必要があります。' },
 

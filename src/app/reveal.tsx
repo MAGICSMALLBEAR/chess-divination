@@ -19,8 +19,9 @@ import { buildLiuYaoReading } from '@/services/liuyao';
 import { trigramsFromIndex } from '@/services/hexagram';
 import type { DivinationRecord, OutcomeStatus } from '@/services/storage';
 import {
-  getHistory, toggleFavorite, isLegacyRecord, setOutcome, clearOutcome,
+  getHistory, toggleFavorite, isLegacyRecord, setOutcome, clearOutcome, getSettings,
 } from '@/services/storage';
+import type { DivinerGender } from '@/services/useGod';
 import { getPoemById } from '@/data/poems';
 import { playRevealSound, playFavoriteSound } from '@/services/sound';
 import { hapticSuccess } from '@/services/haptics';
@@ -46,6 +47,8 @@ export default function RevealScreen() {
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
+  // 感情問事的用神取法取決於占者性別；設定讀不到就不出斷語
+  const [divinerGender, setDivinerGender] = useState<DivinerGender | undefined>(undefined);
   const shareRef = useRef<ShareCardHandle>(null);
 
   // AI 深度解讀。這是加值內容——取不到時保留下方的規則式解讀，
@@ -72,6 +75,7 @@ export default function RevealScreen() {
 
   useEffect(() => {
     loadRecord();
+    getSettings().then(s => setDivinerGender(s.divinerGender));
     playRevealSound();
     recordUsage();
     // 每次看到籤詩就重算成就。先前沒有任何畫面呼叫 checkAchievements，
@@ -258,6 +262,7 @@ export default function RevealScreen() {
               hourBranch={record.hourBranch}
               castAt={new Date(record.timestamp)}
               questionCategory={record.questionCategory}
+              divinerGender={divinerGender}
             />
           </View>
         ) : record.hexagramName ? (

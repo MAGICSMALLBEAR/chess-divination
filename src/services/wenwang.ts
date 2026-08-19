@@ -15,6 +15,7 @@
 // 判進去只會製造看似精確的雜訊。
 
 import type { NaJiaLine, NaJiaReading, SixRelative, HiddenSpirit } from './najja';
+import type { UseGodSubject } from './useGod';
 import { strengthState, type StrengthState } from './liuyao';
 import { monthBranchContext, seasonOf, SEASON_ELEMENT } from './date';
 
@@ -48,10 +49,13 @@ export type DayRelation =
 export type Verdict = '大吉' | '吉' | '平' | '小凶' | '凶';
 
 export interface UseGodAnalysis {
-  relative: SixRelative;
+  /** 取法：某一六親，或世爻 */
+  subject: UseGodSubject;
+  /** 實際據以論斷之爻的六親；世爻為用時即持世的六親 */
+  relative: SixRelative | null;
   /** 用神在卦中的爻；不上卦時為空陣列 */
   lines: NaJiaLine[];
-  /** 用神不上卦時所伏之處 */
+  /** 用神不上卦時所伏之處（世爻為用時恆為 null，世爻必在卦中） */
   hidden: HiddenSpirit | null;
   /** 實際據以論斷的五行（上卦取卦中爻，不上卦取伏神） */
   element: string | null;
@@ -83,6 +87,10 @@ const SCORE = {
   動爻剋用神: -1,
   回頭生: 2,
   回頭剋: -2,
+  忌神持世: -2,
+  喜神持世: 1,
+  忌神發動: -1,
+  喜神發動: 1,
 } as const;
 
 function dayRelationOf(useElement: string, useBranch: string, dayBranch: string): DayRelation {
@@ -111,38 +119,59 @@ export interface JudgeParams {
   changed?: NaJiaReading | null;
   /** 動爻爻位 1–6 */
   movingLine?: number;
-  relative: SixRelative;
+  /** 用神取法：六親或世爻 */
+  subject: UseGodSubject;
+  /** 該類問事的助事之神；持世或發動時加分 */
+  favorable?: SixRelative;
+  /** 該類問事的壞事之神；持世或發動時扣分 */
+  taboo?: SixRelative;
   at?: Date;
 }
 
 /**
  * 取定用神並權衡其處境。
  *
- * 用神上卦時取卦中該六親之爻（多爻並見則取最先出現者，並在 reasons 註明）；
- * 不上卦則改看伏神，並依飛伏關係扣分——伏而不出本就是「事情起不來」之象。
+ * 六親為用時，用神上卦則取卦中該六親之爻（多爻並見則取最先出現者，並在
+ * reasons 註明）；不上卦則改看伏神，並依飛伏關係扣分——伏而不出本就是
+ * 「事情起不來」之象。
+ *
+ * 世爻為用時（自占疾病、出行）不會有伏神：世爻必在卦中。
  */
 export function judgeUseGod({
-  reading, changed, movingLine, relative, at = new Date(),
+  reading, changed, movingLine, subject, favorable, taboo, at = new Date(),
 }: JudgeParams): UseGodAnalysis {
-  const lines = reading.lines.filter(line => line.relative === relative);
-  const hidden = lines.length === 0
-    ? reading.hidden.find(h => h.relative === relative) ?? null
+  const byWorld = subject === '世爻';
+  const lines = byWorld
+    ? reading.lines.filter(line => line.isWorld)
+    : reading.lines.filter(line => line.relative === subject);
+  const hidden = lines.length === 0 && !byWorld
+    ? reading.hidden.find(h => h.relative === subject) ?? null
     : null;
 
-  const subject = lines[0] ?? null;
-  const element = subject?.element ?? hidden?.element ?? null;
-  const branch = subject?.branch ?? hidden?.branch ?? null;
+  const subjectLine = lines[0] ?? null;
+  const relative = subjectLine?.relative ?? hidden?.relative ?? null;
+  const element = subjectLine?.element ?? hidden?.element ?? null;
+  const branch = subjectLine?.branch ?? hidden?.branch ?? null;
 
   const reasons: { label: string; score: number }[] = [];
 
   if (!element || !branch) {
-    // 理論上不會發生：八純卦六支涵蓋五行，任何六親都找得到伏神
+    // 理論上不會發生：八純卦六支涵蓋五行，任何六親都找得到伏神；
+    // 世爻為用時世爻必在卦中
     return {
-      relative, lines, hidden, element: null,
+      subject, relative, lines, hidden, element: null,
       monthState: null, dayRelation: null,
       reasons: [{ label: '用神不上卦且無伏神可取', score: 0 }],
       score: 0, verdict: '平',
     };
+  }
+
+  // ── 世爻為用：先講明是誰持世，否則使用者看不出斷的是哪一爻 ──
+  if (byWorld && subjectLine) {
+    reasons.push({
+      label: `自占以世爻為用神，世在${subjectLine.position}爻${subjectLine.stemBranch}（${subjectLine.relative}持世）`,
+      score: 0,
+    });
   }
 
   // ── 月建旺衰 ──
@@ -157,10 +186,10 @@ export function judgeUseGod({
 
   // ── 空亡與月破 ──
   // 上卦與伏神一視同仁：伏神落空亡、逢月破同樣是「事起不來」之象
-  if (subject?.isVoid || (hidden && reading.voidBranches.includes(hidden.branch))) {
+  if (subjectLine?.isVoid || (hidden && reading.voidBranches.includes(hidden.branch))) {
     reasons.push({ label: `用神${branch}落${reading.xun}空亡`, score: SCORE.空亡 });
   }
-  const isMonthBroken = subject?.isMonthBroken
+  const isMonthBroken = subjectLine?.isMonthBroken
     ?? (hidden ? BRANCH_OPPOSITES[hidden.branch] === reading.monthBranch : false);
   if (isMonthBroken) {
     reasons.push({ label: `用神${branch}逢月建${reading.monthBranch}沖，為月破`, score: SCORE.月破 });
@@ -175,16 +204,40 @@ export function judgeUseGod({
     });
   }
 
+  // ── 喜忌之神持世 ──
+  // 只在世爻為用時判：用神已是某一六親時，「忌神持世」講的是問卜者的處境，
+  // 與用神本身的旺衰不在同一層，混進同一個分數會失焦。
+  if (byWorld && subjectLine) {
+    if (taboo && subjectLine.relative === taboo) {
+      reasons.push({ label: `${taboo}持世，所問之患纏身`, score: SCORE.忌神持世 });
+    } else if (favorable && subjectLine.relative === favorable) {
+      reasons.push({ label: `${favorable}持世，助事之神在己`, score: SCORE.喜神持世 });
+    }
+  }
+
   // ── 動爻對用神的生剋 ──
   if (movingLine !== undefined) {
     const mover = reading.lines[movingLine - 1];
-    const isUseGodMoving = subject?.position === movingLine;
+    const isUseGodMoving = subjectLine?.position === movingLine;
 
     if (mover && !isUseGodMoving) {
-      if (GENERATES[mover.element] === element) {
+      const generatesUseGod = GENERATES[mover.element] === element;
+      const overcomesUseGod = OVERCOMES[mover.element] === element;
+
+      if (generatesUseGod) {
         reasons.push({ label: `${movingLine}爻${mover.relative}${mover.stemBranch}動而生用神`, score: SCORE.動爻生用神 });
-      } else if (OVERCOMES[mover.element] === element) {
+      } else if (overcomesUseGod) {
         reasons.push({ label: `${movingLine}爻${mover.relative}${mover.stemBranch}動而剋用神`, score: SCORE.動爻剋用神 });
+      }
+
+      // 喜忌之神發動。這與上面的五行生剋是同一件事的兩種說法，
+      // 生剋已經計過分就不再計一次——同一個動作不該扣兩次分。
+      if (!generatesUseGod && !overcomesUseGod) {
+        if (taboo && mover.relative === taboo) {
+          reasons.push({ label: `${movingLine}爻${taboo}發動，為所問之忌神`, score: SCORE.忌神發動 });
+        } else if (favorable && mover.relative === favorable) {
+          reasons.push({ label: `${movingLine}爻${favorable}發動，為所問之喜神`, score: SCORE.喜神發動 });
+        }
       }
     }
 
@@ -201,13 +254,13 @@ export function judgeUseGod({
     }
   }
 
-  if (lines.length > 1) {
-    reasons.push({ label: `用神${relative}兩現，取${subject!.position}爻為主`, score: 0 });
+  if (!byWorld && lines.length > 1) {
+    reasons.push({ label: `用神${subject}兩現，取${subjectLine!.position}爻為主`, score: 0 });
   }
 
   const score = reasons.reduce((sum, r) => sum + r.score, 0);
   return {
-    relative, lines, hidden, element,
+    subject, relative, lines, hidden, element,
     monthState, dayRelation,
     reasons, score,
     verdict: verdictFromScore(score),

@@ -7,6 +7,7 @@ import type { Poem } from '@/data/poems';
 import { todayString } from './date';
 import { DIVINATION_ENGINE_VERSION } from './divination';
 import { FolderColors } from '@/constants/theme';
+import type { DivinerGender } from './useGod';
 
 // ====== Keys ======
 
@@ -101,6 +102,11 @@ export interface AppSettings {
   currentStreak?: number;
   unlockedAchievements?: string[];
   customCategories?: CustomCategory[];
+  /**
+   * 占者性別。只用於感情問事的用神取法（男占以妻財、女占以官鬼，取法相反）。
+   * 未設定時感情不出用神斷語——取反的用神比沒有用神更誤導。
+   */
+  divinerGender?: DivinerGender;
 }
 
 /** 使用者自訂問事類別 */
