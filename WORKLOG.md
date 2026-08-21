@@ -4,14 +4,14 @@
 
 | 項目 | 數值 |
 |------|------|
-| 原始碼檔案 | 86 個 |
-| Git Commits | 62 次 |
+| 原始碼檔案 | 111 個 |
+| Git Commits | 63 次 |
 | Jest 測試 | 567 個 · 33 套件 · 全部通過 |
 | E2E 測試 | 86 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 14 個 |
-| 元件 | 18 個 |
-| Hooks | 11 個 |
+| 元件 | 19 個 |
+| Hooks | 12 個 |
 | 服務 | 25 個 |
 | 籤詩 | 64 首七言絕句 |
 | 起卦引擎 | v3（六爻：本卦／變卦／互卦／體用） |
@@ -954,6 +954,40 @@ TS 零錯誤 · Jest 567 全過（33 suites）· E2E 86 全過 · 截圖 24 張�
 
 ---
 
+## Session 28 — 部署上線與文件校正（8/22）
+
+收尾這輪唯一還動得到的待辦：把 Session 25–27 的程式推到線上，
+順帶清掉幾個過期文件。
+
+### 部署
+
+`npx vercel --prod`（本機 CLI 已有登入）重推後，驗證 live bundle
+確實含新代碼——用 Session 26 的字串標記（暗動、化進神、合局）逐一
+比對。`api/interpret` 上線正常，未設 `DEEPSEEK_API_KEY` 時回 501、
+前端照舊降級規則式解讀，符合設計。
+
+### 驗證過程的教訓
+
+線上 bundle 的中文全部編碼成字面 `\uXXXX`，用 grep 查標記字串時
+`\u` 會被 GNU grep 的 BRE 摺疊掉、MSYS 對原生 Python 的引數轉換又會
+吃掉反斜線——兩層加在一起讓「線上是舊版」的假結論通過了三次檢查。
+最後改用檔案型 Python 腳本、raw string 比對才一次命中。**在 Windows
+上用 shell 查 Unicode escape 一律走腳本，不要 inline。**
+
+### 文件校正
+
+- 專案總覽數字與實際同步：原始碼檔案 86 → 111、元件 18 → 19、
+  Hooks 11 → 12（Session 26/27 新增檔未計入）
+- DEVELOPMENT_PLAN 的「尚未處理」段落更新：棋盤重複選子限制與
+  字體子集化都已做完，僅剩寬螢幕雙欄佈局（產品決策）
+
+### Session 28 總結
+
+E2E 86 重跑全過。線上 = 最新程式，13 項技術面／可自辦的待辦至此全數
+清空；餘 Vercel 金鑰、實機測試、上架帳號、域名等外部資源項目。
+
+---
+
 ## 功能完整清單
 
 ### 占卜核心
@@ -1012,7 +1046,7 @@ TS 零錯誤 · Jest 567 全過（33 suites）· E2E 86 全過 · 截圖 24 張�
 
 | # | 待辦 | 優先度 | 備註 |
 |---|------|--------|------|
-| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/16 push `aa1910a`，線上回應 200）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`，加完再驗證 `api/interpret` |
+| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/22 重推，live bundle 已含 Session 26 標記，`api/interpret` 上線回 501 待金鑰）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`，加完再驗證 `api/interpret` |
 | 2 | ~~**單元測試覆蓋率補強**~~ ✅ | 🟢 已完成 | 265 → 536，31 套件全過（8/16） |
 | 3 | **iOS/Android 實機測試** | 🟡 中 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端觸覺、字體、手勢 |
 | 4 | **EAS Build 原生測試** | 🟢 低 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
@@ -1061,3 +1095,4 @@ TS 零錯誤 · Jest 567 全過（33 suites）· E2E 86 全過 · 截圖 24 張�
 | Session 25 | 用神擴充至感情／健康／出行（測試 549、E2E 86） | 8/19 |
 | Session 26 | 文王卦進階條件：進退神／暗動／三合局（測試 564） | 8/19 |
 | Session 27 | 原生端書法字體子集化（測試 567） | 8/19 |
+| Session 28 | 部署上線驗證 + 文件校正（E2E 86） | 8/22 |
