@@ -1,11 +1,19 @@
 // 備份資料分析 — 案例歷史整理 + 統計分析報告
 //
-// 用法：
-//   npx tsx scripts/analyze-backup.ts <備份檔.json> > 報告.md
+// 用法（可吃多個備份檔，例如網頁一份＋手機一份）：
+//   npx tsx scripts/analyze-backup.ts 網頁.json 手機.json > 報告.md
+//
+// 多檔合併語意與 App 雲端同步一致：依記錄 id 去重、先出現者優先、
+// 按時間排序。每個檔的「新增筆數」會寫進報告，方便看出哪台裝置
+// 有另一台沒有的案例。
 //
 // 統計口徑與 App 統計頁完全一致：直接引用 verification.ts 的函式，
 // 不另起一套算法——否則報告與畫面數字對不上，反而製造困惑。
 // 卦象衍生維度（體用／動爻／時令）同樣只算引擎 v2 以上的記錄。
+
+/// <reference types="node" />
+// TS 6 不再自動收錄 @types/node（Expo 的 process 型別來自 expo/types，
+// 不是 node），但這支腳本要讀本地備份檔，得明確拉進 node 型別。
 
 import fs from 'fs';
 import {
@@ -72,16 +80,36 @@ function breakdownTable(b: ReturnType<typeof accuracyByCategory>): string {
 }
 
 function main(): void {
-  const path = process.argv[2];
-  if (!path) {
-    console.error('用法: npx tsx scripts/analyze-backup.ts <備份檔.json>');
+  const paths = process.argv.slice(2);
+  if (paths.length === 0) {
+    console.error('用法: npx tsx scripts/analyze-backup.ts <備份檔.json> [更多備份檔.json...]');
     process.exit(1);
   }
-  const backup = JSON.parse(fs.readFileSync(path, 'utf-8'));
-  const records: DivinationRecord[] =
-    backup?.data?.['@chess_divination_history'] ?? [];
-  if (!Array.isArray(records) || records.length === 0) {
-    console.error('備份檔裡找不到占卜歷史（@chess_divination_history）');
+
+  // 多檔合併：依 id 去重、先出現者優先（與 App 雲端同步 mergeHistories 一致）
+  const perSource: { path: string; added: number }[] = [];
+  const seen = new Set<string>();
+  const records: DivinationRecord[] = [];
+  for (const path of paths) {
+    const backup = JSON.parse(fs.readFileSync(path, 'utf-8'));
+    const list: unknown[] = backup?.data?.['@chess_divination_history'] ?? [];
+    if (!Array.isArray(list)) {
+      console.error(`${path}：備份檔裡找不到占卜歷史（@chess_divination_history）`);
+      process.exit(1);
+    }
+    let added = 0;
+    for (const item of list) {
+      if (!item || typeof item !== 'object' || typeof (item as { id?: unknown }).id !== 'string') continue;
+      const id = (item as { id: string }).id;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      records.push(item as DivinationRecord);
+      added++;
+    }
+    perSource.push({ path, added });
+  }
+  if (records.length === 0) {
+    console.error('合併後沒有任何占卜記錄');
     process.exit(1);
   }
   records.sort((a, b) => a.timestamp - b.timestamp);
@@ -136,6 +164,10 @@ function main(): void {
   lines.push(`- 已回填：${acc.verified} 則 · 未回填：${acc.unverified} 則 · 回填率：${Math.round(acc.verified / records.length * 100)}%`);
   lines.push(`- 加權應驗率：${pct(acc.rate)}（應驗 1 分、部分 0.5 分、未驗 0 分）`);
   lines.push(`- 回填延遲中位數：${medianVerifyDelay(records) ?? '—'} 天（占卜後多久才回填）`);
+  lines.push(`- 資料來源（多檔已依 id 去重，先出現者優先）：`);
+  for (const s of perSource) {
+    lines.push(`  - \`${s.path}\` 新增 ${s.added} 則`);
+  }
   lines.push('');
 
   lines.push('## 二、案例歷史（依時間排序）');
