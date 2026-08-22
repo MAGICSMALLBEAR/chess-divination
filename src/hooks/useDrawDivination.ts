@@ -1,7 +1,7 @@
 // 抽棋模式狀態機 Hook
 // 管理整個抽棋流程的狀態轉換
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import type { ChessPiece } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
@@ -45,42 +45,7 @@ export function useDrawDivination() {
     setDrawSummary(summary);
   }, []);
 
-  // 儲存並前往結果頁
-  const goToResult = useCallback(async () => {
-    if (!selectedPoem || drawnPieces.length === 0) return;
-
-    // 儲存到歷史記錄
-    const record = recordFromDivination(
-      selectedPoem,
-      drawnPieces,
-      'draw',
-      questionCategory,
-      questionText,
-      undefined,
-      hexagram
-        ? {
-            name: hexagram.name,
-            index: hexagram.index,
-            movingLine: hexagram.movingLine,
-            hourBranch: hexagram.hourBranch,
-          }
-        : undefined,
-    );
-    const saved = await addHistory(record);
-    void scheduleVerificationReminder(saved);
-    setStep('result');
-
-    // 導航到 reveal 頁面
-    router.push({
-      pathname: '/reveal',
-      params: {
-        recordId: saved.id,
-        mode: 'draw',
-      },
-    });
-  }, [selectedPoem, drawnPieces, questionCategory, questionText, hexagram, router]);
-
-  // 重置
+  // 重置（宣告在 goToResult 之前——其相依陣列會用到它）
   const reset = useCallback(() => {
     setStep('select-count');
     setDrawnPieces([]);
@@ -88,6 +53,52 @@ export function useDrawDivination() {
     setHexagram(null);
     setDrawSummary('');
   }, []);
+
+  // in-flight 防護：連點揭示會在 addHistory 的 read-modify-write
+  // 交錯時互相覆蓋（一筆記錄遺失、reveal 頁找不到 recordId 卡死）
+  const savingRef = useRef(false);
+
+  // 儲存並前往結果頁
+  const goToResult = useCallback(async () => {
+    if (savingRef.current || !selectedPoem || drawnPieces.length === 0) return;
+    savingRef.current = true;
+    try {
+      // 儲存到歷史記錄
+      const record = recordFromDivination(
+        selectedPoem,
+        drawnPieces,
+        'draw',
+        questionCategory,
+        questionText,
+        undefined,
+        hexagram
+          ? {
+              name: hexagram.name,
+              index: hexagram.index,
+              movingLine: hexagram.movingLine,
+              hourBranch: hexagram.hourBranch,
+            }
+          : undefined,
+      );
+      const saved = await addHistory(record);
+      void scheduleVerificationReminder(saved);
+      setStep('result');
+
+      // 導航到 reveal 頁面
+      router.push({
+        pathname: '/reveal',
+        params: {
+          recordId: saved.id,
+          mode: 'draw',
+        },
+      });
+      // 導航後重設：從 reveal 返回時回到選擇畫面，而不是卡在
+      // 「正在為您解讀…」的死畫面
+      reset();
+    } finally {
+      savingRef.current = false;
+    }
+  }, [selectedPoem, drawnPieces, questionCategory, questionText, hexagram, router, reset]);
 
   return {
     step,

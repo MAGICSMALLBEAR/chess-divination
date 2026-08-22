@@ -5,6 +5,10 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThemeProvider } from '@/hooks/useAppTheme';
+import { getSettings } from '@/services/storage';
+import { setLang } from '@/services/i18n';
+import { setSoundEnabled } from '@/services/sound';
+import { setHapticEnabled } from '@/services/haptics';
 
 export {
   ErrorBoundary,
@@ -23,6 +27,15 @@ export default function RootLayout() {
   useEffect(() => {
     // 不再阻塞在無用的 SpaceMono 英文字體載入上
     SplashScreen.hideAsync();
+    // 語言／音效／觸覺都是模組記憶體狀態——不在此回讀，
+    // 使用者存過的設定在重開後會靜默回到預設值
+    getSettings()
+      .then(s => {
+        if (s.lang) setLang(s.lang);
+        setSoundEnabled(s.soundEnabled);
+        setHapticEnabled(s.hapticEnabled);
+      })
+      .catch(() => {});
   }, []);
 
   return (

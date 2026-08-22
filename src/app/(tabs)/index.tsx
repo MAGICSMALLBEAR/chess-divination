@@ -10,6 +10,7 @@ import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
 import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
+import { shareNative, copyToClipboard } from '@/services/socialShare';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -89,8 +90,13 @@ export default function HomeScreen() {
               <TouchableOpacity onPress={() => {
                 if (!dailyFortune) return;
                 const text = `${t('home.daily')}：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n${t('home.luckyPiece')}：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n${t('home.luckyDir')}：${dailyFortune.luckyDirection}\n${t('home.luckyNum')}：${dailyFortune.luckyNumber}\n${t('home.luckyColor')}：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
-                try { navigator.share?.({ title: `${t('home.title')} - ${t('home.todayFortune')}`, text }); } catch { console.warn(t('home.shareFailed')); }
-                try { navigator.clipboard?.writeText(text); } catch { console.warn(t('home.copyFailed')); }
+                // 原生與 Web 共用同一條分享鏈（與 reveal 頁一致）：
+                // 之前直接取 navigator.share/clipboard，原生端兩者皆無，
+                // 且未 await 的 share 被取消時 rejection 無人接
+                void (async () => {
+                  const ok = await shareNative({ title: `${t('home.title')} - ${t('home.todayFortune')}`, text });
+                  if (!ok) await copyToClipboard(text);
+                })();
               }}>
                 <Icon name="share" size={18} color={theme.textSecondary} />
               </TouchableOpacity>

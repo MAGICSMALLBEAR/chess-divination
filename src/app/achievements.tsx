@@ -43,7 +43,8 @@ export default function AchievementsScreen() {
 
   const unlocked = achievements.filter(a => a.unlocked).length;
   const total = achievements.length;
-  const pct = Math.round((unlocked / total) * 100);
+  // 資料載入完成前 total 為 0，直接相除會短暫顯示 NaN%
+  const pct = total === 0 ? 0 : Math.round((unlocked / total) * 100);
 
   // 成就圖示從 emoji 字串 → IconName 的對映
   function achievementIcon(emoji: string): IconName {

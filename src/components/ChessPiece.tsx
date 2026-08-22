@@ -36,38 +36,47 @@ export default function ChessPiece({
   const isRed = piece.color === 'red';
   const pieceInk = isRed ? theme.pieceRed : theme.pieceBlack;
 
-  // 只在可拖曳時建立 PanResponder
-  const panResponder = useRef(
-    draggable
-      ? PanResponder.create({
-          onStartShouldSetPanResponder: () => true,
-          onMoveShouldSetPanResponder: () => true,
-          onPanResponderGrant: () => {
-            isDragging.current = false;
-            pan.setOffset({ x: 0, y: 0 });
-            pan.setValue({ x: 0, y: 0 });
-          },
-          onPanResponderMove: (_, gesture: PanResponderGestureState) => {
-            if (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5) {
-              isDragging.current = true;
-            }
-            Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(_, gesture);
-          },
-          onPanResponderRelease: (_, gesture) => {
-            pan.flattenOffset();
-            if (isDragging.current && onDragEnd) {
-              onDragEnd(piece, gesture.moveX, gesture.moveY);
-            } else if (!isDragging.current && onPress) {
-              onPress(piece);
-            }
-            Animated.spring(pan, {
-              toValue: { x: 0, y: 0 },
-              useNativeDriver: false,
-            }).start();
-          },
-        })
-      : null
-  ).current;
+  // PanResponder 只在首次 render 建立，若閉包直接抓 onDragEnd/onPress 的
+  // prop，之後的 re-render 永遠拿不到新函式——例如拖曳放子會閉包到首渲
+  // 的 placePieceOnBoard（其 selectedPiece 還是 null），拖曳落子全程無效。
+  // 這裡用 ref 保存最新回呼，PanResponder 本體只建一次。
+  const onDragEndRef = useRef(onDragEnd);
+  const onPressRef = useRef(onPress);
+  onDragEndRef.current = onDragEnd;
+  onPressRef.current = onPress;
+
+  // 一律建立（不再以 draggable 條件化）：棋子可能在後續 render 才變為
+  // 可拖曳（例如棋盤上移除棋子後），條件化建立會讓它永遠沒有手勢處理器。
+  const panResponder = useRef<ReturnType<typeof PanResponder.create> | null>(null);
+  if (panResponder.current === null) {
+    panResponder.current = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        isDragging.current = false;
+        pan.setOffset({ x: 0, y: 0 });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_, gesture: PanResponderGestureState) => {
+        if (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5) {
+          isDragging.current = true;
+        }
+        Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(_, gesture);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        pan.flattenOffset();
+        if (isDragging.current && onDragEndRef.current) {
+          onDragEndRef.current(piece, gesture.moveX, gesture.moveY);
+        } else if (!isDragging.current && onPressRef.current) {
+          onPressRef.current(piece);
+        }
+        Animated.spring(pan, {
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: false,
+        }).start();
+      },
+    });
+  }
 
   // 棋子圓形主體
   const pieceBody = (
@@ -100,7 +109,7 @@ export default function ChessPiece({
   );
 
   // 可拖曳時：用 PanResponder 包裝
-  if (draggable && panResponder) {
+  if (draggable && panResponder.current) {
     return (
       <Animated.View
         style={[
@@ -113,7 +122,7 @@ export default function ChessPiece({
           },
           style,
         ]}
-        {...panResponder.panHandlers}
+        {...panResponder.current.panHandlers}
       >
         {pieceBody}
       </Animated.View>

@@ -62,7 +62,12 @@ export default function SettingsScreen() {
 
   async function handleBackup() {
     const result = await backupData();
-    if (result) Alert.alert(t('settings.backupOk'), t('settings.backupOkDesc'));
+    if (result) {
+      Alert.alert(
+        t('settings.backupOk'),
+        result === 'copied' ? t('settings.backupOkClipboard') : t('settings.backupOkDesc'),
+      );
+    }
   }
 
   async function checkReminder() {
@@ -195,7 +200,11 @@ export default function SettingsScreen() {
               {LANG_OPTIONS.map((opt) => (
                 <TouchableOpacity key={opt.key}
                   style={[styles.option, lang === opt.key && { borderColor: theme.gold }]}
-                  onPress={() => setLang(opt.key)}>
+                  onPress={() => {
+                    // 語言是模組記憶體狀態，不寫進 settings 的話重開就歸零
+                    setLang(opt.key);
+                    update('lang', opt.key);
+                  }}>
                   <Text style={[styles.optionText, lang === opt.key && { color: theme.gold }]}>
                     {opt.label}
                   </Text>
@@ -282,7 +291,11 @@ export default function SettingsScreen() {
               <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.backup')}</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={handleCloudSync}>
+          <TouchableOpacity
+            style={[styles.row, syncing && { opacity: 0.5 }]}
+            onPress={handleCloudSync}
+            disabled={syncing}
+          >
             <View style={styles.optionInner}>
               <Icon name="refresh" size={16} color={syncing ? theme.gold : theme.textSecondary} />
               <Text style={[styles.label, { color: theme.textSecondary }]}>

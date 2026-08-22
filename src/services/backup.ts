@@ -1,11 +1,14 @@
 // 備份還原服務
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 import { toLocalDateString } from './date';
 
 const BACKUP_KEYS = [
   '@chess_divination_history',
   '@chess_divination_favorites',
   '@chess_divination_settings',
+  // 墓碑也要備份：還原後雲端同步才不會把已刪的記錄復活
+  '@chess_divination_deleted',
 ] as const;
 
 const BACKUP_VERSION = 1;
@@ -81,8 +84,11 @@ export async function backupData(): Promise<string | null> {
       return 'downloaded';
     }
 
-    // Native: clipboard fallback
-    return json;
+    // 原生：複製到剪貼簿。之前這裡只回傳字串而沒有任何實際動作，
+    // 設定頁卻因為 truthy 回傳值提示「備份成功」——使用者以為有備份，
+    // 其實什麼都沒產生。
+    await Clipboard.setStringAsync(json);
+    return 'copied';
   } catch (e) {
     console.warn('備份失敗:', e);
     return null;

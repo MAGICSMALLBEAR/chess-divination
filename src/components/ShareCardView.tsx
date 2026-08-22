@@ -49,7 +49,7 @@ interface ShareCardViewProps {
   bodyUseRelation?: string;
 }
 
-export interface ShareCardHandle { share: () => Promise<void>; }
+export interface ShareCardHandle { share: () => Promise<boolean>; }
 
 const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
   function ShareCardView(props, ref) {
@@ -57,16 +57,23 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
     const { t } = useI18n();
 
     useImperativeHandle(ref, () => ({
+      // 回傳「是否真的分享出去」。Web 端 view-shot 擷取或系統分享任一
+      // 不可用時回傳 false，讓呼叫端（reveal.tsx）走文字分享降級鏈。
+      // 過去這裡把錯誤全吞掉又不回傳狀態，降級鏈成了永遠走不到的死碼。
       share: async () => {
         try {
           const uri = await viewShotRef.current?.capture?.();
-          if (uri && (await Sharing.isAvailableAsync())) {
-            await Sharing.shareAsync(uri, {
-              mimeType: 'image/png',
-              dialogTitle: `${t('home.title')} - ${t('share.title')}`,
-            });
-          }
-        } catch { console.warn(t('share.captureFailed')); }
+          if (!uri) return false;
+          if (!(await Sharing.isAvailableAsync())) return false;
+          await Sharing.shareAsync(uri, {
+            mimeType: 'image/png',
+            dialogTitle: `${t('home.title')} - ${t('share.title')}`,
+          });
+          return true;
+        } catch {
+          console.warn(t('share.captureFailed'));
+          return false;
+        }
       },
     }));
 
@@ -213,13 +220,14 @@ function PaperTexture() {
           strokeOpacity={0.5}
         />
       ))}
-      {/* 角落裝飾：梅花斑點 */}
+      {/* 角落裝飾：梅花斑點。半徑由 index 決定性推導——render 期間的
+          Math.random 會造成伺服器預渲染與客戶端 hydration 不一致 */}
       {Array.from({ length: 5 }).map((_, i) => (
         <Circle
           key={`dot-${i}`}
           cx={340 + Math.sin(i) * 30}
           cy={20 + i * 120}
-          r={1.5 + Math.random() * 2}
+          r={1.5 + (((i * 137.508) % 360) / 180)}
           fill={P.gold}
           opacity={0.3}
         />

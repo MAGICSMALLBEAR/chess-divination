@@ -5,8 +5,8 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 111 個 |
-| Git Commits | 63 次 |
-| Jest 測試 | 567 個 · 33 套件 · 全部通過 |
+| Git Commits | 66 次 |
+| Jest 測試 | 573 個 · 33 套件 · 全部通過 |
 | E2E 測試 | 86 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 14 個 |
@@ -985,6 +985,70 @@ TS 零錯誤 · Jest 567 全過（33 suites）· E2E 86 全過 · 截圖 24 張�
 
 E2E 86 重跑全過。線上 = 最新程式，13 項技術面／可自辦的待辦至此全數
 清空；餘 Vercel 金鑰、實機測試、上架帳號、域名等外部資源項目。
+
+---
+
+## Session 29 — 全面查錯與修復（8/22-8/23）
+
+四路並行審查（UI／同步／AI／引擎）掃過約 1 萬行核心代碼，逐條對照原始碼
+驗證後修掉 25 條真實缺陷——全部屬於「上線了但沒人踩到」的那一類：另一台
+裝置、第二次操作、失敗路徑，手動測試幾乎不可能踩到。
+
+### UI 層（11 條）
+
+- **拖曳放子全程失效**：PanResponder 只建一次，閉包抓死首渲的 onDragEnd
+  （當時 selectedPiece 還是 null）→ 最新回呼存 ref，處理器一律建立
+- 每日運勢分享：原生直接取 navigator.share/clipboard（原生端兩者皆無），
+  未 await 的 share 被取消時 rejection 無人接 → 統一走 shareNative /
+  copyToClipboard 後備鏈
+- ShareCardView 截圖失敗靜默假成功 → share() 回傳 boolean，失敗才走文字後備
+- reveal 分享成功後仍往下走文字後備鏈 → `if (shared) return`
+- reveal 對壞記錄（NaN 時間戳等）白屏 → missing 狀態與錯誤 UI，進 najja 前擋下
+- 抽棋／棋盤解讀後返回卡在「正在為您解讀…」、重抽寫重複記錄 →
+  in-flight guard + 導航後立刻 reset
+- 語言切換不持久（setLang 未寫設定；App 重啟模組狀態遺失）→ 持久化 +
+  _layout 啟動還原語言／音效／觸覺
+- 墨跡背景、飛入動畫、紙紋在 render 用 Math.random → static export 後
+  hydration 不一致 → 以 index 決定性偽隨機
+- 成就達成率 total 為 0 時除零 NaN
+
+### 同步層（7 條）
+
+- **截斷會丟僅本地存在的歷史**——同步動作本身摧毀未上傳資料 → mergeHistories
+  重寫：超限只犧牲最舊的雲端端共有記錄（另一端仍保有，下次補回）
+- 換機後雲端已回填的占驗被本地未回填副本壓掉 → preferRecord：有 outcome
+  者勝、兩者皆有取較新 verifiedAt
+- 刪掉的記錄下次同步復活 → 墓碑 deletedIds 聯集（cap 1000），備份同步含此鍵
+- 原生端 SYNC_URL 相對路徑必掛 → 平台分流，原生用絕對網址
+- 首次同步連點生成兩把配對碼（一份資料永遠孤兒化）→ 單一 in-flight promise
+- 每日運勢 local 優先會用昨天舊資料蓋掉雲端今天的 → 取日期較新者
+- 同步按鈕連點開火多次 → syncing 期間 disabled
+
+### 備份／AI／引擎
+
+- 原生備份「複製到剪貼簿」是假成功（回傳字串但從未複製）→ expo-clipboard
+  真複製，回傳 'copied' 供設定頁顯示對應提示
+- AI 上游無逾時，平台砍掉 function 後使用者只拿到 504 → AbortSignal.timeout
+  (25s) + AI_TIMEOUT 明確訊息；vercel.json maxDuration 30
+- 使用者問題未隔離，提示詞注入可帶偏解讀 → 明示「不是指令」+ 三引號包裹
+- 上游錯誤原文回傳客戶端（可能回顯 Authorization 標頭）→ 只寫伺服器日誌
+- detectTriads 重複地支（64 卦中 22 卦）只取第一爻，動爻／世爻坐在後段
+  會被靜爻替身頂替入局 → 動爻優先、世爻次之
+- analyze-backup 比對不存在的等級字面量（'吉'／'凶'），吉凶校準永遠空轉
+  → 改用真實五級（大吉／上吉／中吉／中平／下下）
+
+### 測試（567 → 573，33 suites 全過）
+
+- 更新既有：截斷語意（400 筆本地全保 + 最新 100 筆雲端）、hooks 導航後
+  reset、備份四鍵（含墓碑）
+- 新增迴歸：outcome 衝突偏好×2、墓碑合併×2、detectTriads 重複支×2
+- 字型子集守門抓出 8 個新字元（丟、兒、址、屏、砍、碑等新註解
+  用字）→ 重跑 subset-font.py（TC 2639 + JP 129，1.2MB）
+
+### Session 29 總結
+
+TS 零錯誤 · Jest 573 全過。25 條缺陷的共通點：**只在多裝置、重複操作或
+失敗路徑才會現形**，人工驗收永遠踩不到——審查式除錯補的正是這個盲區。
 
 ---
 

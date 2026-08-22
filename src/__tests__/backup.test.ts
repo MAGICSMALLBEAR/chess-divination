@@ -25,6 +25,7 @@ import { buildBackup, parseBackup, applyBackup } from '../services/backup';
 const HISTORY = '@chess_divination_history';
 const FAVORITES = '@chess_divination_favorites';
 const SETTINGS = '@chess_divination_settings';
+const DELETED = '@chess_divination_deleted';
 
 beforeEach(() => {
   mockStore.clear();
@@ -39,9 +40,9 @@ describe('產生備份', () => {
     expect(Number.isNaN(Date.parse(b.date))).toBe(false);
   });
 
-  test('備份涵蓋歷史／收藏／設定三個鍵', async () => {
+  test('備份涵蓋歷史／收藏／設定／刪除墓碑四個鍵', async () => {
     const b = await buildBackup();
-    expect(Object.keys(b.data).sort()).toEqual([HISTORY, FAVORITES, SETTINGS].sort());
+    expect(Object.keys(b.data).sort()).toEqual([HISTORY, FAVORITES, SETTINGS, DELETED].sort());
   });
 
   test('空儲存時各鍵為 null 而非拋錯', async () => {

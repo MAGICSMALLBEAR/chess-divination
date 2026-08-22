@@ -138,11 +138,13 @@ function main(): void {
   const improving = early.rate !== null && late.rate !== null
     ? late.rate - early.rate : null;
 
-  // ── 吉凶校準：吉組（大吉／吉）vs 凶組（凶／小凶）──
+  // ── 吉凶校準：吉組（大吉／上吉／中吉）vs 凶組（下下），中平不計 ──
+  // 籤詩等級只有這五種（見 data/poems.ts），比對 '吉'／'凶' 等不存在
+  // 的字面量會讓整段校準永遠不輸出。
   const isLucky = (r: DivinationRecord) =>
-    r.poemLevel === '大吉' || r.poemLevel === '吉';
+    r.poemLevel === '大吉' || r.poemLevel === '上吉' || r.poemLevel === '中吉';
   const isUnlucky = (r: DivinationRecord) =>
-    r.poemLevel === '凶' || r.poemLevel === '小凶';
+    r.poemLevel === '下下';
   const lucky = computeAccuracy(verified.filter(isLucky));
   const unlucky = computeAccuracy(verified.filter(isUnlucky));
 
@@ -201,8 +203,8 @@ function main(): void {
   lines.push(breakdownTable(accuracyByLevel(records)));
   lines.push('');
   if (lucky.rate !== null && unlucky.rate !== null) {
-    lines.push(`- 吉組（大吉＋吉，n=${lucky.verified}）：${pct(lucky.rate)}`);
-    lines.push(`- 凶組（凶＋小凶，n=${unlucky.verified}）：${pct(unlucky.rate)}`);
+    lines.push(`- 吉組（大吉＋上吉＋中吉，n=${lucky.verified}）：${pct(lucky.rate)}`);
+    lines.push(`- 凶組（下下，n=${unlucky.verified}）：${pct(unlucky.rate)}`);
     const gap = unlucky.rate - lucky.rate;
     lines.push(`- 落差：${gap > 0 ? `凶組反而準 ${gap} 個百分點` : gap < 0 ? `吉組準 ${-gap} 個百分點` : '無落差'}——${gap > 0 ? '斷言吉利的自信度可能過高，值得留意' : '斷吉較可靠'}`);
     lines.push('');

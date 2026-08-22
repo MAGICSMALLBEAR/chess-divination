@@ -89,14 +89,20 @@ export default function InkBackground() {
   const { theme, isDark } = useAppTheme();
   const { width, height } = useWindowDimensions();
 
+  // 粒子參數由 index 決定性推導。`expo export` 會把路由預渲染成靜態 HTML，
+  // render 期間用 Math.random() 會讓伺服器與客戶端首渲數值不同 → hydration mismatch。
   const particles = useMemo(() => {
-    return Array.from({ length: PARTICLE_COUNT }).map(() => ({
-      xRatio: Math.random(),
-      yRatio: Math.random(),
-      size: Math.random() * 120 + 40,
-      duration: Math.random() * 15000 + 10000,
-      delay: Math.random() * 5000,
-      initOpacity: Math.random() * 0.08 + 0.02,
+    const rand = (i: number, salt: number) => {
+      const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    return Array.from({ length: PARTICLE_COUNT }).map((_, i) => ({
+      xRatio: rand(i, 1),
+      yRatio: rand(i, 2),
+      size: rand(i, 3) * 120 + 40,
+      duration: rand(i, 4) * 15000 + 10000,
+      delay: rand(i, 5) * 5000,
+      initOpacity: rand(i, 6) * 0.08 + 0.02,
     }));
   }, []);
 

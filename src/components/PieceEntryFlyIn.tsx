@@ -36,7 +36,9 @@ const PieceItem = React.memo(function PieceItem({
   const translateY = useSharedValue(-120);
   const scale = useSharedValue(0.3);
   const opacity = useSharedValue(0);
-  const rotateZ = useSharedValue(Math.random() * 60 - 30);
+  // 初始旋轉由 index 決定性推導（不用 Math.random）：
+  // 靜態預渲染與客戶端首渲必須一致，否則 hydration mismatch
+  const rotateZ = useSharedValue(Math.sin(index * 12.9898) * 30);
 
   useEffect(() => {
     if (!visible) {

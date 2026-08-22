@@ -29,7 +29,7 @@ import { cancelVerificationReminder } from '@/services/notifications';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
-import { shareNative, shareToLine, shareToFacebook, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
+import { shareNative, shareToLine, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
 import { useI18n } from '@/hooks/useI18n';
 import { localizePoem } from '@/services/localize';
 import { recordUsage, syncAchievements } from '@/services/achievements';
@@ -47,6 +47,9 @@ export default function RevealScreen() {
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
+  // recordId 在歷史中找不到時（深連結、他機分享、記錄已刪）——
+  // 過去這裡永遠停在 Spinner，現在明確進入 missing 狀態
+  const [missing, setMissing] = useState(false);
   // 感情問事的用神取法取決於占者性別；設定讀不到就不出斷語
   const [divinerGender, setDivinerGender] = useState<DivinerGender | undefined>(undefined);
   const shareRef = useRef<ShareCardHandle>(null);
@@ -65,6 +68,16 @@ export default function RevealScreen() {
   // 有完整卦象資料才能推演三卦與體用（v3 以前的記錄沒有）
   const reading = useMemo(() => {
     if (!record || record.hexagramIndex === undefined || record.movingLine === undefined) {
+      return null;
+    }
+    // 與 verification.ts 相同的範圍檢查：備份還原可能寫入越界或損毀的
+    // 卦象資料——越界 index 會顯示亂文；無效 timestamp 會讓 najja 的
+    // 旬空查表拿到 undefined，解卦直接紅屏。
+    if (
+      record.hexagramIndex < 0 || record.hexagramIndex > 63 ||
+      record.movingLine < 1 || record.movingLine > 6 ||
+      !Number.isFinite(record.timestamp)
+    ) {
       return null;
     }
     const [upper, lower] = trigramsFromIndex(record.hexagramIndex);
@@ -91,6 +104,8 @@ export default function RevealScreen() {
       setIsFav(found.isFavorited);
       // 記錄載入完成 → 觸發墨滴擴散轉場
       setRevealPhase('splashing');
+    } else {
+      setMissing(true);
     }
   }
 
@@ -153,11 +168,10 @@ export default function RevealScreen() {
   }
 
   async function handleShare() {
-    // 嘗試圖片分享（原生，透過 view-shot 擷取 ShareCardView）
-    try {
-      await shareRef.current?.share();
-      return;
-    } catch { /* view-shot 在 Web 端不可用，fallback 至文字分享 */ }
+    // 嘗試圖片分享（原生，透過 view-shot 擷取 ShareCardView）。
+    // share() 回傳是否真的分享出去；Web 端擷取或系統分享不可用時為 false。
+    const shared = await shareRef.current?.share();
+    if (shared) return;
 
     // Web fallback
     if (poem && record) {
@@ -200,6 +214,22 @@ export default function RevealScreen() {
     } else {
       router.replace('/draw');
     }
+  }
+
+  if (missing) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
+        <InkBackground />
+        <View style={styles.loading}>
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t('reveal.missing')}</Text>
+          <Text style={[styles.legacyText, { color: theme.textMuted }]}>{t('reveal.missingDesc')}</Text>
+          <TouchableOpacity style={styles.newBtn} onPress={() => router.replace('/(tabs)')}>
+            <Icon name="home" size={16} color={theme.textGold} />
+            <Text style={styles.newBtnText}> {t('reveal.home')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   if (!record || !poem) {

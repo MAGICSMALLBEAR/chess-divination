@@ -1,6 +1,6 @@
 // 棋盤佈局模式狀態機 Hook
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import type { ChessPiece } from '@/data/pieces';
 import { ALL_PIECES } from '@/data/pieces';
@@ -58,68 +58,80 @@ export function useBoardDivination() {
     setPlacedPieces(prev => prev.filter(pp => !(pp.col === col && pp.row === row)));
   }, []);
 
-  // 進行占卜解讀
-  const interpret = useCallback(async (category?: string, text?: string) => {
-    if (placedPieces.length === 0) return;
-    const cat = category || questionCategory;
-    const txt = text !== undefined ? text : questionText;
-    if (category) setQuestionCategory(category);
-    if (text !== undefined) setQuestionText(text);
-
-    // 生成深度位置解讀（含卦氣五行與棋盤方位）
-    const placements = placedPieces.map(pp => ({
-      col: pp.col, row: pp.row,
-      guaElement: pp.piece.guaElement,
-      direction: pp.piece.direction,
-      pieceName: pp.piece.displayChar,
-    }));
-    const positionSummary = generatePositionSummaryDeep(placements);
-
-    // 使用棋子順序作為順序（依放置先後）
-    const pieces = placedPieces.map(pp => pp.piece);
-
-    // 擺位進入起卦：各棋子的格位數總和參與動爻計算，
-    // 使「棋放在哪裡」真正影響卦象，而非僅產生一段文字敘述。
-    const positionSum = placedPieces.reduce(
-      (sum, pp) => sum + pp.col + pp.row * BOARD.cols,
-      0,
-    );
-
-    const hex = computeHexagram(pieces, { extra: positionSum });
-    const poem = getPoemById(hex.poemId);
-    setSelectedPoem(poem);
-
-    // 儲存記錄
-    const record = recordFromDivination(
-      poem, pieces, 'board', cat, txt, positionSummary,
-      {
-        name: hex.name,
-        index: hex.index,
-        movingLine: hex.movingLine,
-        hourBranch: hex.hourBranch,
-      },
-    );
-    const saved = await addHistory(record);
-    void scheduleVerificationReminder(saved);
-    setStep('result');
-
-    router.push({
-      pathname: '/reveal',
-      params: {
-        recordId: saved.id,
-        mode: 'board',
-      },
-    });
-    // questionText 亦於內部讀取，未列入相依會在未帶參數呼叫時取到過時值
-  }, [placedPieces, questionCategory, questionText, router]);
-
-  // 重置
+  // 重置（宣告在 interpret 之前——interpret 的相依陣列會用到它）
   const reset = useCallback(() => {
     setStep('select-pieces');
     setPlacedPieces([]);
     setSelectedPiece(null);
     setSelectedPoem(null);
   }, []);
+
+  // in-flight 防護：連點「解讀」會在 addHistory 的 read-modify-write
+  // 交錯時互相覆蓋（一筆記錄遺失、reveal 頁找不到 recordId 卡死）
+  const interpretingRef = useRef(false);
+
+  // 進行占卜解讀
+  const interpret = useCallback(async (category?: string, text?: string) => {
+    if (interpretingRef.current || placedPieces.length === 0) return;
+    interpretingRef.current = true;
+    try {
+      const cat = category || questionCategory;
+      const txt = text !== undefined ? text : questionText;
+      if (category) setQuestionCategory(category);
+      if (text !== undefined) setQuestionText(text);
+
+      // 生成深度位置解讀（含卦氣五行與棋盤方位）
+      const placements = placedPieces.map(pp => ({
+        col: pp.col, row: pp.row,
+        guaElement: pp.piece.guaElement,
+        direction: pp.piece.direction,
+        pieceName: pp.piece.displayChar,
+      }));
+      const positionSummary = generatePositionSummaryDeep(placements);
+
+      // 使用棋子順序作為順序（依放置先後）
+      const pieces = placedPieces.map(pp => pp.piece);
+
+      // 擺位進入起卦：各棋子的格位數總和參與動爻計算，
+      // 使「棋放在哪裡」真正影響卦象，而非僅產生一段文字敘述。
+      const positionSum = placedPieces.reduce(
+        (sum, pp) => sum + pp.col + pp.row * BOARD.cols,
+        0,
+      );
+
+      const hex = computeHexagram(pieces, { extra: positionSum });
+      const poem = getPoemById(hex.poemId);
+      setSelectedPoem(poem);
+
+      // 儲存記錄
+      const record = recordFromDivination(
+        poem, pieces, 'board', cat, txt, positionSummary,
+        {
+          name: hex.name,
+          index: hex.index,
+          movingLine: hex.movingLine,
+          hourBranch: hex.hourBranch,
+        },
+      );
+      const saved = await addHistory(record);
+      void scheduleVerificationReminder(saved);
+      setStep('result');
+
+      router.push({
+        pathname: '/reveal',
+        params: {
+          recordId: saved.id,
+          mode: 'board',
+        },
+      });
+      // 導航後清空棋盤：從 reveal 返回時是全新佈局，不會把同一佈局
+      // 再解讀一次而製造重複記錄
+      reset();
+    } finally {
+      interpretingRef.current = false;
+    }
+    // questionText 亦於內部讀取，未列入相依會在未帶參數呼叫時取到過時值
+  }, [placedPieces, questionCategory, questionText, router, reset]);
 
   return {
     step,

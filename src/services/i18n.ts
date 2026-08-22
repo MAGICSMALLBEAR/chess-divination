@@ -58,6 +58,8 @@ const translations: Record<string, Record<Lang, string>> = {
   'reveal.retry': { 'zh-TW': '再次抽棋', en: 'Draw Again', ja: 'もう一度引く' },
   'reveal.retryBoard': { 'zh-TW': '重新佈局', en: 'New Layout', ja: '再配置' },
   'reveal.home': { 'zh-TW': '回首頁', en: 'Home', ja: 'ホーム' },
+  'reveal.missing': { 'zh-TW': '找不到這筆占卜記錄', en: 'This divination record was not found', ja: 'この占い記録が見つかりません' },
+  'reveal.missingDesc': { 'zh-TW': '記錄可能已被刪除，或來自其他裝置。', en: 'It may have been deleted or belongs to another device.', ja: '削除されたか、別の端末の記録の可能性があります。' },
   // 解讀為規則式推導，非語言模型，故不使用「AI」字樣
   'reveal.deepTitle': { 'zh-TW': '深度解讀', en: 'In-depth Reading', ja: '詳細解読' },
   'reveal.deepActions': { 'zh-TW': '建議行動', en: 'Suggested Actions', ja: '推奨アクション' },
@@ -360,6 +362,7 @@ const translations: Record<string, Record<Lang, string>> = {
   'settings.version': { 'zh-TW': '版本', en: 'Version', ja: 'バージョン' },
   'settings.tech': { 'zh-TW': '技術', en: 'Built with', ja: '技術' },
   'settings.backupOk': { 'zh-TW': '備份成功', en: 'Backup complete', ja: 'バックアップ完了' },
+  'settings.backupOkClipboard': { 'zh-TW': '備份 JSON 已複製到剪貼簿，請貼到記事本存成 .json 檔保存。', en: 'Backup JSON copied to clipboard. Paste it into a text file and save as .json.', ja: 'バックアップ JSON をクリップボードにコピーしました。テキストファイルに貼り付けて .json で保存してください。' },
   'settings.backupOkDesc': { 'zh-TW': '資料已匯出', en: 'Your data has been exported', ja: 'データを書き出しました' },
   'settings.restoreConfirm': { 'zh-TW': '將覆蓋現有資料，確定要還原嗎？', en: 'This will overwrite your current data. Restore anyway?', ja: '現在のデータを上書きします。復元しますか？' },
   'settings.restoreOk': { 'zh-TW': '還原成功', en: 'Restore complete', ja: '復元完了' },

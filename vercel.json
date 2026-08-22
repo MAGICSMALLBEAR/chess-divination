@@ -8,5 +8,10 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/interpret.ts": {
+      "maxDuration": 30
+    }
+  }
 }

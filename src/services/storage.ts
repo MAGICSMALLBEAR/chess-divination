@@ -8,6 +8,7 @@ import { todayString } from './date';
 import { DIVINATION_ENGINE_VERSION } from './divination';
 import { FolderColors } from '@/constants/theme';
 import type { DivinerGender } from './useGod';
+import type { Lang } from './i18n';
 
 // ====== Keys ======
 
@@ -16,6 +17,8 @@ export const STORAGE_KEYS = {
   FAVORITES: '@chess_divination_favorites',
   SETTINGS: '@chess_divination_settings',
   DAILY_FORTUNE: '@chess_divination_daily',
+  /** 刪除過的記錄 id（墓碑），雲端同步時套用以避免刪除復活 */
+  DELETED: '@chess_divination_deleted',
 } as const;
 
 // ====== Types ======
@@ -92,6 +95,8 @@ export interface AppSettings {
   userName: string;
   drawAnimationSpeed: 'slow' | 'normal' | 'fast';
   themeMode: 'dark' | 'light' | 'system';
+  /** 介面語言。i18n 模組是記憶體狀態，開機時由 _layout 回讀套用 */
+  lang?: Lang;
   soundEnabled: boolean;
   hapticEnabled: boolean;
   pieceCountPreset: 1 | 2 | 3;
@@ -168,13 +173,30 @@ export async function addHistory(record: Omit<DivinationRecord, 'id'>): Promise<
   return newRecord;
 }
 
+/**
+ * 把刪除過的 id 記進墓碑清單（最多保留最近 1000 個）。
+ * 沒有墓碑的話，雲端同步只做 union——刪掉的記錄下次同步全部復活。
+ */
+async function addDeletedIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.DELETED);
+  let list: string[] = [];
+  try { list = raw ? JSON.parse(raw) : []; } catch { list = []; }
+  if (!Array.isArray(list)) list = [];
+  const next = [...new Set([...list, ...ids])].slice(-1000);
+  await AsyncStorage.setItem(STORAGE_KEYS.DELETED, JSON.stringify(next));
+}
+
 export async function removeHistory(id: string): Promise<void> {
   const history = await getHistory();
   const filtered = history.filter(r => r.id !== id);
   await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(filtered));
+  await addDeletedIds([id]);
 }
 
 export async function clearHistory(): Promise<void> {
+  const history = await getHistory();
+  await addDeletedIds(history.map(r => r.id));
   await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([]));
 }
 

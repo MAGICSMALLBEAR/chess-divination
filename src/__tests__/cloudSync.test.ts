@@ -3,7 +3,25 @@
 // 合併邏輯出錯就是使用者的占卜記錄被覆蓋或遺失，
 // 因此重點在於「本地資料不能被弄丟」與「遠端的垃圾不能混進來」。
 
-import { mergeHistories } from '../services/cloudSync';
+// mergeFromCloud 會寫回 AsyncStorage，以記憶體 Map 模擬（與 storage.test 同款）
+const mockStore = new Map<string, string>();
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: jest.fn((key: string) => Promise.resolve(mockStore.get(key) ?? null)),
+    setItem: jest.fn((key: string, value: string) => {
+      mockStore.set(key, value);
+      return Promise.resolve();
+    }),
+    removeItem: jest.fn((key: string) => {
+      mockStore.delete(key);
+      return Promise.resolve();
+    }),
+  },
+}));
+
+import { mergeHistories, mergeFromCloud } from '../services/cloudSync';
+import { STORAGE_KEYS } from '../services/storage';
 
 const rec = (id: string, timestamp: number) => ({ id, timestamp });
 
@@ -47,6 +65,27 @@ describe('去重', () => {
 
     expect(merged).toHaveLength(1);
     expect(merged[0].isFavorited).toBe(true);
+  });
+
+  /**
+   * 迴歸：換機後本地副本尚未回填占驗，雲端已回填——
+   * 「先出現者優先」會讓未回填的本地版壓掉占驗結果，那筆占驗永久遺失。
+   */
+  test('有占驗結果的版本勝過未回填的版本', () => {
+    const outcome = { status: 'accurate', verifiedAt: 100 };
+    const cloud = [{ id: 'a', timestamp: 1, outcome }];
+    const merged = mergeHistories([rec('a', 1)], cloud) as typeof cloud;
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].outcome).toEqual(outcome);
+  });
+
+  test('兩邊都有占驗時取較新的 verifiedAt', () => {
+    const local = [{ id: 'a', timestamp: 1, outcome: { status: 'inaccurate', verifiedAt: 50 } }];
+    const cloud = [{ id: 'a', timestamp: 1, outcome: { status: 'accurate', verifiedAt: 200 } }];
+    const merged = mergeHistories(local, cloud) as typeof cloud;
+
+    expect(merged[0].outcome?.status).toBe('accurate');
   });
 
   test('雲端內部自身重複也只保留一筆', () => {
@@ -103,16 +142,60 @@ describe('數量上限', () => {
     expect(merged).toHaveLength(500);
   });
 
-  test('超出上限時捨棄最舊的，保留最新的', () => {
+  test('超出上限時絕不丟僅本地存在的記錄', () => {
     const local = Array.from({ length: 400 }, (_, i) => rec(`L${i}`, i));       // 0–399
     const cloud = Array.from({ length: 400 }, (_, i) => rec(`C${i}`, 1000 + i)); // 1000–1399
     const merged = mergeHistories(local, cloud);
 
-    // 雲端那批較新，應全數留下
-    expect(merged.filter(r => r.id.startsWith('C'))).toHaveLength(400);
-    // 最舊的本地記錄應被擠出
-    expect(merged.some(r => r.id === 'L0')).toBe(false);
-    // 最新的一筆是雲端最後一筆
-    expect(merged[0].id).toBe('C399');
+    // 僅本地存在的 400 筆全數保留——同步本身不該摧毀尚未上傳的歷史
+    expect(merged.filter(r => r.id.startsWith('L'))).toHaveLength(400);
+    // 犧牲的是最舊的雲端端共有記錄（另一端仍保有，下次同步補回）
+    expect(merged.filter(r => r.id.startsWith('C'))).toHaveLength(100);
+    expect(merged.some(r => r.id === 'C0')).toBe(false);
+    expect(merged.some(r => r.id === 'C300')).toBe(true);
+    // 本地記錄排在最前（其中最新的一筆居首），不被截斷擠掉
+    expect(merged[0].id).toBe('L399');
+  });
+});
+
+describe('墓碑（已刪除記錄的同步）', () => {
+  beforeEach(() => { mockStore.clear(); });
+
+  /** 沒有墓碑合併，使用者刪掉的記錄會在下一次同步時全部復活 */
+  test('雲端已刪除的 id 不會在本地復活', async () => {
+    mockStore.set(STORAGE_KEYS.HISTORY, JSON.stringify([rec('a', 1), rec('b', 2)]));
+
+    const merged = await mergeFromCloud({
+      version: 2,
+      timestamp: 0,
+      history: [rec('a', 1), rec('b', 2)],
+      favorites: [],
+      settings: {},
+      dailyFortune: null,
+      deletedIds: ['a'],
+    });
+
+    expect((merged.history as { id: string }[]).map(r => r.id)).toEqual(['b']);
+    expect(merged.deletedIds).toContain('a');
+    // 合併結果已寫回本地儲存
+    expect(JSON.parse(mockStore.get(STORAGE_KEYS.HISTORY)!).map((r: { id: string }) => r.id)).toEqual(['b']);
+  });
+
+  test('本地與雲端的刪除集合取聯集', async () => {
+    mockStore.set(STORAGE_KEYS.HISTORY, JSON.stringify([rec('a', 1), rec('b', 2)]));
+    mockStore.set(STORAGE_KEYS.DELETED, JSON.stringify(['a']));
+
+    const merged = await mergeFromCloud({
+      version: 2,
+      timestamp: 0,
+      history: [rec('a', 1), rec('b', 2), rec('c', 3)],
+      favorites: [],
+      settings: {},
+      dailyFortune: null,
+      deletedIds: ['b'],
+    });
+
+    expect((merged.history as { id: string }[]).map(r => r.id)).toEqual(['c']);
+    expect(merged.deletedIds?.sort()).toEqual(['a', 'b']);
   });
 });

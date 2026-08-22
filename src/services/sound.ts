@@ -7,6 +7,9 @@ let enabled = true;
 
 function getCtx(): AudioContext | null {
   if (!enabled) return null;
+  // Web Audio 只在瀏覽器存在；原生端 window 未定義。原生音效需另接
+  // expo-audio（刻意未實作），此處靜默返回而非對 undefined 取值拋錯。
+  if (typeof window === 'undefined') return null;
   try {
     if (!audioContext) {
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();

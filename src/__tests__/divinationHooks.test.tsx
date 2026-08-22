@@ -146,7 +146,9 @@ describe('useDrawDivination', () => {
         pathname: '/reveal',
         params: { recordId: history[0].id, mode: 'draw' },
       });
-      expect(result.current.step).toBe('result');
+      // 迴歸：導航後立刻重設——修復前返回會卡在「正在為您解讀…」
+      expect(result.current.step).toBe('select-count');
+      expect(result.current.drawnPieces).toEqual([]);
     });
 
     /** 六爻資料若沒存下來，reveal 頁會退回只顯示本卦 */
@@ -327,8 +329,10 @@ describe('useBoardDivination', () => {
         pathname: '/reveal',
         params: { recordId: history[0].id, mode: 'board' },
       });
-      expect(result.current.step).toBe('result');
-      expect(result.current.selectedPoem).not.toBeNull();
+      // 迴歸：導航後立刻重設，返回不會殘留舊佈局或重複存檔
+      expect(result.current.step).toBe('select-pieces');
+      expect(result.current.selectedPoem).toBeNull();
+      expect(result.current.placedPieces).toEqual([]);
     });
 
     /**

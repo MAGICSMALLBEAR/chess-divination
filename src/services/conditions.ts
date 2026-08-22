@@ -95,7 +95,12 @@ export function detectTriads({ lines, movingLine, dayBranch }: TriadParams): Tri
     const positions: number[] = [];
     const missing: string[] = [];
     for (const branch of triad.branches) {
-      const line = lines.find(l => l.branch === branch);
+      // 同一地支在卦中可能重複出現（64 卦中 22 卦如此），先取動爻所在
+      // 的那一爻、再取世爻——舊寫法只取第一爻，動爻／世爻若坐在重複支
+      // 的第二位置會被漏掉，靜爻替身被誤計入局。
+      const line = lines.find(l => l.branch === branch && l.position === movingLine)
+        ?? lines.find(l => l.branch === branch && l.isWorld)
+        ?? lines.find(l => l.branch === branch);
       if (line) positions.push(line.position);
       else missing.push(branch);
     }

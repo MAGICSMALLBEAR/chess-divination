@@ -6,7 +6,7 @@
 import {
   advanceOrRetreat, detectTriads, darkMovingLines, TRIADS,
 } from '../services/conditions';
-import { buildNaJiaReading } from '../services/najja';
+import { buildNaJiaReading, type NaJiaLine } from '../services/najja';
 import {
   hexagramLines, poemIdFromTrigrams, trigramsFromLines, type LineValue,
 } from '../services/hexagram';
@@ -139,6 +139,55 @@ describe('三合局', () => {
       }
     }
     expect(count).toBeGreaterThan(0);
+  });
+
+  /** detectTriads 只看 position／branch／isWorld，其餘欄位補預設值即可 */
+  function fakeLine(position: number, branch: string, isWorld = false): NaJiaLine {
+    return {
+      position, branch, element: BRANCH_ELEMENT[branch], isWorld,
+      name: `第${position}爻`, stemBranch: branch, relative: '兄弟',
+      spirit: '青龍', isVoid: false, isMonthBroken: false, isDayClashed: false,
+      isResponding: false,
+    };
+  }
+
+  /**
+   * 迴歸：同一地支在卦中重複出現（64 卦中 22 卦如此），動爻坐在重複支
+   * 的第二個位置。舊寫法只取第一爻，動爻會被靜爻替身頂替入局。
+   */
+  test('重複地支時，動爻所在的那一爻優先入局', () => {
+    const lines = [
+      fakeLine(1, '申'),
+      fakeLine(2, '子'),
+      fakeLine(3, '辰'),
+      fakeLine(4, '申'), // 申重複；動爻在第 4 爻
+      fakeLine(5, '戌'),
+      fakeLine(6, '寅'),
+    ];
+    const formations = detectTriads({ lines, movingLine: 4, dayBranch: '午' });
+
+    const triad = formations.find(f => f.name === '申子辰');
+    expect(triad).toBeDefined();
+    expect(triad!.positions).toContain(4);
+    expect(triad!.positions).not.toContain(1);
+    expect(triad!.fromDay).toBeNull();
+  });
+
+  test('重複地支時，世爻優先於普通靜爻入局', () => {
+    const lines = [
+      fakeLine(1, '申', true), // 世爻在申
+      fakeLine(2, '子'),
+      fakeLine(3, '辰'),
+      fakeLine(4, '子', true), // 子重複；世爻坐在重複支的後段
+      fakeLine(5, '戌'),
+      fakeLine(6, '寅'),
+    ];
+    const formations = detectTriads({ lines, movingLine: 3, dayBranch: '午' });
+
+    const triad = formations.find(f => f.name === '申子辰');
+    expect(triad).toBeDefined();
+    expect(triad!.positions).toContain(4);
+    expect(triad!.positions).not.toContain(2);
   });
 });
 
