@@ -26,9 +26,12 @@ import {
   getDailyFortune, saveDailyFortune,
   isLegacyRecord, hasLiuYaoData,
   setOutcome, clearOutcome,
+  recordFromDivination,
   type DivinationRecord, type DailyFortune,
 } from '../services/storage';
 import { todayString } from '../services/date';
+import { getPoemById } from '../data/poems';
+import { ALL_PIECES } from '../data/pieces';
 
 /** 建立測試用記錄，可覆寫任意欄位 */
 function makeRecord(overrides: Partial<DivinationRecord> = {}): Omit<DivinationRecord, 'id'> {
@@ -122,6 +125,23 @@ describe('歷史記錄', () => {
     expect(history[0].poemTitle).toBe('最新記錄');
     // 最舊的一筆（index 499）已被擠出
     expect(history.some(r => r.id === 'old-499')).toBe(false);
+  });
+});
+
+describe('牌陣記錄', () => {
+  test('牌陣類型會寫入結構化記錄，供日後篩選與統計', () => {
+    const record = recordFromDivination(
+      getPoemById(1),
+      ALL_PIECES.slice(0, 3),
+      'board',
+      'general',
+      '測試問題',
+      '牌陣解讀',
+      undefined,
+      'timeline',
+    );
+
+    expect(record.spreadId).toBe('timeline');
   });
 });
 

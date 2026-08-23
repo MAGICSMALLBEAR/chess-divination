@@ -5,6 +5,7 @@
 
 import React from 'react';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const PIECE_CHARS: Record<string, { red: string; black: string }> = {
   king: { red: '帥', black: '將' },
@@ -37,10 +38,14 @@ export const PIECE_CHINESE_NAMES: Record<string, string> = {
 };
 
 export default function PieceIcon({ type, color, size = 42 }: PieceIconProps) {
+  const { theme } = useAppTheme();
   const char = getPieceChar(type, color);
-  const fillColor = color === 'red' ? '#C0392B' : '#1A1210';
-  const borderColor = '#C9A96E';
-  const textColor = '#F5EDE0';
+  // 這些色值原本寫死，且混用了兩個主題的值——邊框取暗色主題的金
+  // （宣紙主題應為較深的 #A08040）、黑子取宣紙主題的墨。同一顆棋子
+  // 在棋盤上跟著主題走、在首頁的幸運棋子卻不動，兩邊對不起來。
+  const fillColor = color === 'red' ? theme.pieceRed : theme.pieceBlack;
+  const borderColor = theme.pieceBorder;
+  const textColor = theme.pieceBg;
   const fontSize = size * 0.52;
 
   return (

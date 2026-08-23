@@ -9,6 +9,7 @@ import { DIVINATION_ENGINE_VERSION } from './divination';
 import { FolderColors } from '@/constants/theme';
 import type { DivinerGender } from './useGod';
 import type { Lang } from './i18n';
+import type { SpreadId } from './spreads';
 
 // ====== Keys ======
 
@@ -38,6 +39,8 @@ export interface DivinationRecord {
   questionCategory?: string;
   questionText?: string;         // user's written question
   positionSummary?: string;      // board position interpretation summary
+  /** 棋盤占卜所用牌陣；舊記錄缺省為自由佈局，保留向後相容。 */
+  spreadId?: SpreadId;
   timestamp: number;
   isFavorited: boolean;
   /**
@@ -382,6 +385,7 @@ export function recordFromDivination(
   questionText?: string,
   positionSummary?: string,
   hexagram?: { name: string; index: number; movingLine: number; hourBranch: number },
+  spreadId?: SpreadId,
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: poem.id,
@@ -395,6 +399,7 @@ export function recordFromDivination(
     questionCategory,
     questionText,
     positionSummary,
+    spreadId,
     timestamp: Date.now(),
     isFavorited: false,
     engineVersion: DIVINATION_ENGINE_VERSION,

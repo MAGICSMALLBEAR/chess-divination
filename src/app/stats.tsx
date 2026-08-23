@@ -13,6 +13,7 @@ import { getHistory, type DivinationRecord } from '@/services/storage';
 import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
+  accuracyBySpread,
   bestCategory, medianVerifyDelay, pendingVerification,
   type AccuracyBreakdown,
 } from '@/services/verification';
@@ -21,6 +22,7 @@ import { categoryLabel } from '@/services/i18n';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
+import { SPREAD_LABEL_KEYS, type SpreadId } from '@/services/spreads';
 
 export default function StatsScreen() {
   const router = useRouter();
@@ -80,6 +82,8 @@ export default function StatsScreen() {
   const best = React.useMemo(
     () => bestCategory(filtered, undefined, categoryLabel), [filtered, lang]);
   const medianDelay = React.useMemo(() => medianVerifyDelay(filtered), [filtered]);
+  const bySpread = React.useMemo(
+    () => accuracyBySpread(filtered, id => t(SPREAD_LABEL_KEYS[id as SpreadId])), [filtered, t, lang]);
   // 提醒用未經日期篩選的完整清單：待回填的多半是較舊的記錄，
   // 若跟著「本週」篩選會整批消失，正好漏掉最該提醒的那些。
   const pending = React.useMemo(() => pendingVerification(records), [records]);
@@ -286,6 +290,15 @@ export default function StatsScreen() {
             styles={styles}
             // 依籤詩等級本身的色系上色，與吉凶分佈圖對得起來
             colorOf={row => getLevelColor(row.key)}
+          />
+        )}
+        {bySpread.length > 0 && (
+          <AccuracySection
+            title={t('stats.bySpread')}
+            rows={bySpread}
+            theme={theme}
+            styles={styles}
+            colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
         )}
         {byBodyUse.length > 0 && (

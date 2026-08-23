@@ -15,6 +15,7 @@ import type {
 } from './storage';
 import { trigramsFromIndex } from './hexagram';
 import { buildLiuYaoReading } from './liuyao';
+import { SPREADS, type SpreadId } from './spreads';
 
 // ====== 常數 ======
 
@@ -185,6 +186,21 @@ export function accuracyByMode(
   labelOf: (key: string) => string = k => (k === 'draw' ? '抽棋' : '棋盤'),
 ): AccuracyBreakdown[] {
   return breakdownBy(records, r => r.mode || null, labelOf);
+}
+
+/**
+ * 依固定牌陣分組。自由佈局與舊記錄不放進此表：它們沒有可比較的角色結構，
+ * 混入會把「哪一個牌陣適合自己」稀釋成無意義的總平均。
+ */
+export function accuracyBySpread(
+  records: DivinationRecord[],
+  labelOf: (key: SpreadId) => string = key => SPREADS[key].name,
+): AccuracyBreakdown[] {
+  return breakdownBy(
+    records,
+    record => record.spreadId && record.spreadId !== 'free' ? record.spreadId : null,
+    key => labelOf(key as SpreadId),
+  );
 }
 
 /**

@@ -1,6 +1,6 @@
 import {
   isVerified, daysSince, pendingVerification,
-  computeAccuracy, breakdownBy, accuracyByLevel, accuracyByCategory, accuracyByMode,
+  computeAccuracy, breakdownBy, accuracyByLevel, accuracyByCategory, accuracyByMode, accuracyBySpread,
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
   bestCategory, medianVerifyDelay,
   OUTCOME_LABELS, OUTCOME_STATUSES, VERIFY_REMINDER_DAYS,
@@ -231,6 +231,18 @@ describe('分項統計', () => {
     ]);
     expect(rows.find(r => r.key === 'draw')?.label).toBe('抽棋');
     expect(rows.find(r => r.key === 'board')?.label).toBe('棋盤');
+  });
+
+  test('依固定牌陣分組，排除自由佈局與尚未有欄位的舊記錄', () => {
+    const rows = accuracyBySpread([
+      verified('accurate', { mode: 'board', spreadId: 'timeline' }),
+      verified('partial', { mode: 'board', spreadId: 'choice' }),
+      verified('accurate', { mode: 'board', spreadId: 'free' }),
+      verified('accurate', { mode: 'board' }),
+    ]);
+    expect(rows.map(row => row.key)).toEqual(['timeline', 'choice']);
+    expect(rows.find(row => row.key === 'timeline')?.label).toBe('三才時間陣');
+    expect(rows.find(row => row.key === 'choice')?.stats.rate).toBe(50);
   });
 
   /** 全未回填的分組沒有可讀的數字，列出來只是一排空白 */

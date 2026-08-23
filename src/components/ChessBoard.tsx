@@ -239,7 +239,7 @@ export default function ChessBoard({
               marginTop: -pieceSize * 0.72,
             }]}
           >
-            <Text style={styles.spreadMarkerText}>{activeSpreadSlot.label}</Text>
+            <Text style={styles.spreadMarkerText}>{t(activeSpreadSlot.labelKey)}</Text>
           </View>
         )}
 
@@ -257,7 +257,7 @@ export default function ChessBoard({
                 marginTop: pieceSize * 0.72,
               }]}
             >
-              <Text style={styles.spreadRoleText}>{slot.label}</Text>
+              <Text style={styles.spreadRoleText}>{t(slot.labelKey)}</Text>
             </View>
           );
         })}

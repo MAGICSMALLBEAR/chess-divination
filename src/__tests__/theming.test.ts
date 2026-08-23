@@ -14,8 +14,12 @@ const SRC = path.join(__dirname, '..');
  * - InkSplashOverlay.tsx 墨滴遮罩使用固定墨色 #1a0f0a，為視覺效果的實體色
  * - PieceEntryFlyIn.tsx  棋子實體物件使用朱砂紅／墨黑等固定工藝色，不受主題影響
  * - CustomCategoriesSection.tsx  Modal 遮罩使用固定半透明黑色，不受主題影響
- * - icons/               SVG 圖示元件，色值為預設 prop 值或固定色彩（紅方朱砂／黑方墨色／金邊等），
- *                        實際使用時由呼叫端傳入主題色覆蓋
+ * - icons/Icon.tsx、TrigramGlyph.tsx  色值僅為 color prop 的預設值，
+ *                        呼叫端一律傳入主題色覆蓋
+ *
+ * PieceIcon.tsx 已移出清單：它沒有 color 覆蓋管道（color prop 是紅／黑的
+ * 選擇器，不是色值），原本寫死的三個色還混用了兩個主題的值——邊框取暗色
+ * 主題的金、黑子取宣紙主題的墨，兩個主題下都不完全正確。現已改讀 theme。
  */
 const ALLOWLIST = new Set([
   path.join('constants', 'theme.ts'),
@@ -27,7 +31,6 @@ const ALLOWLIST = new Set([
   path.join('components', 'PieceEntryFlyIn.tsx'),
   path.join('components', 'CustomCategoriesSection.tsx'),
   path.join('components', 'icons', 'Icon.tsx'),
-  path.join('components', 'icons', 'PieceIcon.tsx'),
   path.join('components', 'icons', 'TrigramGlyph.tsx'),
 ]);
 

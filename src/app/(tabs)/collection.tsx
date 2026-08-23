@@ -18,6 +18,7 @@ import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import { useGrid } from '@/hooks/useGrid';
+import { SPREAD_LABEL_KEYS } from '@/services/spreads';
 
 type TabType = 'history' | 'favorites' | 'folders';
 const TAB_ORDER: TabType[] = ['history', 'favorites', 'folders'];
@@ -215,6 +216,11 @@ export default function CollectionScreen() {
             <View style={styles.modeRow}>
               <Icon name={record.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={theme.textMuted} />
               <Text style={styles.modeLabel}> {t(record.mode === 'draw' ? 'collection.modeDraw' : 'collection.modeBoard')}</Text>
+              {record.spreadId && record.spreadId !== 'free' && (
+                <View style={styles.spreadChip}>
+                  <Text style={styles.spreadChipText}>{t(SPREAD_LABEL_KEYS[record.spreadId])}</Text>
+                </View>
+              )}
             </View>
           </View>
           <Text style={styles.cardTitle} numberOfLines={1}>
@@ -529,6 +535,11 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   levelMiniText: { fontSize: 11, fontWeight: '700', color: PaperSurface.onLevel },
   modeRow: { flexDirection: 'row', alignItems: 'center' },
   modeLabel: { fontSize: 11, color: t.textMuted },
+  spreadChip: {
+    marginLeft: 5, paddingHorizontal: 5, paddingVertical: 1,
+    borderRadius: 5, borderWidth: 1, borderColor: t.goldFaint, backgroundColor: t.goldSoft,
+  },
+  spreadChipText: { fontSize: 9, color: t.textGold, fontWeight: '600' },
   cardTitle: { fontSize: FontSize.body, fontWeight: '600', color: t.textPrimary },
   cardDate: { fontSize: FontSize.caption, color: t.textMuted, marginTop: 2 },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },

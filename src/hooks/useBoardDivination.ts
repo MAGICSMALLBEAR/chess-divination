@@ -14,7 +14,7 @@ import { scheduleVerificationReminder } from '@/services/notifications';
 import { generatePositionSummaryDeep } from '@/services/position';
 import { BOARD } from '@/constants/theme';
 import type { SpreadId } from '@/services/spreads';
-import { spreadReadingPrefix, spreadRoleReading } from '@/services/spreads';
+import { spreadContextReading, spreadReadingPrefix, spreadRoleReading } from '@/services/spreads';
 
 export interface PlacedPiece {
   piece: ChessPiece;
@@ -73,7 +73,12 @@ export function useBoardDivination() {
   const interpretingRef = useRef(false);
 
   // 進行占卜解讀
-  const interpret = useCallback(async (category?: string, text?: string, spreadId: SpreadId = 'free') => {
+  const interpret = useCallback(async (
+    category?: string,
+    text?: string,
+    spreadId: SpreadId = 'free',
+    spreadContext: { optionA?: string; optionB?: string } = {},
+  ) => {
     if (interpretingRef.current || placedPieces.length === 0) return;
     interpretingRef.current = true;
     try {
@@ -90,6 +95,7 @@ export function useBoardDivination() {
         pieceName: pp.piece.displayChar,
       }));
       const positionSummary = spreadReadingPrefix(spreadId)
+        + spreadContextReading(spreadId, spreadContext)
         + spreadRoleReading(spreadId, placedPieces.map(({ piece }) => ({
           pieceName: piece.displayChar,
           meaning: piece.meaning,
@@ -119,6 +125,7 @@ export function useBoardDivination() {
           movingLine: hex.movingLine,
           hourBranch: hex.hourBranch,
         },
+        spreadId,
       );
       const saved = await addHistory(record);
       void scheduleVerificationReminder(saved);

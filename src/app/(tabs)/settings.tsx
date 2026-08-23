@@ -36,6 +36,16 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { theme, mode, setMode } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
+
+  // react-native-web 的 Switch 在「開啟」狀態讀 activeThumbColor，
+  // thumbColor 只管關閉狀態——只給後者的話，web 版滑塊永遠是它內建的
+  // Material 青綠 #009688，配金色軌道在墨色與宣紙下都不搭。
+  // activeThumbColor 不在 RN 的 SwitchProps 型別內（原生端會忽略它），
+  // 故集中在這裡轉型一次，三個開關共用。
+  const switchThumb = {
+    thumbColor: theme.bgRice,
+    activeThumbColor: theme.bgRice,
+  } as unknown as { thumbColor: string };
   const { contentWidth } = useLayout();
   const { t, lang, setLang } = useI18n();
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -253,19 +263,19 @@ export default function SettingsScreen() {
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.sound')}</Text>
             <Switch value={settings.soundEnabled}
               onValueChange={(v) => { update('soundEnabled', v); setSoundEnabled(v); }}
-              trackColor={{ false: theme.bgMedium, true: theme.gold }} />
+              trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
           </View>
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.haptic')}</Text>
             <Switch value={settings.hapticEnabled}
               onValueChange={(v) => { update('hapticEnabled', v); setHapticEnabled(v); }}
-              trackColor={{ false: theme.bgMedium, true: theme.gold }} />
+              trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
           </View>
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.dailyReminder')}</Text>
             <Switch value={reminderOn}
               onValueChange={toggleReminder}
-              trackColor={{ false: theme.bgMedium, true: theme.gold }} />
+              trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
           </View>
         </View>
 

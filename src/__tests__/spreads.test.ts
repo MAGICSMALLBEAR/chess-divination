@@ -1,4 +1,5 @@
-import { getSpread, nextSpreadSlot, spreadReadingPrefix, spreadRoleReading } from '../services/spreads';
+import { SPREADS, getSpread, nextSpreadSlot, spreadContextReading, spreadReadingPrefix, spreadRoleReading } from '../services/spreads';
+import { t, setLang } from '../services/i18n';
 
 describe('牌陣規則', () => {
   test('自由佈局不強制固定格位', () => {
@@ -36,5 +37,74 @@ describe('牌陣規則', () => {
 
   test('自由佈局不額外加入角色閱讀', () => {
     expect(spreadRoleReading('free', [{ pieceName: '車', meaning: '直行突破。' }])).toBe('');
+  });
+
+  test('兩難抉擇陣可保存使用者替選項取的名稱', () => {
+    expect(spreadContextReading('choice', { optionA: ' 留在現職 ', optionB: '轉職' }))
+      .toBe('本次比較：選項 A＝留在現職；選項 B＝轉職\n\n');
+    expect(spreadContextReading('timeline', { optionA: '不應顯示' })).toBe('');
+  });
+});
+
+// ── 介面三語守門 ──
+//
+// 生成的命理解讀文字是中文限定（與 position.ts、interpretation.ts 一致），
+// 但**介面**是三語的。角色名若把 slot.label 直接插進已翻譯的句子，
+// 英文使用者會看到「Next: 過去」這種混語，日文同理。
+
+describe('牌陣角色名的三語覆蓋', () => {
+  const LANGS = ['zh-TW', 'en', 'ja'] as const;
+
+  test('每個角色都帶 labelKey，且不是空字串', () => {
+    for (const spread of Object.values(SPREADS)) {
+      for (const slot of spread.slots) {
+        expect(`${spread.id}/${slot.id}: ${slot.labelKey}`)
+          .toMatch(/: board\.slot\w+$/);
+      }
+    }
+  });
+
+  test('labelKey 在三種語言都查得到，不會回退成鍵名', () => {
+    const missing: string[] = [];
+    for (const spread of Object.values(SPREADS)) {
+      for (const slot of spread.slots) {
+        for (const lang of LANGS) {
+          setLang(lang);
+          const text = t(slot.labelKey);
+          // t() 查無此鍵時原樣回傳鍵名——那就是漏翻譯
+          if (text === slot.labelKey) missing.push(`${lang}/${slot.labelKey}`);
+        }
+      }
+    }
+    setLang('zh-TW');
+    expect(missing).toEqual([]);
+  });
+
+  /** 同一個 slot id 在不同牌陣代表不同角色（如 self 在抉擇陣與關係陣），鍵不可共用 */
+  test('不同牌陣的同名角色使用各自的鍵', () => {
+    const keys = Object.values(SPREADS).flatMap(s => s.slots.map(sl => sl.labelKey));
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('角色解讀的邊界', () => {
+  test('落子數少於角色數時只讀出已落的部分', () => {
+    const reading = spreadRoleReading('timeline', [
+      { pieceName: '車', meaning: '推進力強' },
+    ]);
+    expect(reading).toContain('車');
+    // 尚未落子的角色不該出現
+    expect(reading).not.toContain('下一步');
+  });
+
+  test('落子數多於角色數時只取前 N 顆，不溢出', () => {
+    const pieces = ['車', '馬', '炮', '兵'].map(n => ({ pieceName: n, meaning: 'x' }));
+    const reading = spreadRoleReading('timeline', pieces);
+    expect(reading).toContain('炮');
+    expect(reading).not.toContain('兵');
+  });
+
+  test('沒有落子時回傳空字串', () => {
+    expect(spreadRoleReading('timeline', [])).toBe('');
   });
 });

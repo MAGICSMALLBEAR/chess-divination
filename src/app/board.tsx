@@ -18,15 +18,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import { useMeasuredWidth } from '@/hooks/useGrid';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
-import { SPREADS, type SpreadId, nextSpreadSlot } from '@/services/spreads';
-
-const spreadLabelKey: Record<SpreadId, string> = {
-  free: 'board.spreadFree',
-  timeline: 'board.spreadTimeline',
-  choice: 'board.spreadChoice',
-  relationship: 'board.spreadRelationship',
-  strategy: 'board.spreadStrategy',
-};
+import { SPREADS, SPREAD_HINT_KEYS, SPREAD_LABEL_KEYS, type SpreadId, nextSpreadSlot } from '@/services/spreads';
 
 const spreadDescriptionKey: Record<SpreadId, string> = {
   free: 'board.spreadFreeDesc',
@@ -65,6 +57,8 @@ export default function BoardScreen() {
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [spreadId, setSpreadId] = useState<SpreadId>('free');
+  const [optionA, setOptionA] = useState('');
+  const [optionB, setOptionB] = useState('');
 
   const spread = SPREADS[spreadId];
   const activeSpreadSlot = nextSpreadSlot(spreadId, placedPieces.length);
@@ -83,6 +77,7 @@ export default function BoardScreen() {
     : cellSizeFor(innerWidth);
 
   const currentPool = showRedPieces ? ALL_RED_PIECES : ALL_BLACK_PIECES;
+  const spreadContext = { optionA, optionB };
 
   const handleBack = () => {
     if (placedPieces.length > 0) {
@@ -146,7 +141,7 @@ export default function BoardScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.fsInterpretBtn, placedPieces.length === 0 && { opacity: 0.4 }]}
-                onPress={() => interpret(selectedCategory, questionText, spreadId)}
+                onPress={() => interpret(selectedCategory, questionText, spreadId, spreadContext)}
                 disabled={!canInterpret}
               >
                 <Icon name="crystal-ball" size={14} color={theme.textInverse} />
@@ -214,16 +209,53 @@ export default function BoardScreen() {
             <TouchableOpacity key={id} onPress={() => selectSpread(id)}
               style={[styles.spreadChip, spreadId === id && styles.spreadChipActive]}>
               <Text style={[styles.spreadChipText, spreadId === id && styles.spreadChipTextActive]}>
-                {t(spreadLabelKey[id])}
+                {t(SPREAD_LABEL_KEYS[id])}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
         <Text style={styles.spreadHint}>
           {activeSpreadSlot
-            ? `${t(spreadDescriptionKey[spreadId])}　${t('board.spreadNext', { label: activeSpreadSlot.label })}`
+            ? `${t(spreadDescriptionKey[spreadId])}　${t('board.spreadNext', { label: t(activeSpreadSlot.labelKey) })}`
             : spreadId === 'free' ? t(spreadDescriptionKey[spreadId]) : `${t(spreadDescriptionKey[spreadId])}　${t('board.spreadDone')}`}
         </Text>
+        <View style={styles.spreadGuide}>
+          <Text style={styles.spreadGuideHint}>{t(SPREAD_HINT_KEYS[spreadId])}</Text>
+          {spread.slots.length > 0 && (
+            <View style={styles.spreadRoles}>
+              {spread.slots.map((slot, index) => (
+                <React.Fragment key={slot.id}>
+                  {index > 0 && <Text style={styles.spreadArrow}>→</Text>}
+                  <View style={[styles.spreadRole, activeSpreadSlot?.id === slot.id && styles.spreadRoleActive]}>
+                    <Text style={[styles.spreadRoleText, activeSpreadSlot?.id === slot.id && styles.spreadRoleTextActive]}>
+                      {t(slot.labelKey)}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+          )}
+        </View>
+        {spreadId === 'choice' && (
+          <View style={styles.choiceInputs}>
+            <TextInput
+              style={styles.choiceInput}
+              placeholder={t('board.optionAPlaceholder')}
+              placeholderTextColor={theme.textMuted}
+              value={optionA}
+              onChangeText={setOptionA}
+              maxLength={60}
+            />
+            <TextInput
+              style={styles.choiceInput}
+              placeholder={t('board.optionBPlaceholder')}
+              placeholderTextColor={theme.textMuted}
+              value={optionB}
+              onChangeText={setOptionB}
+              maxLength={60}
+            />
+          </View>
+        )}
 
         {/* 首次提示 */}
         {placedPieces.length === 0 && !selectedPiece && (
@@ -282,7 +314,7 @@ export default function BoardScreen() {
         <View style={styles.controls}>
           <TouchableOpacity
             style={[styles.interpretBtn, !canInterpret && styles.btnDisabled]}
-            onPress={() => interpret(selectedCategory, questionText, spreadId)}
+            onPress={() => interpret(selectedCategory, questionText, spreadId, spreadContext)}
             disabled={!canInterpret}
           >
             <Text style={styles.interpretBtnText}>
@@ -371,6 +403,23 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   spreadChipText: { color: t.textMuted, fontSize: 12 },
   spreadChipTextActive: { color: t.textGold, fontWeight: '700' },
   spreadHint: { width: '100%', color: t.textMuted, fontSize: 12, lineHeight: 18, marginBottom: Spacing.xs },
+  spreadGuide: {
+    width: '100%', borderRadius: 10, paddingHorizontal: Spacing.sm, paddingVertical: 7,
+    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium, marginBottom: Spacing.xs,
+  },
+  spreadGuideHint: { color: t.textSecondary, fontSize: 12, lineHeight: 17 },
+  spreadRoles: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 6, gap: 4 },
+  spreadArrow: { color: t.textMuted, fontSize: 12 },
+  spreadRole: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, backgroundColor: t.bgDark },
+  spreadRoleActive: { backgroundColor: t.goldSoft, borderWidth: 1, borderColor: t.goldFaint },
+  spreadRoleText: { color: t.textMuted, fontSize: 11 },
+  spreadRoleTextActive: { color: t.textGold, fontWeight: '700' },
+  choiceInputs: { width: '100%', flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs },
+  choiceInput: {
+    flex: 1, minWidth: 0, backgroundColor: t.bgDark, borderRadius: 8,
+    borderWidth: 1, borderColor: t.bgMedium, paddingHorizontal: 10, paddingVertical: 8,
+    color: t.textPrimary, fontSize: 12,
+  },
   poolTabs: {
     flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md,
   },
