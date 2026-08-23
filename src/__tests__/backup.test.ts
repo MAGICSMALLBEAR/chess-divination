@@ -20,7 +20,54 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { buildBackup, parseBackup, applyBackup } from '../services/backup';
+// 這個測試環境的 document 是 undefined（見 jest-expo 預設），
+// 因此 backupData/restoreData 走的正是**原生**分支——原生通道能不能用，
+// 只有這裡測得到（web 分支由 e2e 實際點過）。
+const mockClipboard = { text: '' };
+jest.mock('expo-clipboard', () => ({
+  setStringAsync: jest.fn((v: string) => { mockClipboard.text = v; return Promise.resolve(); }),
+  getStringAsync: jest.fn(() => Promise.resolve(mockClipboard.text)),
+}));
+
+const mockSharing = { available: true, shared: [] as string[], throws: false };
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(() => Promise.resolve(mockSharing.available)),
+  shareAsync: jest.fn((uri: string) => {
+    if (mockSharing.throws) return Promise.reject(new Error('分享失敗'));
+    mockSharing.shared.push(uri);
+    return Promise.resolve();
+  }),
+}));
+
+// 以記憶體 Map 模擬檔案系統；只需支援 backup.ts 用到的 create/write/text
+const mockFiles = new Map<string, string>();
+jest.mock('expo-file-system', () => ({
+  Paths: { cache: 'file:///cache/' },
+  File: class {
+    uri: string;
+    constructor(...parts: unknown[]) { this.uri = parts.map(String).join(''); }
+    create() { mockFiles.set(this.uri, ''); }
+    write(content: string) { mockFiles.set(this.uri, content); }
+    text() {
+      const v = mockFiles.get(this.uri);
+      return v === undefined
+        ? Promise.reject(new Error('檔案不存在'))
+        : Promise.resolve(v);
+    }
+  },
+}));
+
+const mockPicker = { canceled: false, uri: 'file:///picked.json', throws: false };
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(() => {
+    if (mockPicker.throws) return Promise.reject(new Error('選檔器不可用'));
+    return Promise.resolve(mockPicker.canceled
+      ? { canceled: true, assets: null }
+      : { canceled: false, assets: [{ uri: mockPicker.uri, name: 'backup.json' }] });
+  }),
+}));
+
+import { buildBackup, parseBackup, applyBackup, backupData, restoreData } from '../services/backup';
 
 const HISTORY = '@chess_divination_history';
 const FAVORITES = '@chess_divination_favorites';
@@ -29,8 +76,21 @@ const DELETED = '@chess_divination_deleted';
 
 beforeEach(() => {
   mockStore.clear();
+  mockFiles.clear();
+  mockClipboard.text = '';
+  mockSharing.available = true;
+  mockSharing.shared = [];
+  mockSharing.throws = false;
+  mockPicker.canceled = false;
+  mockPicker.uri = 'file:///picked.json';
+  mockPicker.throws = false;
   jest.clearAllMocks();
 });
+
+/** 造一份合法備份檔的 JSON 字串 */
+function backupJson(data: Record<string, unknown>): string {
+  return JSON.stringify({ version: 1, date: '2026-08-23T00:00:00.000Z', data });
+}
 
 describe('產生備份', () => {
   test('備份包含版本與日期', async () => {
@@ -150,5 +210,121 @@ describe('套用備份', () => {
 
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'a', poemTitle: '乾為天' }]);
     expect(JSON.parse(mockStore.get(SETTINGS)!)).toEqual({ themeMode: 'light' });
+  });
+});
+
+// ── 原生通道（document undefined 時的分支）──
+//
+// 這一段守的是一個曾經半殘的功能：原生端「備份」只回傳字串而沒有真的
+// 產生任何東西，「還原」則一律回 false——備份做了一半，使用者按還原
+// 必定失敗。以下把兩條通道的成功與退化路徑都釘住。
+
+describe('原生備份通道', () => {
+  test('分享可用時寫出檔案並交給系統分享表單', async () => {
+    mockStore.set(HISTORY, JSON.stringify([{ id: 'a' }]));
+
+    await expect(backupData()).resolves.toBe('shared');
+
+    expect(mockSharing.shared).toHaveLength(1);
+    // 送出的必須是剛寫好的那個檔，且內容是完整備份
+    const written = mockFiles.get(mockSharing.shared[0]);
+    expect(written).toBeTruthy();
+    expect(parseBackup(written!)![HISTORY]).toEqual([{ id: 'a' }]);
+  });
+
+  test('檔名帶當地日期且為 .json', async () => {
+    await backupData();
+    expect(mockSharing.shared[0]).toMatch(/chess-divination-backup-\d{4}-\d{2}-\d{2}\.json$/);
+  });
+
+  /** 模擬器與部分 Android ROM 沒有分享表單，此時仍要留下保底通道 */
+  test('分享不可用時退回剪貼簿', async () => {
+    mockSharing.available = false;
+    mockStore.set(HISTORY, JSON.stringify([{ id: 'b' }]));
+
+    await expect(backupData()).resolves.toBe('copied');
+    expect(parseBackup(mockClipboard.text)![HISTORY]).toEqual([{ id: 'b' }]);
+  });
+
+  test('分享中途拋錯也退回剪貼簿，不算失敗', async () => {
+    mockSharing.throws = true;
+
+    await expect(backupData()).resolves.toBe('copied');
+    expect(mockClipboard.text).not.toBe('');
+  });
+});
+
+describe('原生還原通道', () => {
+  test('選到合法備份檔即寫回儲存', async () => {
+    mockFiles.set('file:///picked.json', backupJson({ [HISTORY]: [{ id: 'restored' }] }));
+
+    await expect(restoreData()).resolves.toBe('ok');
+    expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'restored' }]);
+  });
+
+  /**
+   * 取消是正常操作，不是失敗——回傳值若與失敗共用，設定頁就會在使用者
+   * 按下「取消」時跳出「還原失敗」，把人嚇一跳。
+   */
+  test('使用者取消選檔回傳 canceled，且不動既有資料', async () => {
+    mockPicker.canceled = true;
+    mockStore.set(HISTORY, JSON.stringify([{ id: '原本的' }]));
+
+    await expect(restoreData()).resolves.toBe('canceled');
+    expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: '原本的' }]);
+  });
+
+  test('選到不是備份檔的 JSON 回傳 invalid，且不動既有資料', async () => {
+    mockFiles.set('file:///picked.json', JSON.stringify({ data: { '@other_app': [1] } }));
+    mockStore.set(HISTORY, JSON.stringify([{ id: '原本的' }]));
+
+    await expect(restoreData()).resolves.toBe('invalid');
+    expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: '原本的' }]);
+  });
+
+  test('讀檔失敗回傳 error，不寫入任何東西', async () => {
+    mockPicker.uri = 'file:///不存在.json';
+    await expect(restoreData()).resolves.toBe('error');
+    expect(mockStore.size).toBe(0);
+  });
+
+  /** 選檔器整個不可用時（模組缺失），剪貼簿是最後一條路 */
+  test('選檔器不可用時改讀剪貼簿', async () => {
+    mockPicker.throws = true;
+    mockClipboard.text = backupJson({ [SETTINGS]: { userName: '小熊' } });
+
+    await expect(restoreData()).resolves.toBe('ok');
+    expect(JSON.parse(mockStore.get(SETTINGS)!)).toEqual({ userName: '小熊' });
+  });
+
+  test('選檔器不可用且剪貼簿不是備份時回傳 invalid', async () => {
+    mockPicker.throws = true;
+    mockClipboard.text = '隨手複製的一段字';
+
+    await expect(restoreData()).resolves.toBe('invalid');
+    expect(mockStore.size).toBe(0);
+  });
+});
+
+describe('跨平台往返', () => {
+  /**
+   * 換機／跨平台搬家全靠這條：web 匯出的檔案要能在原生還原。
+   * 兩邊的檔案格式一旦分岔，使用者的歷史就搬不過去。
+   */
+  test('備份產生的檔案內容可被還原流程完整吃回', async () => {
+    mockStore.set(HISTORY, JSON.stringify([{ id: 'a', poemTitle: '乾為天' }]));
+    mockStore.set(SETTINGS, JSON.stringify({ themeMode: 'light' }));
+    mockStore.set(DELETED, JSON.stringify(['gone']));
+
+    await backupData();
+    const exported = mockFiles.get(mockSharing.shared[0])!;
+
+    mockStore.clear();
+    mockFiles.set('file:///picked.json', exported);
+    await expect(restoreData()).resolves.toBe('ok');
+
+    expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'a', poemTitle: '乾為天' }]);
+    expect(JSON.parse(mockStore.get(SETTINGS)!)).toEqual({ themeMode: 'light' });
+    expect(JSON.parse(mockStore.get(DELETED)!)).toEqual(['gone']);
   });
 });

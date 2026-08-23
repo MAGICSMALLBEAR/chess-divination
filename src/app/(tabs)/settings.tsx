@@ -34,7 +34,7 @@ const GENDER_OPTIONS: { value: DivinerGender | undefined; labelKey: string }[] =
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { theme } = useAppTheme();
+  const { theme, mode, setMode } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
   const { t, lang, setLang } = useI18n();
@@ -53,6 +53,12 @@ export default function SettingsScreen() {
     setSettings(s);
     setNameText(s.userName);
     setSyncKeyText(syncKey || '');
+
+    // 主題與語言是 Provider／模組層的即時狀態，只有掛載時讀過一次儲存。
+    // 還原備份與雲端同步會在背後改寫儲存，不在這裡回推，畫面就會停在
+    // 舊主題／舊語言直到重開 App——使用者剛還原完卻看不出任何變化。
+    if (s.themeMode !== mode) setMode(s.themeMode);
+    if (s.lang && s.lang !== lang) setLang(s.lang);
   }
 
   async function update(key: keyof AppSettings, value: any) {
@@ -62,12 +68,13 @@ export default function SettingsScreen() {
 
   async function handleBackup() {
     const result = await backupData();
-    if (result) {
-      Alert.alert(
-        t('settings.backupOk'),
-        result === 'copied' ? t('settings.backupOkClipboard') : t('settings.backupOkDesc'),
-      );
-    }
+    if (!result) { Alert.alert(t('settings.backupFail'), t('settings.backupFailDesc')); return; }
+    // 三種通道下一步該做的事完全不同：下載已落到硬碟、分享已交給系統
+    // 表單、剪貼簿還得使用者自己貼到某處才算數
+    const desc = result === 'copied' ? t('settings.backupOkClipboard')
+      : result === 'shared' ? t('settings.backupOkShared')
+      : t('settings.backupOkDesc');
+    Alert.alert(t('settings.backupOk'), desc);
   }
 
   async function checkReminder() {
@@ -92,9 +99,15 @@ export default function SettingsScreen() {
     Alert.alert(t('settings.restore'), t('settings.restoreConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.confirm'), onPress: async () => {
-        const ok = await restoreData();
-        if (ok) { Alert.alert(t('settings.restoreOk')); loadSettings(); }
-        else Alert.alert(t('settings.restoreFail'), t('settings.restoreFailDesc'));
+        const result = await restoreData();
+        // 取消是使用者的正常操作，不跳任何提示——報「還原失敗」
+        // 只會讓人以為自己把東西弄壞了
+        if (result === 'canceled') return;
+        if (result === 'ok') { Alert.alert(t('settings.restoreOk')); loadSettings(); return; }
+        Alert.alert(
+          t('settings.restoreFail'),
+          result === 'invalid' ? t('settings.restoreFailDesc') : t('settings.restoreFailRead'),
+        );
       }},
     ]);
   }
@@ -180,14 +193,17 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.theme')}</Text>
             <View style={styles.options}>
-              {(['dark', 'light', 'system'] as const).map((mode) => (
-                <TouchableOpacity key={mode}
-                  style={[styles.option, settings.themeMode === mode && { borderColor: theme.gold }]}
-                  onPress={() => update('themeMode', mode)}>
+              {(['dark', 'light', 'system'] as const).map((opt) => (
+                <TouchableOpacity key={opt}
+                  style={[styles.option, mode === opt && { borderColor: theme.gold }]}
+                  // 只寫 settings 不通知 ThemeProvider 的話，按鈕會亮起、
+                  // 設定也存了，畫面卻要等重開才變色。setMode 自己會持久化，
+                  // 故不再另外寫一次設定，避免兩份真相各寫各的。
+                  onPress={() => setMode(opt)}>
                   <View style={styles.optionInner}>
-                    <Icon name={mode === 'dark' ? 'moon' : mode === 'light' ? 'sun' : 'refresh'} size={16} color={settings.themeMode === mode ? theme.gold : theme.textMuted} />
-                    <Text style={[styles.optionText, settings.themeMode === mode && { color: theme.gold }]}>
-                      {' '}{t(mode === 'dark' ? 'settings.themeDark' : mode === 'light' ? 'settings.themeLight' : 'settings.themeSystem')}
+                    <Icon name={opt === 'dark' ? 'moon' : opt === 'light' ? 'sun' : 'refresh'} size={16} color={mode === opt ? theme.gold : theme.textMuted} />
+                    <Text style={[styles.optionText, mode === opt && { color: theme.gold }]}>
+                      {' '}{t(opt === 'dark' ? 'settings.themeDark' : opt === 'light' ? 'settings.themeLight' : 'settings.themeSystem')}
                     </Text>
                   </View>
                 </TouchableOpacity>

@@ -13,6 +13,8 @@ import { hapticLight } from '@/services/haptics';
 import { scheduleVerificationReminder } from '@/services/notifications';
 import { generatePositionSummaryDeep } from '@/services/position';
 import { BOARD } from '@/constants/theme';
+import type { SpreadId } from '@/services/spreads';
+import { spreadReadingPrefix, spreadRoleReading } from '@/services/spreads';
 
 export interface PlacedPiece {
   piece: ChessPiece;
@@ -71,7 +73,7 @@ export function useBoardDivination() {
   const interpretingRef = useRef(false);
 
   // 進行占卜解讀
-  const interpret = useCallback(async (category?: string, text?: string) => {
+  const interpret = useCallback(async (category?: string, text?: string, spreadId: SpreadId = 'free') => {
     if (interpretingRef.current || placedPieces.length === 0) return;
     interpretingRef.current = true;
     try {
@@ -87,7 +89,12 @@ export function useBoardDivination() {
         direction: pp.piece.direction,
         pieceName: pp.piece.displayChar,
       }));
-      const positionSummary = generatePositionSummaryDeep(placements);
+      const positionSummary = spreadReadingPrefix(spreadId)
+        + spreadRoleReading(spreadId, placedPieces.map(({ piece }) => ({
+          pieceName: piece.displayChar,
+          meaning: piece.meaning,
+        })))
+        + generatePositionSummaryDeep(placements);
 
       // 使用棋子順序作為順序（依放置先後）
       const pieces = placedPieces.map(pp => pp.piece);

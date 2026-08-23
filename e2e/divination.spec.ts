@@ -61,6 +61,32 @@ test.describe('抽棋流程', () => {
   });
 });
 
+test.describe('固定牌陣流程', () => {
+  test('三才時間陣依序限定落子，並把角色解讀帶到結果頁', async ({ page }) => {
+    await page.goto('/board');
+    await page.getByText('三才時間陣', { exact: true }).click();
+
+    // 選好棋子後，固定牌陣只會開放一個指定位置。
+    await expect(page.getByText('下一子：過去')).toBeVisible();
+    await page.getByTestId('tray-piece-selectable').first().click();
+    await expect(page.getByTestId('board-drop-target')).toHaveCount(1);
+    await page.getByTestId('board-drop-target').click();
+
+    await expect(page.getByText('下一子：當下')).toBeVisible();
+    await page.getByTestId('tray-piece-selectable').first().click();
+    await page.getByTestId('board-drop-target').click();
+
+    await expect(page.getByText('下一子：下一步')).toBeVisible();
+    await page.getByTestId('tray-piece-selectable').first().click();
+    await page.getByTestId('board-drop-target').click();
+
+    await expect(page.getByText('牌陣已完成')).toBeVisible();
+    await page.getByText('解讀佈局', { exact: true }).click();
+    await expect(page).toHaveURL(/\/reveal/, { timeout: 30_000 });
+    await expect(page.getByText('三才時間陣', { exact: false })).toBeVisible({ timeout: 30_000 });
+  });
+});
+
 test.describe('記錄與收藏', () => {
   test('占卜後記錄會出現在收藏頁的歷史分頁', async ({ page }) => {
     await drawPieces(page, 2);

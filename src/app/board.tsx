@@ -18,6 +18,23 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import { useMeasuredWidth } from '@/hooks/useGrid';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
+import { SPREADS, type SpreadId, nextSpreadSlot } from '@/services/spreads';
+
+const spreadLabelKey: Record<SpreadId, string> = {
+  free: 'board.spreadFree',
+  timeline: 'board.spreadTimeline',
+  choice: 'board.spreadChoice',
+  relationship: 'board.spreadRelationship',
+  strategy: 'board.spreadStrategy',
+};
+
+const spreadDescriptionKey: Record<SpreadId, string> = {
+  free: 'board.spreadFreeDesc',
+  timeline: 'board.spreadTimelineDesc',
+  choice: 'board.spreadChoiceDesc',
+  relationship: 'board.spreadRelationshipDesc',
+  strategy: 'board.spreadStrategyDesc',
+};
 
 /**
  * 棋盤格子大小依可用寬度換算，旋轉與視窗縮放皆會重算。
@@ -47,6 +64,18 @@ export default function BoardScreen() {
   const [questionText, setQuestionText] = useState('');
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [spreadId, setSpreadId] = useState<SpreadId>('free');
+
+  const spread = SPREADS[spreadId];
+  const activeSpreadSlot = nextSpreadSlot(spreadId, placedPieces.length);
+  const maxPiecesForSpread = spread.slots.length || maxPieces;
+  const canInterpret = placedPieces.length > 0 && (spreadId === 'free' || placedPieces.length === maxPiecesForSpread);
+
+  const selectSpread = (id: SpreadId) => {
+    if (id === spreadId) return;
+    reset();
+    setSpreadId(id);
+  };
 
   // 全螢幕模式下棋盤格子加大；一般模式依量測到的容器寬度換算
   const cellSz = isFullscreen
@@ -81,6 +110,8 @@ export default function BoardScreen() {
             cellSize={cellSz}
             maxPieces={maxPieces}
             allowRepeatedPieces={allowRepeatedPieces}
+            spreadSlots={spread.slots}
+            activeSpreadSlot={activeSpreadSlot}
             style={styles.fsBoard}
           />
           <View style={styles.fsControls}>
@@ -115,12 +146,12 @@ export default function BoardScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.fsInterpretBtn, placedPieces.length === 0 && { opacity: 0.4 }]}
-                onPress={() => interpret(selectedCategory, questionText)}
-                disabled={placedPieces.length === 0}
+                onPress={() => interpret(selectedCategory, questionText, spreadId)}
+                disabled={!canInterpret}
               >
                 <Icon name="crystal-ball" size={14} color={theme.textInverse} />
                 <Text style={{ color: theme.textInverse, fontWeight: '600', marginLeft: 4 }}>
-                  {t('board.read')} ({placedPieces.length}/{maxPieces})
+                  {t('board.read')} ({placedPieces.length}/{maxPiecesForSpread})
                 </Text>
               </TouchableOpacity>
             </View>
@@ -175,6 +206,25 @@ export default function BoardScreen() {
           maxLength={200}
         />
 
+        {/* 牌陣選擇。切換時清空棋盤，避免將不同角色的舊落子混入新牌陣。 */}
+        <Text style={styles.spreadTitle}>{t('board.spread')}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.spreadScroll}
+          contentContainerStyle={styles.spreadContent}>
+          {(Object.keys(SPREADS) as SpreadId[]).map((id) => (
+            <TouchableOpacity key={id} onPress={() => selectSpread(id)}
+              style={[styles.spreadChip, spreadId === id && styles.spreadChipActive]}>
+              <Text style={[styles.spreadChipText, spreadId === id && styles.spreadChipTextActive]}>
+                {t(spreadLabelKey[id])}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <Text style={styles.spreadHint}>
+          {activeSpreadSlot
+            ? `${t(spreadDescriptionKey[spreadId])}　${t('board.spreadNext', { label: activeSpreadSlot.label })}`
+            : spreadId === 'free' ? t(spreadDescriptionKey[spreadId]) : `${t(spreadDescriptionKey[spreadId])}　${t('board.spreadDone')}`}
+        </Text>
+
         {/* 首次提示 */}
         {placedPieces.length === 0 && !selectedPiece && (
           <View style={styles.hintRow}>
@@ -196,6 +246,8 @@ export default function BoardScreen() {
           cellSize={cellSz}
           maxPieces={maxPieces}
           allowRepeatedPieces={allowRepeatedPieces}
+          spreadSlots={spread.slots}
+          activeSpreadSlot={activeSpreadSlot}
           style={styles.boardStyle}
         />
 
@@ -229,12 +281,12 @@ export default function BoardScreen() {
         {/* 控制按鈕 */}
         <View style={styles.controls}>
           <TouchableOpacity
-            style={[styles.interpretBtn, placedPieces.length === 0 && styles.btnDisabled]}
-            onPress={() => interpret(selectedCategory, questionText)}
-            disabled={placedPieces.length === 0}
+            style={[styles.interpretBtn, !canInterpret && styles.btnDisabled]}
+            onPress={() => interpret(selectedCategory, questionText, spreadId)}
+            disabled={!canInterpret}
           >
             <Text style={styles.interpretBtnText}>
-              {t('board.placed', { n: `${placedPieces.length}/${maxPieces}` })} —{' '}
+              {t('board.placed', { n: `${placedPieces.length}/${maxPiecesForSpread}` })} —{' '}
             </Text>
             <Icon name="crystal-ball" size={16} color={theme.textInverse} />
             <Text style={styles.interpretBtnText}> {t('board.interpret')}</Text>
@@ -308,6 +360,17 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     color: t.textPrimary,
     marginBottom: Spacing.md,
   },
+  spreadTitle: { width: '100%', color: t.textSecondary, fontSize: FontSize.small, marginBottom: 4 },
+  spreadScroll: { width: '100%', flexGrow: 0, marginBottom: 4 },
+  spreadContent: { flexDirection: 'row', gap: 6, paddingRight: Spacing.md },
+  spreadChip: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14,
+    borderWidth: 1, borderColor: t.bgMedium, backgroundColor: t.bgCard,
+  },
+  spreadChipActive: { borderColor: t.gold, backgroundColor: t.goldSoft },
+  spreadChipText: { color: t.textMuted, fontSize: 12 },
+  spreadChipTextActive: { color: t.textGold, fontWeight: '700' },
+  spreadHint: { width: '100%', color: t.textMuted, fontSize: 12, lineHeight: 18, marginBottom: Spacing.xs },
   poolTabs: {
     flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md,
   },

@@ -9,6 +9,7 @@ import type { ThemeColors } from '@/constants/theme';
 import { BOARD, Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useI18n } from '@/hooks/useI18n';
+import type { SpreadSlot } from '@/services/spreads';
 
 export interface PlacedPiece {
   piece: ChessPieceType;
@@ -26,6 +27,10 @@ interface ChessBoardProps {
   cellSize?: number;
   maxPieces?: number;
   allowRepeatedPieces?: boolean;
+  /** 固定牌陣的全部角色，用於保留已落子的閱讀標籤。 */
+  spreadSlots?: readonly SpreadSlot[];
+  /** 下一個必須落子的角色格位。 */
+  activeSpreadSlot?: SpreadSlot | null;
   style?: ViewStyle;
 }
 
@@ -39,6 +44,8 @@ export default function ChessBoard({
   cellSize = 40,
   maxPieces = 3,
   allowRepeatedPieces = false,
+  spreadSlots = [],
+  activeSpreadSlot = null,
   style,
 }: ChessBoardProps) {
   const styles = useThemedStyles(makeStyles);
@@ -175,7 +182,10 @@ export default function ChessBoard({
           Array.from({ length: cols }).map((_, col) => {
             const placed = getPieceAt(col, row);
             const pos = getCellPosition(col, row);
-            const available = !placed && !!selectedPiece;
+            const isActiveSpreadCell = !activeSpreadSlot || (
+              activeSpreadSlot.col === col && activeSpreadSlot.row === row
+            );
+            const available = !placed && !!selectedPiece && isActiveSpreadCell;
 
             if (placed) {
               // 已放置棋子：點擊可移除
@@ -218,6 +228,39 @@ export default function ChessBoard({
             return null;
           })
         )}
+
+        {/* 固定牌陣標記：只標示下一手，避免棋盤被文字遮住。 */}
+        {activeSpreadSlot && !getPieceAt(activeSpreadSlot.col, activeSpreadSlot.row) && (
+          <View
+            pointerEvents="none"
+            style={[styles.spreadMarker, getCellPosition(activeSpreadSlot.col, activeSpreadSlot.row), {
+              width: pieceSize * 1.35,
+              marginLeft: -pieceSize * 0.175,
+              marginTop: -pieceSize * 0.72,
+            }]}
+          >
+            <Text style={styles.spreadMarkerText}>{activeSpreadSlot.label}</Text>
+          </View>
+        )}
+
+        {/* 已落下的棋子仍保留牌陣角色，閱讀棋局時不必回想落子順序。 */}
+        {spreadSlots.map((slot) => {
+          const placed = getPieceAt(slot.col, slot.row);
+          if (!placed || activeSpreadSlot?.id === slot.id) return null;
+          return (
+            <View
+              key={`spread-role-${slot.id}`}
+              pointerEvents="none"
+              style={[styles.spreadRoleLabel, getCellPosition(slot.col, slot.row), {
+                width: pieceSize * 1.35,
+                marginLeft: -pieceSize * 0.175,
+                marginTop: pieceSize * 0.72,
+              }]}
+            >
+              <Text style={styles.spreadRoleText}>{slot.label}</Text>
+            </View>
+          );
+        })}
       </View>
 
       {/* 可選棋子區 */}
@@ -250,7 +293,10 @@ export default function ChessBoard({
                     onPress={canSelect ? () => onSelectAvailable?.(piece) : undefined}
                     onDragEnd={canSelect ? (p, x, y) => {
                       const grid = screenToGrid(x, y);
-                      if (grid) {
+                      const isValidSpreadTarget = !activeSpreadSlot || (
+                        grid?.col === activeSpreadSlot.col && grid?.row === activeSpreadSlot.row
+                      );
+                      if (grid && isValidSpreadTarget) {
                         onPlacePiece?.(grid.col, grid.row);
                       } else {
                         onSelectAvailable?.(p);
@@ -308,6 +354,18 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   dropIcon: {
     fontSize: FontSize.heading, color: t.goldFaint, fontWeight: '300',
+  },
+  spreadMarker: {
+    position: 'absolute', zIndex: 16, alignItems: 'center',
+  },
+  spreadMarkerText: {
+    color: t.textGold, fontSize: 11, fontWeight: '700',
+    backgroundColor: t.bgDark, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5,
+  },
+  spreadRoleLabel: { position: 'absolute', zIndex: 21, alignItems: 'center' },
+  spreadRoleText: {
+    color: t.textSecondary, fontSize: 10, fontWeight: '600',
+    backgroundColor: t.bgDark, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4,
   },
   availableArea: {
     marginTop: Spacing.lg, alignItems: 'center',
