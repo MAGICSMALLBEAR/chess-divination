@@ -6,7 +6,7 @@
 |------|------|
 | 原始碼檔案 | 111 個 |
 | Git Commits | 66 次 |
-| Jest 測試 | 617 個 · 35 套件 · 全部通過 |
+| Jest 測試 | 635 個 · 36 套件 · 全部通過 |
 | E2E 測試 | 108 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 14 個 |
@@ -1146,10 +1146,36 @@ TS 零錯誤 · Jest 573 全過。25 條缺陷的共通點：**只在多裝置�
 - `e2e/theme.spec.ts`：**淺色主題首次獲得自動化覆蓋** 20 條——先前 86 條 e2e
   與 24 張截圖全跑暗色，主題切換的缺陷正是這樣活下來的
 
+### 原生端音效（原本全靜音）
+
+六個音效都是 Web Audio 即時合成，`getCtx()` 在原生直接回 null——
+iOS/Android 一聲都沒有，設定頁的音效開關卻照樣可切。
+
+不在原生另寫一套音色（那會讓兩個平台愈走愈遠），改成
+**用 Web 版完全相同的合成參數離線算成 WAV**：
+
+- `scripts/generate-sounds.mjs`：零依賴的 Node 合成器，重現三角波滑音、
+  白雜訊經 RBJ 帶通的撞擊瞬態、五聲音階與鈴鐺泛音；搖棋的抖動改用
+  決定性偽隨機，重跑腳本得到位元相同的檔案（否則 diff 永遠是髒的）
+- 產物 `assets/sounds/*.wav` 六個共 392KB（16-bit PCM、單聲道、44.1kHz）
+- 原生播放走 `expo-audio`：播放器延遲建立並重用，每次播放前 `seekTo(0)`
+  ——不倒帶的話快速落子只有第一次有聲音；關閉音效時釋放播放器停掉殘響
+- `setAudioModeAsync({ playsInSilentMode: true })`：iOS 靜音鍵預設會讓
+  App 無聲，但占卜音效是使用者主動觸發的回饋，且設定頁已有獨立開關
+
+平台分檔沿用字型的既有作法（`X.ts` 原生／`X.web.ts` web）：
+`sound.ts` 為原生版、`sound.web.ts` 為 Web Audio 版。
+六個 WAV 若留在共用檔會被 Metro 一起包進 web 匯出——已驗證 dist 維持 3.8M
+且不含任何 .wav。
+
+既有的 34 條 Web Audio 測試改為明確 import `sound.web`：jest-expo 的預設
+平台是 ios，寫 `'../services/sound'` 會解析到原生版。
+
 ### Session 31 總結
 
-TS 零錯誤 · Jest 617 全過（35 suites）· E2E 108 全過。
-⚠️ Production 停在 8/23 23:34 的部署，**尚未包含本 session 的修復**。
+TS 零錯誤 · Jest 635 全過（36 suites）· E2E 108 全過。
+四項 UI／功能缺口至此清空：主題接線、原生還原、UI 一致性、原生音效。
+⚠️ Production 停在 8/23 23:34 的部署，**尚未包含本 session 的任何修復**。
 
 ---
 
@@ -1262,4 +1288,4 @@ TS 零錯誤 · Jest 617 全過（35 suites）· E2E 108 全過。
 | Session 27 | 原生端書法字體子集化（測試 567） | 8/19 |
 | Session 28 | 部署上線驗證 + 文件校正（E2E 86） | 8/22 |
 | Session 30 | 牌陣系統：五種佈局 + 占驗統計（測試 601） | 8/23 |
-| Session 31 | 主題接線修復 + 原生還原 + 平行工作整合（測試 617、E2E 108） | 8/24 |
+| Session 31 | 主題接線 + 原生還原 + 原生音效 + 平行工作整合（測試 635、E2E 108） | 8/24 |

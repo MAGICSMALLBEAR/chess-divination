@@ -7,7 +7,10 @@ import {
   playRevealSound,
   playClickSound,
   playFavoriteSound,
-} from '../services/sound';
+} from '../services/sound.web';
+
+// 明確指向 .web：jest-expo 的預設平台是 ios，寫 '../services/sound'
+// 會解析到原生版（expo-audio）。這支測的是 Web Audio 那一份。
 
 /**
  * Web Audio API 的最小可用替身。
