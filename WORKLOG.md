@@ -1426,7 +1426,7 @@ Session 32 一次修掉了「線上壞掉」與「靜默毀資料」兩層，以
 
 | # | 待辦 | 優先度 | 備註 |
 |---|------|--------|------|
-| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/22 重推，live bundle 已含 Session 26 標記，`api/interpret` 上線回 501 待金鑰）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`，加完再驗證 `api/interpret` |
+| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/24 重推，production 已含 Session 31+32，live 實測首頁與 `/reveal` 回 200）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
 | 2 | ~~**單元測試覆蓋率補強**~~ ✅ | 🟢 已完成 | 265 → 536，31 套件全過（8/16） |
 | 3 | **iOS/Android 實機測試** | 🟡 中 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端觸覺、字體、手勢 |
 | 4 | **EAS Build 原生測試** | 🟢 低 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
@@ -1478,3 +1478,4 @@ Session 32 一次修掉了「線上壞掉」與「靜默毀資料」兩層，以
 | Session 28 | 部署上線驗證 + 文件校正（E2E 86） | 8/22 |
 | Session 30 | 牌陣系統：五種佈局 + 占驗統計（測試 601） | 8/23 |
 | Session 31 | 主題接線 + 原生還原 + 原生音效 + 平行工作整合（測試 635、E2E 108） | 8/24 |
+| Session 32 | 四路審查：修掉線上壞掉（web Alert 空殼等）與靜默毀資料兩層；動爻先天數修正（測試 743、E2E 108） | 8/24 |
