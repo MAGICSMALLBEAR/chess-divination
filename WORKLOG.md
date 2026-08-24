@@ -1175,7 +1175,8 @@ iOS/Android 一聲都沒有，設定頁的音效開關卻照樣可切。
 
 TS 零錯誤 · Jest 635 全過（36 suites）· E2E 108 全過。
 四項 UI／功能缺口至此清空：主題接線、原生還原、UI 一致性、原生音效。
-⚠️ Production 停在 8/23 23:34 的部署，**尚未包含本 session 的任何修復**。
+⚠️ Production 停在 8/23 23:34 的部署，尚未包含本 session 的修復。
+（已於 Session 32 一併上線，見下。）
 
 ---
 
@@ -1324,6 +1325,13 @@ index 0 畫在 `y=0`（最上面）——每個八卦上下顛倒，畫出來的
 
 TS 零錯誤 · Jest 743 全過（42 suites）· web build 成功 · E2E 108 全過。
 線上壞掉與靜默毀資料兩層清空；餘 25 條中低嚴重度缺陷列於「未來待辦」。
+
+**Production 已部署**：2026-08-24（Asia/Taipei）發布至
+https://chess-divination-app.vercel.app ；deployment `dpl_2NbXtLbVFvmUxgx7XeTqyqGnaZwJ`
+狀態 Ready，一次涵蓋 Session 31 與 32（含 8/23 起累積的三個未推 commit）。
+上線後實測首頁與 `/reveal` 皆回 200；`api/interpret` 回 501 `AI_NOT_CONFIGURED`
+——這是既有的外部資源缺口（`DEEPSEEK_API_KEY` 未設），App 會降級為本地解讀，
+不是本輪的迴歸。
 
 ---
 
