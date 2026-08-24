@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { t, setLang, getLang, subscribe, categoryLabel, LANG_OPTIONS, type Lang } from '../services/i18n';
+import { t, setLang, getLang, subscribe, categoryLabel, LANG_OPTIONS, translations, type Lang } from '../services/i18n';
 
 const ALL_LANGS: Lang[] = ['zh-TW', 'en', 'ja'];
 
@@ -458,5 +458,58 @@ describe('localizeAchievement', () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+// ── 三語完整性守門 ──
+//
+// 兩批平行開發（牌陣系統與主題／備份修復）各自往翻譯表加了十幾個鍵，
+// 而在此之前沒有任何測試檢查新鍵是否補齊 en/ja。
+// 漏翻譯不會壞掉任何功能——t() 會原樣回傳鍵名，於是畫面上直接出現
+// 「board.spreadTimelineHint」這種字串，只有真的切到該語言才看得到。
+
+describe('翻譯表的三語完整性', () => {
+  const LANGS: Lang[] = ['zh-TW', 'en', 'ja'];
+  const entries = Object.entries(translations);
+
+  test('翻譯表非空（避免守門測試空轉）', () => {
+    expect(entries.length).toBeGreaterThan(300);
+  });
+
+  test('每個鍵都具備三種語言', () => {
+    const missing: string[] = [];
+    for (const [key, value] of entries) {
+      for (const lang of LANGS) {
+        if (typeof value[lang] !== 'string') missing.push(`${key} → 缺 ${lang}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  test('沒有空字串或只有空白的翻譯', () => {
+    const blank: string[] = [];
+    for (const [key, value] of entries) {
+      for (const lang of LANGS) {
+        if (typeof value[lang] === 'string' && value[lang].trim() === '') {
+          blank.push(`${key}/${lang}`);
+        }
+      }
+    }
+    expect(blank).toEqual([]);
+  });
+
+  /** 佔位符在三種語言必須一致，否則換語言後參數就不會被替換 */
+  test('含參數的鍵，三種語言的佔位符相同', () => {
+    const mismatched: string[] = [];
+    for (const [key, value] of entries) {
+      const setOf = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort().join(',');
+      const base = setOf(value['zh-TW']);
+      for (const lang of LANGS) {
+        if (setOf(value[lang]) !== base) {
+          mismatched.push(`${key}/${lang}: {${setOf(value[lang])}} ≠ {${base}}`);
+        }
+      }
+    }
+    expect(mismatched).toEqual([]);
   });
 });

@@ -83,7 +83,11 @@ test.describe('固定牌陣流程', () => {
     await expect(page.getByText('牌陣已完成')).toBeVisible();
     await page.getByText('解讀佈局', { exact: true }).click();
     await expect(page).toHaveURL(/\/reveal/, { timeout: 30_000 });
-    await expect(page.getByText('三才時間陣', { exact: false })).toBeVisible({ timeout: 30_000 });
+    // 牌陣名同時出現在標題與位置摘要內文，exact:false 會命中兩個元素
+    // 而觸發 strict mode 錯誤。這裡真正要確認的是「角色解讀有帶到結果頁」，
+    // 故改以只存在於角色解讀中的字串比對。
+    await expect(page.getByText('過去・', { exact: false }).first())
+      .toBeVisible({ timeout: 30_000 });
   });
 });
 

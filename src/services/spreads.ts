@@ -14,6 +14,15 @@ export const SPREAD_LABEL_KEYS: Record<SpreadId, string> = {
   strategy: 'board.spreadStrategy',
 };
 
+/** 牌陣說明文字的 i18n 鍵。與 LABEL／HINT 同放一處，避免同類對照表散落各頁。 */
+export const SPREAD_DESC_KEYS: Record<SpreadId, string> = {
+  free: 'board.spreadFreeDesc',
+  timeline: 'board.spreadTimelineDesc',
+  choice: 'board.spreadChoiceDesc',
+  relationship: 'board.spreadRelationshipDesc',
+  strategy: 'board.spreadStrategyDesc',
+};
+
 /** 牌陣適用問題的 i18n 鍵，讓引導文字不和目前介面語言混用。 */
 export const SPREAD_HINT_KEYS: Record<SpreadId, string> = {
   free: 'board.spreadFreeHint',

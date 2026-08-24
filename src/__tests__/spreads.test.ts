@@ -1,4 +1,8 @@
-import { SPREADS, getSpread, nextSpreadSlot, spreadContextReading, spreadReadingPrefix, spreadRoleReading } from '../services/spreads';
+import {
+  SPREADS, SPREAD_LABEL_KEYS, SPREAD_DESC_KEYS, SPREAD_HINT_KEYS,
+  getSpread, nextSpreadSlot, spreadContextReading, spreadReadingPrefix, spreadRoleReading,
+  type SpreadId,
+} from '../services/spreads';
 import { t, setLang } from '../services/i18n';
 
 describe('牌陣規則', () => {
@@ -106,5 +110,47 @@ describe('角色解讀的邊界', () => {
 
   test('沒有落子時回傳空字串', () => {
     expect(spreadRoleReading('timeline', [])).toBe('');
+  });
+});
+
+// ── 對照表完整性 ──
+//
+// 牌陣的 i18n 鍵分成三張表（名稱／說明／適用提示），由兩批平行開發
+// 先後加入。新增一種牌陣時只補其中一兩張表，缺的那張會讓畫面直接
+// 顯示鍵名——功能不會壞，所以人工測試很容易放過。
+
+describe('牌陣 i18n 對照表', () => {
+  const LANGS = ['zh-TW', 'en', 'ja'] as const;
+  const ids = Object.keys(SPREADS) as SpreadId[];
+  const TABLES: [string, Record<SpreadId, string>][] = [
+    ['SPREAD_LABEL_KEYS', SPREAD_LABEL_KEYS],
+    ['SPREAD_DESC_KEYS', SPREAD_DESC_KEYS],
+    ['SPREAD_HINT_KEYS', SPREAD_HINT_KEYS],
+  ];
+
+  test('三張表都涵蓋全部牌陣，沒有多餘項目', () => {
+    for (const [name, table] of TABLES) {
+      expect(`${name}: ${Object.keys(table).sort().join(',')}`)
+        .toBe(`${name}: ${[...ids].sort().join(',')}`);
+    }
+  });
+
+  test('三張表的鍵在三種語言都查得到', () => {
+    const missing: string[] = [];
+    for (const [name, table] of TABLES) {
+      for (const id of ids) {
+        for (const lang of LANGS) {
+          setLang(lang);
+          if (t(table[id]) === table[id]) missing.push(`${lang}/${name}/${id}`);
+        }
+      }
+    }
+    setLang('zh-TW');
+    expect(missing).toEqual([]);
+  });
+
+  test('三張表彼此不共用同一個鍵', () => {
+    const all = TABLES.flatMap(([, table]) => Object.values(table));
+    expect(new Set(all).size).toBe(all.length);
   });
 });

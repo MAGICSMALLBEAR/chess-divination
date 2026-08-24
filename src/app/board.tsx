@@ -18,15 +18,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import { useMeasuredWidth } from '@/hooks/useGrid';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
-import { SPREADS, SPREAD_HINT_KEYS, SPREAD_LABEL_KEYS, type SpreadId, nextSpreadSlot } from '@/services/spreads';
-
-const spreadDescriptionKey: Record<SpreadId, string> = {
-  free: 'board.spreadFreeDesc',
-  timeline: 'board.spreadTimelineDesc',
-  choice: 'board.spreadChoiceDesc',
-  relationship: 'board.spreadRelationshipDesc',
-  strategy: 'board.spreadStrategyDesc',
-};
+import { SPREADS, SPREAD_DESC_KEYS, SPREAD_HINT_KEYS, SPREAD_LABEL_KEYS, type SpreadId, nextSpreadSlot } from '@/services/spreads';
 
 /**
  * 棋盤格子大小依可用寬度換算，旋轉與視窗縮放皆會重算。
@@ -216,8 +208,8 @@ export default function BoardScreen() {
         </ScrollView>
         <Text style={styles.spreadHint}>
           {activeSpreadSlot
-            ? `${t(spreadDescriptionKey[spreadId])}　${t('board.spreadNext', { label: t(activeSpreadSlot.labelKey) })}`
-            : spreadId === 'free' ? t(spreadDescriptionKey[spreadId]) : `${t(spreadDescriptionKey[spreadId])}　${t('board.spreadDone')}`}
+            ? `${t(SPREAD_DESC_KEYS[spreadId])}　${t('board.spreadNext', { label: t(activeSpreadSlot.labelKey) })}`
+            : spreadId === 'free' ? t(SPREAD_DESC_KEYS[spreadId]) : `${t(SPREAD_DESC_KEYS[spreadId])}　${t('board.spreadDone')}`}
         </Text>
         <View style={styles.spreadGuide}>
           <Text style={styles.spreadGuideHint}>{t(SPREAD_HINT_KEYS[spreadId])}</Text>

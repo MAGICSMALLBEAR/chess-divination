@@ -9,7 +9,14 @@
 
 export type Lang = 'zh-TW' | 'en' | 'ja';
 
-const translations: Record<string, Record<Lang, string>> = {
+/**
+ * 翻譯表。
+ *
+ * 對外匯出是為了讓測試能直接檢查「每個鍵是否三語齊全」——
+ * 以正規式掃原始碼會被含撇號而改用雙引號的英文值誤判（如 "Today's ..."）。
+ * 應用程式碼請一律走 t()，不要直接讀這張表。
+ */
+export const translations: Record<string, Record<Lang, string>> = {
   // 首頁
   'home.title': { 'zh-TW': '象棋占卜', en: 'Chess Divination', ja: '象棋占い' },
   'home.tagline': { 'zh-TW': '以棋問道 · 觀象知機', en: 'Ask Through Chess · See the Signs', ja: '棋に問う · 兆しを見る' },
