@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
-  TouchableOpacity, Switch, TextInput, Alert,
+  TouchableOpacity, Switch, TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -13,6 +13,7 @@ import { getSettings, saveSettings } from '@/services/storage';
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import { backupData, restoreData } from '@/services/backup';
+import { confirmAction, notify } from '@/services/dialog';
 import { clearHistory } from '@/services/storage';
 import CustomCategoriesSection from '@/components/CustomCategoriesSection';
 import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission } from '@/services/notifications';
@@ -78,13 +79,13 @@ export default function SettingsScreen() {
 
   async function handleBackup() {
     const result = await backupData();
-    if (!result) { Alert.alert(t('settings.backupFail'), t('settings.backupFailDesc')); return; }
+    if (!result) { notify(t('settings.backupFail'), t('settings.backupFailDesc')); return; }
     // 三種通道下一步該做的事完全不同：下載已落到硬碟、分享已交給系統
     // 表單、剪貼簿還得使用者自己貼到某處才算數
     const desc = result === 'copied' ? t('settings.backupOkClipboard')
       : result === 'shared' ? t('settings.backupOkShared')
       : t('settings.backupOkDesc');
-    Alert.alert(t('settings.backupOk'), desc);
+    notify(t('settings.backupOk'), desc);
   }
 
   async function checkReminder() {
@@ -98,7 +99,7 @@ export default function SettingsScreen() {
       const ok = await scheduleDailyReminder();
       if (!ok) {
         setReminderOn(false);
-        Alert.alert(t('settings.notifyDenied'), t('settings.notifyDeniedDesc'));
+        notify(t('settings.notifyDenied'), t('settings.notifyDeniedDesc'));
       }
     } else {
       await cancelDailyReminder();
@@ -106,20 +107,24 @@ export default function SettingsScreen() {
   }
 
   async function handleRestore() {
-    Alert.alert(t('settings.restore'), t('settings.restoreConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.confirm'), onPress: async () => {
-        const result = await restoreData();
-        // 取消是使用者的正常操作，不跳任何提示——報「還原失敗」
-        // 只會讓人以為自己把東西弄壞了
-        if (result === 'canceled') return;
-        if (result === 'ok') { Alert.alert(t('settings.restoreOk')); loadSettings(); return; }
-        Alert.alert(
-          t('settings.restoreFail'),
-          result === 'invalid' ? t('settings.restoreFailDesc') : t('settings.restoreFailRead'),
-        );
-      }},
-    ]);
+    const confirmed = await confirmAction({
+      title: t('settings.restore'),
+      message: t('settings.restoreConfirm'),
+      confirmLabel: t('common.confirm'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    const result = await restoreData();
+    // 取消是使用者的正常操作，不跳任何提示——報「還原失敗」
+    // 只會讓人以為自己把東西弄壞了
+    if (result === 'canceled') return;
+    if (result === 'ok') { notify(t('settings.restoreOk')); loadSettings(); return; }
+    notify(
+      t('settings.restoreFail'),
+      result === 'invalid' ? t('settings.restoreFailDesc') : t('settings.restoreFailRead'),
+    );
   }
 
   async function handleCloudSync() {
@@ -127,9 +132,9 @@ export default function SettingsScreen() {
     const result = await syncWithCloud();
     if (result === 'ok') {
       await loadSettings();
-      Alert.alert(t('settings.cloudSync'), t('settings.syncOk'));
+      notify(t('settings.cloudSync'), t('settings.syncOk'));
     } else {
-      Alert.alert(t('settings.cloudSync'), t('settings.syncUnset'));
+      notify(t('settings.cloudSync'), t('settings.syncUnset'));
     }
     setSyncing(false);
   }
@@ -341,7 +346,7 @@ export default function SettingsScreen() {
               />
               <TouchableOpacity onPress={async () => {
                 if (await saveSyncKey(syncKeyText)) setEditingSyncKey(false);
-                else Alert.alert(t('settings.cloudSync'), t('settings.syncKeyInvalid'));
+                else notify(t('settings.cloudSync'), t('settings.syncKeyInvalid'));
               }}><Text style={{ color: theme.gold, fontWeight: '600' }}>{t('common.save')}</Text></TouchableOpacity>
             </View>
           ) : (
@@ -359,18 +364,24 @@ export default function SettingsScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={async () => {
             await update('hasCompletedOnboarding', false);
-            Alert.alert(t('settings.onboardingReset'), t('settings.onboardingResetDesc'));
+            notify(t('settings.onboardingReset'), t('settings.onboardingResetDesc'));
           }}>
             <View style={styles.optionInner}>
               <Icon name="graduation" size={16} color={theme.textSecondary} />
               <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.replayOnboarding')}</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={() => {
-            Alert.alert(t('settings.clearHistory'), t('settings.clearConfirm'), [
-              { text: t('common.cancel'), style: 'cancel' },
-              { text: t('common.clear'), style: 'destructive', onPress: async () => { await clearHistory(); Alert.alert(t('settings.cleared')); } },
-            ]);
+          <TouchableOpacity style={styles.row} onPress={async () => {
+            const confirmed = await confirmAction({
+              title: t('settings.clearHistory'),
+              message: t('settings.clearConfirm'),
+              confirmLabel: t('common.clear'),
+              cancelLabel: t('common.cancel'),
+              destructive: true,
+            });
+            if (!confirmed) return;
+            await clearHistory();
+            notify(t('settings.cleared'));
           }}>
             <View style={styles.optionInner}>
               <Icon name="trash" size={16} color={theme.textRed} />

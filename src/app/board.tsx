@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
-  TextInput, Alert,
+  TextInput,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ChessBoard from '@/components/ChessBoard';
 import { Icon } from '@/components/icons';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
+import { confirmAction } from '@/services/dialog';
 import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -71,15 +72,16 @@ export default function BoardScreen() {
   const currentPool = showRedPieces ? ALL_RED_PIECES : ALL_BLACK_PIECES;
   const spreadContext = { optionA, optionB };
 
-  const handleBack = () => {
-    if (placedPieces.length > 0) {
-      Alert.alert(t('board.confirmExit'), t('board.confirmExitDesc'), [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('board.confirmExitOk'), style: 'destructive', onPress: () => router.back() },
-      ]);
-    } else {
-      router.back();
-    }
+  const handleBack = async () => {
+    if (placedPieces.length === 0) { router.back(); return; }
+    const confirmed = await confirmAction({
+      title: t('board.confirmExit'),
+      message: t('board.confirmExitDesc'),
+      confirmLabel: t('board.confirmExitOk'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (confirmed) router.back();
   };
 
   return (

@@ -66,7 +66,9 @@ describe('成功取得解讀', () => {
     await fetchAiInterpretation(input);
 
     const [url, init] = (global as any).fetch.mock.calls[0];
-    expect(url).toBe('/api/interpret');
+    // jest-expo 預設模擬 iOS；原生 fetch 不吃相對 URL，端點必須是絕對網址。
+    // Web 路徑與環境變數覆寫的完整解析見 aiInterpretationEndpoint.test.ts
+    expect(url).toBe('https://chess-divination-app.vercel.app/api/interpret');
     expect(init.method).toBe('POST');
     expect(init.headers['Content-Type']).toBe('application/json');
   });

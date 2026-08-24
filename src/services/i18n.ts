@@ -240,6 +240,11 @@ export const translations: Record<string, Record<Lang, string>> = {
     en: 'ⓘ This record used an older hexagram engine whose ordering was wrong (the Fu Xi sequence was mistaken for the King Wen sequence), so the poem may not match the hexagram. It is kept unchanged to preserve your original reading; new divinations use the corrected engine.',
     ja: 'ⓘ この記録は旧版の卦法によるものです。旧版は卦序の対応に誤りがあり（先天序を文王序と誤用）、詩と卦が一致しない場合があります。元の占い結果を保つため記録はそのまま残しています。新しい占いは修正後の卦法を使用します。',
   },
+  'reveal.legacyMovingLineNotice': {
+    'zh-TW': 'ⓘ 此記錄的動爻以舊版算法取得（卦數誤用 0 基索引，比梅花易數少 2）。卦序與籤詩皆正確，僅動爻及其推出的變卦、體用與古法不同。為保留原始占卜結果，此記錄維持原樣；重新占卜即採用古法。',
+    en: 'ⓘ The moving line in this record came from an older rule (trigram numbers were counted from 0, two less than the classical Plum Blossom method). The hexagram and poem are correct; only the moving line — and the changed hexagram and body/use relation derived from it — differ from the classical result. It is kept unchanged to preserve your original reading; new divinations use the classical rule.',
+    ja: 'ⓘ この記録の動爻は旧版の算法によるものです（卦数に 0 起点の索引を用いたため、梅花易数より 2 少ない）。卦序と詩は正しく、動爻とそこから導かれる変卦・体用のみが古法と異なります。元の占い結果を保つため記録はそのまま残しています。新しい占いは古法を使用します。',
+  },
   'reveal.shareTitle': { 'zh-TW': '象棋占卜結果', en: 'Chess Divination Result', ja: '象棋占いの結果' },
   'reveal.shareLine': { 'zh-TW': '分享到 LINE？', en: 'Share to LINE?', ja: 'LINE に共有しますか？' },
   'reveal.shareLineDesc': { 'zh-TW': '取消則複製到剪貼簿', en: 'Cancel to copy to clipboard instead', ja: 'キャンセルするとクリップボードにコピーします' },

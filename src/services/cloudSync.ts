@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
-import { getHistory, getFavorites, getSettings, STORAGE_KEYS, type AppSettings, type DivinationRecord } from './storage';
+import { getHistory, getFavorites, getSettings, STORAGE_KEYS, type AppSettings, type CustomCategory, type DivinationRecord, type Folder } from './storage';
 
 // Web 端與部署同源，相對路徑即可；原生 fetch 不吃相對 URL，
 // 必須用絕對網址——預設值若維持 '/api/sync'，原生 build 的同步必掛。
@@ -135,13 +135,33 @@ export function mergeHistories(local: unknown, cloud: unknown): SyncRecord[] {
   const rest = all.filter(r => !localIds.has(r.id));
   return [...localOnly, ...rest].slice(0, HISTORY_LIMIT);
 }
-function mergeSettings(local: AppSettings, cloud: unknown): AppSettings {
+export function mergeSettings(local: AppSettings, cloud: unknown): AppSettings {
   if (!cloud || typeof cloud !== 'object') return local;
   const remote = cloud as Partial<AppSettings>;
-  const unique = <T extends { id?: string; key?: string }>(items: T[], field: 'id' | 'key') => items.filter((v, i, a) => a.findIndex(x => x[field] === v[field]) === i);
+
+  // 資料夾以 id 對齊合併，而非「先出現者優先」：兩台裝置可能各自把記錄
+  // 放進同一個資料夾，recordIds 必須取聯集——只留雲端那份等於同步動作
+  // 本身刪掉了本機尚未上傳的歸檔。標量欄位（name/color）則與本函式
+  // {...remote, ...local}「本地優先」的政策一致，遠端舊值不得覆蓋本地編輯。
+  const foldersById = new Map<string, Folder>();
+  for (const f of [...(remote.folders || []), ...(local.folders || [])]) {
+    const prev = foldersById.get(f.id);
+    if (!prev) { foldersById.set(f.id, f); continue; }
+    const prevIds = Array.isArray(prev.recordIds) ? prev.recordIds : [];
+    const nextIds = Array.isArray(f.recordIds) ? f.recordIds : [];
+    foldersById.set(f.id, { ...prev, ...f, recordIds: [...new Set([...prevIds, ...nextIds])] });
+  }
+
+  // 自訂類別以 key 對齊：label/icon 的編輯以本地為準，避免改了又悄悄變回。
+  // 類別沒有陣列欄位需要聯集，後出現者（本地）直接勝出即可。
+  const categoriesByKey = new Map<string, CustomCategory>();
+  for (const c of [...(remote.customCategories || []), ...(local.customCategories || [])]) {
+    categoriesByKey.set(c.key, c);
+  }
+
   return { ...remote, ...local,
-    customCategories: unique([...(remote.customCategories || []), ...(local.customCategories || [])], 'key'),
-    folders: unique([...(remote.folders || []), ...(local.folders || [])], 'id'),
+    customCategories: [...categoriesByKey.values()],
+    folders: [...foldersById.values()],
     usageDates: [...new Set([...(remote.usageDates || []), ...(local.usageDates || [])])],
     unlockedAchievements: [...new Set([...(remote.unlockedAchievements || []), ...(local.unlockedAchievements || [])])],
   };

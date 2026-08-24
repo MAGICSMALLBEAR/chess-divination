@@ -148,11 +148,13 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
           {/* 六爻資訊摘要 */}
           {hasHexagram && props.movingLine && (
             <View style={styles.liuyaoSummary}>
-              {lines.map((lv, i) => {
-                const pos = i + 1;
+              {/* 與上方卦象圖同向：最上列是上爻（第 6 爻）、最下列是初爻。
+                  hexagramLines 的索引 0 是初爻，故繪製前先反轉。 */}
+              {[...lines].reverse().map((_, reversedIndex) => {
+                const pos = lines.length - reversedIndex;
                 const isMoving = pos === props.movingLine;
                 return (
-                  <View key={i} style={styles.lineItem}>
+                  <View key={pos} testID={`yao-row-${pos}`} style={styles.lineItem}>
                     <View style={[styles.lineMark, isMoving && styles.lineMarkMoving]}>
                       <Text style={[styles.lineMarkText, isMoving && { color: P.red }]}>
                         {isMoving ? '○' : ''}

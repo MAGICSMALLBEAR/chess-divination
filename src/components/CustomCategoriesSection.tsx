@@ -4,13 +4,14 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, Alert,
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, Modal,
 } from 'react-native';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import type { CustomCategory } from '@/services/storage';
 import { getSettings, saveSettings } from '@/services/storage';
+import { confirmAction } from '@/services/dialog';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -87,13 +88,15 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
   }
 
   async function handleDelete(index: number) {
-    Alert.alert(t('category.deleteTitle'), t('category.deleteDesc', { name: categories[index].label }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: async () => {
-        const updated = categories.filter((_, i) => i !== index);
-        await saveCategories(updated);
-      }},
-    ]);
+    const confirmed = await confirmAction({
+      title: t('category.deleteTitle'),
+      message: t('category.deleteDesc', { name: categories[index].label }),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (!confirmed) return;
+    await saveCategories(categories.filter((_, i) => i !== index));
   }
 
   return (

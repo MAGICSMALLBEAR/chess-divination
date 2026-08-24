@@ -13,21 +13,14 @@
 //   DEEPSEEK_BASE_URL  （選填，預設 https://api.deepseek.com/v1）
 
 import { requestInterpretation, type InterpretRequestBody } from '../src/services/aiPrompt';
+import { byteLength, createRateLimiter } from '../src/services/rateLimit';
 
 /** 允許的請求來源大小上限，避免被塞入過大的 payload */
 const MAX_BODY_BYTES = 16 * 1024;
-const MAX_REQUESTS = 12;
-const WINDOW_MS = 60_000;
-const requests = new Map<string, number[]>();
 
-function limited(request: Request): boolean {
-  const client = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown';
-  const now = Date.now();
-  const recent = (requests.get(client) || []).filter(time => now - time < WINDOW_MS);
-  if (recent.length >= MAX_REQUESTS) { requests.set(client, recent); return true; }
-  requests.set(client, [...recent, now]);
-  return false;
-}
+// 不 export：Vercel 依 route 檔的具名匯出決定 HTTP 方法處理器，
+// 多匯出一個非方法名是自找麻煩。測試改以不同的 x-forwarded-for 隔離。
+const limited = createRateLimiter({ max: 12, windowMs: 60_000 });
 
 export async function POST(request: Request): Promise<Response> {
   if (limited(request)) {
@@ -48,7 +41,7 @@ export async function POST(request: Request): Promise<Response> {
   let body: InterpretRequestBody;
   try {
     const raw = await request.text();
-    if (raw.length > MAX_BODY_BYTES) {
+    if (byteLength(raw) > MAX_BODY_BYTES) {
       return Response.json(
         { error: 'PAYLOAD_TOO_LARGE', message: '請求內容過大。' },
         { status: 413 },

@@ -1,4 +1,5 @@
 import { Platform, Linking, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import {
   shareNative,
   shareToLine,
@@ -133,8 +134,30 @@ describe('shareNative', () => {
     await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(true);
   });
 
+  /**
+   * react-native-web 的 Share.share 直接回傳 navigator.share() 的結果，
+   * 而後者成功時 resolve 的是 undefined——不是 { action }。
+   * 舊寫法讀 result.action 會拋 TypeError 被 catch 接走，於是每一次
+   * **成功**的 web 分享都被回報成失敗，籤詩頁接著跳出多餘的
+   * 「分享到 LINE？」確認框，首頁則偷偷覆寫使用者的剪貼簿。
+   *
+   * 先前的測試一律 mock 成 { action: sharedAction }，真實形狀從沒被測到。
+   */
+  test('Web 端 navigator.share 成功（resolve undefined）視為分享成功', async () => {
+    jest.spyOn(Share, 'share').mockResolvedValue(undefined as never);
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(true);
+  });
+
   test('使用者取消分享時回傳 false', async () => {
     jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.dismissedAction } as never);
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(false);
+  });
+
+  /** web 端使用者取消 navigator.share 是 reject（AbortError），仍須回 false */
+  test('Web 端使用者取消（reject AbortError）回傳 false', async () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const abort = Object.assign(new Error('Share canceled'), { name: 'AbortError' });
+    jest.spyOn(Share, 'share').mockRejectedValue(abort);
     await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(false);
   });
 
@@ -261,17 +284,26 @@ describe('copyToClipboard', () => {
     await expect(copyToClipboard('文字')).resolves.toBe(false);
   });
 
-  test('原生端降級為分享選單', async () => {
+  /**
+   * 這兩條原本寫成「原生端降級為分享選單」，把缺陷本身當成規格記了下來。
+   *
+   * copyToClipboard 是呼叫端在分享失敗後走的降級路徑，它卻再開一次
+   * Share.share——使用者一關掉分享選單，同一個選單立刻又跳出來，
+   * 而且從頭到尾沒有任何東西被複製到剪貼簿。
+   */
+  test('原生端真的寫入剪貼簿，不再開分享選單', async () => {
     setPlatform('ios');
-    const spy = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction } as never);
+    const shareSpy = jest.spyOn(Share, 'share');
+    const clipboardSpy = jest.spyOn(Clipboard, 'setStringAsync').mockResolvedValue(undefined as never);
 
     await expect(copyToClipboard('文字')).resolves.toBe(true);
-    expect(spy).toHaveBeenCalledWith({ message: '文字' });
+    expect(clipboardSpy).toHaveBeenCalledWith('文字');
+    expect(shareSpy).not.toHaveBeenCalled();
   });
 
-  test('原生端分享失敗時回傳 false', async () => {
+  test('原生端寫入剪貼簿失敗時回傳 false', async () => {
     setPlatform('ios');
-    jest.spyOn(Share, 'share').mockRejectedValue(new Error('failed'));
+    jest.spyOn(Clipboard, 'setStringAsync').mockRejectedValue(new Error('failed'));
 
     await expect(copyToClipboard('文字')).resolves.toBe(false);
   });

@@ -26,7 +26,7 @@ import {
   getDailyFortune, saveDailyFortune,
   isLegacyRecord, hasLiuYaoData,
   setOutcome, clearOutcome,
-  recordFromDivination,
+  recordFromDivination, STORAGE_KEYS,
   type DivinationRecord, type DailyFortune,
 } from '../services/storage';
 import { todayString } from '../services/date';
@@ -182,6 +182,94 @@ describe('收藏', () => {
 
     const favorites = await getFavorites();
     expect(favorites[0].isFavorited).toBe(true);
+  });
+});
+
+describe('刪除與收藏的連動', () => {
+  /**
+   * 迴歸：收藏存的是記錄的完整副本——刪歷史時若不連動，
+   * 被刪的記錄永遠留在收藏頁，收藏頁的刪除鈕再按一次 removeHistory 也是 no-op。
+   */
+  test('刪除歷史中的記錄時，收藏副本一併移除', async () => {
+    const a = await addHistory(makeRecord());
+    await addHistory(makeRecord({ poemTitle: '保留的' }));
+    await toggleFavorite(a);
+
+    await removeHistory(a.id);
+
+    expect((await getHistory()).map(r => r.id)).not.toContain(a.id);
+    expect(await getFavorites()).toEqual([]);
+    expect(await isFavorited(a.id)).toBe(false);
+  });
+
+  /** 使用者接受了破壞性確認，收藏頁卻還留著整套記錄，兩者互相矛盾 */
+  test('清除所有歷史時，收藏也一併清空', async () => {
+    const a = await addHistory(makeRecord());
+    const b = await addHistory(makeRecord());
+    await toggleFavorite(a);
+    await toggleFavorite(b);
+
+    await clearHistory();
+
+    expect(await getHistory()).toEqual([]);
+    expect(await getFavorites()).toEqual([]);
+  });
+
+  /**
+   * 墓碑要涵蓋收藏獨有的 id。
+   *
+   * 舊版只刪歷史不刪收藏，留下一批「歷史已無、收藏還在」的孤兒記錄。
+   * 清除歷史時若只依歷史的 id 寫墓碑，這些孤兒被清掉卻沒有墓碑，
+   * 下一次雲端同步就把它們原封不動地拉回來——使用者以為清乾淨了，
+   * 過幾天又全部出現。
+   */
+  test('清除歷史時，收藏獨有的孤兒記錄也會留下墓碑', async () => {
+    const orphan = await addHistory(makeRecord());
+    await toggleFavorite(orphan);
+    // 直接改寫歷史鍵，模擬舊版只刪歷史所留下的狀態
+    mockStore.set(STORAGE_KEYS.HISTORY, JSON.stringify([]));
+    expect((await getFavorites()).map(r => r.id)).toEqual([orphan.id]);
+
+    await clearHistory();
+
+    const deleted = JSON.parse(mockStore.get(STORAGE_KEYS.DELETED) ?? '[]');
+    expect(deleted).toContain(orphan.id);
+  });
+
+  test('刪除未收藏的記錄不影響其他收藏', async () => {
+    const a = await addHistory(makeRecord());
+    const b = await addHistory(makeRecord());
+    await toggleFavorite(b);
+
+    await removeHistory(a.id);
+
+    expect((await getFavorites()).map(r => r.id)).toEqual([b.id]);
+  });
+
+  /**
+   * 舊版留下的孤兒收藏（歷史副本已刪、收藏副本還在）：
+   * 從收藏頁按刪除時 removeHistory 也該把它從收藏移除，否則永遠刪不掉。
+   */
+  test('歷史中已不存在的收藏記錄，刪除時仍會從收藏移除', async () => {
+    const a = await addHistory(makeRecord());
+    await toggleFavorite(a);
+    // 模擬舊版 bug 造成的狀態：歷史已無此記錄，收藏副本還留著
+    mockStore.set('@chess_divination_history', '[]');
+
+    await removeHistory(a.id);
+
+    expect(await getFavorites()).toEqual([]);
+  });
+
+  /** 收藏連動移除的同時，墓碑照樣要寫——否則雲端同步會把刪除復活 */
+  test('刪除已收藏的記錄仍寫入墓碑', async () => {
+    const a = await addHistory(makeRecord());
+    await toggleFavorite(a);
+
+    await removeHistory(a.id);
+
+    const deleted = JSON.parse(mockStore.get('@chess_divination_deleted')!);
+    expect(deleted).toContain(a.id);
   });
 });
 

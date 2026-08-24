@@ -19,7 +19,7 @@ import { buildLiuYaoReading } from '@/services/liuyao';
 import { trigramsFromIndex } from '@/services/hexagram';
 import type { DivinationRecord, OutcomeStatus } from '@/services/storage';
 import {
-  getHistory, toggleFavorite, isLegacyRecord, setOutcome, clearOutcome, getSettings,
+  getHistory, toggleFavorite, isLegacyRecord, usesLegacyMovingLine, setOutcome, clearOutcome, getSettings,
 } from '@/services/storage';
 import type { DivinerGender } from '@/services/useGod';
 import { getPoemById } from '@/data/poems';
@@ -30,6 +30,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
 import { shareNative, shareToLine, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
+import { confirmAction, notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
 import { localizePoem } from '@/services/localize';
 import { recordUsage, syncAchievements } from '@/services/achievements';
@@ -195,15 +196,21 @@ export default function RevealScreen() {
       const nativeOk = await shareNative({ title: t('reveal.shareTitle'), text: shareText });
       if (nativeOk) return;
 
-      // 降級：LINE / FB / 複製
-      const confirmText = `${t('reveal.shareLine')}\n(${t('reveal.shareLineDesc')})`;
-      if (typeof window !== 'undefined' && window.confirm(confirmText)) {
+      // 降級：LINE / 複製。
+      // 原本這裡直接用 window.confirm／window.alert 繞開 react-native-web
+      // 的 Alert 空殼，但原生端沒有 window，等於整段降級在手機上是靜默的：
+      // 不問就複製、複製完也不說。改走 dialog 服務後兩個平台一致。
+      const confirmed = await confirmAction({
+        title: t('reveal.shareLine'),
+        message: t('reveal.shareLineDesc'),
+        confirmLabel: t('common.confirm'),
+        cancelLabel: t('common.cancel'),
+      });
+      if (confirmed) {
         shareToLine({ title: t('reveal.shareTitle'), text: shareText });
       } else {
         const ok = await copyToClipboard(shareText);
-        if (typeof window !== 'undefined') {
-          window.alert(t(ok ? 'reveal.copied' : 'reveal.copyManual'));
-        }
+        notify(t(ok ? 'reveal.copied' : 'reveal.copyManual'));
       }
     }
   }
@@ -275,11 +282,19 @@ export default function RevealScreen() {
           <View style={styles.backBtn} />
         </View>
 
-        {/* 舊版卦法記錄提示 */}
+        {/* 舊版卦法記錄提示。兩種情況互斥：v1 是卦序整個錯，
+            v2–v3 只是動爻算法與古法差 2，不該掛同一面旗子 */}
         {isLegacyRecord(record) && (
           <View style={[styles.legacyBox, { borderColor: theme.warning, backgroundColor: theme.bgDark }]}>
             <Text style={[styles.legacyText, { color: theme.textMuted }]}>
               {t('reveal.legacyNotice')}
+            </Text>
+          </View>
+        )}
+        {usesLegacyMovingLine(record) && (
+          <View style={[styles.legacyBox, { borderColor: theme.warning, backgroundColor: theme.bgDark }]}>
+            <Text style={[styles.legacyText, { color: theme.textMuted }]}>
+              {t('reveal.legacyMovingLineNotice')}
             </Text>
           </View>
         )}

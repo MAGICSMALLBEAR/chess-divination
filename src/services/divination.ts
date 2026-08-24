@@ -17,8 +17,14 @@ import { todayString, hourBranchNumber } from './date';
  * v1 — 卦序對應錯誤（先天序誤作文王序），64 卦中 62 卦的籤詩與卦象不符。
  * v2 — 修正卦序；卦改由棋種＋顏色決定，八卦全覆蓋。
  * v3 — 納入時辰，每次起卦皆有動爻，並推演變卦、互卦與體用生剋。
+ * v4 — 動爻改用先天數（乾一…坤八）而非 0 基索引。v3 以前每一卦的
+ *      動爻都比古法少 2（三顆棋時少 3），連帶變卦、體用、吉凶全都偏移。
+ *
+ * v3 以前的記錄一律保留原樣：`movingLine` 是起卦當下就存下來的，
+ * 顯示時直接取用而非重算（verification.ts 的 readingForRecord 同此），
+ * 所以升版不會改寫任何既有解讀——使用者回填的占驗仍對應他當時看到的卦。
  */
-export const DIVINATION_ENGINE_VERSION = 3;
+export const DIVINATION_ENGINE_VERSION = 4;
 
 // ====== 確定性 PRNG (Mulberry32) ======
 
@@ -109,6 +115,11 @@ export interface HexagramOptions {
  *
  * 動爻依梅花易數：(上卦數 + 下卦數 + 其餘數 + 時辰數) mod 6，得 0 則為上爻。
  * 時辰是必要參數——同樣的棋在不同時辰起卦，變化的關鍵所在本就不同。
+ *
+ * 「卦數」指先天數 乾一 兌二 離三 震四 巽五 坎六 艮七 坤八，即 trigram + 1。
+ * v3 以前直接把 0 基的 trigram 索引當卦數相加，每一卦的動爻因此比古法
+ * 少 2（三顆棋時少 3）——分佈仍均勻、內部也自洽，但與任何依古法推算的
+ * 結果都對不上，變卦、體用、吉凶乃至爻辭全部連帶偏移。
  */
 export function computeHexagram(
   pieces: ChessPiece[],
@@ -122,8 +133,11 @@ export function computeHexagram(
   const lower = pieces.length === 1 ? pieces[0].trigram : pieces[1].trigram;
 
   const hourBranch = options.hourBranch ?? hourBranchNumber();
-  const thirdPiece = pieces.length >= 3 ? pieces[2].trigram : 0;
-  const sum = upper + lower + thirdPiece + (options.extra ?? 0) + hourBranch;
+  // 先天數＝索引 + 1；沒有第三顆棋時該項不計，不能寫成 trigram ?? 0
+  // ——乾的索引是 0，兩者會混為一談。
+  const thirdNumber = pieces.length >= 3 ? pieces[2].trigram + 1 : 0;
+  // extra 是棋盤格位數總和，本來就是計數而非卦數，不加一
+  const sum = (upper + 1) + (lower + 1) + thirdNumber + (options.extra ?? 0) + hourBranch;
   const remainder = sum % 6;
 
   return {

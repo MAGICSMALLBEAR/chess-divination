@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
-  TouchableOpacity, Alert, TextInput, RefreshControl,
+  TouchableOpacity, TextInput, RefreshControl,
   NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,8 @@ import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import type { DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
+import { localizedPoemTitle } from '@/services/poemList';
+import { confirmAction } from '@/services/dialog';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -67,15 +69,18 @@ export default function CollectionScreen() {
   }
 
   async function batchDelete() {
-    Alert.alert(t('collection.batchDelete'), t('collection.confirmBatch', { n: selectedIds.size }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: async () => {
-        for (const id of selectedIds) await removeHistory(id);
-        setSelectedIds(new Set());
-        setSelectMode(false);
-        await loadData();
-      }},
-    ]);
+    const confirmed = await confirmAction({
+      title: t('collection.batchDelete'),
+      message: t('collection.confirmBatch', { n: selectedIds.size }),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (!confirmed) return;
+    for (const id of selectedIds) await removeHistory(id);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+    await loadData();
   }
 
   useEffect(() => {
@@ -100,10 +105,16 @@ export default function CollectionScreen() {
   }
 
   async function handleDeleteFolder(id: string) {
-    Alert.alert(t('collection.deleteFolder'), t('collection.deleteFolderDesc'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: async () => { await deleteFolder(id); await loadData(); } },
-    ]);
+    const confirmed = await confirmAction({
+      title: t('collection.deleteFolder'),
+      message: t('collection.deleteFolderDesc'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (!confirmed) return;
+    await deleteFolder(id);
+    await loadData();
   }
 
   async function handleAddToFolder(recordId: string, folderId: string) {
@@ -133,16 +144,16 @@ export default function CollectionScreen() {
   const data = tab === 'history' ? historyData : favoritesData;
 
   async function handleDelete(id: string) {
-    Alert.alert(t('collection.confirmOne'), t('collection.confirmOneDesc'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'), style: 'destructive',
-        onPress: async () => {
-          await removeHistory(id);
-          await loadData();
-        },
-      },
-    ]);
+    const confirmed = await confirmAction({
+      title: t('collection.confirmOne'),
+      message: t('collection.confirmOneDesc'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    });
+    if (!confirmed) return;
+    await removeHistory(id);
+    await loadData();
   }
 
   async function handleToggleFav(record: DivinationRecord) {
@@ -223,8 +234,9 @@ export default function CollectionScreen() {
               )}
             </View>
           </View>
+          {/* 記錄存的是中文原題；與 reveal 頁一致，顯示時依目前語言翻譯 */}
           <Text style={styles.cardTitle} numberOfLines={1}>
-            {record.poemTitle}
+            {localizedPoemTitle(record.poemId)}
           </Text>
           <View style={styles.cardMetaRow}>
             <Text style={styles.cardDate}>{formatDate(record.timestamp)}</Text>
@@ -443,7 +455,7 @@ export default function CollectionScreen() {
                     <TouchableOpacity key={rid} style={styles.folderRecord}
                       onPress={() => router.push({ pathname: '/reveal', params: { recordId: rec.id, mode: rec.mode } })}>
                       <Text style={[styles.folderRecText, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {rec.drawnPieceChars.join(' ')} · {rec.poemTitle}
+                        {rec.drawnPieceChars.join(' ')} · {localizedPoemTitle(rec.poemId)}
                       </Text>
                     </TouchableOpacity>
                   );

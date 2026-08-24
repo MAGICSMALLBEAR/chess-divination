@@ -1179,6 +1179,154 @@ TS 零錯誤 · Jest 635 全過（36 suites）· E2E 108 全過。
 
 ---
 
+## Session 32 — 四路審查：線上壞掉與靜默毀資料（8/24）
+
+起點只是「把 Session 31 推上線」。推之前先做了一輪四路審查——原生端落差、
+資料完整性、使用者流程／i18n／無障礙、命理正確性——結果比預期嚴重得多，
+於是先修完再一起部署。
+
+四路一共確認 35 條缺陷。本 session 修掉的是兩層：**線上已經壞掉的**、
+與**會靜默弄壞使用者資料的**。其餘 25 條經原始碼核對後寫進「未來待辦」，
+不讓它們隨對話消失。
+
+### `Alert.alert` 在 web 是空函式（最嚴重）
+
+`react-native-web` 的 Alert 是 `class Alert { static alert() {} }`——
+呼叫它什麼都不會發生。線上 PWA 因此有一整批動作是死的：
+
+- **還原備份**、清空歷史、刪除單筆／批量記錄、刪除資料夾、刪除自訂類別
+- 棋盤有落子時的「返回」確認：按了沒反應，只能用瀏覽器上一頁逃出去
+- 所有告知型提示（備份成功／失敗、同步結果、配對碼格式錯誤）
+
+有確認鈕的更糟：`onPress` 永遠不會被呼叫，整個功能等於不存在，而且**沒有
+任何錯誤訊息**——使用者只會覺得按鈕壞了。這正是 Session 31 原生還原缺陷的
+鏡像：還原在原生修好了，在 web 卻是死的。
+
+`reveal.tsx` 早在很久以前就改用 `window.confirm` 繞開這件事——**知道問題
+存在卻只修了自己那一處**，其餘 17 處沒跟上。
+
+修法沿用專案既有的平台分檔慣例（`sound.ts` / `sound.web.ts`）：
+新增 `services/dialog.ts`（原生走 `Alert.alert`）與 `dialog.web.ts`
+（走 `window.confirm` / `window.alert`），對外是 Promise 介面——
+`Alert.alert` 是 callback、`window.confirm` 是同步回傳，Promise 是唯一
+能同時包住兩者的形狀。17 處全部改接，`reveal.tsx` 的自製版本一併收編
+（它在原生端沒有 `window`，等於整段降級在手機上是靜默的：不問就複製、
+複製完也不說）。
+
+原生版另外補了 `onDismiss`：Android 可用返回鍵或點外面關掉對話框，
+兩者都不觸發任何 `onPress`——少了它，Promise 會永遠懸著，`await` 之後的
+程式一行都不會執行。
+
+**守門**：新增三條測試禁止 `src/` 下任何檔案（`dialog.ts` 自身除外）
+呼叫 `Alert.alert`、從 react-native 匯入 `Alert`、或在畫面層直接用
+`window.confirm` / `window.alert`。這個缺陷能活這麼久，正是因為沒有東西擋著它。
+
+### 靜默毀資料的三條
+
+**備份還原不驗值的型別**（`backup.ts`）。`parseBackup` 只檢查「認得的鍵在不在」，
+值是什麼一概照收，而還原是直接把值寫回儲存。讀取端對壞值的反應是安靜地當作
+空的、或直接崩潰：`history` 給物件而非陣列 → `normalizeRecords` 回 `[]`，
+使用者看到的是「還原成功」配上一片空白的歷史，**像是還原動作本身刪光了資料**；
+`settings.folders` 給物件 → 收藏頁的 `folders.map` 當場炸開。手改過或半途截斷
+的備份檔都長這樣，而還原正是換機搬家的正規路徑。
+
+現在逐鍵驗形狀，不符就整份拒絕而非略過壞鍵——使用者按的是「還原我的資料」，
+只還原一半卻回報成功比明白說「這個檔案不對」更糟。版本比本版新的也拒絕：
+形狀未知，寧可不還原也不要照著猜測寫進儲存。
+
+**雲端同步會抹掉本地編輯**（`cloudSync.ts`）。`unique()` 保留*最先出現者*，
+而呼叫時是 `[...remote, ...local]`——遠端永遠勝出。`Folder` 帶 `recordIds`，
+於是：把記錄放進資料夾 → 同步 → 那筆歸檔消失。不是競態，是每次必然。
+改為依 id 對齊合併，`recordIds` 取聯集（兩台裝置可能各自歸檔到同一個資料夾，
+只留一邊就是同步動作本身在刪資料），標量欄位維持本地優先。
+
+**刪除記錄不刪收藏副本**（`storage.ts`）。收藏存的是完整記錄副本。刪掉歷史後
+記錄仍留在收藏頁，那裡的刪除鈕再按一次 `removeHistory` 也是 no-op，**卡片
+怎麼刪都刪不掉**；記錄還會進每一份備份。清空所有歷史後收藏頁照樣全滿，
+與剛接受的破壞性確認互相矛盾。連帶把墓碑改成取歷史與收藏 id 的聯集——
+只記歷史的話，舊版留下的孤兒收藏被清掉卻沒墓碑，下次同步就復活。
+
+### 動爻公式與梅花易數差 2
+
+`computeHexagram` 把 0 基的 trigram 索引當卦數相加，但梅花易數用的是**先天數**
+乾一 兌二 離三 震四 巽五 坎六 艮七 坤八，即 `trigram + 1`。每一卦的動爻因此
+比古法少 2（三顆棋時少 3），連帶變卦、體用、吉凶乃至爻辭全部偏移。
+
+水雷屯午時：古法 (6+4+7) mod 6 = 5 → 五爻動，用坎體震，用生體，大吉；
+本程式 (5+3+7) mod 6 = 3 → 三爻動，體用對調成小凶。**同一副棋同一時辰，
+結論相反。**
+
+分佈仍均勻、內部也自洽，所以既有測試全綠——`liuyao.test.ts` 只驗了範圍、
+六個值都到得了、時辰與棋盤位置會改變結果，全是「有在動」的性質，
+**沒有任何一條釘住它應該等於多少**。缺陷正好活在這個縫裡。
+
+`DIVINATION_ENGINE_VERSION` 升到 4。舊記錄一律不改寫：`movingLine` 是起卦
+當下就存下來的，顯示時直接取用而非重算，所以升版不會動到任何既有解讀——
+使用者回填的占驗仍對應他當時看到的那一卦。新增 `usesLegacyMovingLine()`
+與獨立的提示文案，與 v1 的「卦序整個錯」分開：那些記錄的卦序、籤詩、卦名
+都是對的，不該掛同一面旗子。
+
+### 分享卡的卦象圖 48/64 畫反
+
+`HexagramGlyph` 取 `[bit2, bit1, bit0]`（由下而上的第 1、2、3 爻）卻把
+index 0 畫在 `y=0`（最上面）——每個八卦上下顛倒，畫出來的是各自的綜卦。
+震為雷渲染成陰陰陽的反面，讀起來是**艮為山**，而同一張卡片上印著「震為雷」。
+只有乾坤坎離四個回文卦不受影響，其餘 48 卦全錯。動爻圓點也因此落在錯的列，
+`ShareCardView` 的六個爻位標記更是 1→6 由上往下印，初爻跑到最頂端。
+
+這是命理層唯一的跨層矛盾——圖與名互相打臉，正是這個專案最在意的那類缺陷。
+修法是把列序抽成純函式（`hexagramGlyphRows`、`movingLineRowIndex`），
+由 `hexagram.ts` 既有的 `trigramLine` 產生，讓兩個檔案共用同一套位元約定。
+
+### 順帶修掉的既有缺陷
+
+- **原生端「複製」從來沒有複製**（`socialShare.ts`）：`copyToClipboard` 在原生
+  呼叫的是 `Share.share`，註解寫「Expo 沒有 clipboard API」，但 `expo-clipboard`
+  一直是相依套件且 `backup.ts` 就在用。後果是使用者一關掉分享選單，同一個選單
+  立刻又跳出來，而且什麼都沒被複製。既有測試把這個行為寫成了規格。
+- **web 分享成功被判為失敗**：`react-native-web` 的 `Share.share` 直接回傳
+  `navigator.share()` 的結果，成功時 resolve 的是 `undefined`——讀 `result.action`
+  拋 TypeError 被 catch 接走。於是每一次**成功**的分享之後，籤詩頁都跳出多餘的
+  「分享到 LINE？」，首頁則偷偷覆寫使用者的剪貼簿。測試一律 mock 成
+  `{ action: sharedAction }`，真實形狀從沒被測到。
+- **AI 解讀在原生用相對路徑 fetch**（`aiInterpretation.ts`）：原生 fetch 沒有
+  origin 可解析，直接拋錯並被歸類成網路問題——手機上永遠顯示「網路似乎有問題」，
+  重試按鈕不可能成功。**同一個 bug `cloudSync.ts` 早就修過並留了註解**，這支漏掉。
+- **圖鑑搜尋比對原始中文**（`library.tsx`）：畫面渲染 `localizePoem` 的翻譯結果，
+  搜尋卻比對 `ALL_POEMS` 的中文原文。en/ja 介面下，輸入畫面上看得到的任何字
+  都是零結果。順帶修掉 `lang` 沒進 `useMemo` 依賴的陳舊問題，以及首頁與收藏頁
+  顯示中文原標題、籤詩頁卻顯示翻譯標題的同一份資料兩種語言。
+- **API 端點上限用 UTF-16 長度**（`api/interpret.ts`）：16KB 上限用 `raw.length`
+  判斷，中文一字佔 3 位元組卻只算 1——實際放寬約三倍。`api/sync.ts` 早就改用
+  位元組數並留了註解說明，這支沒跟上。實測 18KB 的中文 payload 原本會穿過上限
+  直接打到模型端。
+- **限流器計數表只增不減**：每遇到一個新來源就新增一筆且永不刪除，暖實例會一路
+  長大。抽成共用的 `rateLimit.ts` 並補上清理與硬上界，順便給 `api/sync.ts` 也接上
+  ——它原本完全沒有限流，而任何格式正確的 48 位配對碼都能寫入 512KB，
+  不需要猜中既有的碼。
+- **測試互相污染的隱患**：`apiInterpret.test.ts` 的所有請求共用同一個來源，
+  距離 12 次／分鐘的上限只差 3 個測試。再多加幾條就會集體轉紅，而失敗原因
+  看起來與被測行為毫不相干。改為每次呼叫帶不同來源。
+
+### 測試（635 → 743，36 → 42 suites）
+
+新增 `dialog`、`rateLimit`、`movingLine`、`poemList`、`aiInterpretationEndpoint`、
+`trigramGlyph` 六個檔，既有檔案補測。E2E 維持 108 全過。
+
+**每一條新測試都做了注入迴歸**——把缺陷放回去確認測試真的變紅，再還原。
+專案慣例如此，而這次特別必要：`movingLine` 的 12 條規則測試對舊公式全紅，
+`trigramGlyph` 10 條中 8 條轉紅（另 2 條剛好是乾坤這類回文卦，本來就不受影響），
+`backup` 的型別驗證 10 條中 8 條轉紅。位元組上限那條在第一次注入時是撞在
+`FIELD_TOO_LARGE` 上——改成「每欄都在單欄上限內、只有整體超標」的 payload
+才真正只測到 body 上限這一關，而那樣的請求在舊版是一路穿到模型端（回 502）。
+
+### Session 32 總結
+
+TS 零錯誤 · Jest 743 全過（42 suites）· web build 成功 · E2E 108 全過。
+線上壞掉與靜默毀資料兩層清空；餘 25 條中低嚴重度缺陷列於「未來待辦」。
+
+---
+
 ## 功能完整清單
 
 ### 占卜核心
@@ -1232,6 +1380,39 @@ TS 零錯誤 · Jest 635 全過（36 suites）· E2E 108 全過。
 ---
 
 ## 未來待辦
+
+### 🔵 Session 32 四路審查的未修項
+
+Session 32 一次修掉了「線上壞掉」與「靜默毀資料」兩層，以下是同一批審查
+確認存在、但未在該 session 動手的項目。每一條都經原始碼核對，非推測。
+
+| # | 缺陷 | 位置 | 嚴重度 | 說明 |
+|---|------|------|--------|------|
+| A1 | **web 巢狀 Touchable 連鎖觸發** | `(tabs)/index.tsx:90`、`(tabs)/collection.tsx:242`、`library.tsx:144` | 🔴 高（僅 web） | react-native-web 底下 DOM click 會往外冒泡，RN-web 的 handler 不擋。按分享圖示同時跳到抽棋頁；按愛心同時開啟該筆記錄；選資料夾也會開啟記錄。原生端的 responder 機制不受影響 |
+| A2 | **`setupNotificationHandler()` 從未被呼叫** | `services/notifications.ts:15` | 🟡 中（僅原生） | 只有測試引用過。expo-notifications 未設 handler 時的預設行為就是**不顯示**——App 在前景時，每日提醒與 14 天占驗提醒直接被丟棄。另外沒有任何 `addNotificationResponseReceivedListener`，通知帶的 `data.screen` 是死資料，點了不會導頁 |
+| A3 | **資料夾／自訂類別沒有刪除墓碑** | `services/cloudSync.ts` `mergeSettings` | 🟡 中 | 記錄有墓碑、資料夾沒有：一端刪掉的資料夾會在下次同步復活。可行作法是在 `AppSettings` 內加 `deletedFolderIds`／`deletedCategoryKeys`，比照 `usageDates` 取聯集後過濾——不必新增儲存鍵，也會自動進備份 |
+| A4 | **兩台都滿 500 筆時互不交換記錄** | `services/cloudSync.ts:128-137` | 🟡 中 | 超限時只犧牲雲端獨有的記錄，註解說「下次同步會補回」——但另一端也滿載時，每次 PUT 都用自己的 500 筆整個取代雲端，兩台永遠來回覆蓋，雲端從不持有聯集 |
+| A5 | **`recordUsage` 與 `syncAchievements` 競態** | `app/reveal.tsx:93-96`、`storage.ts` `saveSettings` | 🟡 中 | 兩者在同一個 effect 併發且未 await，`saveSettings` 是無鎖的讀-改-寫。撞上時當日 `usageDates`／`currentStreak` 更新遺失，連續天數會斷且隔天歸 1（不像成就會自我修復） |
+| A6 | **同步失敗訊息與實情不符** | `(tabs)/settings.tsx` `handleCloudSync` | 🟡 中 | `syncWithCloud` 只回 `'ok' \| 'error'`，任何失敗都顯示「尚未設定雲端同步伺服器」。payload 超過 512KB（收藏存的是完整記錄副本，易達標）或單純斷網時，使用者得到的是錯誤的診斷 |
+| A7 | **淺色主題對比度不足** | `constants/theme.ts` | 🟡 中 | 實測相對亮度比：宣紙主題 `textMuted` 對 `bgInk` ≈ 2.88:1、`gold` ≈ 3.6:1，皆未達 WCAG AA 4.5:1，而這兩個色正用在 10–12px 的說明文字與區塊標題上。暗色主題 `textMuted` ≈ 4.1:1 也是勉強不過。目前沒有任何對比度測試 |
+| A8 | **`InkSplashOverlay` 不理會 reducedMotion** | `components/InkSplashOverlay.tsx:104-165` | 🟡 中 | 每次開牌都跑約 1.7 秒的全螢幕墨滴。`PieceDraw3D` 與 `PieceEntryFlyIn` 都有接 `useReducedMotion`，所以這是漏接而非政策 |
+| A9 | **無障礙標籤與觸控目標** | `board.tsx:160`、`library.tsx:63`、`collection.tsx:242,435`、`index.tsx:90` | 🟡 中 | 純圖示按鈕沒有 `accessibilityLabel`／`accessibilityRole`，尺寸 14–22pt 也低於 44pt 建議值。讀屏使用者無法辨識這些控制項 |
+| A10 | **`pieceCountPreset` 設定沒有作用** | `(tabs)/settings.tsx:248` | 🟡 中 | 「預設抽棋數量」存得進設定，但抽棋流程從不讀它，畫面永遠是 1/2/3 三個按鈕且無預選。反向的孿生問題：`drawAnimationSpeed` 有人讀卻沒有 UI 可寫 |
+| A11 | **空名稱／空白名稱的靜默無反應** | `collection.tsx:95`、`CustomCategoriesSection.tsx:70`、`settings.tsx:160` | 🟢 低 | 資料夾與類別名稱為空時直接 return，按鈕看起來壞掉；姓名沒有 trim 也沒有 maxLength，存成全空白後畫面顯示空白且「未設定」的後備永遠不出現 |
+| A12 | **`+html.tsx` 的 `lang` 寫死 zh-TW** | `app/+html.tsx:6,21` | 🟢 低（僅 web） | 切成 en/ja 後讀屏與斷字仍當作中文；`theme-color` 也固定深色，淺色主題的瀏覽器外框不跟隨 |
+| A13 | **圖鑑「隨機籤詩」不捲動** | `library.tsx:31-35` | 🟢 低 | 只設 `expandedId`，64 張卡片裡隨機展開的那張多半在畫面外，按了像沒反應 |
+| A14 | **首頁吉凶等級配色兩支相同** | `(tabs)/index.tsx:146` | 🟢 低 | `大吉` 用金色，其餘兩支三元運算子都回 `textMuted`——中平與下下看起來一模一樣。文字仍表達了等級，是視覺層級問題 |
+| A15 | **收藏頁記錄搜尋仍只比對原始中文** | `(tabs)/collection.tsx:139` | 🟢 低 | 圖鑑的同型缺陷已在 Session 32 修掉，收藏頁的 `r.poemTitle.includes(search)` 還留著 |
+| A16 | **儲存失敗時的未處理 rejection** | `hooks/useDrawDivination.ts:83`、`useBoardDivination.ts:130`、`reveal.tsx:147-168` | 🟢 低 | `await addHistory(record)` 無 try/catch。AsyncStorage 寫入失敗時，抽棋模式永遠停在「解讀中…」，回填占驗／收藏則是按了完全沒有回饋 |
+| A17 | **統計的「本週／本月」是滾動視窗** | `app/stats.tsx:44-45` | 🟢 低 | 用 `now - timestamp < 7/30 天` 判斷而非日曆週期，標籤與行為不符；未來時間戳（時鐘偏移或手改備份）永遠被計入 |
+| A18 | **`all_levels` 成就可被壞資料解鎖** | `services/achievements.ts:59` | 🟢 低 | 判斷式是 `new Set(levels).size >= 5`，4 個真等級加 1 個無法辨識的字串就達標。應改為明確比對那 5 個等級 |
+| A19 | **`medianVerifyDelay` 可能為負** | `services/verification.ts:264-273` | 🟢 低 | `verifiedAt < timestamp`（時鐘變動或匯入資料）時算出負值，統計頁直接顯示「-3 天」 |
+| A20 | **`buildBackup` 遇單一壞鍵整份失敗** | `services/backup.ts:33-35` | 🟢 低 | 逐鍵 raw `JSON.parse`，一個鍵壞掉就「備份失敗」；讀取端對壞鍵是降級成 `[]`／預設值，兩邊不一致 |
+| A21 | **ErrorBoundary 蓋掉整個 App 含導覽** | `app/_layout.tsx:43` | 🟢 低 | 包住整個 Stack，遇到必然重現的畫面錯誤時「重試」只會再炸一次，沒有任何路徑回到設定頁去還原資料 |
+| A22 | **用神兩現時取最先出現者而非發動者** | `services/wenwang.ts:157-159` | 🟡 中 | 卜筮正宗的取法是優先取發動之爻。現行寫法取 `lines[0]`，若第二現才是動爻，回頭生剋與進退神整段不會被檢查，斷語因此少計。reasons 有揭露「取 X 爻為主」，但分數不完整 |
+| A23 | **日干支用裝置本地日期而非台北時間** | `services/sexagenary.ts:44-49` | 🟢 低 | 目標客群裝置多為 UTC+8 故實務無礙，但裝置設在其他時區時日柱會差一天，連帶影響旬空、六神與暗動 |
+| A24 | **棋子→八卦的分佈嚴重不均** | `data/pieces.ts:45-53` | 🟢 低（設計） | 八卦計數為 乾1 兌7 離4 震4 巽4 坎4 艮7 坤1，兩顆棋時乾為天／坤為地各約 1/1024，兌為澤／艮為山約 49/1024，相差 49 倍。抽棋本身均勻無模除偏差；這是紅黑錯卦配對設計的副作用，若要卦象等機率需在此處調整 |
+| A25 | **分享卡截圖以 `opacity: 0` 離屏渲染** | `app/reveal.tsx:626-629` | ❓ 待實機確認 | react-native-view-shot 對透明視圖的截圖在 iOS 上有產生空白 PNG 的回報。無法從原始碼判定，需實機跑一次圖片分享確認 |
 
 ### 🟢 技術面（不需外部資源）
 

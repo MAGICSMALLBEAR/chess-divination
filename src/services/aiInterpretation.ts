@@ -11,9 +11,17 @@
 // 設計上刻意不拋錯：AI 解讀是加值內容，任何失敗都應退回既有的
 // 規則式深度解讀，而不是讓籤詩頁壞掉。
 
+import { Platform } from 'react-native';
 import { t } from './i18n';
 
-const ENDPOINT = '/api/interpret';
+// Web 端與部署同源，相對路徑即可；原生 fetch 不吃相對 URL，
+// 必須用絕對網址——預設值若維持 '/api/interpret'，原生 build 的
+// AI 解讀必掛，且 catch 只會把它歸類成永遠重試不了的網路錯誤。
+// 與 cloudSync.ts 的 SYNC_URL 同一套做法。
+const ENDPOINT = process.env.EXPO_PUBLIC_AI_INTERPRET_URL
+  || (Platform.OS === 'web'
+    ? '/api/interpret'
+    : 'https://chess-divination-app.vercel.app/api/interpret');
 
 /** 呼叫結果。用可辨識聯集而非拋錯，讓呼叫端能分別處理三種情況 */
 export type AiInterpretationResult =

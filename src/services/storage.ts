@@ -82,6 +82,19 @@ export function isLegacyRecord(record: DivinationRecord): boolean {
   return (record.engineVersion ?? 1) < 2;
 }
 
+/**
+ * 判斷記錄是否以 v3 以前的動爻算法起卦（把 0 基索引當卦數，比古法少 2）。
+ *
+ * 與 isLegacyRecord 分開：那些記錄的卦序、籤詩、卦名都是對的，只有動爻
+ * 及其推導出的變卦／體用與古法不同，不該掛上「卦序錯誤」那面旗子。
+ * 記錄本身不改寫——movingLine 是起卦當下存下的，顯示時直接取用，
+ * 使用者回填的占驗仍對應他當時看到的那一卦。
+ */
+export function usesLegacyMovingLine(record: DivinationRecord): boolean {
+  const version = record.engineVersion ?? 1;
+  return version >= 2 && version < 4;
+}
+
 /** 判斷記錄是否含完整的六爻資訊（變卦／互卦／體用） */
 export function hasLiuYaoData(record: DivinationRecord): boolean {
   return record.hexagramIndex !== undefined && record.movingLine !== undefined;
@@ -191,16 +204,29 @@ async function addDeletedIds(ids: string[]): Promise<void> {
 }
 
 export async function removeHistory(id: string): Promise<void> {
-  const history = await getHistory();
+  const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
   const filtered = history.filter(r => r.id !== id);
-  await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(filtered));
+  // 收藏存的是記錄的完整副本——只清歷史的話，被刪的記錄會永遠留在收藏頁，
+  // 那裡的刪除鈕再按一次 removeHistory 也成了 no-op，卡片怎麼刪都刪不掉。
+  const keptFavorites = favorites.filter(r => r.id !== id);
+  await Promise.all([
+    AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(filtered)),
+    AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(keptFavorites)),
+  ]);
   await addDeletedIds([id]);
 }
 
 export async function clearHistory(): Promise<void> {
-  const history = await getHistory();
-  await addDeletedIds(history.map(r => r.id));
-  await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([]));
+  const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
+  // 墓碑取兩邊 id 的聯集。只記歷史的話，歷史已無、收藏還在的孤兒記錄
+  // （舊版只刪歷史所留下的）會被清掉卻沒有墓碑，下次同步就從雲端復活。
+  await addDeletedIds([...new Set([...history.map(r => r.id), ...favorites.map(r => r.id)])]);
+  // 「清除所有歷史」是使用者確認過的破壞性操作——收藏若留著，
+  // 收藏頁會繼續顯示整套記錄，與剛接受的確認互相矛盾。
+  await Promise.all([
+    AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([])),
+    AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify([])),
+  ]);
 }
 
 // ====== Favorites ======

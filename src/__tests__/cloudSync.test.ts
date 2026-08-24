@@ -20,10 +20,22 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { mergeHistories, mergeFromCloud } from '../services/cloudSync';
-import { STORAGE_KEYS } from '../services/storage';
+import { mergeHistories, mergeFromCloud, mergeSettings } from '../services/cloudSync';
+import { STORAGE_KEYS, type AppSettings } from '../services/storage';
 
 const rec = (id: string, timestamp: number) => ({ id, timestamp });
+
+/** 建立最小可用的設定物件，測試只在乎被覆寫的欄位 */
+const settings = (overrides: Partial<AppSettings> = {}): AppSettings => ({
+  userName: '',
+  drawAnimationSpeed: 'normal',
+  themeMode: 'dark',
+  soundEnabled: true,
+  hapticEnabled: true,
+  pieceCountPreset: 2,
+  hasCompletedOnboarding: false,
+  ...overrides,
+});
 
 describe('合併歷史記錄', () => {
   test('兩邊都空時得到空陣列', () => {
@@ -155,6 +167,158 @@ describe('數量上限', () => {
     expect(merged.some(r => r.id === 'C300')).toBe(true);
     // 本地記錄排在最前（其中最新的一筆居首），不被截斷擠掉
     expect(merged[0].id).toBe('L399');
+  });
+});
+
+describe('設定合併', () => {
+  describe('資料夾', () => {
+    /**
+     * 迴歸：A 建立資料夾 F 並歸檔 R1 後同步，接著歸檔 R2 再同步——
+     * 舊邏輯「先出現者優先」留下雲端的 F=[R1]，本地 R2 的歸檔被同步動作摧毀。
+     * 同 id 資料夾的 recordIds 必須取聯集。
+     */
+    test('同 id 資料夾的 recordIds 取聯集，雲端舊副本不吃掉本地新增的歸檔', () => {
+      const local = settings({
+        folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: ['R1', 'R2'] }],
+      });
+      const cloud = settings({
+        folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: ['R1'] }],
+      });
+
+      const merged = mergeSettings(local, cloud);
+
+      expect(merged.folders).toHaveLength(1);
+      expect(merged.folders![0].recordIds).toEqual(['R1', 'R2']);
+    });
+
+    /** 聯集不是本地覆蓋——另一台裝置放進同資料夾的歸檔也要留著 */
+    test('同 id 資料夾的 recordIds 也保留雲端獨有的歸檔', () => {
+      const local = settings({
+        folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: ['R1'] }],
+      });
+      const cloud = settings({
+        folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: ['R2', 'R3'] }],
+      });
+
+      const merged = mergeSettings(local, cloud);
+      // 聯集內容才是重點，順序不強求
+      expect(merged.folders![0].recordIds.sort()).toEqual(['R1', 'R2', 'R3']);
+    });
+
+    /** 標量欄位與本函式 {...remote, ...local} 的政策一致：本地優先 */
+    test('同 id 資料夾的 name/color 以本地為準，遠端舊值不覆蓋本地編輯', () => {
+      const local = settings({
+        folders: [{ id: 'f1', name: '改名後', color: 'blue', recordIds: ['R1'] }],
+      });
+      const cloud = settings({
+        folders: [{ id: 'f1', name: '舊名稱', color: 'red', recordIds: ['R1'] }],
+      });
+
+      const merged = mergeSettings(local, cloud);
+
+      expect(merged.folders).toHaveLength(1);
+      expect(merged.folders![0].name).toBe('改名後');
+      expect(merged.folders![0].color).toBe('blue');
+    });
+
+    test('兩邊各自獨有的資料夾都保留', () => {
+      const local = settings({
+        folders: [{ id: 'f-local', name: '本地夾', color: 'red', recordIds: [] }],
+      });
+      const cloud = settings({
+        folders: [{ id: 'f-remote', name: '雲端夾', color: 'blue', recordIds: ['R1'] }],
+      });
+
+      const merged = mergeSettings(local, cloud);
+
+      expect(merged.folders!.map(f => f.id)).toEqual(['f-remote', 'f-local']);
+    });
+
+    test('遠端沒有資料夾時保留本地資料夾', () => {
+      const local = settings({
+        folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: ['R1'] }],
+      });
+
+      expect(mergeSettings(local, settings()).folders).toEqual(local.folders);
+    });
+  });
+
+  describe('自訂類別', () => {
+    /** 迴歸：舊邏輯留雲端的舊 label/icon，使用者改過的類別名稱悄悄變回原樣 */
+    test('同 key 的自訂類別以本地 label/icon 為準', () => {
+      const local = settings({
+        customCategories: [{ key: 'c1', label: '搬家', icon: 'home' }],
+      });
+      const cloud = settings({
+        customCategories: [{ key: 'c1', label: '遷居', icon: 'box' }],
+      });
+
+      const merged = mergeSettings(local, cloud);
+
+      expect(merged.customCategories).toHaveLength(1);
+      expect(merged.customCategories![0].label).toBe('搬家');
+      expect(merged.customCategories![0].icon).toBe('home');
+    });
+
+    test('兩邊各自獨有的自訂類別都保留', () => {
+      const local = settings({
+        customCategories: [{ key: 'c-local', label: '本地類別', icon: 'home' }],
+      });
+      const cloud = settings({
+        customCategories: [{ key: 'c-remote', label: '雲端類別', icon: 'box' }],
+      });
+
+      const merged = mergeSettings(local, cloud);
+
+      expect(merged.customCategories!.map(c => c.key)).toEqual(['c-remote', 'c-local']);
+    });
+  });
+
+  /** 既有行為守門：修 folders/customCategories 時不可動到這兩個欄位的聯集語意 */
+  test('usageDates 與 unlockedAchievements 維持聯集', () => {
+    const local = settings({
+      usageDates: ['2026-08-23', '2026-08-24'],
+      unlockedAchievements: ['first'],
+    });
+    const cloud = settings({
+      usageDates: ['2026-08-24', '2026-08-25'],
+      unlockedAchievements: ['first', 'second'],
+    });
+
+    const merged = mergeSettings(local, cloud);
+
+    expect(merged.usageDates!.sort()).toEqual(['2026-08-23', '2026-08-24', '2026-08-25']);
+    expect(merged.unlockedAchievements!.sort()).toEqual(['first', 'second']);
+  });
+
+  describe('合併後回寫', () => {
+    beforeEach(() => { mockStore.clear(); });
+
+    /**
+     * 完整重現缺陷流程：本地已歸檔 R1+R2、雲端只有 R1（上次同步的舊副本）。
+     * 合併寫回本地儲存後，R2 的歸檔必須還在。
+     */
+    test('同步寫回 SETTINGS 後，本地新增的歸檔仍在', async () => {
+      mockStore.set(STORAGE_KEYS.SETTINGS, JSON.stringify(settings({
+        folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: ['R1', 'R2'] }],
+      })));
+
+      const merged = await mergeFromCloud({
+        version: 2,
+        timestamp: 0,
+        history: [],
+        favorites: [],
+        settings: settings({
+          folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: ['R1'] }],
+        }),
+        dailyFortune: null,
+        deletedIds: [],
+      });
+
+      expect((merged.settings as AppSettings).folders![0].recordIds).toEqual(['R1', 'R2']);
+      const written = JSON.parse(mockStore.get(STORAGE_KEYS.SETTINGS)!);
+      expect(written.folders[0].recordIds).toEqual(['R1', 'R2']);
+    });
   });
 });
 

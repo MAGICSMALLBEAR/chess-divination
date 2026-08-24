@@ -1,5 +1,14 @@
 // Upstash Redis backed cloud-sync endpoint. Connect Redis in Vercel Marketplace.
+import { byteLength, createRateLimiter } from '../src/services/rateLimit';
+
 const MAX_BODY_BYTES = 512 * 1024;
+
+// 配對碼本身就是憑證，但**任何**格式正確的 48 位十六進位字串都能寫入一組新的
+// key——不需要猜中既有配對碼，隨機產一個就能存 512KB。沒有限流時，單一來源
+// 可無上限地灌 Redis。一次 syncWithCloud() 是 GET + PUT 兩次請求，
+// 20 次／分鐘等於每分鐘 10 輪同步，遠高於正常使用。
+const limited = createRateLimiter({ max: 20, windowMs: 60_000 });
+const TOO_MANY = () => Response.json({ error: 'RATE_LIMITED' }, { status: 429, headers: { 'Retry-After': '60' } });
 
 async function hash(value: string): Promise<string> {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
@@ -18,6 +27,7 @@ async function kv(key: string, value?: unknown): Promise<Response> {
   return fetch(endpoint, { method: value === undefined ? 'GET' : 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: value === undefined ? undefined : JSON.stringify(value) });
 }
 export async function GET(request: Request): Promise<Response> {
+  if (limited(request)) return TOO_MANY();
   const rawKey = syncKey(request); if (!rawKey) return Response.json({ error: 'INVALID_SYNC_KEY' }, { status: 401 });
   const response = await kv(`sync:${await hash(rawKey)}`);
   if (!response.ok) return Response.json({ error: 'SYNC_UNAVAILABLE' }, { status: response.status });
@@ -35,12 +45,10 @@ export async function GET(request: Request): Promise<Response> {
   return Response.json(parsed);
 }
 export async function PUT(request: Request): Promise<Response> {
+  if (limited(request)) return TOO_MANY();
   const rawKey = syncKey(request); if (!rawKey) return Response.json({ error: 'INVALID_SYNC_KEY' }, { status: 401 });
   const raw = await request.text();
-  // 以實際位元組數而非 raw.length 判斷：後者是 UTF-16 code unit 數，
-  // 而這個 App 存的是中文籤詩，一個字佔 3 個 UTF-8 位元組——
-  // 用字數判斷會讓上限實際放寬到約三倍。
-  if (new TextEncoder().encode(raw).length > MAX_BODY_BYTES) {
+  if (byteLength(raw) > MAX_BODY_BYTES) {
     return Response.json({ error: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
   }
   let data: unknown; try { data = JSON.parse(raw); } catch { return Response.json({ error: 'INVALID_JSON' }, { status: 400 }); }

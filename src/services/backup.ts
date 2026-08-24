@@ -37,12 +37,53 @@ export async function buildBackup(): Promise<BackupFile> {
   return { version: BACKUP_VERSION, date: new Date().toISOString(), data };
 }
 
+function isPlainObject(value: unknown): boolean {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * 歷史與收藏的元素至少要是帶 id 的物件。
+ *
+ * 不做完整欄位驗證——記錄的形狀會隨版本增修，過嚴會擋掉使用者真正的備份。
+ * 但 id 是每個消費端都假設存在的東西（刪除、收藏、墓碑、資料夾歸屬全靠它），
+ * 缺了它的元素進到儲存就是等著在畫面上炸開。
+ */
+function isRecordArray(value: unknown): boolean {
+  return Array.isArray(value)
+    && value.every(item => isPlainObject(item) && typeof (item as { id?: unknown }).id === 'string');
+}
+
+function isStringArray(value: unknown): boolean {
+  return Array.isArray(value) && value.every(item => typeof item === 'string');
+}
+
+/**
+ * 每個備份鍵的期望形狀。
+ *
+ * 為什麼非驗不可：還原是直接把值寫回儲存，而讀取端對壞值的反應是「安靜地
+ * 當作空的」或「直接炸掉」——
+ *   history 給了物件而非陣列 → normalizeRecords 回 []，使用者看到的是
+ *     「還原成功」加上一片空白的歷史，全部記錄像是被還原動作本身刪掉了；
+ *   settings.folders 給了物件 → 收藏頁 folders.map 當場崩潰；
+ *   settings.usageDates 給了物件 → recordUsage 的 dates.includes 崩潰。
+ * 手改過或半途截斷的備份檔都會落在這裡，而還原正是換機搬家的正規路徑。
+ */
+const KEY_SHAPES: Record<(typeof BACKUP_KEYS)[number], (value: unknown) => boolean> = {
+  '@chess_divination_history': isRecordArray,
+  '@chess_divination_favorites': isRecordArray,
+  '@chess_divination_settings': isPlainObject,
+  '@chess_divination_deleted': isStringArray,
+};
+
 /**
  * 解析備份檔內容並驗證結構。
  *
  * 抽為純函式的原因：原本的還原流程把 JSON.parse 直接寫在檔案讀取的
  * async 回呼裡，格式不對時整個 Promise 永遠不會 resolve——
  * 使用者選到錯檔案後畫面沒有任何回饋，只是靜靜卡住。
+ *
+ * 形狀不符時整份拒絕而非略過壞鍵：使用者按的是「還原我的資料」，
+ * 只還原一半卻回報成功，比明白地說「這個檔案不對」更糟。
  *
  * @returns 可還原的鍵值對；格式不符時回傳 null
  */
@@ -54,15 +95,25 @@ export function parseBackup(json: string): Record<string, unknown> | null {
     return null;
   }
 
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  if (!isPlainObject(parsed)) return null;
 
   const file = parsed as Partial<BackupFile>;
-  if (!file.data || typeof file.data !== 'object' || Array.isArray(file.data)) return null;
+  if (!isPlainObject(file.data)) return null;
+
+  // 版本比本版新的備份形狀未知，寧可拒絕也不要照著猜測寫進儲存。
+  // 缺 version 的一律當作 v1——早期的備份檔都是那個版本。
+  const version = file.version ?? BACKUP_VERSION;
+  if (typeof version !== 'number' || !Number.isFinite(version) || version > BACKUP_VERSION) return null;
 
   // 只取本 App 認得的鍵，避免把備份檔裡的任意內容寫進儲存
   const restorable: Record<string, unknown> = {};
   for (const key of BACKUP_KEYS) {
-    if (file.data[key] !== undefined) restorable[key] = file.data[key];
+    const value = file.data![key];
+    // buildBackup 對沒有內容的鍵寫入 null，那是合法備份的一部分，
+    // 代表「這一項本來就是空的」——略過即可，不必也不該寫回儲存
+    if (value === undefined || value === null) continue;
+    if (!KEY_SHAPES[key](value)) return null;
+    restorable[key] = value;
   }
 
   // 一個認得的鍵都沒有，視為不是本 App 的備份檔

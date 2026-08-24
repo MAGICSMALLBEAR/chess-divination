@@ -9,6 +9,7 @@ import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { localizePoem } from '@/services/localize';
+import { poemMatchesSearch } from '@/services/poemList';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -21,7 +22,7 @@ export default function LibraryScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { onLayout, cardWidth } = useGrid();
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
@@ -41,15 +42,13 @@ export default function LibraryScreen() {
       const trigrams = parseHexagramName(p.hexagramName);
       return !!trigrams && trigrams.some(index => TRIGRAM_ELEMENTS[index] === elementFilter);
     });
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      poems = poems.filter(p =>
-        p.title.includes(q) || p.content.includes(q) ||
-        p.hexagramName.includes(q) || p.vernacular.includes(q)
-      );
-    }
+    // 搜尋比對的是 localizePoem 之後、卡片上實際顯示的字（見 poemList.ts），
+    // 否則 en/ja 介面下輸入螢幕上看得到的字永遠零結果
+    const q = search.trim();
+    if (q) poems = poems.filter(p => poemMatchesSearch(p, q, lang));
     return poems;
-  }, [search, levelFilter, elementFilter]);
+    // lang 列入相依：切換語言後篩選結果必須跟著重算
+  }, [search, levelFilter, elementFilter, lang]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>

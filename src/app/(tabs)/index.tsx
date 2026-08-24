@@ -10,6 +10,7 @@ import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
 import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
+import { localizedPoemTitle } from '@/services/poemList';
 import { shareNative, copyToClipboard } from '@/services/socialShare';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -142,7 +143,8 @@ export default function HomeScreen() {
               <TouchableOpacity key={r.id} style={styles.recentRow}
                 onPress={() => router.push({ pathname: '/reveal', params: { recordId: r.id, mode: r.mode } })}>
                 <Text style={[styles.recentPieces, { color: theme.textPrimary }]}>{r.drawnPieceChars.join(' ')}</Text>
-                <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{r.poemTitle}</Text>
+                {/* 記錄存的是中文原題；與 reveal 頁一致，顯示時依目前語言翻譯 */}
+                <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{localizedPoemTitle(r.poemId)}</Text>
                 <Text style={[styles.recentLevel, { color: r.poemLevel === '大吉' ? theme.gold : r.poemLevel === '下下' ? theme.textMuted : theme.textMuted }]}>{r.poemLevel}</Text>
               </TouchableOpacity>
             ))}

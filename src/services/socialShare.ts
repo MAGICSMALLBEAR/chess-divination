@@ -3,6 +3,7 @@
 // 以及 Web Share API / 複製到剪貼簿等通用方案。
 
 import { Platform, Linking, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { t } from './i18n';
 
 export interface ShareContent {
@@ -19,7 +20,12 @@ export async function shareNative(content: ShareContent): Promise<boolean> {
       title: content.title,
       url: content.url,
     });
-    if (result.action !== Share.dismissedAction) {
+    // react-native-web 的 Share.share 直接回傳 navigator.share() 的結果，
+    // 成功時 resolve 的是 undefined——讀 result.action 會拋 TypeError，
+    // 被下面的 catch 接走，於是「分享成功」被回報成失敗，呼叫端接著跳出
+    // 多餘的「分享到 LINE？」或偷偷覆寫剪貼簿。使用者取消時 navigator.share
+    // 是 reject（AbortError），仍會走 catch 回 false，語意正確。
+    if (!result || result.action !== Share.dismissedAction) {
       return true;
     }
   } catch { console.warn('原生分享失敗'); }
@@ -64,9 +70,13 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text);
       return true;
     }
-    // React Native 端使用 Share（RN 沒有直接的 clipboard API 在 Expo 中）
-    // 降級為分享選單
-    await Share.share({ message: text });
+    // 原生端用 expo-clipboard 真的複製。
+    //
+    // 原本這裡呼叫 Share.share——註解寫「Expo 沒有 clipboard API」，但
+    // expo-clipboard 早就是相依套件（backup.ts 一直在用）。後果是：呼叫端
+    // 把「複製」當成分享失敗後的降級路徑，使用者一關掉分享選單，同一個
+    // 分享選單立刻又跳出來，而且從頭到尾沒有任何東西被複製。
+    await Clipboard.setStringAsync(text);
     return true;
   } catch {
     return false;

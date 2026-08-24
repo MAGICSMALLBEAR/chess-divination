@@ -183,6 +183,85 @@ describe('解析備份檔', () => {
     const r = parseBackup(json);
     expect(Object.keys(r!)).toEqual([SETTINGS]);
   });
+
+  /**
+   * 值的型別驗證。
+   *
+   * 原本只檢查「鍵在不在」，值是什麼一概照收，而還原是直接把值寫回儲存——
+   * 讀取端對壞值的反應是安靜地當作空的，或直接崩潰：
+   *   history 是物件而非陣列 → normalizeRecords 回 []，使用者看到
+   *     「還原成功」配上一片空白的歷史，像是還原動作本身刪光了資料；
+   *   settings.folders 是物件 → 收藏頁的 folders.map 當場炸開。
+   * 手改過或半途截斷的備份檔都長這樣，而還原正是換機搬家的正規路徑。
+   */
+  describe('值的型別驗證', () => {
+    test('history 不是陣列時整份拒絕，不會靜默清空', () => {
+      const json = JSON.stringify({ version: 1, data: { [HISTORY]: { foo: 1 } } });
+      expect(parseBackup(json)).toBeNull();
+    });
+
+    test('history 元素缺少 id 時拒絕', () => {
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [HISTORY]: [1, 2, 3] } }))).toBeNull();
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [HISTORY]: [{ poemId: 3 }] } }))).toBeNull();
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [HISTORY]: [{ id: 7 }] } }))).toBeNull();
+    });
+
+    test('favorites 與 history 適用同一套形狀檢查', () => {
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [FAVORITES]: '字串' } }))).toBeNull();
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [FAVORITES]: [{ noId: true }] } }))).toBeNull();
+    });
+
+    test('settings 是陣列或純值時拒絕', () => {
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [SETTINGS]: [1] } }))).toBeNull();
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [SETTINGS]: '字串' } }))).toBeNull();
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [SETTINGS]: 42 } }))).toBeNull();
+    });
+
+    test('墓碑必須是字串陣列', () => {
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [DELETED]: { a: 1 } } }))).toBeNull();
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [DELETED]: [1, 2] } }))).toBeNull();
+      expect(parseBackup(JSON.stringify({ version: 1, data: { [DELETED]: ['a', 'b'] } }))![DELETED])
+        .toEqual(['a', 'b']);
+    });
+
+    /** buildBackup 對空的鍵寫入 null，那是合法備份的一部分 */
+    test('null 值代表該項本來就是空的，略過而非拒絕', () => {
+      const json = JSON.stringify({
+        version: 1,
+        data: { [HISTORY]: [{ id: 'a' }], [SETTINGS]: null, [FAVORITES]: null, [DELETED]: null },
+      });
+      const r = parseBackup(json);
+      expect(r).not.toBeNull();
+      expect(Object.keys(r!)).toEqual([HISTORY]);
+    });
+
+    /** 全部都是 null 的備份等於沒有任何可還原內容 */
+    test('所有鍵皆為 null 時視為無效', () => {
+      const json = JSON.stringify({
+        version: 1, data: { [HISTORY]: null, [FAVORITES]: null, [SETTINGS]: null, [DELETED]: null },
+      });
+      expect(parseBackup(json)).toBeNull();
+    });
+
+    test('一個鍵壞掉就整份拒絕，不做部分還原', () => {
+      const json = JSON.stringify({
+        version: 1,
+        data: { [HISTORY]: [{ id: 'a' }], [SETTINGS]: [1, 2] },
+      });
+      expect(parseBackup(json)).toBeNull();
+    });
+
+    /** 形狀未知的新版備份，寧可拒絕也不要照著猜測寫進儲存 */
+    test('版本比本版新時拒絕', () => {
+      const json = JSON.stringify({ version: 99, data: { [HISTORY]: [{ id: 'a' }] } });
+      expect(parseBackup(json)).toBeNull();
+    });
+
+    test('缺 version 時當作 v1，仍可還原', () => {
+      const json = JSON.stringify({ data: { [HISTORY]: [{ id: 'a' }] } });
+      expect(parseBackup(json)).not.toBeNull();
+    });
+  });
 });
 
 describe('套用備份', () => {
