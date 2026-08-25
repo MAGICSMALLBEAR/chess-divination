@@ -33,12 +33,20 @@ export default function DrawScreen() {
   } = useDrawDivination();
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
+  /** 設定裡的預設抽棋數量，標為建議選項（見下方讀取設定的 effect） */
+  const [preferredCount, setPreferredCount] = useState<1 | 2 | 3 | null>(null);
 
-  // 讀取上次選擇的類別
+  // 讀取上次選擇的類別與預設抽棋數量。
+  //
+  // 預設數量原本存得進設定卻從來沒有人讀——三個按鈕永遠一視同仁，
+  // 那一項設定對 App 的行為零影響。這裡讀進來標示為建議選項；
+  // 抽棋是按下去就直接開始，沒有「確認」那一步，所以「預設」能有的
+  // 誠實作用就是把偏好的那顆標出來，而不是替使用者按下去。
   useEffect(() => {
     (async () => {
       const s = await getSettings();
       if (s.questionCategory) setSelectedCategory(s.questionCategory);
+      setPreferredCount(s.pieceCountPreset);
     })();
   }, []);
 
@@ -110,16 +118,28 @@ export default function DrawScreen() {
               {([1, 2, 3] as const).map((n) => (
                 <TouchableOpacity
                   key={n}
-                  style={[styles.countBtn, { width: (contentWidth - Spacing.md * 2) / 3 }]}
+                  testID={`draw-count-${n}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: preferredCount === n }}
+                  style={[
+                    styles.countBtn,
+                    { width: (contentWidth - Spacing.md * 2) / 3 },
+                    preferredCount === n && { borderColor: theme.gold },
+                  ]}
                   onPress={() => { playDrawPieceSound(); hapticMedium(); startDrawing(n, selectedCategory, questionText); }}
                 >
-                  <Text style={styles.countNum}>{n}</Text>
+                  <Text style={[styles.countNum, preferredCount === n && { color: theme.gold }]}>{n}</Text>
                   <Text style={styles.countLabel}>
                     {t(n === 1 ? 'draw.single' : n === 2 ? 'draw.double' : 'draw.triple')}
                   </Text>
                   <Text style={styles.countDesc}>
                     {t(n === 1 ? 'draw.singleDesc' : n === 2 ? 'draw.doubleDesc' : 'draw.tripleDesc')}
                   </Text>
+                  {preferredCount === n && (
+                    <Text testID={`draw-count-suggested-${n}`} style={[styles.countSuggested, { color: theme.gold }]}>
+                      {t('draw.suggested')}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -225,6 +245,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     color: t.textPrimary,
     marginTop: 4,
   },
+  countSuggested: { fontSize: 10, fontWeight: '600', marginTop: 4 },
   countDesc: {
     fontSize: FontSize.caption,
     color: t.textMuted,

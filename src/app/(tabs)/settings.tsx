@@ -252,6 +252,9 @@ export default function SettingsScreen() {
             <View style={styles.options}>
               {([1, 2, 3] as const).map((n) => (
                 <TouchableOpacity key={n}
+                  testID={`preset-count-${n}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: settings.pieceCountPreset === n }}
                   style={[styles.option, settings.pieceCountPreset === n && { borderColor: theme.gold }]}
                   onPress={() => update('pieceCountPreset', n)}>
                   <Text style={[styles.optionText, settings.pieceCountPreset === n && { color: theme.gold }]}>{t('settings.pieces', { n })}</Text>
@@ -259,6 +262,32 @@ export default function SettingsScreen() {
               ))}
             </View>
           </View>
+          <Text style={[styles.hint, { color: theme.textMuted }]}>{t('settings.presetHint')}</Text>
+        </View>
+
+        {/* 抽棋動畫速度
+            這一項先前有人讀（useAnimationSpeed）卻沒有任何 UI 可以寫，
+            使用者永遠只能用預設的 normal——與「預設抽棋數量」剛好相反：
+            那一項存得進去卻沒人讀。兩個都是設定與實際行為對不上。 */}
+        <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.animSpeed')}</Text>
+          <View style={styles.row}>
+            <View style={styles.options}>
+              {(['slow', 'normal', 'fast'] as const).map((speed) => (
+                <TouchableOpacity key={speed}
+                  testID={`anim-speed-${speed}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: settings.drawAnimationSpeed === speed }}
+                  style={[styles.option, settings.drawAnimationSpeed === speed && { borderColor: theme.gold }]}
+                  onPress={() => update('drawAnimationSpeed', speed)}>
+                  <Text style={[styles.optionText, settings.drawAnimationSpeed === speed && { color: theme.gold }]}>
+                    {t(speed === 'slow' ? 'settings.speedSlow' : speed === 'normal' ? 'settings.speedNormal' : 'settings.speedFast')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <Text style={[styles.hint, { color: theme.textMuted }]}>{t('settings.animSpeedHint')}</Text>
         </View>
 
         {/* 音效 & 觸覺 */}
@@ -422,6 +451,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: t.bgMedium,
   },
   label: { fontSize: FontSize.body },
+  hint: { fontSize: 11, marginTop: Spacing.xs, lineHeight: 16 },
   options: { flexDirection: 'row', gap: 6 },
   option: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
