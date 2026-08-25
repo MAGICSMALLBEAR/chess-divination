@@ -1,5 +1,5 @@
 // Root Stack 配置
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -9,6 +9,7 @@ import { getSettings } from '@/services/storage';
 import { setLang } from '@/services/i18n';
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
+import { setupNotificationHandler, subscribeToNotificationTaps } from '@/services/notifications';
 
 export {
   ErrorBoundary,
@@ -24,6 +25,8 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const router = useRouter();
+
   useEffect(() => {
     // 不再阻塞在無用的 SpaceMono 英文字體載入上
     SplashScreen.hideAsync();
@@ -37,6 +40,17 @@ export default function RootLayout() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    // 沒設 handler 的話 expo-notifications 預設**不顯示**前景通知——
+    // App 開著時每日提醒與占驗提醒會被靜默丟棄。必須在通知可能抵達
+    // 之前就設好，所以放在最外層而非某個畫面裡。
+    setupNotificationHandler();
+
+    // 點通知後導到它指定的畫面。少了這段，通知帶的 data.screen 是死資料，
+    // 點占驗提醒只會打開首頁，使用者還得自己找到統計頁。
+    return subscribeToNotificationTaps(screen => router.push(screen));
+  }, [router]);
 
   return (
     <ThemeProvider>

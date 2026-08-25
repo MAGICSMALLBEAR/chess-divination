@@ -11,8 +11,19 @@ import type { DivinationRecord } from './storage';
 const REMINDER_ID = 'daily-divination-reminder';
 const VERIFICATION_REMINDER_PREFIX = 'verification-reminder-';
 
-/** 設定通知處理器（顯示方式） */
-export function setupNotificationHandler() {
+/**
+ * 設定通知處理器（App 在前景時要不要顯示通知）。
+ *
+ * 非設定不可：expo-notifications 未設 handler 時的預設行為就是**不顯示**。
+ * 這個函式先前只有測試引用過，沒有任何畫面呼叫——App 開著的時候，
+ * 每日提醒與 14 天占驗提醒會直接被丟棄，使用者只會覺得提醒時靈時不靈
+ * （關掉 App 才收得到）。
+ *
+ * 必須在通知可能抵達之前就設好，所以由 _layout 在最外層呼叫，
+ * 而不是等到哪個畫面剛好 import 到這個模組。
+ */
+export function setupNotificationHandler(): void {
+  if (Platform.OS === 'web') return;   // web 無本地通知，設了也沒有意義
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -22,6 +33,65 @@ export function setupNotificationHandler() {
       shouldShowList: true,
     }),
   });
+}
+
+/**
+ * 通知可導向的畫面白名單。
+ *
+ * 通知的 data 是我們自己寫的，但它會經過作業系統來回一趟；
+ * 拿它直接餵給 router 等於讓外部資料決定導頁目標。白名單讓
+ * 「這支通知能帶你去哪」是這個檔案說了算。
+ */
+const ROUTABLE_SCREENS = ['/(tabs)', '/stats'] as const;
+export type NotificationScreen = (typeof ROUTABLE_SCREENS)[number];
+
+/** 從通知的 data 取出可導向的畫面；無法辨識時回 null */
+export function screenFromNotificationData(data: unknown): NotificationScreen | null {
+  if (!data || typeof data !== 'object') return null;
+  const screen = (data as { screen?: unknown }).screen;
+  return ROUTABLE_SCREENS.includes(screen as NotificationScreen)
+    ? (screen as NotificationScreen)
+    : null;
+}
+
+/**
+ * 訂閱「使用者點了通知」，把 data.screen 交給呼叫端導頁。
+ *
+ * 先前完全沒有這個監聽器，通知裡的 `data: { screen: '/stats' }` 是死資料
+ * ——點了占驗提醒只會打開 App 的首頁，使用者還得自己找到統計頁，
+ * 而提醒的用意正是「現在就去回填那一筆」。
+ *
+ * 另外要處理冷啟動：App 被系統殺掉後點通知啟動，事件在監聽器掛上之前
+ * 就發生了，只靠 addNotificationResponseReceivedListener 會漏掉。
+ * getLastNotificationResponseAsync 補的正是這一段。
+ *
+ * @returns 取消訂閱的函式
+ */
+export function subscribeToNotificationTaps(
+  onNavigate: (screen: NotificationScreen) => void,
+): () => void {
+  if (Platform.OS === 'web') return () => {};
+
+  let cancelled = false;
+
+  // 冷啟動：App 是被這則通知叫起來的
+  Notifications.getLastNotificationResponseAsync()
+    .then(response => {
+      if (cancelled || !response) return;
+      const screen = screenFromNotificationData(response.notification.request.content.data);
+      if (screen) onNavigate(screen);
+    })
+    .catch(e => console.warn('讀取啟動通知失敗:', e));
+
+  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const screen = screenFromNotificationData(response.notification.request.content.data);
+    if (screen) onNavigate(screen);
+  });
+
+  return () => {
+    cancelled = true;
+    subscription.remove();
+  };
 }
 
 /** 請求通知權限 */
