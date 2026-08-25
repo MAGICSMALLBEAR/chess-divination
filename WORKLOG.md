@@ -1440,6 +1440,10 @@ https://chess-divination-app.vercel.app ；deployment `dpl_2NbXtLbVFvmUxgx7XeTqy
 TS 零錯誤 · Jest 781 全過（43 suites）· web build 成功 · E2E 112 全過。
 25 條待辦處理掉 8 條（含 1 條證偽），餘 17 條。
 
+**Production 已部署**：2026-08-25（Asia/Taipei）發布至
+https://chess-divination-app.vercel.app ；deployment `dpl_6wGbaMjajcoroZGKQqLTG4FNdDUy`
+狀態 Ready。上線後實測首頁、`/reveal`、`/library`、`/collection` 皆回 200。
+
 ---
 
 ## 功能完整清單
