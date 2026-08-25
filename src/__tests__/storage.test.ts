@@ -21,7 +21,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 import {
   getHistory, addHistory, removeHistory, clearHistory,
   getFavorites, toggleFavorite, isFavorited,
-  getSettings, saveSettings,
+  getSettings, saveSettings, updateSettings,
   getFolders, addFolder, deleteFolder, addToFolder, removeFromFolder,
   getDailyFortune, saveDailyFortune,
   isLegacyRecord, hasLiuYaoData,
@@ -314,6 +314,60 @@ describe('設定', () => {
     const s = await getSettings();
     expect(s.customCategories).toHaveLength(1);
     expect(s.customCategories![0].label).toBe('搬家');
+  });
+});
+
+/**
+ * 併發寫入設定。
+ *
+ * saveSettings 是「讀出整包 → 合併 → 寫回整包」，沒有序列化的話兩個並行
+ * 呼叫會讀到同一份舊值，後寫的整個蓋掉先寫的。這不是理論問題：reveal 頁
+ * 的同一個 effect 裡 recordUsage() 與 syncAchievements() 併發且都不 await，
+ * 撞上時當日的連續天數更新會遺失，而且那一天過了就補不回來。
+ */
+describe('設定的併發寫入', () => {
+  test('同時寫入不同欄位，兩者都要留下', async () => {
+    await Promise.all([
+      saveSettings({ userName: '小熊' }),
+      saveSettings({ currentStreak: 7 }),
+    ]);
+
+    const s = await getSettings();
+    expect(s.userName).toBe('小熊');
+    expect(s.currentStreak).toBe(7);
+  });
+
+  test('大量併發寫入後每一個欄位都在', async () => {
+    // 單一一對可能因為排程剛好錯開而僥倖通過；20 個併發把窗口撐開
+    await Promise.all(
+      Array.from({ length: 20 }, (_, i) => saveSettings({ [`k${i}`]: i } as never)),
+    );
+
+    const s = await getSettings() as unknown as Record<string, number>;
+    const missing = Array.from({ length: 20 }, (_, i) => `k${i}`).filter(k => s[k] === undefined);
+    expect(missing).toEqual([]);
+  });
+
+  test('updateSettings 的 updater 讀到的是輪到它時的最新值', async () => {
+    await saveSettings({ currentStreak: 0 });
+
+    // 每個 updater 都是 +1。沒有序列化的話全部讀到 0，結果會是 1 而非 10。
+    await Promise.all(
+      Array.from({ length: 10 }, () =>
+        updateSettings(current => ({ currentStreak: (current.currentStreak ?? 0) + 1 }))),
+    );
+
+    expect((await getSettings()).currentStreak).toBe(10);
+  });
+
+  test('某次寫入失敗不會讓後續寫入卡住', async () => {
+    // updater 拋錯時佇列必須還能繼續，否則一次意外就讓設定永久寫不進去
+    await expect(
+      updateSettings(() => { throw new Error('壞掉的 updater'); }),
+    ).rejects.toThrow('壞掉的 updater');
+
+    await saveSettings({ userName: '照樣寫得進去' });
+    expect((await getSettings()).userName).toBe('照樣寫得進去');
   });
 });
 

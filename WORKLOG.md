@@ -1335,6 +1335,113 @@ https://chess-divination-app.vercel.app ；deployment `dpl_2NbXtLbVFvmUxgx7XeTqy
 
 ---
 
+## Session 33 — 清 Session 32 的待辦，並證偽其中最嚴重的一條（8/25）
+
+接續上一輪留下的 25 條待辦，從嚴重度最高的往下做。第一件事就是意外：
+**唯一那條 🔴 高是誤判。**
+
+### A1 不成立——react-native-web 本來就會擋
+
+上一輪的審查認為 web 底下 DOM click 會往外冒泡而 RN-web 的 handler 不擋，
+因此「按每日運勢的分享圖示會同時跳到抽棋頁」。實際讀 rn-web 0.21 的
+`PressResponder`，其 `onClick` 在未 disabled 時**第一件事就是**
+`event.stopPropagation()`，原始碼註解也明講「`onPress` 只會在 click target
+最近的那一個 PressResponder 祖先上觸發」。
+
+但「讀原始碼覺得沒事」與「瀏覽器裡真的沒事」是兩回事，而這件事當時
+沒有任何測試守著——所以沒有直接把它劃掉，而是寫成 e2e 釘在真瀏覽器裡：
+按分享圖示，斷言分享確實發生**且**網址沒變；再加一條對照組確認整張卡片
+本身仍然可按（少了對照組，卡片壞掉不能按也會讓上一條照樣過）。desktop
+與 mobile 兩個 project 都綠。
+
+留著這個檔案的理由是：哪天升級 rn-web 改掉了這個行為，這裡會紅，
+而不是等使用者回報「按分享跳走了」。
+
+### 設定寫入沒有序列化（A5）
+
+`saveSettings` 是「讀出整包 → 合併 → 寫回整包」。reveal 頁的同一個 effect
+裡 `recordUsage()` 與 `syncAchievements()` 併發且都不 await，兩邊讀到同一份
+舊值，後寫的把先寫的整個蓋掉。撞上時當日的 `usageDates`／`currentStreak`
+更新遺失——**連續天數就這麼斷了，而且不像成就會在下次進頁面時自我修復，
+那一天過了就補不回來。**
+
+修在儲存層而不是呼叫端：加一條序列化佇列，並新增 `updateSettings(updater)`
+讓 updater 收到的一定是輪到它時的最新值。只序列化寫入還不夠——
+`checkAchievements` 與 `recordUsage` 都是在佇列外先讀、算完再寫，
+讀到的仍是可能過期的快照，兩者都改成把判斷搬進 updater 裡。
+`recordUsage` 原本還會分兩次寫（天數一次、七日成就一次），第二次用的是
+最初那份舊值，會抹掉兩次之間別人解鎖的成就；現在併成同一筆。
+
+佇列另外做了一件事：某次寫入失敗不讓整條斷掉，否則一次意外就讓設定
+永久寫不進去。
+
+### 白字印在米黃底上（A7 的工具 + A14）
+
+首頁最近紀錄的等級色是手寫的三元式，而且**兩個分支都回 `theme.textMuted`**
+——中平與下下看起來一模一樣；收藏頁更是 中吉／中平／下下 三個等級共用
+同一個灰。專案其實早就有 `getLevelColor` 這份語意色盤，兩個畫面各自
+重寫了一遍，然後各自寫壞。
+
+改接 `getLevelColor` 之後浮出下一層問題：等級標籤的文字一律白字，
+而中平的米黃底對白字只有約 **1.9:1**，那枚標籤才 11px，等於印了看不見的字。
+於是新增 `services/contrast.ts`（WCAG 2.1 相對亮度／對比度／`readableTextOn`），
+讓前景色由底色算出來，而不是每加一個底色就重挑一次白或黑然後漏掉。
+
+寫測試時發現自己的假設是錯的：我原本斷言「沒有任何顏色會同時對黑與對白
+都低於 4.5:1」，但那只在**純黑**成立。專案的墨色是柔化過的 `#1A1A1A`
+（亮度約 0.010 而非 0），這讓亮度落在約 0.183–0.222 的中間調底色兩邊都不到
+——「下下」的灰褐（亮度 0.201）正好卡在缺口裡。修的是函式而不是測試：
+達不到 AA 時退到純黑保底，常見的深底／淺底仍拿到柔化的墨或紙色，
+讓步只發生在非讓不可的地方。守門測試掃過整個 sRGB 空間的取樣點，
+另有一條專門確認保底那一支真的會被走到（否則它可能從未執行卻無人察覺）。
+
+### 順帶清掉的其餘幾條
+
+- **收藏頁搜尋仍比對中文原文（A15）**：卡片印的是 `localizedPoemTitle`，
+  搜尋卻比對 `record.poemTitle`——起卦當下存下的中文原題。en/ja 介面下
+  輸入卡片上明明看得到的譯名是零結果。圖鑑的同型缺陷 Session 32 修過，
+  收藏頁當時漏掉，**正是因為沒有東西擋著**；這次連守門一起補上。
+  新的 `recordMatchesSearch` 也納入問題本文——它不顯示在卡片上，
+  卻是使用者回頭找某次占卜最好用的線索。
+- **「隨機籤詩」從來沒有捲動（A13）**：函式叫 `handleRandomScroll`，
+  裡面只有 `setExpandedId`。64 張卡片裡隨機挑一張多半在畫面外，
+  按了骰子什麼都看不到。卡片高度不一又會多欄並排，算不出可靠位置，
+  改在 `onLayout` 記下實際 y 座標再捲過去。
+- **`all_levels` 成就可被壞資料解鎖（A18）**：條件是
+  `new Set(levels).size >= 5`，湊滿五個相異字串就成立，不管是不是真的
+  那五個等級。**既有測試自己就示範了問題**——它拿「小吉／平／凶」
+  這種不存在於 `POEM_LEVELS` 的值當作集滿，把缺陷寫成了規格。
+  改為明確比對那五個等級，並把舊測試改寫成真實等級 + 兩條反向案例。
+- **回填延遲可能是負數（A19）**：`verifiedAt` 早於 `timestamp` 只可能來自
+  時鐘變動、跨時區搬機或手改過的備份，不是真的在占卜前就驗證了。
+  統計頁原本會顯示「-3 天」。夾到 0。
+- **純圖示按鈕的無障礙（A9）**：首頁分享、收藏頁的資料夾／收藏／刪除、
+  資料夾刪除、圖鑑隨機、棋盤全螢幕——全部補上 `accessibilityRole` 與
+  `accessibilityLabel`，並以 `hitSlop` 把 14–22pt 的圖示撐到約 44pt。
+  用 hitSlop 而非放大實體尺寸：這些按鈕都是三顆並排或緊貼標題列，
+  放大會擠掉旁邊的內容。
+
+### 一個小決定：色值放哪裡
+
+`contrast.ts` 一開始自己定義了 `#1A1A1A` 與 `#FFFFFF`，被 `theming.test.ts`
+擋下來。沒有放寬允許清單，而是把色值移進 `constants/theme.ts`——
+那是專案唯一的色盤定義處，守門測試也是照這條線畫的。守門測試擋下來的
+第一反應應該是「我是不是放錯地方了」，而不是「把我加進白名單」。
+
+### 測試（743 → 781，42 → 43 suites；E2E 108 → 112）
+
+新增 `contrast.test.ts`（18 條）與 e2e `nestedPress.spec.ts`（2 條 × 2 project），
+其餘補在既有檔案。注入迴歸照做：三條併發測試對未序列化的舊實作全紅
+（第四條「失敗不卡住」本就與序列化無關，維持綠是對的），
+負值夾取兩條轉紅，`all_levels` 的兩條反向案例對舊條件全紅。
+
+### Session 33 總結
+
+TS 零錯誤 · Jest 781 全過（43 suites）· web build 成功 · E2E 112 全過。
+25 條待辦處理掉 8 條（含 1 條證偽），餘 17 條。
+
+---
+
 ## 功能完整清單
 
 ### 占卜核心
@@ -1389,32 +1496,34 @@ https://chess-divination-app.vercel.app ；deployment `dpl_2NbXtLbVFvmUxgx7XeTqy
 
 ## 未來待辦
 
-### 🔵 Session 32 四路審查的未修項
+### 🔵 四路審查的未修項（Session 32 提出，Session 33 續清）
 
-Session 32 一次修掉了「線上壞掉」與「靜默毀資料」兩層，以下是同一批審查
-確認存在、但未在該 session 動手的項目。每一條都經原始碼核對，非推測。
+Session 32 修掉「線上壞掉」與「靜默毀資料」兩層，留下 25 條；Session 33
+再處理掉 8 條，**剩餘 17 條列於下表**。
+
+已結案的 8 條不再列出，於此記錄去向：A5 設定寫入序列化、A9 無障礙標籤與
+觸控目標、A13 隨機籤詩捲動、A14 等級配色、A15 收藏頁搜尋、A18 all_levels
+成就、A19 負數延遲——皆已修並補測試（見 Session 33）。
+
+**A1 為誤判，已刪除**：react-native-web 0.21 的 `PressResponder.onClick`
+本來就會 `stopPropagation()`，巢狀 Touchable 不會連鎖觸發。結論已用
+真瀏覽器 e2e（`e2e/nestedPress.spec.ts`）釘住，而非只憑讀原始碼。
+
+每一條都經原始碼核對，非推測。
 
 | # | 缺陷 | 位置 | 嚴重度 | 說明 |
 |---|------|------|--------|------|
-| A1 | **web 巢狀 Touchable 連鎖觸發** | `(tabs)/index.tsx:90`、`(tabs)/collection.tsx:242`、`library.tsx:144` | 🔴 高（僅 web） | react-native-web 底下 DOM click 會往外冒泡，RN-web 的 handler 不擋。按分享圖示同時跳到抽棋頁；按愛心同時開啟該筆記錄；選資料夾也會開啟記錄。原生端的 responder 機制不受影響 |
 | A2 | **`setupNotificationHandler()` 從未被呼叫** | `services/notifications.ts:15` | 🟡 中（僅原生） | 只有測試引用過。expo-notifications 未設 handler 時的預設行為就是**不顯示**——App 在前景時，每日提醒與 14 天占驗提醒直接被丟棄。另外沒有任何 `addNotificationResponseReceivedListener`，通知帶的 `data.screen` 是死資料，點了不會導頁 |
 | A3 | **資料夾／自訂類別沒有刪除墓碑** | `services/cloudSync.ts` `mergeSettings` | 🟡 中 | 記錄有墓碑、資料夾沒有：一端刪掉的資料夾會在下次同步復活。可行作法是在 `AppSettings` 內加 `deletedFolderIds`／`deletedCategoryKeys`，比照 `usageDates` 取聯集後過濾——不必新增儲存鍵，也會自動進備份 |
 | A4 | **兩台都滿 500 筆時互不交換記錄** | `services/cloudSync.ts:128-137` | 🟡 中 | 超限時只犧牲雲端獨有的記錄，註解說「下次同步會補回」——但另一端也滿載時，每次 PUT 都用自己的 500 筆整個取代雲端，兩台永遠來回覆蓋，雲端從不持有聯集 |
-| A5 | **`recordUsage` 與 `syncAchievements` 競態** | `app/reveal.tsx:93-96`、`storage.ts` `saveSettings` | 🟡 中 | 兩者在同一個 effect 併發且未 await，`saveSettings` 是無鎖的讀-改-寫。撞上時當日 `usageDates`／`currentStreak` 更新遺失，連續天數會斷且隔天歸 1（不像成就會自我修復） |
 | A6 | **同步失敗訊息與實情不符** | `(tabs)/settings.tsx` `handleCloudSync` | 🟡 中 | `syncWithCloud` 只回 `'ok' \| 'error'`，任何失敗都顯示「尚未設定雲端同步伺服器」。payload 超過 512KB（收藏存的是完整記錄副本，易達標）或單純斷網時，使用者得到的是錯誤的診斷 |
-| A7 | **淺色主題對比度不足** | `constants/theme.ts` | 🟡 中 | 實測相對亮度比：宣紙主題 `textMuted` 對 `bgInk` ≈ 2.88:1、`gold` ≈ 3.6:1，皆未達 WCAG AA 4.5:1，而這兩個色正用在 10–12px 的說明文字與區塊標題上。暗色主題 `textMuted` ≈ 4.1:1 也是勉強不過。目前沒有任何對比度測試 |
+| A7 | **淺色主題對比度不足** | `constants/theme.ts` | 🟡 中 | 實測相對亮度比：宣紙主題 `textMuted` 對 `bgInk` ≈ 2.88:1、`gold` ≈ 3.6:1，皆未達 WCAG AA 4.5:1，而這兩個色正用在 10–12px 的說明文字與區塊標題上。暗色主題 `textMuted` ≈ 4.1:1 也是勉強不過。Session 33 已補 `services/contrast.ts` 與守門測試，等級標籤的前景色改為由底色推得；**本文與標題的主題色尚未套用**，仍待處理 |
 | A8 | **`InkSplashOverlay` 不理會 reducedMotion** | `components/InkSplashOverlay.tsx:104-165` | 🟡 中 | 每次開牌都跑約 1.7 秒的全螢幕墨滴。`PieceDraw3D` 與 `PieceEntryFlyIn` 都有接 `useReducedMotion`，所以這是漏接而非政策 |
-| A9 | **無障礙標籤與觸控目標** | `board.tsx:160`、`library.tsx:63`、`collection.tsx:242,435`、`index.tsx:90` | 🟡 中 | 純圖示按鈕沒有 `accessibilityLabel`／`accessibilityRole`，尺寸 14–22pt 也低於 44pt 建議值。讀屏使用者無法辨識這些控制項 |
 | A10 | **`pieceCountPreset` 設定沒有作用** | `(tabs)/settings.tsx:248` | 🟡 中 | 「預設抽棋數量」存得進設定，但抽棋流程從不讀它，畫面永遠是 1/2/3 三個按鈕且無預選。反向的孿生問題：`drawAnimationSpeed` 有人讀卻沒有 UI 可寫 |
 | A11 | **空名稱／空白名稱的靜默無反應** | `collection.tsx:95`、`CustomCategoriesSection.tsx:70`、`settings.tsx:160` | 🟢 低 | 資料夾與類別名稱為空時直接 return，按鈕看起來壞掉；姓名沒有 trim 也沒有 maxLength，存成全空白後畫面顯示空白且「未設定」的後備永遠不出現 |
 | A12 | **`+html.tsx` 的 `lang` 寫死 zh-TW** | `app/+html.tsx:6,21` | 🟢 低（僅 web） | 切成 en/ja 後讀屏與斷字仍當作中文；`theme-color` 也固定深色，淺色主題的瀏覽器外框不跟隨 |
-| A13 | **圖鑑「隨機籤詩」不捲動** | `library.tsx:31-35` | 🟢 低 | 只設 `expandedId`，64 張卡片裡隨機展開的那張多半在畫面外，按了像沒反應 |
-| A14 | **首頁吉凶等級配色兩支相同** | `(tabs)/index.tsx:146` | 🟢 低 | `大吉` 用金色，其餘兩支三元運算子都回 `textMuted`——中平與下下看起來一模一樣。文字仍表達了等級，是視覺層級問題 |
-| A15 | **收藏頁記錄搜尋仍只比對原始中文** | `(tabs)/collection.tsx:139` | 🟢 低 | 圖鑑的同型缺陷已在 Session 32 修掉，收藏頁的 `r.poemTitle.includes(search)` 還留著 |
 | A16 | **儲存失敗時的未處理 rejection** | `hooks/useDrawDivination.ts:83`、`useBoardDivination.ts:130`、`reveal.tsx:147-168` | 🟢 低 | `await addHistory(record)` 無 try/catch。AsyncStorage 寫入失敗時，抽棋模式永遠停在「解讀中…」，回填占驗／收藏則是按了完全沒有回饋 |
 | A17 | **統計的「本週／本月」是滾動視窗** | `app/stats.tsx:44-45` | 🟢 低 | 用 `now - timestamp < 7/30 天` 判斷而非日曆週期，標籤與行為不符；未來時間戳（時鐘偏移或手改備份）永遠被計入 |
-| A18 | **`all_levels` 成就可被壞資料解鎖** | `services/achievements.ts:59` | 🟢 低 | 判斷式是 `new Set(levels).size >= 5`，4 個真等級加 1 個無法辨識的字串就達標。應改為明確比對那 5 個等級 |
-| A19 | **`medianVerifyDelay` 可能為負** | `services/verification.ts:264-273` | 🟢 低 | `verifiedAt < timestamp`（時鐘變動或匯入資料）時算出負值，統計頁直接顯示「-3 天」 |
 | A20 | **`buildBackup` 遇單一壞鍵整份失敗** | `services/backup.ts:33-35` | 🟢 低 | 逐鍵 raw `JSON.parse`，一個鍵壞掉就「備份失敗」；讀取端對壞鍵是降級成 `[]`／預設值，兩邊不一致 |
 | A21 | **ErrorBoundary 蓋掉整個 App 含導覽** | `app/_layout.tsx:43` | 🟢 低 | 包住整個 Stack，遇到必然重現的畫面錯誤時「重試」只會再炸一次，沒有任何路徑回到設定頁去還原資料 |
 | A22 | **用神兩現時取最先出現者而非發動者** | `services/wenwang.ts:157-159` | 🟡 中 | 卜筮正宗的取法是優先取發動之爻。現行寫法取 `lines[0]`，若第二現才是動爻，回頭生剋與進退神整段不會被檢查，斷語因此少計。reasons 有揭露「取 X 爻為主」，但分數不完整 |

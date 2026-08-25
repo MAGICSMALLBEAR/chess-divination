@@ -170,6 +170,20 @@ export const translations: Record<string, Record<Lang, string>> = {
   'common.retry': { 'zh-TW': '重試', en: 'Retry', ja: '再試行' },
   'common.unfavorite': { 'zh-TW': '已收藏', en: 'Favorited', ja: 'お気に入り済み' },
 
+  // 無障礙標籤
+  //
+  // 純圖示按鈕在讀屏下只會被念成「按鈕」——沒有標籤，使用者無從得知
+  // 按下去會發生什麼。這些字串不會顯示在畫面上，只走 accessibilityLabel。
+  'a11y.shareDailyFortune': { 'zh-TW': '分享每日運勢', en: 'Share daily fortune', ja: '今日の運勢を共有' },
+  'a11y.addToFolder': { 'zh-TW': '加入資料夾', en: 'Add to folder', ja: 'フォルダに追加' },
+  'a11y.favoriteRecord': { 'zh-TW': '收藏這筆記錄', en: 'Favorite this record', ja: 'この記録をお気に入りに追加' },
+  'a11y.unfavoriteRecord': { 'zh-TW': '取消收藏這筆記錄', en: 'Unfavorite this record', ja: 'この記録のお気に入りを解除' },
+  'a11y.deleteRecord': { 'zh-TW': '刪除這筆記錄', en: 'Delete this record', ja: 'この記録を削除' },
+  'a11y.deleteFolder': { 'zh-TW': '刪除資料夾', en: 'Delete folder', ja: 'フォルダを削除' },
+  'a11y.randomPoem': { 'zh-TW': '隨機翻閱一首籤詩', en: 'Open a random poem', ja: 'ランダムに籤詩を開く' },
+  'a11y.enterFullscreen': { 'zh-TW': '進入全螢幕棋盤', en: 'Enter fullscreen board', ja: '全画面の盤に切り替え' },
+  'a11y.exitFullscreen': { 'zh-TW': '離開全螢幕棋盤', en: 'Exit fullscreen board', ja: '全画面の盤を終了' },
+
   // 分頁列
   'tab.home': { 'zh-TW': '首頁', en: 'Home', ja: 'ホーム' },
   'tab.collection': { 'zh-TW': '收藏', en: 'Collection', ja: 'コレクション' },

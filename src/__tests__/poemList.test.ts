@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { getPoemById } from '../data/poems';
 import { setLang } from '../services/i18n';
-import { poemMatchesSearch, localizedPoemTitle } from '../services/poemList';
+import { poemMatchesSearch, localizedPoemTitle, recordMatchesSearch } from '../services/poemList';
 
 const poem1 = getPoemById(1); // 乾為天 / Dragon Soars the Heavens / 龍 九霄に騰がる
 
@@ -95,6 +95,77 @@ describe('localizedPoemTitle：記錄清單顯示的譯文標題', () => {
 });
 
 /**
+ * recordMatchesSearch：收藏頁的搜尋。
+ *
+ * 與圖鑑是同一個缺陷的兩處：卡片渲染的是 localizedPoemTitle，
+ * 搜尋卻只比對 record.poemTitle（起卦當下存下的中文原題）。
+ * 圖鑑那一處已於 Session 32 修掉，收藏頁當時漏掉。
+ */
+describe('recordMatchesSearch：收藏頁的記錄搜尋', () => {
+  const record = {
+    poemId: 1,
+    poemTitle: '乾為天',
+    poemContent: '龍騰九霄志凌雲',
+    drawnPieceChars: ['帥', '車'],
+    questionText: '這次面試會順利嗎',
+  };
+
+  test('中文介面下以原題命中', () => {
+    expect(recordMatchesSearch(record, '乾為天', 'zh-TW')).toBe(true);
+  });
+
+  /** 這一條就是缺陷本身：en 介面下卡片印的是譯名，搜尋卻搜不到 */
+  test('英文介面下以卡片顯示的譯名命中', () => {
+    const shown = (setLang('en'), localizedPoemTitle(1));
+    expect(shown).not.toBe('乾為天');
+    expect(recordMatchesSearch(record, shown, 'en')).toBe(true);
+  });
+
+  test('日文介面下以卡片顯示的譯名命中', () => {
+    const shown = (setLang('ja'), localizedPoemTitle(1));
+    expect(recordMatchesSearch(record, shown, 'ja')).toBe(true);
+  });
+
+  test('切到 en/ja 後仍可用中文原文查找', () => {
+    // 中文背景的使用者即使把介面切走，仍習慣用原文搜
+    expect(recordMatchesSearch(record, '乾為天', 'en')).toBe(true);
+    expect(recordMatchesSearch(record, '龍騰', 'ja')).toBe(true);
+  });
+
+  test('以棋子漢字命中', () => {
+    expect(recordMatchesSearch(record, '帥', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(record, '帥車', 'zh-TW')).toBe(true);
+  });
+
+  /** 問題本文不顯示在卡片上，但那是使用者回頭找某次占卜最好用的線索 */
+  test('以自己寫下的問題命中', () => {
+    expect(recordMatchesSearch(record, '面試', 'zh-TW')).toBe(true);
+  });
+
+  test('沒有問題本文的記錄不因此出錯', () => {
+    const { questionText, ...noQuestion } = record;
+    void questionText;
+    expect(recordMatchesSearch(noQuestion, '乾為天', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(noQuestion, 'zzzz', 'zh-TW')).toBe(false);
+  });
+
+  test('空字串視為不過濾', () => {
+    expect(recordMatchesSearch(record, '', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(record, '   ', 'zh-TW')).toBe(true);
+  });
+
+  test('無關字串不命中', () => {
+    expect(recordMatchesSearch(record, 'zzzz', 'zh-TW')).toBe(false);
+  });
+
+  test('英文比對不分大小寫、前後空白不影響', () => {
+    setLang('en');
+    const shown = localizedPoemTitle(1);
+    expect(recordMatchesSearch(record, `  ${shown.toUpperCase()}  `, 'en')).toBe(true);
+  });
+});
+
+/**
  * 靜態守門：首頁與收藏清單必須透過 localizedPoemTitle 顯示標題。
  *
  * 行為測試只能守 poemList.ts 本身；「畫面有沒有真的走這條路」
@@ -106,6 +177,16 @@ describe('列表畫面的籤詩標題接線（靜態守門）', () => {
     path.join(__dirname, '..', 'app', '(tabs)', 'index.tsx'), 'utf-8');
   const collectionSrc = fs.readFileSync(
     path.join(__dirname, '..', 'app', '(tabs)', 'collection.tsx'), 'utf-8');
+
+  /**
+   * 守住接線：收藏頁若哪天又改回自己拼 includes，這裡會紅。
+   * 缺陷能在圖鑑修好後仍留在收藏頁，正是因為沒有東西擋著。
+   */
+  test('收藏頁的搜尋走 recordMatchesSearch，不自己比對原題', () => {
+    expect(collectionSrc).toContain('recordMatchesSearch(');
+    expect(collectionSrc).not.toMatch(/r\.poemTitle\.includes\(/);
+    expect(collectionSrc).not.toMatch(/r\.poemContent\.includes\(/);
+  });
 
   test('首頁不直接渲染 record.poemTitle', () => {
     expect(homeSrc).not.toMatch(/\{r\.poemTitle\}/);

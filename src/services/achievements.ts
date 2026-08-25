@@ -1,6 +1,8 @@
 // 成就與連續使用追蹤服務
-import { getSettings, saveSettings, getHistory, getFavorites } from './storage';
+import { getSettings, updateSettings, getHistory, getFavorites } from './storage';
+import type { AppSettings } from './storage';
 import { todayString, yesterdayString } from './date';
+import { POEM_LEVELS } from '@/data/poems';
 
 export interface Achievement {
   id: string;
@@ -39,15 +41,12 @@ export async function checkAchievements(stats: {
   /** 已回填占驗的則數。舊呼叫端未傳時視為 0，兩項占驗成就自然不解鎖 */
   totalVerified?: number;
 }): Promise<string[]> {
-  const s = await getSettings();
-  const unlocked = s.unlockedAchievements || [];
-  const newUnlocks: string[] = [];
-
+  // 先算出「這次符合條件的成就有哪些」，實際的解鎖寫入放到 updateSettings
+  // 的 updater 裡再依當下的清單決定。在這裡讀 unlockedAchievements 再寫回，
+  // 會把併發的 recordUsage 剛解鎖的七日成就一起蓋掉。
+  const earned: string[] = [];
   const tryUnlock = (id: string, condition: boolean) => {
-    if (!unlocked.includes(id) && condition) {
-      unlocked.push(id);
-      newUnlocks.push(id);
-    }
+    if (condition) earned.push(id);
   };
 
   tryUnlock('first_draw', stats.hasDraw);
@@ -56,13 +55,23 @@ export async function checkAchievements(stats: {
   tryUnlock('first_board', stats.hasBoard);
   tryUnlock('first_favorite', stats.totalFav >= 1);
   tryUnlock('both_modes', stats.hasDraw && stats.hasBoard);
-  tryUnlock('all_levels', new Set(stats.levels).size >= 5);
+  // 明確比對那五個等級，而不是數 Set 的大小——`size >= 5` 只要湊滿五個
+  // 相異字串就成立，4 個真等級加 1 個無法辨識的值（舊備份、資料損毀、
+  // 日後新增的等級）就會解鎖「五種等級都抽過」，但使用者其實沒抽齊。
+  tryUnlock('all_levels', POEM_LEVELS.every(level => stats.levels.includes(level)));
   tryUnlock('first_verify', (stats.totalVerified ?? 0) >= 1);
   tryUnlock('ten_verify', (stats.totalVerified ?? 0) >= 10);
 
-  if (newUnlocks.length > 0) {
-    await saveSettings({ unlockedAchievements: unlocked });
-  }
+  let newUnlocks: string[] = [];
+  await updateSettings(current => {
+    const unlocked = current.unlockedAchievements || [];
+    newUnlocks = earned.filter(id => !unlocked.includes(id));
+    // 沒有新解鎖時回傳空的 patch：仍會走一次寫入，但內容不變，
+    // 換來的是「判斷與寫入基於同一份值」這個保證
+    return newUnlocks.length > 0
+      ? { unlockedAchievements: [...unlocked, ...newUnlocks] }
+      : {};
+  });
 
   return newUnlocks;
 }
@@ -108,27 +117,33 @@ export async function getStreak(): Promise<number> {
 }
 
 export async function recordUsage(): Promise<number> {
-  const s = await getSettings();
   const today = todayString();
-  const dates = s.usageDates || [];
-
-  if (dates.includes(today)) return s.currentStreak || 1;
-
   const yesterday = yesterdayString();
-  const streak = dates.includes(yesterday) ? (s.currentStreak || 0) + 1 : 1;
+  let streak = 1;
 
-  await saveSettings({
-    usageDates: [...new Set([...dates, today])],
-    currentStreak: streak,
-  });
-
-  // 檢查七日連續成就
-  if (streak >= 7) {
-    const unlocked = s.unlockedAchievements || [];
-    if (!unlocked.includes('week_streak')) {
-      await saveSettings({ unlockedAchievements: [...unlocked, 'week_streak'] });
+  // 整段判斷與寫入都在 updater 內，對其他設定寫入是不可分割的。
+  // 原本是「外面讀 → 寫 → 再依外面那份舊值寫第二次」，第二次那筆
+  // 會把兩次寫入之間別人解鎖的成就抹掉。
+  await updateSettings(current => {
+    const dates = current.usageDates || [];
+    if (dates.includes(today)) {
+      streak = current.currentStreak || 1;
+      return {};
     }
-  }
+
+    streak = dates.includes(yesterday) ? (current.currentStreak || 0) + 1 : 1;
+    const patch: Partial<AppSettings> = {
+      usageDates: [...new Set([...dates, today])],
+      currentStreak: streak,
+    };
+
+    // 七日連續成就與上面的天數更新是同一件事，放同一次寫入才不會分岔
+    const unlocked = current.unlockedAchievements || [];
+    if (streak >= 7 && !unlocked.includes('week_streak')) {
+      patch.unlockedAchievements = [...unlocked, 'week_streak'];
+    }
+    return patch;
+  });
 
   return streak;
 }

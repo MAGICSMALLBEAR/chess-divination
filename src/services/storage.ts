@@ -318,11 +318,43 @@ export async function getSettings(): Promise<AppSettings> {
   return normalizeSettings(raw);
 }
 
-export async function saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
-  const current = await getSettings();
-  const updated = { ...current, ...settings };
-  await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updated));
-  return updated;
+/**
+ * 設定寫入的序列化佇列。
+ *
+ * saveSettings 是「讀出整包 → 合併 → 寫回整包」，兩個並行的呼叫會同時
+ * 讀到同一份舊值，後寫的那個把先寫的整個蓋掉。這不是理論問題：
+ * reveal 頁的同一個 effect 裡 recordUsage() 與 syncAchievements() 併發
+ * 且都不 await，撞上時當日的 usageDates／currentStreak 更新會遺失，
+ * 連續天數就這麼斷了——而且不像成就會在下次進頁面時自我修復，
+ * 那一天過了就補不回來。
+ *
+ * 佇列讓每次「讀-改-寫」相對於其他設定寫入是不可分割的。
+ */
+let settingsQueue: Promise<unknown> = Promise.resolve();
+
+/**
+ * 以函式形式更新設定：updater 收到的一定是**佇列輪到它時**的最新值。
+ *
+ * 需要「依現值決定新值」的呼叫端都該用這個而非 saveSettings——
+ * 在佇列外先 getSettings() 再 saveSettings(算出來的值)，讀到的仍是
+ * 可能過期的快照，佇列只保證寫入不交錯，救不了在外面讀舊值這件事。
+ */
+export async function updateSettings(
+  updater: (current: AppSettings) => Partial<AppSettings>,
+): Promise<AppSettings> {
+  const run = settingsQueue.then(async () => {
+    const current = await getSettings();
+    const updated = { ...current, ...updater(current) };
+    await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updated));
+    return updated;
+  });
+  // 佇列不可因為某次寫入失敗就整條斷掉，之後的寫入還是要能排進來
+  settingsQueue = run.catch(() => undefined);
+  return run;
+}
+
+export function saveSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
+  return updateSettings(() => settings);
 }
 
 // ====== Folders ======

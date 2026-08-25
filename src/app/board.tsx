@@ -161,6 +161,9 @@ export default function BoardScreen() {
               <Text style={styles.title}>{t('board.title')}</Text>
               <TouchableOpacity
                 style={styles.fullscreenBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t(isFullscreen ? 'a11y.exitFullscreen' : 'a11y.enterFullscreen')}
+                hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                 onPress={() => setIsFullscreen(!isFullscreen)}
               >
                 <Icon name="chess-board" size={16} color={theme.textSecondary} />

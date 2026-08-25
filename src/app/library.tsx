@@ -1,5 +1,5 @@
 // 籤詩圖鑑 - 瀏覽全部 64 首籤詩
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
   TextInput,
@@ -10,6 +10,7 @@ import { Icon } from '@/components/icons';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { localizePoem } from '@/services/localize';
 import { poemMatchesSearch } from '@/services/poemList';
+import { readableTextOn } from '@/services/contrast';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -28,11 +29,31 @@ export default function LibraryScreen() {
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
   const [elementFilter, setElementFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  /** 每張卡片在網格內的 y 座標，由 onLayout 填入（見 handleRandomScroll） */
+  const cardOffsets = useRef(new Map<number, number>());
 
+  /**
+   * 隨機展開一首籤詩，並捲到它的位置。
+   *
+   * 原本只設 expandedId 就結束了——函式名字裡的 Scroll 從來沒有發生。
+   * 64 張卡片裡隨機挑一張，多半落在畫面外，使用者按了骰子看不到任何
+   * 變化，只會以為按鈕壞了。
+   *
+   * 卡片高度不一（籤詩行數不同）且多欄時並排，算不出可靠的位置，
+   * 所以改在卡片的 onLayout 記下實際 y 座標再捲過去。
+   */
   function handleRandomScroll() {
     const randIdx = Math.floor(Math.random() * filtered.length);
     const poem = filtered[randIdx];
-    if (poem) setExpandedId(poem.id);
+    if (!poem) return;
+
+    setExpandedId(poem.id);
+    const y = cardOffsets.current.get(poem.id);
+    if (y !== undefined) {
+      // 留一點上緣空隙，讓卡片不會緊貼著篩選列
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+    }
   }
 
   const filtered = useMemo(() => {
@@ -59,7 +80,12 @@ export default function LibraryScreen() {
           <Text style={[styles.backText, { color: theme.textSecondary }]}>← {t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: theme.textPrimary }]}>{t('library.title')}</Text>
-        <TouchableOpacity onPress={handleRandomScroll}>
+        <TouchableOpacity
+          testID="library-random"
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.randomPoem')}
+          hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
+          onPress={handleRandomScroll}>
           <Icon name="dice" size={22} color={theme.gold} />
         </TouchableOpacity>
       </View>
@@ -109,7 +135,7 @@ export default function LibraryScreen() {
       </View>
 
       {/* 詩歌列表。寬螢幕改為多欄網格，避免卡片被撐成整個視窗寬 */}
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
         {filtered.map(poem => { const p = localizePoem(poem); return (
           <TouchableOpacity key={p.id}
@@ -120,11 +146,13 @@ export default function LibraryScreen() {
               cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
             ]}
             onPress={() => setExpandedId(expandedId === p.id ? null : p.id)}
+            onLayout={e => cardOffsets.current.set(p.id, e.nativeEvent.layout.y)}
             activeOpacity={0.8}
           >
             <View style={styles.cardHeader}>
               <View style={[styles.levelDot, { backgroundColor: getLevelColor(p.level) }]}>
-                <Text style={styles.levelDotText}>{p.level}</Text>
+                {/* 與收藏頁同理：一律白字在米黃／灰褐底上讀不出來 */}
+                <Text style={[styles.levelDotText, { color: readableTextOn(getLevelColor(p.level)) }]}>{p.level}</Text>
               </View>
               <Text style={[styles.cardNum, { color: theme.textMuted }]}>#{p.number}</Text>
               <Text style={[styles.cardHex, { color: theme.textSecondary }]}>{p.hexagramName}</Text>

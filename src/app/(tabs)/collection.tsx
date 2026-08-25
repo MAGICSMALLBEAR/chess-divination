@@ -11,8 +11,10 @@ import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import type { DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
-import { localizedPoemTitle } from '@/services/poemList';
+import { localizedPoemTitle, recordMatchesSearch } from '@/services/poemList';
+import { getLevelColor } from '@/data/poems';
 import { confirmAction } from '@/services/dialog';
+import { readableTextOn } from '@/services/contrast';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -25,12 +27,15 @@ import { SPREAD_LABEL_KEYS } from '@/services/spreads';
 type TabType = 'history' | 'favorites' | 'folders';
 const TAB_ORDER: TabType[] = ['history', 'favorites', 'folders'];
 
+/** 純圖示按鈕的觸控外擴。14–18pt 的圖示加上這圈約可達 44pt 建議值 */
+const ICON_HIT_SLOP = { top: 13, bottom: 13, left: 13, right: 13 };
+
 export default function CollectionScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   /** 占驗三態的色調：應驗為吉、部分為平、未應驗為凶 */
   function outcomeColor(status: OutcomeStatus): string {
@@ -136,7 +141,9 @@ export default function CollectionScreen() {
       return (levelRank[b.poemLevel] || 0) - (levelRank[a.poemLevel] || 0);
     });
     if (!search.trim()) return sorted;
-    return sorted.filter(r => r.poemTitle.includes(search) || r.poemContent.includes(search) || r.drawnPieceChars.join('').includes(search));
+    // 比對必須含「畫面上顯示的譯名」——卡片印的是 localizedPoemTitle，
+    // 只比對記錄裡的中文原題會讓 en/ja 使用者搜什麼都沒有
+    return sorted.filter(r => recordMatchesSearch(r, search, lang));
   }
   const historyData = sortAndFilter(history);
   const favoritesData = sortAndFilter(favorites);
@@ -220,9 +227,13 @@ export default function CollectionScreen() {
           <View style={styles.cardHeader}>
             <View style={[
               styles.levelMini,
-              { backgroundColor: record.poemLevel === '大吉' ? theme.gold : record.poemLevel === '上吉' ? theme.textRed : theme.textMuted },
+              // 同上：原本 中吉／中平／下下 三個等級共用 textMuted，
+              // 清單掃過去分不出哪一筆比較好
+              { backgroundColor: getLevelColor(record.poemLevel) },
             ]}>
-              <Text style={styles.levelMiniText}>{record.poemLevel}</Text>
+              {/* 前景色由底色推得而非一律白字：中平那格是米黃底，配白字
+                  只有約 1.9:1，這枚標籤才 11px，等於印了看不見的字 */}
+              <Text style={[styles.levelMiniText, { color: readableTextOn(getLevelColor(record.poemLevel)) }]}>{record.poemLevel}</Text>
             </View>
             <View style={styles.modeRow}>
               <Icon name={record.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={theme.textMuted} />
@@ -251,13 +262,31 @@ export default function CollectionScreen() {
           </View>
         </View>
         <View style={styles.cardRight}>
-          <TouchableOpacity onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
+          {/* 三個純圖示按鈕：16–18pt 遠低於 44pt 建議值，且讀屏下只會被念成
+              「按鈕」。hitSlop 撐開可按範圍而不動版面——三顆並排在卡片右側，
+              放大實體尺寸會擠掉中間的籤詩標題。 */}
+          <TouchableOpacity
+            testID={`record-folder-${record.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.addToFolder')}
+            hitSlop={ICON_HIT_SLOP}
+            onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
             <Icon name="folder" size={18} color={theme.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleToggleFav(record)}>
+          <TouchableOpacity
+            testID={`record-fav-${record.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t(record.isFavorited ? 'a11y.unfavoriteRecord' : 'a11y.favoriteRecord')}
+            hitSlop={ICON_HIT_SLOP}
+            onPress={() => handleToggleFav(record)}>
             <Icon name={record.isFavorited ? 'heart-filled' : 'heart'} size={18} color={record.isFavorited ? theme.textRed : theme.textMuted} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(record.id)}>
+          <TouchableOpacity
+            testID={`record-delete-${record.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.deleteRecord')}
+            hitSlop={ICON_HIT_SLOP}
+            onPress={() => handleDelete(record.id)}>
             <Icon name="trash" size={16} color={theme.textMuted} />
           </TouchableOpacity>
         </View>
@@ -444,7 +473,11 @@ export default function CollectionScreen() {
                   <View style={[styles.folderDot, { backgroundColor: folder.color }]} />
                   <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
                   <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: folder.recordIds.length })}</Text>
-                  <TouchableOpacity onPress={() => handleDeleteFolder(folder.id)}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('a11y.deleteFolder')}
+                    hitSlop={ICON_HIT_SLOP}
+                    onPress={() => handleDeleteFolder(folder.id)}>
                     <Icon name="trash" size={14} color={theme.textRed} />
                   </TouchableOpacity>
                 </View>

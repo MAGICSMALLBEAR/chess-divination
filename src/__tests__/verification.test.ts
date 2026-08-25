@@ -371,4 +371,29 @@ describe('回填延遲中位數', () => {
     expect(medianVerifyDelay([])).toBeNull();
     expect(medianVerifyDelay([rec()])).toBeNull();
   });
+
+  /**
+   * verifiedAt 早於 timestamp 只可能來自時鐘變動、跨時區搬機或手改過的
+   * 備份，不是真的「在占卜之前就驗證了」。不夾到 0 的話統計頁會顯示
+   * 「-3 天」——一個沒有意義、而且看起來像程式壞掉的數字。
+   */
+  test('回填時間早於占卜時間者夾到 0，不產生負數', () => {
+    const backwards = verified('accurate', { timestamp: NOW }, { verifiedAt: NOW - 3 * DAY });
+    expect(medianVerifyDelay([backwards])).toBe(0);
+  });
+
+  test('夾到 0 之後仍正確參與中位數計算', () => {
+    const records = [
+      verified('accurate', { timestamp: NOW }, { verifiedAt: NOW - 5 * DAY }),      // 夾為 0
+      verified('accurate', { timestamp: NOW - 4 * DAY }, { verifiedAt: NOW }),      // 4
+      verified('accurate', { timestamp: NOW - 20 * DAY }, { verifiedAt: NOW }),     // 20
+    ];
+    expect(medianVerifyDelay(records)).toBe(4);
+  });
+
+  test('中位數永遠不為負', () => {
+    const allBackwards = [1, 2, 3].map(d =>
+      verified('accurate', { timestamp: NOW }, { verifiedAt: NOW - d * DAY }));
+    expect(medianVerifyDelay(allBackwards)).toBeGreaterThanOrEqual(0);
+  });
 });

@@ -194,6 +194,23 @@ export const LevelColors: Record<string, string> = {
 
 export const DEFAULT_LEVEL_COLOR = '#C9B99A';
 
+/**
+ * 疊在色塊上的前景色二選一（見 services/contrast.ts 的 readableTextOn）。
+ *
+ * 深色不用純黑——水墨定位下純黑太硬。色值放在這裡而非 contrast.ts：
+ * 這個檔案是專案唯一的色盤定義處，守門測試也是照這條線畫的。
+ */
+export const OnSurface = {
+  ink: '#1A1A1A',
+  paper: '#FFFFFF',
+  /**
+   * 純黑，只在柔化的墨色達不到 AA 時作為保底。
+   * 中間調的底色（如「下下」的灰褐）對 ink 與 paper 兩者都不足 4.5:1，
+   * 唯有純黑補得上這個缺口——見 services/contrast.ts。
+   */
+  inkPure: '#000000',
+} as const;
+
 /** 資料夾標籤的分類色盤 */
 export const FolderColors = [
   '#C9A96E', '#E5746A', '#6B9B6B', '#6B9BC6', '#C69BC6', '#C6A06B',

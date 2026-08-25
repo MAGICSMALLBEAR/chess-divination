@@ -260,11 +260,17 @@ export function bestCategory(
   return eligible[0] ?? null;
 }
 
-/** 回填後距離占卜當時的天數中位數，反映使用者多久才回頭驗證 */
+/**
+ * 回填後距離占卜當時的天數中位數，反映使用者多久才回頭驗證。
+ *
+ * 負值一律夾到 0：verifiedAt 早於 timestamp 只可能來自時鐘變動、
+ * 跨時區搬機或手改過的備份，不是真的「在占卜前就驗證了」。
+ * 不夾的話統計頁會顯示「-3 天」——一個沒有意義而且看起來像壞掉的數字。
+ */
 export function medianVerifyDelay(records: DivinationRecord[]): number | null {
   const delays = records
     .filter((r): r is DivinationRecord & { outcome: DivinationOutcome } => isVerified(r))
-    .map(r => daysSince(r.timestamp, r.outcome.verifiedAt))
+    .map(r => Math.max(0, daysSince(r.timestamp, r.outcome.verifiedAt)))
     .sort((a, b) => a - b);
 
   if (delays.length === 0) return null;

@@ -11,6 +11,7 @@ import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
 import { localizedPoemTitle } from '@/services/poemList';
+import { getLevelColor } from '@/data/poems';
 import { shareNative, copyToClipboard } from '@/services/socialShare';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -88,7 +89,15 @@ export default function HomeScreen() {
                 <Icon name="location" size={18} color={theme.gold} />
                 <Text style={[styles.dailyTitle, { color: theme.gold }]}> {t('home.daily')}</Text>
               </View>
-              <TouchableOpacity onPress={() => {
+              <TouchableOpacity
+                testID="daily-share"
+                accessibilityRole="button"
+                accessibilityLabel={t('a11y.shareDailyFortune')}
+                // 圖示本身 18pt，遠低於 44pt 的建議觸控目標。hitSlop 把可按
+                // 範圍撐開而不動版面——圖示旁邊就是外層的整張卡片，
+                // 放大實體尺寸會擠掉標題列。
+                hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}
+                onPress={() => {
                 if (!dailyFortune) return;
                 const text = `${t('home.daily')}：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n${t('home.luckyPiece')}：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n${t('home.luckyDir')}：${dailyFortune.luckyDirection}\n${t('home.luckyNum')}：${dailyFortune.luckyNumber}\n${t('home.luckyColor')}：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
                 // 原生與 Web 共用同一條分享鏈（與 reveal 頁一致）：
@@ -145,7 +154,10 @@ export default function HomeScreen() {
                 <Text style={[styles.recentPieces, { color: theme.textPrimary }]}>{r.drawnPieceChars.join(' ')}</Text>
                 {/* 記錄存的是中文原題；與 reveal 頁一致，顯示時依目前語言翻譯 */}
                 <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{localizedPoemTitle(r.poemId)}</Text>
-                <Text style={[styles.recentLevel, { color: r.poemLevel === '大吉' ? theme.gold : r.poemLevel === '下下' ? theme.textMuted : theme.textMuted }]}>{r.poemLevel}</Text>
+                {/* 等級色走 getLevelColor 這份語意色盤。原本是手寫的三元式，
+                    而且兩個分支都回 theme.textMuted——中平與下下看起來
+                    一模一樣，五個等級只剩兩種顏色。 */}
+                <Text style={[styles.recentLevel, { color: getLevelColor(r.poemLevel) }]}>{r.poemLevel}</Text>
               </TouchableOpacity>
             ))}
           </View>

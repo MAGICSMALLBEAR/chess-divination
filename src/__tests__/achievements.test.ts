@@ -26,6 +26,7 @@ import {
   type DivinationRecord,
 } from '../services/storage';
 import { todayString, yesterdayString } from '../services/date';
+import { POEM_LEVELS } from '../data/poems';
 
 /** 無任何成就達成的基準統計 */
 const EMPTY_STATS = {
@@ -146,10 +147,10 @@ describe('成就解鎖條件', () => {
     expect(unlocked).toContain('first_favorite');
   });
 
-  test('集滿 5 種吉凶等級解鎖 all_levels', async () => {
+  test('集滿全部 5 個真實等級解鎖 all_levels', async () => {
     const unlocked = await checkAchievements({
       ...EMPTY_STATS,
-      levels: ['大吉', '中吉', '小吉', '平', '凶'],
+      levels: [...POEM_LEVELS],
     });
     expect(unlocked).toContain('all_levels');
   });
@@ -157,7 +158,31 @@ describe('成就解鎖條件', () => {
   test('等級重複不計入，4 種不解鎖 all_levels', async () => {
     const unlocked = await checkAchievements({
       ...EMPTY_STATS,
-      levels: ['大吉', '大吉', '大吉', '中吉', '小吉', '平'],
+      levels: ['大吉', '大吉', '大吉', '上吉', '中吉', '中平'],
+    });
+    expect(unlocked).not.toContain('all_levels');
+  });
+
+  /**
+   * 迴歸：條件原本是 `new Set(levels).size >= 5`——只要湊滿五個相異字串
+   * 就解鎖，不管是不是真的那五個等級。
+   *
+   * 這幾個舊測試自己就示範了問題：它們拿「小吉／平／凶」這種不存在於
+   * POEM_LEVELS 的值當作集滿，等於把缺陷寫成了規格。實際會踩到的情境是
+   * 舊備份、資料損毀，或日後新增第六個等級——使用者沒抽齊卻拿到「知天命」。
+   */
+  test('四個真等級加一個無法辨識的值不解鎖 all_levels', async () => {
+    const unlocked = await checkAchievements({
+      ...EMPTY_STATS,
+      levels: ['大吉', '上吉', '中吉', '中平', '不存在的等級'],
+    });
+    expect(unlocked).not.toContain('all_levels');
+  });
+
+  test('五個都無法辨識的值不解鎖 all_levels', async () => {
+    const unlocked = await checkAchievements({
+      ...EMPTY_STATS,
+      levels: ['小吉', '平', '凶', '大凶', '未知'],
     });
     expect(unlocked).not.toContain('all_levels');
   });

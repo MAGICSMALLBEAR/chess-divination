@@ -47,3 +47,43 @@ export function poemMatchesSearch(poem: Poem, query: string, lang: Lang): boolea
 export function localizedPoemTitle(poemId: number): string {
   return localizePoem(getPoemById(poemId)).title;
 }
+
+/** recordMatchesSearch 只需要記錄裡的這幾個欄位，不必整個 DivinationRecord */
+export interface SearchableRecord {
+  poemId: number;
+  poemTitle: string;
+  poemContent: string;
+  drawnPieceChars: string[];
+  questionText?: string;
+}
+
+/**
+ * 占卜記錄是否命中搜尋字串。
+ *
+ * 與 poemMatchesSearch 同樣的理由：收藏頁的卡片顯示的是
+ * localizedPoemTitle(record.poemId)，但搜尋原本只比對 record.poemTitle
+ * ——那是起卦當下存下的中文原題。en/ja 介面下，使用者輸入卡片上
+ * 明明看得到的譯名，結果是零。圖鑑的同型缺陷已在 Session 32 修掉，
+ * 收藏頁當時漏掉。
+ *
+ * 記錄自己存的中文原題與原文內容一併保留：那是這筆記錄的真實快照，
+ * 且籤詩資料日後若有增修，記錄上的字仍應搜得到。
+ *
+ * questionText 是唯一不顯示在卡片上卻納入比對的欄位——它是使用者
+ * 回頭找某一次占卜時最好用的線索（「我那次問工作的是哪一卦？」），
+ * 而且只會多命中、不會漏掉本來搜得到的東西。
+ */
+export function recordMatchesSearch(record: SearchableRecord, query: string, lang: Lang): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  const localizedTitle = localizedPoemTitle(record.poemId).toLowerCase();
+  if (localizedTitle.includes(q)) return true;
+
+  // 籤詩全文（含譯文的內容與白話）也要能搜——卡片上雖只印標題，
+  // 但使用者記得的往往是詩句而非篇名
+  if (poemMatchesSearch(getPoemById(record.poemId), query, lang)) return true;
+
+  const own = [record.poemTitle, record.poemContent, record.drawnPieceChars.join(''), record.questionText ?? ''];
+  return own.some(text => text.toLowerCase().includes(q));
+}
