@@ -10,6 +10,7 @@ import TrendChart from '@/components/TrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getHistory, type DivinationRecord } from '@/services/storage';
+import { startOfLocalWeek, startOfLocalMonth } from '@/services/date';
 import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
@@ -38,12 +39,17 @@ export default function StatsScreen() {
     setRecords(h);
   }
 
-  // 依日期篩選
+  // 依日期篩選。
+  //
+  // 用日曆週期而非滾動視窗：舊寫法是 `now - timestamp < 7/30 天`，
+  // 週一早上點「本週」會把上週三四的占卜算進來，與標籤講的不是同一件事。
+  // 同時夾住未來的時間戳——時鐘偏移或手改過的備份會產生未來時間，
+  // 滾動視窗的減法對它們永遠成立，那些記錄會賴在每一個區間裡。
   const filtered = (() => {
     const now = Date.now();
-    if (dateFilter === 'week') return records.filter(r => now - r.timestamp < 7 * 86400000);
-    if (dateFilter === 'month') return records.filter(r => now - r.timestamp < 30 * 86400000);
-    return records;
+    if (dateFilter === 'all') return records;
+    const start = (dateFilter === 'week' ? startOfLocalWeek() : startOfLocalMonth()).getTime();
+    return records.filter(r => r.timestamp >= start && r.timestamp <= now);
   })();
 
   const total = filtered.length;

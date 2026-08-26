@@ -9,6 +9,8 @@ import { getPoemById } from '@/data/poems';
 import type { HexagramResult } from '@/services/divination';
 import { drawPieces, computeHexagram, generateDrawSummary } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
+import { notify } from '@/services/dialog';
+import { t } from '@/services/i18n';
 import { scheduleVerificationReminder } from '@/services/notifications';
 
 export type DrawStep = 'select-count' | 'drawing' | 'result';
@@ -94,6 +96,14 @@ export function useDrawDivination() {
       });
       // 導航後重設：從 reveal 返回時回到選擇畫面，而不是卡在
       // 「正在為您解讀…」的死畫面
+      reset();
+    } catch (e) {
+      // addHistory 寫入失敗（儲存空間滿、AsyncStorage 損毀）時，
+      // 沒有這一段就是 unhandled rejection——setStep('result') 沒跑到，
+      // 畫面永遠停在「正在為您解讀…」，使用者只能殺掉 App。
+      // 講清楚發生什麼事，並退回選擇畫面讓他能再試一次。
+      console.warn('占卜記錄儲存失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveRecordFailed'));
       reset();
     } finally {
       savingRef.current = false;

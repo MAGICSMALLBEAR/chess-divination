@@ -121,6 +121,43 @@ describe('產生備份', () => {
     const b = await buildBackup();
     expect(JSON.parse(JSON.stringify(b)).data[HISTORY]).toEqual([{ id: 'a' }]);
   });
+
+  /**
+   * 迴歸：原本逐鍵 raw JSON.parse，一個鍵壞掉就整份「備份失敗」——
+   * 而最需要備份的正是資料已經開始出問題的時候。讀取端對壞鍵一向是
+   * 降級成 []／預設值，備份端卻整份放棄，兩邊策略不一致。
+   */
+  test('單一壞鍵不會讓整份備份失敗', async () => {
+    mockStore.set(HISTORY, '{這不是 JSON');
+    mockStore.set(SETTINGS, JSON.stringify({ userName: '阿明' }));
+
+    const b = await buildBackup();
+
+    expect(b.data[HISTORY]).toBeNull();
+    expect(b.data[SETTINGS]).toEqual({ userName: '阿明' });   // 好的鍵照樣備份
+  });
+
+  test('壞鍵記進 skippedKeys，缺漏是看得見的', async () => {
+    mockStore.set(HISTORY, 'xxx');
+    mockStore.set(FAVORITES, '[[[');
+
+    const b = await buildBackup();
+
+    expect(b.skippedKeys?.sort()).toEqual([FAVORITES, HISTORY].sort());
+  });
+
+  test('沒有壞鍵時不出現 skippedKeys 欄位', async () => {
+    mockStore.set(HISTORY, JSON.stringify([{ id: 'a' }]));
+    const b = await buildBackup();
+    expect(b.skippedKeys).toBeUndefined();
+  });
+
+  /** 壞掉的原文不可以進備份——還原時會再 parse 一次，等於把問題帶著走 */
+  test('壞鍵的原始字串不會被寫進備份', async () => {
+    mockStore.set(HISTORY, '{這不是 JSON');
+    const json = JSON.stringify(await buildBackup());
+    expect(json).not.toContain('這不是 JSON');
+  });
 });
 
 describe('解析備份檔', () => {

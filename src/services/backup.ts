@@ -25,16 +25,43 @@ export interface BackupFile {
   version: number;
   date: string;
   data: Record<string, unknown>;
+  /** 無法解析而略過的鍵；沒有壞鍵時不出現，舊備份檔也不會有這個欄位 */
+  skippedKeys?: string[];
 }
 
-/** 把目前的資料整理成備份檔內容 */
+/**
+ * 把目前的資料整理成備份檔內容。
+ *
+ * 單一壞鍵不讓整份備份失敗：原本是逐鍵 raw `JSON.parse`，任何一個鍵的
+ * 內容壞掉就整個拋出、使用者只看到「備份失敗」，而**最需要備份的正是
+ * 資料已經開始出問題的時候**。讀取端（`normalizeRecords`／
+ * `normalizeSettings`）對壞鍵一向是降級成 `[]`／預設值，備份端卻整份
+ * 放棄，兩邊的策略本來就不一致。
+ *
+ * 壞掉的鍵記進備份檔的 `skippedKeys` 並發出 console 警告——備份檔本身
+ * 就帶著「這份少了什麼」的證據，還原時才不會把缺漏誤認為原本就是空的。
+ */
 export async function buildBackup(): Promise<BackupFile> {
   const data: Record<string, unknown> = {};
+  const skippedKeys: string[] = [];
   for (const key of BACKUP_KEYS) {
     const raw = await AsyncStorage.getItem(key);
-    data[key] = raw ? JSON.parse(raw) : null;
+    if (!raw) { data[key] = null; continue; }
+    try {
+      data[key] = JSON.parse(raw);
+    } catch {
+      // 壞掉的原文不放進備份——還原時會再 parse 一次，等於把問題帶著走
+      data[key] = null;
+      skippedKeys.push(key);
+      console.warn(`備份略過無法解析的鍵: ${key}`);
+    }
   }
-  return { version: BACKUP_VERSION, date: new Date().toISOString(), data };
+  return {
+    version: BACKUP_VERSION,
+    date: new Date().toISOString(),
+    data,
+    ...(skippedKeys.length > 0 ? { skippedKeys } : {}),
+  };
 }
 
 function isPlainObject(value: unknown): boolean {

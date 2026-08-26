@@ -25,6 +25,9 @@ jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('@/services/sound', () => ({ playPlacePieceSound: jest.fn() }));
 jest.mock('@/services/haptics', () => ({ hapticLight: jest.fn() }));
 jest.mock('@/services/notifications', () => ({ scheduleVerificationReminder: jest.fn() }));
+// 儲存失敗時要「講一聲」而不是靜靜卡住，所以 notify 必須看得見
+const mockNotify = jest.fn();
+jest.mock('@/services/dialog', () => ({ notify: (...args: unknown[]) => mockNotify(...args) }));
 
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
@@ -149,6 +152,41 @@ describe('useDrawDivination', () => {
       // 迴歸：導航後立刻重設——修復前返回會卡在「正在為您解讀…」
       expect(result.current.step).toBe('select-count');
       expect(result.current.drawnPieces).toEqual([]);
+    });
+
+    /**
+     * 迴歸：`await addHistory(record)` 原本沒有 catch。AsyncStorage 寫入
+     * 失敗（空間滿、儲存損毀）時是 unhandled rejection，而畫面上的表現是
+     * 永遠停在「正在為您解讀…」——使用者只能殺掉 App。
+     */
+    test('儲存失敗時不會卡在解讀中，且會告知使用者', async () => {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      AsyncStorage.setItem.mockRejectedValueOnce(new Error('QuotaExceeded'));
+
+      const { result } = renderHook(() => useDrawDivination());
+      act(() => { result.current.startDrawing(2); });
+      await act(async () => { await result.current.goToResult(); });
+
+      // 沒有卡在中途的狀態，退回選擇畫面讓使用者能再試一次
+      expect(result.current.step).toBe('select-count');
+      expect(mockNotify).toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    test('儲存失敗後仍可再次抽棋，不會被 in-flight 旗標鎖住', async () => {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      AsyncStorage.setItem.mockRejectedValueOnce(new Error('QuotaExceeded'));
+
+      const { result } = renderHook(() => useDrawDivination());
+      act(() => { result.current.startDrawing(2); });
+      await act(async () => { await result.current.goToResult(); });
+
+      // 第二次不再失敗，應該正常存進去
+      act(() => { result.current.startDrawing(2); });
+      await act(async () => { await result.current.goToResult(); });
+
+      await expect(getHistory()).resolves.toHaveLength(1);
+      expect(mockPush).toHaveBeenCalledTimes(1);
     });
 
     /** 六爻資料若沒存下來，reveal 頁會退回只顯示本卦 */

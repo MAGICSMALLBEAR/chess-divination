@@ -1,7 +1,7 @@
 import {
   toLocalDateString, todayString, yesterdayString,
   monthBranchNumber, monthBranchName, monthBranchContext, seasonOf, SEASON_ELEMENT,
-  EARTHLY_BRANCHES,
+  EARTHLY_BRANCHES, startOfLocalWeek, startOfLocalMonth,
 } from '../services/date';
 
 describe('本地日期', () => {
@@ -132,5 +132,55 @@ describe('季節與當令五行', () => {
   test('五行皆有當令的季節，無一遺漏', () => {
     const elements = new Set(Object.values(SEASON_ELEMENT));
     expect(elements).toEqual(new Set(['木', '火', '金', '水', '土']));
+  });
+});
+
+/**
+ * 統計頁的「本週／本月」原本是 `now - timestamp < 7/30 天` 的滾動視窗，
+ * 與標籤講的不是同一件事：週一早上點「本週」，上週三四的占卜會被算進來。
+ */
+describe('日曆週期起點', () => {
+  test('本週自週一 00:00 起算', () => {
+    // 2026-08-26 是週三
+    const wed = new Date(2026, 7, 26, 15, 30);
+    const start = startOfLocalWeek(wed);
+    expect(toLocalDateString(start)).toBe('2026-08-24');   // 該週週一
+    expect([start.getHours(), start.getMinutes(), start.getSeconds()]).toEqual([0, 0, 0]);
+  });
+
+  test('週一當天的起點就是自己', () => {
+    const mon = new Date(2026, 7, 24, 9, 0);
+    expect(toLocalDateString(startOfLocalWeek(mon))).toBe('2026-08-24');
+  });
+
+  /** getDay() 週日為 0，沒換算的話週日會被算成「下一週的開始」 */
+  test('週日屬於當週，起點回到六天前的週一', () => {
+    const sun = new Date(2026, 7, 30, 23, 59);
+    expect(toLocalDateString(startOfLocalWeek(sun))).toBe('2026-08-24');
+  });
+
+  test('跨月的一週，起點可以落在上個月', () => {
+    const wed = new Date(2026, 8, 2, 12, 0);   // 2026-09-02 週三
+    expect(toLocalDateString(startOfLocalWeek(wed))).toBe('2026-08-31');
+  });
+
+  test('本月自一號 00:00 起算', () => {
+    const start = startOfLocalMonth(new Date(2026, 7, 26, 15, 30));
+    expect(toLocalDateString(start)).toBe('2026-08-01');
+    expect(start.getHours()).toBe(0);
+  });
+
+  test('起點一定不晚於當下，且七天內', () => {
+    // 窮舉一整年的每一天，避免只驗幾個手挑的日期
+    for (let i = 0; i < 365; i++) {
+      const day = new Date(2026, 0, 1 + i, 13, 45);
+      const weekStart = startOfLocalWeek(day);
+      const monthStart = startOfLocalMonth(day);
+      expect(weekStart.getTime()).toBeLessThanOrEqual(day.getTime());
+      expect(day.getTime() - weekStart.getTime()).toBeLessThan(7 * 86400000);
+      expect(weekStart.getDay()).toBe(1);            // 恆為週一
+      expect(monthStart.getTime()).toBeLessThanOrEqual(day.getTime());
+      expect(monthStart.getDate()).toBe(1);
+    }
   });
 });

@@ -179,10 +179,15 @@ export default function SettingsScreen() {
                 onChangeText={setNameText}
                 placeholder={t('settings.namePlaceholder')}
                 placeholderTextColor={theme.textMuted}
+                maxLength={12}
                 autoFocus
               />
+              {/* 存 trim 過的值：原本整串空白也存得進去，畫面顯示一片空白，
+                  而 `settings.userName || t('nameUnset')` 的後備因為字串
+                  非空而永遠不出現——看起來就像名字設定壞掉了。
+                  全空白視為清除，讓「未設定」的後備回得來 */}
               <TouchableOpacity onPress={async () => {
-                await update('userName', nameText);
+                await update('userName', nameText.trim());
                 setEditingName(false);
               }}>
                 <Text style={{ color: theme.textGold, fontWeight: '600' }}>{t('common.save')}</Text>

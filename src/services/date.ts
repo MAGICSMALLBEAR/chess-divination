@@ -31,6 +31,29 @@ export function yesterdayString(): string {
 
 // ====== 時辰（地支） ======
 
+/**
+ * 當地日曆「本週」的起點（週一 00:00）。
+ *
+ * 統計頁的「本週／本月」原本是 `now - timestamp < 7 天` 的滾動視窗，
+ * 與標籤講的不是同一件事：週一早上看「本週」，滾動視窗會把上週三、
+ * 週四的占卜一起算進來，數字跟使用者心裡的「這週」對不起來。
+ *
+ * 以週一為界（ISO 8601）而非週日：中文語境的「本週」通常自週一起算，
+ * 週報與行事曆也多是這個分界。
+ */
+export function startOfLocalWeek(date: Date = new Date()): Date {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  // getDay() 週日為 0，換算成「距離本週一過了幾天」
+  const daysSinceMonday = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - daysSinceMonday);
+  return start;
+}
+
+/** 當地日曆「本月」的起點（一號 00:00） */
+export function startOfLocalMonth(date: Date = new Date()): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
 export const EARTHLY_BRANCHES = [
   '子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥',
 ] as const;

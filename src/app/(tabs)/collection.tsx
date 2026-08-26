@@ -445,9 +445,18 @@ export default function CollectionScreen() {
                   placeholderTextColor={theme.textMuted}
                   value={newFolderName}
                   onChangeText={setNewFolderName}
+                  maxLength={20}
                   autoFocus
                 />
-                <TouchableOpacity style={styles.folderBtn} onPress={handleAddFolder}>
+                {/* 名稱為空時，handleAddFolder 只是 return——按鈕看起來壞掉。
+                    改成明確的不可用狀態：按不下去，而且看得出按不下去 */}
+                <TouchableOpacity
+                  style={[styles.folderBtn, !newFolderName.trim() && styles.folderBtnDisabled]}
+                  onPress={handleAddFolder}
+                  disabled={!newFolderName.trim()}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !newFolderName.trim() }}
+                >
                   <Text style={{ color: theme.textGold, fontWeight: '600' }}>{t('common.add')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowAddFolder(false)}>
@@ -621,6 +630,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8, fontSize: 14,
   },
   folderBtn: { paddingHorizontal: 8 },
+  folderBtnDisabled: { opacity: 0.4 },
   folderCard: {
     marginHorizontal: Spacing.md, marginBottom: Spacing.sm,
     borderRadius: 12, borderWidth: 1, padding: Spacing.md,

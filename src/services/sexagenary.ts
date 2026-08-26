@@ -40,6 +40,19 @@ export function julianDayNumber(date: Date): number {
 /**
  * 本地日期的日干支。JDN 2458511 為甲子日，故以 (JDN + 49) mod 60 對應零基甲子序。
  * 本專案採民用日曆 00:00 換日；若日後支援晚子時換日，應在呼叫前先正規化日期。
+ *
+ * **為什麼用裝置本地日期，而不是固定台北時間**（審查曾提出應改為 UTC+8）：
+ * 起卦的三個時間量——日柱、時辰（`hourBranchNumber`）、月建
+ * （`monthBranchContext`）——全部取自同一個裝置本地時鐘，這是刻意的。
+ * 傳統起卦本就以問卜者當下所在的時間為準，而不是某個固定地點的時間。
+ *
+ * 若只把日柱改成台北時間，時辰與月建仍是本地的，兩者會互相打架：
+ * 使用者在倫敦晚上八點起卦會得到「戌時」配上台北隔天的日柱（當地已是
+ * 凌晨四點），旬空、六神、暗動全部跟著錯位——那比「日柱差一天」更糟，
+ * 因為卦盤自身不再自洽。裝置時區設錯的情況下三者一起錯，至少仍是一張
+ * 內部一致的盤。
+ *
+ * 這條界線由 `sexagenary.test.ts` 的「同一個時鐘」守門測試釘住。
  */
 export function sexagenaryDay(date: Date = new Date()): SexagenaryDay {
   const index = positiveMod(julianDayNumber(date) + 49, 60);

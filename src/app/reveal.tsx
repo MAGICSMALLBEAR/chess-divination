@@ -145,27 +145,48 @@ export default function RevealScreen() {
     else setAiState({ kind: 'failed', message: result.message });
   }
 
+  // 這三個處理器原本都沒有 try/catch。AsyncStorage 寫入失敗時是
+  // unhandled rejection，而畫面上的表現是「按了完全沒有反應」——
+  // 使用者不會知道回填沒存進去，只會以為按鈕壞了，下次再回來看
+  // 才發現占驗不見了。至少要講一聲。
   async function handleSaveOutcome(status: OutcomeStatus, note?: string) {
     if (!record) return;
-    await setOutcome(record.id, status, note);
-    await cancelVerificationReminder(record.id);
-    hapticSuccess();
-    await loadRecord();
+    try {
+      await setOutcome(record.id, status, note);
+      await cancelVerificationReminder(record.id);
+      hapticSuccess();
+      await loadRecord();
+    } catch (e) {
+      console.warn('占驗回填儲存失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveOutcomeFailed'));
+    }
   }
 
   async function handleClearOutcome() {
     if (!record) return;
-    await clearOutcome(record.id);
-    await loadRecord();
+    try {
+      await clearOutcome(record.id);
+      await loadRecord();
+    } catch (e) {
+      console.warn('占驗清除失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveOutcomeFailed'));
+    }
   }
 
   async function handleToggleFavorite() {
     if (!record) return;
-    const result = await toggleFavorite(record);
-    setIsFav(result);
-    playFavoriteSound();
-    hapticSuccess();
-    await loadRecord();
+    try {
+      const result = await toggleFavorite(record);
+      setIsFav(result);
+      playFavoriteSound();
+      hapticSuccess();
+      await loadRecord();
+    } catch (e) {
+      // 收藏失敗時不動 isFav：讓畫面維持真實狀態，
+      // 否則星星亮著但資料沒存，重進頁面又變回去，更難理解
+      console.warn('收藏狀態儲存失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveFavoriteFailed'));
+    }
   }
 
   async function handleShare() {

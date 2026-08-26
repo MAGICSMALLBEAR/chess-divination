@@ -183,7 +183,19 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
               <TouchableOpacity onPress={() => setShowEditor(false)} style={[styles.modalBtn, { borderColor: theme.bgMedium }]}>
                 <Text style={{ color: theme.textMuted }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSave} style={[styles.modalBtn, { backgroundColor: theme.gold }]}>
+              {/* 空名稱時 handleSave 只是 return，按了毫無反應——
+                  改為明確不可用，使用者才知道是缺了名稱而非按鈕壞了 */}
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={!editLabel.trim()}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !editLabel.trim() }}
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: theme.gold },
+                  !editLabel.trim() && styles.modalBtnDisabled,
+                ]}
+              >
                 <Text style={{ color: theme.textInverse, fontWeight: '600' }}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
@@ -254,4 +266,5 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     borderWidth: 1, borderColor: t.bgMedium,
     alignItems: 'center',
   },
+  modalBtnDisabled: { opacity: 0.4 },
 });

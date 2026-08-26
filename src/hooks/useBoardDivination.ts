@@ -8,6 +8,8 @@ import type { Poem } from '@/data/poems';
 import { getPoemById } from '@/data/poems';
 import { computeHexagram } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
+import { notify } from '@/services/dialog';
+import { t } from '@/services/i18n';
 import { playPlacePieceSound } from '@/services/sound';
 import { hapticLight } from '@/services/haptics';
 import { scheduleVerificationReminder } from '@/services/notifications';
@@ -141,6 +143,13 @@ export function useBoardDivination() {
       // 導航後清空棋盤：從 reveal 返回時是全新佈局，不會把同一佈局
       // 再解讀一次而製造重複記錄
       reset();
+    } catch (e) {
+      // 與抽棋模式同理：addHistory 失敗時沒有 catch 就是 unhandled
+      // rejection，畫面停在解讀中。這裡不 reset 棋盤——使用者辛苦擺的
+      // 佈局不該因為儲存失敗而被清掉，退回 'place-pieces' 讓他直接重按解讀
+      console.warn('棋盤占卜記錄儲存失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveRecordFailed'));
+      setStep('place-pieces');
     } finally {
       interpretingRef.current = false;
     }

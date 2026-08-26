@@ -483,9 +483,15 @@ export const translations: Record<string, Record<Lang, string>> = {
   'onboarding.start': { 'zh-TW': '開始占卜', en: 'Start', ja: '占いを始める' },
 
   // 錯誤與找不到頁面
+  'error.saveFailed': { 'zh-TW': '儲存失敗', en: 'Save failed', ja: '保存に失敗しました' },
+  'error.saveRecordFailed': { 'zh-TW': '這次占卜沒能存進記錄，請確認裝置儲存空間後再試一次。', en: 'This reading could not be saved. Check your device storage and try again.', ja: '今回の占いを保存できませんでした。端末の空き容量を確認して再試行してください。' },
+  'error.saveOutcomeFailed': { 'zh-TW': '占驗結果沒能存起來，請再試一次。', en: 'The outcome could not be saved. Please try again.', ja: '占験の結果を保存できませんでした。もう一度お試しください。' },
+  'error.saveFavoriteFailed': { 'zh-TW': '收藏狀態沒能存起來，請再試一次。', en: 'The favorite status could not be saved. Please try again.', ja: 'お気に入りの状態を保存できませんでした。もう一度お試しください。' },
   'error.title': { 'zh-TW': '發生了一些問題', en: 'Something went wrong', ja: '問題が発生しました' },
   'error.unknown': { 'zh-TW': '未知錯誤', en: 'Unknown error', ja: '不明なエラー' },
   'error.reload': { 'zh-TW': '重新載入', en: 'Reload', ja: '再読み込み' },
+  'error.goSettings': { 'zh-TW': '前往設定（可還原備份）', en: 'Go to Settings (restore backup)', ja: '設定へ（バックアップ復元）' },
+  'error.escapeHint': { 'zh-TW': '若重試後仍反覆出錯，可到設定頁還原備份或匯出目前資料。', en: 'If retrying keeps failing, go to Settings to restore a backup or export your current data.', ja: '再試行しても繰り返し失敗する場合は、設定からバックアップを復元するかデータを書き出してください。' },
   'notFound.title': { 'zh-TW': '找不到頁面', en: 'Page not found', ja: 'ページが見つかりません' },
   'notFound.desc': { 'zh-TW': '此頁面不存在', en: 'This page does not exist', ja: 'このページは存在しません' },
   'notFound.home': { 'zh-TW': '回到首頁', en: 'Back to Home', ja: 'ホームへ戻る' },
@@ -516,8 +522,27 @@ const listeners = new Set<Listener>();
 
 let currentLang: Lang = 'zh-TW';
 
+/**
+ * Web 端把 <html lang> 同步成目前語言。
+ *
+ * `+html.tsx` 只能寫死建置時的預設值，啟動時由其中的 inline script 補正；
+ * 這裡負責的是「使用者在設定頁當場切換語言」之後的那一次。少了它，
+ * 讀屏軟體會繼續用切換前的語言念整頁內容。
+ *
+ * 原生端沒有 document，直接跳過。
+ */
+function syncDocumentLang(lang: Lang): void {
+  if (typeof document === 'undefined') return;
+  try {
+    document.documentElement.lang = lang;
+  } catch (e) {
+    console.warn('同步 <html lang> 失敗:', e);
+  }
+}
+
 export function setLang(lang: Lang) {
   currentLang = lang;
+  syncDocumentLang(lang);
   listeners.forEach(fn => fn());
 }
 
