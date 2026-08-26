@@ -1582,6 +1582,18 @@ TS 零錯誤 · Jest 864 全過（45 suites）· web build 成功 · E2E 112。
 17 條待辦處理掉 8 條，餘 9 條且已無 🟡 中——剩下的是 8 條 🟢 低
 與 1 條待實機確認。
 
+**Production 已部署**：2026-08-26（Asia/Taipei）發布至
+https://chess-divination-app.vercel.app ；deployment
+`dpl_CKkCELu3o8PdRvjEqKyXUNajAR57` 狀態 Ready。上線後實測首頁、
+`/reveal`、`/library`、`/collection` 皆回 200，`api/interpret` 仍回 501
+（`DEEPSEEK_API_KEY` 未設，前端降級為規則式解讀）。
+
+驗證新版是否真的上線，用的是 bundle 內的色值而非只看狀態碼——
+線上 entry bundle 已含新的 `#654C20`／`#5A5045`／`#962C22`，舊的
+`#9A8A78` 已消失（`#8A6830` 仍在，那是裝飾用的 `goldDark`，非文字色）。
+第一次輪詢時線上仍是舊 bundle，是部署尚未跑完，不是沒觸發——
+`vercel ls` 才看得出 Production 已 Ready。
+
 **e2e 的本機偶發假紅**：三次全跑中有兩次各紅一條，都是開頭 mobile 的
 `/draw` 頁面載入逾時；單獨重跑該測試 6/6、7/7 全過，第三次全跑 112 全綠。
 判定為 4 個 worker 對 `expo serve` 冷啟動的基礎設施 flake，未改程式也
