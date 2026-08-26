@@ -87,3 +87,59 @@ describe('Chess Pieces', () => {
     });
   });
 });
+
+/**
+ * 卦象機率分佈的守門（審查 A24，決定維持現狀）。
+ *
+ * 七種棋子塞進四組錯卦，必然有兩種共用一組（`advisor` 與 `pawn` 同用
+ * 艮／兌）；加上象棋的實際子數，每卦的棋子數就成了 乾1 兌7 離4 震4
+ * 巽4 坎4 艮7 坤1。兩顆棋時乾為天／坤為地各約 1/1024、兌為澤／艮為山
+ * 約 49/1024，相差約 49 倍。
+ *
+ * 這是「忠於棋盤實際子數」的刻意選擇，不是缺陷——一副象棋本來就只有
+ * 一支帥、卻有五個兵。這幾條測試把現況釘住：數字被動到就會紅，逼人
+ * 重新看過 pieces.ts 裡的理由，而不是默默改掉；同時也證明差異來自
+ * 棋盤組成而非抽取偏差。
+ */
+describe('棋子→八卦的分佈（刻意不均）', () => {
+  /** 每一卦實際有幾顆棋 */
+  const countsByTrigram = (() => {
+    const counts = new Array(8).fill(0) as number[];
+    ALL_PIECES.forEach(p => { counts[p.trigram] += 1; });
+    return counts;
+  })();
+
+  test('八卦分佈為 乾1 兌7 離4 震4 巽4 坎4 艮7 坤1', () => {
+    expect(countsByTrigram).toEqual([1, 7, 4, 4, 4, 4, 7, 1]);
+    expect(countsByTrigram.reduce((a, b) => a + b, 0)).toBe(32);
+  });
+
+  test('每一卦都至少有一顆棋——沒有抽不到的卦', () => {
+    // 這才是真正的缺陷條件（舊版兌卦無棋，15 首籤詩永遠抽不到）
+    expect(countsByTrigram.every(n => n > 0)).toBe(true);
+  });
+
+  test('不均來自兩種棋共用一組錯卦，而非抽取偏差', () => {
+    const shared = ALL_TYPES.filter(type =>
+      pieceTrigram(type, 'red') === pieceTrigram('pawn', 'red'));
+    expect(shared.sort()).toEqual(['advisor', 'pawn']);
+
+    // 每顆棋在牌堆中都只出現一次——抽取本身是均勻的
+    expect(new Set(ALL_PIECES.map(p => p.id)).size).toBe(ALL_PIECES.length);
+  });
+
+  test('錯卦成對，兩兩的棋子數相同', () => {
+    // 紅黑互為錯卦，所以對卦的棋子數必然相等；不相等代表配對被改壞了
+    for (let trigram = 0; trigram < 8; trigram++) {
+      expect(countsByTrigram[trigram]).toBe(countsByTrigram[TRIGRAM_OPPOSITE[trigram]]);
+    }
+  });
+
+  test('最不均的兩卦相差 7 倍，兩顆棋時即為 49 倍', () => {
+    const max = Math.max(...countsByTrigram);
+    const min = Math.min(...countsByTrigram);
+    expect(max / min).toBe(7);
+    // 兩顆棋各自獨立抽取，故卦象機率是兩個邊際機率相乘
+    expect((max / 32) ** 2 / (min / 32) ** 2).toBe(49);
+  });
+});
