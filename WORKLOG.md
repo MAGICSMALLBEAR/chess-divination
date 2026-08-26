@@ -1651,8 +1651,13 @@ TS 零錯誤 · Jest 894 全過（47 suites）· web build 成功 · E2E 112。
   PNG 的回報，無法從原始碼判定。
 
 **Production 已部署**：2026-08-26（Asia/Taipei）發布至
-https://chess-divination-app.vercel.app ；deployment
-`dpl_CKkCELu3o8PdRvjEqKyXUNajAR57` 狀態 Ready。上線後實測首頁、
+https://chess-divination-app.vercel.app 。本輪共兩次部署——
+`dpl_CKkCELu3o8PdRvjEqKyXUNajAR57`（前半輪：接線、用神、同步、對比度）
+與 `dpl_7kY6qwToUXs45vM3dcJ28TRwqrDY`（後半輪：儲存失敗、日曆週期、
+備份降級、錯誤逃生、空白輸入、web 文件層），兩者狀態皆 Ready。
+後半輪的線上驗證同樣比對產出物內容：HTML 已含 lang 補正腳本與深淺兩個
+`theme-color`，bundle 已含 `error.goSettings`／`error.saveRecordFailed`／
+`startOfLocalWeek`。上線後實測首頁、
 `/reveal`、`/library`、`/collection` 皆回 200，`api/interpret` 仍回 501
 （`DEEPSEEK_API_KEY` 未設，前端降級為規則式解讀）。
 
