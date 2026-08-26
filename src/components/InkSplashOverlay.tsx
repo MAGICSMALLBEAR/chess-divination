@@ -4,14 +4,14 @@
 // 擴散完成後整體淡出，揭露下方內容。
 
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   cancelAnimation,
-  type SharedValue,
 } from 'react-native-reanimated';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 // ── 墨滴斑點定義 ──
 interface DropConfig {
@@ -104,6 +104,7 @@ interface Props {
 export default function InkSplashOverlay({ visible, onComplete }: Props) {
   const { width, height } = useWindowDimensions();
   const diagonal = Math.sqrt(width * width + height * height);
+  const reducedMotion = useReducedMotion();
 
   const overlayOpacity = useSharedValue(1);
 
@@ -113,6 +114,15 @@ export default function InkSplashOverlay({ visible, onComplete }: Props) {
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
+    // 減少動態效果：墨滴轉場是純視覺裝飾，整段跳過（PieceEntryFlyIn
+    // 與 PieceDraw3D 都接了 useReducedMotion，這裡是漏接而非政策）。
+    // 但仍要通知父層完成——不然狀態機停在轉場中，籤詩頁的內容
+    // 永遠等不到「轉場結束」這一步。
+    if (reducedMotion && visible) {
+      onCompleteRef.current?.();
+      return;
+    }
+
     if (!visible) {
       overlayOpacity.value = 1;
       return;
@@ -138,13 +148,13 @@ export default function InkSplashOverlay({ visible, onComplete }: Props) {
       clearTimeout(doneTimer);
       cancelAnimation(overlayOpacity);
     };
-  }, [visible]);
+  }, [visible, reducedMotion]);
 
   const containerStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
   }));
 
-  if (!visible) return null;
+  if (!visible || reducedMotion) return null;
 
   return (
     <Animated.View
