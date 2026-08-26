@@ -1653,15 +1653,22 @@ TS 零錯誤 · Jest 894 全過（47 suites）· web build 成功 · E2E 112。
   PNG 的回報，無法從原始碼判定。
 
 **Production 已部署**：2026-08-26（Asia/Taipei）發布至
-https://chess-divination-app.vercel.app 。本輪共兩次部署——
-`dpl_CKkCELu3o8PdRvjEqKyXUNajAR57`（前半輪：接線、用神、同步、對比度）
-與 `dpl_7kY6qwToUXs45vM3dcJ28TRwqrDY`（後半輪：儲存失敗、日曆週期、
-備份降級、錯誤逃生、空白輸入、web 文件層），兩者狀態皆 Ready。
+https://chess-divination-app.vercel.app 。本輪共三次部署——
+`dpl_CKkCELu3o8PdRvjEqKyXUNajAR57`（前半輪：接線、用神、同步、對比度）、
+`dpl_7kY6qwToUXs45vM3dcJ28TRwqrDY`（後半輪：儲存失敗、日曆週期、
+備份降級、錯誤逃生、空白輸入、web 文件層）、
+`dpl_AnjmVtVjAD1GFHyp92EELbfzM9eB`（A24 決定文件化，push d3e6c58 觸發），
+三者狀態皆 Ready。
 後半輪的線上驗證同樣比對產出物內容：HTML 已含 lang 補正腳本與深淺兩個
 `theme-color`，bundle 已含 `error.goSettings`／`error.saveRecordFailed`／
 `startOfLocalWeek`。上線後實測首頁、
 `/reveal`、`/library`、`/collection` 皆回 200，`api/interpret` 仍回 501
 （`DEEPSEEK_API_KEY` 未設，前端降級為規則式解讀）。
+第三次部署同樣以 bundle 內容驗證：`vercel inspect` 確認 production
+alias 指向 d3e6c58 的 Ready 部署，線上 entry bundle 含
+`startOfLocalWeek`／`startOfLocalMonth`／`syncRateLimited`／
+`saveRecordFailed`／`deletedCategoryKeys`／`not-configured` 全部 Session 34
+標記。
 
 驗證新版是否真的上線，用的是 bundle 內的色值而非只看狀態碼——
 線上 entry bundle 已含新的 `#654C20`／`#5A5045`／`#962C22`，舊的
