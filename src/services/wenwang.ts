@@ -144,9 +144,9 @@ export interface JudgeParams {
 /**
  * 取定用神並權衡其處境。
  *
- * 六親為用時，用神上卦則取卦中該六親之爻（多爻並見則取最先出現者，並在
- * reasons 註明）；不上卦則改看伏神，並依飛伏關係扣分——伏而不出本就是
- * 「事情起不來」之象。
+ * 六親為用時，用神上卦則取卦中該六親之爻（多爻並見則優先取發動之爻，
+ * 皆靜取最先出現者，並在 reasons 註明）；不上卦則改看伏神，並依飛伏
+ * 關係扣分——伏而不出本就是「事情起不來」之象。
  *
  * 世爻為用時（自占疾病、出行）不會有伏神：世爻必在卦中。
  */
@@ -161,7 +161,19 @@ export function judgeUseGod({
     ? reading.hidden.find(h => h.relative === subject) ?? null
     : null;
 
-  const subjectLine = lines[0] ?? null;
+  // 用神兩現的取法（卜筮正宗）：優先取發動之爻——若第二現才是動爻，
+  // 回頭生剋與進退神整段才有機會被檢查，取最先出現者會讓斷語少計。
+  // 皆不發動（或未起動爻）時取最先出現者。更細的「俱動取旺相、
+  // 俱靜取空破」沒有採計：單動爻模型下不會有俱動，空破取用是另一套
+  // 有爭議的取法；reasons 已逐條揭露採計條件，留下調整空間。
+  const subjectLine = (() => {
+    if (lines.length <= 1) return lines[0] ?? null;
+    if (movingLine !== undefined) {
+      const mover = lines.find(line => line.position === movingLine);
+      if (mover) return mover;
+    }
+    return lines[0];
+  })();
   const relative = subjectLine?.relative ?? hidden?.relative ?? null;
   const element = subjectLine?.element ?? hidden?.element ?? null;
   const branch = subjectLine?.branch ?? hidden?.branch ?? null;
@@ -309,7 +321,13 @@ export function judgeUseGod({
   }
 
   if (!byWorld && lines.length > 1) {
-    reasons.push({ label: `用神${subject}兩現，取${subjectLine!.position}爻為主`, score: 0 });
+    const chosenAsMover = movingLine !== undefined && subjectLine?.position === movingLine;
+    reasons.push({
+      label: chosenAsMover
+        ? `用神${subject}兩現，${movingLine}爻為動爻，取之為主`
+        : `用神${subject}兩現，取${subjectLine!.position}爻為主`,
+      score: 0,
+    });
   }
 
   const score = reasons.reduce((sum, r) => sum + r.score, 0);

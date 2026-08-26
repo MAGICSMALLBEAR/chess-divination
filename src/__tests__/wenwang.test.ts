@@ -238,6 +238,86 @@ describe('世爻為用（自占疾病、出行）', () => {
   });
 });
 
+describe('用神兩現（優先取動爻）', () => {
+  /** 依文王卦序找卦，方便用卦號指認具體卦例 */
+  function byPoemId(id: number) {
+    const found = eachHexagram().find(
+      ({ upper, lower }) => poemIdFromTrigrams(upper, lower) === id,
+    );
+    if (!found) throw new Error(`找不到 #${id}`);
+    return found;
+  }
+
+  function changedFor(upper: number, lower: number, movingLine: number, at = new Date(2026, 0, 1)) {
+    const lines = hexagramLines(upper, lower);
+    const flipped = lines.map((v, i) => (i === movingLine - 1 ? (v === 0 ? 1 : 0) : v)) as LineValue[];
+    const { upper: u, lower: l } = trigramsFromLines(flipped);
+    return buildNaJiaReading(u, l, poemIdFromTrigrams(u, l), flipped, at)!;
+  }
+
+  test('第二現才是動爻時取動爻，回頭生剋因此被檢查', () => {
+    // 天風姤 #44：兄弟兩現於 3、5 爻，動 5 爻（第二現）時變爻回頭生剋。
+    // 舊寫法一律取 lines[0]（3 爻），isUseGodMoving 恆為 false，
+    // 「回頭生剋」整段從來不會被採計。
+    const { upper, lower } = byPoemId(44);
+    const r = readingFor(upper, lower);
+    const a = judgeUseGod({
+      reading: r, changed: changedFor(upper, lower, 5), movingLine: 5, subject: '兄弟',
+    });
+
+    expect(a.reasons.some(x => x.label === '用神兄弟兩現，5爻為動爻，取之為主')).toBe(true);
+    expect(a.reasons.some(x => x.label.includes('回頭生') || x.label.includes('回頭剋'))).toBe(true);
+  });
+
+  test('第二現才是動爻時取動爻，進退神因此被檢查', () => {
+    // 乾為天 #1：父母兩現於 3、6 爻，動 6 爻（第二現）時化進神／退神。
+    const { upper, lower } = byPoemId(1);
+    const r = readingFor(upper, lower);
+    const a = judgeUseGod({
+      reading: r, changed: changedFor(upper, lower, 6), movingLine: 6, subject: '父母',
+    });
+
+    expect(a.reasons.some(x => x.label === '用神父母兩現，6爻為動爻，取之為主')).toBe(true);
+    expect(a.reasons.some(x => x.label.includes('進神') || x.label.includes('退神'))).toBe(true);
+  });
+
+  test('動爻不在兩現之中時，維持取最先出現者', () => {
+    const { upper, lower } = byPoemId(44);
+    const r = readingFor(upper, lower);
+    const a = judgeUseGod({ reading: r, movingLine: 2, subject: '兄弟' });
+
+    expect(a.reasons.some(x => x.label === '用神兄弟兩現，取3爻為主')).toBe(true);
+    // 兩現取用只有這兩個出口，不得混出第三種說法
+    expect(a.reasons.some(x => x.label.includes('為動爻'))).toBe(false);
+  });
+
+  test('揭露的取用爻一定在兩現之中；動爻在兩現中時必取動爻', () => {
+    const offenders: string[] = [];
+    for (const { upper, lower } of eachHexagram()) {
+      const r = readingFor(upper, lower);
+      for (const relative of ALL_RELATIVES) {
+        const positions = r.lines.filter(l => l.relative === relative).map(l => l.position);
+        if (positions.length < 2) continue;
+        for (let movingLine = 1; movingLine <= 6; movingLine++) {
+          const a = judgeUseGod({
+            reading: r, changed: changedFor(upper, lower, movingLine), movingLine, subject: relative,
+          });
+          const note = a.reasons.find(x => x.label.includes('兩現'))?.label ?? '';
+          // 兩種說法：「取N爻為主」與「N爻為動爻，取之為主」
+          const named = Number(/兩現，(?:取)?(\d)爻/.exec(note)?.[1]);
+          if (!positions.includes(named)) {
+            offenders.push(`#${poemIdFromTrigrams(upper, lower)} ${relative} 取用${named}不在${positions}`);
+          }
+          if (positions.includes(movingLine) && !note.includes(`${movingLine}爻為動爻`)) {
+            offenders.push(`#${poemIdFromTrigrams(upper, lower)} ${relative} 動${movingLine}未取動爻`);
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('喜忌之神發動', () => {
   test('同一個動爻不會既算生剋又算喜忌，避免重複計分', () => {
     const doubled: string[] = [];
