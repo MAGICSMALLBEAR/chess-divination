@@ -1804,8 +1804,14 @@ useBoardDivination 直接 import `t`，不訂閱語言變更**，儲存失敗的
 
 TS 零錯誤 · Jest 935 全過（48 suites）· E2E 112。四路審查 25 條全數
 結案（24 條修掉或證偽 + A25 改為「防線已上、實機仍列待辦」）。
-web build 未重新部署（Session 34 已上線，本輪無線上行為變更之外的
-部署需求，待下次部署一併驗證）。
+
+**Production 已部署**：2026-08-26 push `0b8a3c0` 觸發
+`chess-divination-gf53oc6f1-magicsmallbears-projects.vercel.app`（Ready）。
+線上驗證比對 bundle 內容：entry bundle 已含 `isPlausibleCapture`／
+`cancelAllVerificationReminders`／`board.removePieceAt`／`board.placePieceAt`／
+`board.cellPosition`／`share.captureFailed` 全部 Session 35 標記；
+首頁與 `/reveal`／`/library`／`/collection`／`/stats`／`/achievements`／
+`/settings`／`/draw`／`/board` 皆回 200。
 
 ---
 
@@ -1898,7 +1904,7 @@ Session 35 清掉最後 1 條（A25）。**25 條全數結案**。A25 的截圖�
 
 | # | 待辦 | 優先度 | 備註 |
 |---|------|--------|------|
-| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/24 重推，production 已含 Session 31+32，live 實測首頁與 `/reveal` 回 200）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
+| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/26 push `0b8a3c0`，production 已含 Session 35，bundle 標記與九條路由皆驗證）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
 | 2 | ~~**單元測試覆蓋率補強**~~ ✅ | 🟢 已完成 | 265 → 536，31 套件全過（8/16） |
 | 3 | **iOS/Android 實機測試** | 🟡 中 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端觸覺、字體、手勢；一併確認分享圖片有內容（A25 防線的現場驗證） |
 | 4 | **EAS Build 原生測試** | 🟢 低 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
