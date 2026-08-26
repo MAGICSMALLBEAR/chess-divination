@@ -18,6 +18,7 @@ import { Icon } from '@/components/icons';
 import { HexagramGlyph } from '@/components/icons/TrigramGlyph';
 import { hexagramLines, trigramsFromIndex, trigramLine } from '@/services/hexagram';
 import type { LineValue } from '@/services/hexagram';
+import { captureByteLength, isPlausibleCapture } from '@/services/shareCapture';
 import { useI18n } from '@/hooks/useI18n';
 import { getLang } from '@/services/i18n';
 import { ShareCardPalette as P, ShareCardLevelColors } from '@/constants/theme';
@@ -64,6 +65,12 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
         try {
           const uri = await viewShotRef.current?.capture?.();
           if (!uri) return false;
+          // 空白截圖防線：capture() 成功不代表圖上有東西，見 shareCapture.ts。
+          // 寧可降級成文字分享，也不要讓使用者分享出一張空白卡片。
+          if (!isPlausibleCapture(captureByteLength(uri))) {
+            console.warn(t('share.captureFailed'));
+            return false;
+          }
           if (!(await Sharing.isAvailableAsync())) return false;
           await Sharing.shareAsync(uri, {
             mimeType: 'image/png',
@@ -85,8 +92,13 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
     const levelColor = ShareCardLevelColors[props.poemLevel] || ShareCardLevelColors['中平'];
     const poems = props.poemContent.split('\n');
 
-    // 卦象：從先天序還原
-    const hasHexagram = props.hexagramIndex !== undefined;
+    // 卦象：從先天序還原。
+    // 記錄可能來自使用者匯入的備份，hexagramIndex 得先證明自己在
+    // 0–63 內——越界值不會 crash，但 trigramLine 只取低三位元，
+    // 分享出去的圖片上會默默畫出另一卦（reveal.tsx 對同一威脅模型
+    // 已在畫面解讀處做過檢查，這裡是分享出去的成品，更要檢查）。
+    const hasHexagram = Number.isInteger(props.hexagramIndex)
+      && props.hexagramIndex! >= 0 && props.hexagramIndex! <= 63;
     const [upper, lower] = hasHexagram ? trigramsFromIndex(props.hexagramIndex!) : [0, 0];
     const lines = hasHexagram ? hexagramLines(upper, lower) : [];
 

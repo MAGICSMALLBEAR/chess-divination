@@ -462,8 +462,15 @@ export default function RevealScreen() {
        </View>
       </ScrollView>
 
-      {/* 隱藏的分享卡片（用於生成圖片） */}
-      <View style={styles.shareHidden}>
+      {/* 隱藏的分享卡片（用於生成圖片）。
+          只靠離屏定位隱藏，刻意不加 opacity: 0——view-shot 的 iOS 端是
+          drawViewHierarchyInRect（照螢幕上的樣子重畫），alpha 為 0 的子樹
+          截出空白 PNG 是有回報的行為，而我們沒有實機可以排除它。
+          少了 opacity 之後改用 aria-hidden 把整張卡擋在無障礙樹外——
+          RN 的 View 會把它轉成 iOS 的 accessibilityElementsHidden 與
+          Android 的 importantForAccessibility="no-hide-descendants"，
+          web 端則原樣傳給 DOM。否則報讀器會把整首籤詩再念一遍。 */}
+      <View style={styles.shareHidden} aria-hidden>
         <ShareCardView
           ref={shareRef}
           poemTitle={poem.title}
@@ -659,8 +666,10 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   actionList: { marginTop: Spacing.md },
   actionTitle: { fontSize: FontSize.small, fontWeight: '600', marginBottom: Spacing.sm },
   actionItem: { fontSize: FontSize.body, lineHeight: 26, marginBottom: 4 },
+  // 400×680 的卡片挪到畫面外 9999pt，任何裝置都碰不到；
+  // 不要再加 opacity（理由見上方 aria-hidden 處的註解）
   shareHidden: {
     position: 'absolute', top: -9999, left: -9999,
-    opacity: 0, pointerEvents: 'none',
+    pointerEvents: 'none',
   },
 });

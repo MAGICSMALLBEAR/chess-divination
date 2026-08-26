@@ -55,6 +55,8 @@ export default function ModeSelector({ onSelectMode }: ModeSelectorProps) {
           style={[styles.card, { width: cardWidth }]}
           onPress={() => onSelectMode('board')}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('mode.board')} ${t('mode.boardDesc')}`}
         >
           <View style={styles.cardInner}>
             <View style={styles.cardIcon}>

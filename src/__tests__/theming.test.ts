@@ -67,7 +67,11 @@ describe('主題一致性', () => {
         // 只看實際的色值字面量，略過註解
         if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
 
-        const matches = line.match(/#[0-9A-Fa-f]{3,8}\b|rgba?\(\s*\d+/g);
+        // hex／rgb／rgba／hsl／hsla 全部攔。hsl 是後來補的——
+        // 舊版只攔 hex 與 rgb，hsl() 硬編色碼會整筆溜過守門。
+        const matches = line.match(
+          /#[0-9A-Fa-f]{3,8}\b|rgba?\(\s*\d+|hsla?\(/g,
+        );
         if (!matches) return;
 
         const bad = matches.filter(m => !ALLOWED_LITERALS.test(m));
@@ -78,6 +82,11 @@ describe('主題一致性', () => {
     }
 
     expect(offenders).toEqual([]);
+  });
+
+  /** 掃描實際涵蓋 UI 檔。低於下限代表掃描路徑壞了，此測試會空轉 */
+  test('掃描範圍實際涵蓋 UI 檔案（守門測試的自我檢查）', () => {
+    expect(collectFiles(SRC).length).toBeGreaterThan(40);
   });
 
   test('兩個主題必須定義相同的色彩鍵', () => {

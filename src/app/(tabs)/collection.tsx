@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
   TouchableOpacity, TextInput, RefreshControl,
-  NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions,
+  NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -14,7 +14,9 @@ import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, ad
 import { localizedPoemTitle, recordMatchesSearch } from '@/services/poemList';
 import { getLevelColor } from '@/data/poems';
 import { confirmAction } from '@/services/dialog';
+import { notify } from '@/services/dialog';
 import { readableTextOn } from '@/services/contrast';
+import { cancelVerificationReminder } from '@/services/notifications';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -45,7 +47,10 @@ export default function CollectionScreen() {
   }
 
   const { onLayout: onGridLayout, cardWidth } = useGrid();
-  const { width: windowWidth } = useWindowDimensions();
+  // 不用 useWindowDimensions：Expo 靜態匯出的 web 版它在 hydration 後
+  // 仍回傳 0（連 resize 也不更新），分頁器會因此整組失效（見 useLayout.ts
+  // 的記錄）。useLayout 的 width 已夾到 ≥320 且 web 端走 domWidth 訂閱。
+  const { width: windowWidth } = useLayout();
   const horizScrollRef = useRef<ScrollView>(null);
   const [tab, setTab] = useState<TabType>('history');
   const [history, setHistory] = useState<DivinationRecord[]>([]);
@@ -63,8 +68,15 @@ export default function CollectionScreen() {
 
   async function onRefresh() {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      await loadData();
+    } catch (e) {
+      console.warn('重新整理失敗:', e);
+      notify(t('error.saveFailed'), t('collection.loadFailed'));
+    } finally {
+      // 讀取失敗也不能讓 RefreshControl 的 spinner 永轉
+      setRefreshing(false);
+    }
   }
 
   function toggleSelect(id: string) {
@@ -82,10 +94,22 @@ export default function CollectionScreen() {
       destructive: true,
     });
     if (!confirmed) return;
-    for (const id of selectedIds) await removeHistory(id);
-    setSelectedIds(new Set());
-    setSelectMode(false);
-    await loadData();
+    try {
+      for (const id of selectedIds) {
+        await removeHistory(id);
+        // 記錄刪了，14 天後的占驗提醒也該跟著刪，否則會提醒使用者
+        // 回填一筆已經不存在的占卜
+        void cancelVerificationReminder(id);
+      }
+      setSelectedIds(new Set());
+      setSelectMode(false);
+      await loadData();
+    } catch (e) {
+      // 儲存失敗（空間滿／儲存損毀）時使用者得知道刪除沒成功，
+      // 而不是按了沒反應
+      console.warn('批次刪除失敗:', e);
+      notify(t('error.saveFailed'), t('collection.deleteFailed'));
+    }
   }
 
   useEffect(() => {
@@ -103,10 +127,15 @@ export default function CollectionScreen() {
 
   async function handleAddFolder() {
     if (!newFolderName.trim()) return;
-    await addFolder(newFolderName.trim());
-    setNewFolderName('');
-    setShowAddFolder(false);
-    await loadData();
+    try {
+      await addFolder(newFolderName.trim());
+      setNewFolderName('');
+      setShowAddFolder(false);
+      await loadData();
+    } catch (e) {
+      console.warn('建立資料夾失敗:', e);
+      notify(t('error.saveFailed'), t('collection.saveFailed'));
+    }
   }
 
   async function handleDeleteFolder(id: string) {
@@ -118,14 +147,24 @@ export default function CollectionScreen() {
       destructive: true,
     });
     if (!confirmed) return;
-    await deleteFolder(id);
-    await loadData();
+    try {
+      await deleteFolder(id);
+      await loadData();
+    } catch (e) {
+      console.warn('刪除資料夾失敗:', e);
+      notify(t('error.saveFailed'), t('collection.deleteFailed'));
+    }
   }
 
   async function handleAddToFolder(recordId: string, folderId: string) {
-    await addToFolder(folderId, recordId);
-    setPickingFolderFor(null);
-    await loadData();
+    try {
+      await addToFolder(folderId, recordId);
+      setPickingFolderFor(null);
+      await loadData();
+    } catch (e) {
+      console.warn('歸檔失敗:', e);
+      notify(t('error.saveFailed'), t('collection.saveFailed'));
+    }
   }
 
   const selectedFolder = folders.find(f => f.id === selectedFolderId);
@@ -159,13 +198,24 @@ export default function CollectionScreen() {
       destructive: true,
     });
     if (!confirmed) return;
-    await removeHistory(id);
-    await loadData();
+    try {
+      await removeHistory(id);
+      void cancelVerificationReminder(id);
+      await loadData();
+    } catch (e) {
+      console.warn('刪除記錄失敗:', e);
+      notify(t('error.saveFailed'), t('collection.deleteFailed'));
+    }
   }
 
   async function handleToggleFav(record: DivinationRecord) {
-    await toggleFavorite(record);
-    await loadData();
+    try {
+      await toggleFavorite(record);
+      await loadData();
+    } catch (e) {
+      console.warn('收藏切換失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveFavoriteFailed'));
+    }
   }
 
   function handleView(record: DivinationRecord) {

@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
-import { getHistory, getFavorites, getSettings, STORAGE_KEYS, type AppSettings, type CustomCategory, type DivinationRecord, type Folder } from './storage';
+import { getHistory, getFavorites, getSettings, updateSettings, STORAGE_KEYS, type AppSettings, type CustomCategory, type DivinationRecord, type Folder } from './storage';
 
 // Web 端與部署同源，相對路徑即可；原生 fetch 不吃相對 URL，
 // 必須用絕對網址——預設值若維持 '/api/sync'，原生 build 的同步必掛。
@@ -311,20 +311,28 @@ export async function mergeFromCloud(data: CloudPayload): Promise<CloudPayload> 
   ]);
   const normalizedHistory = history.map(r => ({ ...r, isFavorited: favoriteIds.has(r.id) }));
   const normalizedCloudHistory = cloudHistory.map(r => ({ ...r, isFavorited: favoriteIds.has(r.id) }));
+
+  // 設定走 updateSettings 的佇列，而且**在佇列輪到它時才重算合併**。
+  // 直接 setItem 寫整包的話，同步期間排在佇列裡的設定寫入（成就解鎖、
+  // 當日連續天數）會被這一包連根蓋掉——那正是佇列存在的理由。
+  // 傳 current 而非上面讀到的 local.settings，才不會拿寫前的快照去合併。
+  const mergedSettings = await updateSettings(
+    current => mergeSettings(current, data.settings),
+  );
+
   const merged: CloudPayload = {
     version: 3,
     timestamp: Date.now(),
     // 上傳的是聯集；寫回本機的仍是 HISTORY_LIMIT 那一份（見下方 setItem）
     history: normalizedCloudHistory,
     favorites: normalizedHistory.filter(r => r.isFavorited),
-    settings: mergeSettings(local.settings as AppSettings, data.settings),
+    settings: mergedSettings,
     dailyFortune: pickDailyFortune(local.dailyFortune, data.dailyFortune),
     deletedIds,
   };
   await Promise.all([
     AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(normalizedHistory)),
     AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(merged.favorites)),
-    AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged.settings)),
     AsyncStorage.setItem(STORAGE_KEYS.DAILY_FORTUNE, JSON.stringify(merged.dailyFortune)),
     AsyncStorage.setItem(STORAGE_KEYS.DELETED, JSON.stringify(merged.deletedIds)),
   ]);

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
-  TouchableOpacity, Switch, TextInput,
+  TouchableOpacity, Switch, TextInput, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
@@ -16,7 +16,7 @@ import { backupData, restoreData } from '@/services/backup';
 import { confirmAction, notify } from '@/services/dialog';
 import { clearHistory } from '@/services/storage';
 import CustomCategoriesSection from '@/components/CustomCategoriesSection';
-import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission } from '@/services/notifications';
+import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission, cancelAllVerificationReminders } from '@/services/notifications';
 import { getSyncKey, saveSyncKey, syncWithCloud, type SyncFailure } from '@/services/cloudSync';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -99,7 +99,13 @@ export default function SettingsScreen() {
       const ok = await scheduleDailyReminder();
       if (!ok) {
         setReminderOn(false);
-        notify(t('settings.notifyDenied'), t('settings.notifyDeniedDesc'));
+        // web 版根本沒有可授予的通知權限（scheduleDailyReminder 恆回
+        // false），講「請先授權」是在叫使用者去做一件做不到的事
+        if (Platform.OS === 'web') {
+          notify(t('settings.dailyReminder'), t('settings.notifyWebUnsupported'));
+        } else {
+          notify(t('settings.notifyDenied'), t('settings.notifyDeniedDesc'));
+        }
       }
     } else {
       await cancelDailyReminder();
@@ -140,14 +146,24 @@ export default function SettingsScreen() {
 
   async function handleCloudSync() {
     setSyncing(true);
-    const result = await syncWithCloud();
-    if (result === 'ok') {
-      await loadSettings();
-      notify(t('settings.cloudSync'), t('settings.syncOk'));
-    } else {
-      notify(t('settings.cloudSync'), t(SYNC_FAIL_KEYS[result]));
+    try {
+      const result = await syncWithCloud();
+      if (result === 'ok') {
+        await loadSettings();
+        notify(t('settings.cloudSync'), t('settings.syncOk'));
+      } else {
+        notify(t('settings.cloudSync'), t(SYNC_FAIL_KEYS[result]));
+      }
+    } catch (e) {
+      // syncWithCloud 的失敗不是只有 SyncFailure 那幾種：合併階段會直接
+      // 外拋（寫回本機時儲存已滿、或雲端 payload 的欄位型別壞掉）。
+      // 少了這個 catch，按鈕會永遠停在 disabled 的「同步中…」——
+      // settings 是常駐分頁，切走再回來也不會重建，只能重開 App。
+      console.warn('雲端同步失敗:', e);
+      notify(t('settings.cloudSync'), t('settings.syncFailed'));
+    } finally {
+      setSyncing(false);
     }
-    setSyncing(false);
   }
 
   if (!settings) {
@@ -425,8 +441,16 @@ export default function SettingsScreen() {
               destructive: true,
             });
             if (!confirmed) return;
-            await clearHistory();
-            notify(t('settings.cleared'));
+            try {
+              await clearHistory();
+              // 記錄沒了，14 天後的占驗提醒也該跟著沒。否則使用者剛清空
+              // 全部歷史，兩週後還是會被提醒去回填一筆已經不存在的占卜。
+              await cancelAllVerificationReminders();
+              notify(t('settings.cleared'));
+            } catch (e) {
+              console.warn('清除歷史失敗:', e);
+              notify(t('error.saveFailed'), t('settings.clearFailed'));
+            }
           }}>
             <View style={styles.optionInner}>
               <Icon name="trash" size={16} color={theme.textRed} />

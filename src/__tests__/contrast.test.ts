@@ -237,23 +237,42 @@ describe('主題色盤達到 WCAG AA', () => {
 describe('gold 不再被當成文字色', () => {
   const SRC = path.join(__dirname, '..');
 
+  // .ts 也在掃描範圍：hooks 等非元件檔同樣會指派文字色
   function collectFiles(dir: string, acc: string[] = []): string[] {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === '__tests__') continue;
         collectFiles(full, acc);
-      } else if (entry.name.endsWith('.tsx')) {
+      } else if (/\.tsx?$/.test(entry.name)) {
         acc.push(full);
       }
     }
     return acc;
   }
 
+  /**
+   * 守門測試的自我檢查：掃到的檔數必須超過下限，否則代表路徑
+   * 或副檔名過濾壞了、此測試空轉。
+   */
+  test('掃描範圍實際涵蓋 UI 檔案', () => {
+    expect(collectFiles(SRC).length).toBeGreaterThan(60);
+  });
+
   test('沒有任何畫面用 color: theme.gold（應改用 textGold）', () => {
     // 前置的否定環視排除 borderColor／backgroundColor／tintColor；
     // \b 讓 goldLight／goldSoft／goldFaint／goldDark 不被誤判
     const pattern = /(?<![A-Za-z])color:\s*(?:theme|t)\.gold\b/;
+    const offenders = collectFiles(SRC)
+      .filter(f => pattern.test(fs.readFileSync(f, 'utf-8')))
+      .map(f => path.relative(SRC, f));
+    expect(offenders).toEqual([]);
+  });
+
+  test('沒有任何 SVG 文字用 fill: theme.gold（應改用 textGold）', () => {
+    // 只攔「冒號形式」的 fill:——fill={theme.gold} 是圖表柱／進度環的
+    // 裝飾填色，不是文字色，不在此列
+    const pattern = /(?<![A-Za-z])fill:\s*(?:theme|t)\.gold\b/;
     const offenders = collectFiles(SRC)
       .filter(f => pattern.test(fs.readFileSync(f, 'utf-8')))
       .map(f => path.relative(SRC, f));

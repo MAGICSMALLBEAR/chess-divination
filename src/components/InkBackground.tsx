@@ -4,7 +4,7 @@
 // 漸層仍使用 expo-linear-gradient（原生元件，不在 Reanimated 範疇）。
 
 import React, { useEffect, useMemo } from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,10 +12,11 @@ import Animated, {
   withSequence,
   withTiming,
   cancelAnimation,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useViewport } from '@/hooks/useLayout';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const PARTICLE_COUNT = 15;
 
@@ -33,10 +34,11 @@ interface ParticleProps {
   width: number;
   height: number;
   initOpacity: number;
+  reduced: boolean;
 }
 
 const InkParticleView = React.memo(function InkParticleView({
-  xRatio, yRatio, size, color, duration, delay, width, height, initOpacity,
+  xRatio, yRatio, size, color, duration, delay, width, height, initOpacity, reduced,
 }: ParticleProps) {
   const opacity = useSharedValue(initOpacity);
   const translateY = useSharedValue(0);
@@ -54,6 +56,9 @@ const InkParticleView = React.memo(function InkParticleView({
   }));
 
   useEffect(() => {
+    // 減少動態效果：粒子停在初始位置與初始透明度，不啟動無限循環
+    if (reduced) return;
+
     const t = setTimeout(() => {
       opacity.value = withRepeat(
         withSequence(
@@ -78,7 +83,7 @@ const InkParticleView = React.memo(function InkParticleView({
       cancelAnimation(opacity);
       cancelAnimation(translateY);
     };
-  }, []);
+  }, [reduced]);
 
   return <Animated.View style={animStyle} />;
 });
@@ -87,7 +92,10 @@ const InkParticleView = React.memo(function InkParticleView({
 
 export default function InkBackground() {
   const { theme, isDark } = useAppTheme();
-  const { width, height } = useWindowDimensions();
+  // 不用 useWindowDimensions：Expo 靜態匯出的 web 版它回傳 0×0，
+  // 15 顆粒子會全部疊在左上角（見 useLayout.ts 的記錄）。
+  const { width, height } = useViewport();
+  const reduced = useReducedMotion();
 
   // 粒子參數由 index 決定性推導。`expo export` 會把路由預渲染成靜態 HTML，
   // render 期間用 Math.random() 會讓伺服器與客戶端首渲數值不同 → hydration mismatch。
@@ -132,6 +140,7 @@ export default function InkBackground() {
           width={width}
           height={height}
           initOpacity={p.initOpacity}
+          reduced={reduced}
         />
       ))}
     </View>

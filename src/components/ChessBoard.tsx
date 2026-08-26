@@ -95,6 +95,15 @@ export default function ChessBoard({
     return !placedPieces.some(pp => pp.col === col && pp.row === row);
   };
 
+  // 格子位置的口述標籤：牌陣角色名（如「過去」）優先，自由佈局退到行列座標。
+  // 棋盤對螢幕閱讀器而言是一片「在哪一格放了什麼棋」的資訊，若無標籤，
+  // 90 格在語音導覽裡全部讀成「按鈕」。
+  const cellSpokenLabel = (col: number, row: number): string => {
+    const slot = spreadSlots.find(s => s.col === col && s.row === row);
+    if (slot) return t(slot.labelKey);
+    return t('board.cellPosition', { row: row + 1, col: col + 1 });
+  };
+
   return (
     <View style={[styles.container, style]}>
       {/* 棋盤 */}
@@ -195,6 +204,11 @@ export default function ChessBoard({
                   style={[styles.placedPiece, pos]}
                   onPress={() => onRemovePiece?.(col, row)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('board.removePieceAt', {
+                    position: cellSpokenLabel(col, row),
+                    piece: placed.piece.chineseName,
+                  })}
                 >
                   <ChessPiece
                     piece={placed.piece}
@@ -218,6 +232,11 @@ export default function ChessBoard({
                   }]}
                   onPress={() => onPlacePiece?.(col, row)}
                   activeOpacity={0.5}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('board.placePieceAt', {
+                    position: cellSpokenLabel(col, row),
+                    hint: t('board.hint'),
+                  })}
                 >
                   <Text style={styles.dropIcon}>+</Text>
                 </TouchableOpacity>

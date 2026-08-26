@@ -9,7 +9,7 @@ import { getPoemById } from '@/data/poems';
 import { computeHexagram } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
 import { notify } from '@/services/dialog';
-import { t } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import { playPlacePieceSound } from '@/services/sound';
 import { hapticLight } from '@/services/haptics';
 import { scheduleVerificationReminder } from '@/services/notifications';
@@ -28,6 +28,8 @@ export type BoardStep = 'select-pieces' | 'place-pieces' | 'result';
 
 export function useBoardDivination() {
   const router = useRouter();
+  // 同 useDrawDivination：直接 import 的 t 不訂閱語言變更
+  const { t } = useI18n();
   const [step, setStep] = useState<BoardStep>('select-pieces');
   const [placedPieces, setPlacedPieces] = useState<PlacedPiece[]>([]);
   const [selectedPiece, setSelectedPiece] = useState<ChessPiece | null>(null);
@@ -154,7 +156,7 @@ export function useBoardDivination() {
       interpretingRef.current = false;
     }
     // questionText 亦於內部讀取，未列入相依會在未帶參數呼叫時取到過時值
-  }, [placedPieces, questionCategory, questionText, router, reset]);
+  }, [placedPieces, questionCategory, questionText, router, reset, t]);
 
   return {
     step,

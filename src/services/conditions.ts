@@ -131,6 +131,12 @@ export interface DarkMovingParams {
 export function darkMovingLines({ reading, movingLine, seasonElement }: DarkMovingParams): NaJiaLine[] {
   return reading.lines.filter(line => {
     if (line.position === movingLine) return false;
+    // 月破之爻逢日辰沖是破上加破，永不算暗動——月破優先於旺衰。
+    // 少了這條，土旺月的月破之爻（月破必為土支、土令必旺）在月建＝
+    // 日支的日子會被當成暗動，憑空多出加減分。
+    if (line.isMonthBroken) return false;
+    // 刻意不排除 isVoid：空亡之爻逢日沖在傳統上是「沖空填實」，
+    // 不算缺陷，排除反而錯。
     if (!branchesClash(line.branch, reading.dayBranch)) return false;
     const state = strengthState(line.element, seasonElement);
     return state === '旺' || state === '相';

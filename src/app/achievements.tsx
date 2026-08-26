@@ -1,6 +1,7 @@
 // 成就徽章展示頁面
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import Svg, { Circle, G } from 'react-native-svg';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
@@ -16,6 +17,9 @@ import { localizeAchievement } from '@/services/localize';
 import { getHistory } from '@/services/storage';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
+
+// 進度環半徑 36 的圓周長，供 strokeDashoffset 把 pct 換算成弧長
+const RING_CIRCUMFERENCE = 2 * Math.PI * 36;
 
 export default function AchievementsScreen() {
   const router = useRouter();
@@ -77,13 +81,30 @@ export default function AchievementsScreen() {
             <Text style={[styles.overviewTitle, { color: theme.textGold }]}> {t('achievement.progress')}</Text>
           </View>
           <View style={styles.progressRow}>
-            {/* 進度環 */}
-            <View style={styles.progressRing}>
+            {/* 進度環：SVG 弧線真正反映百分比。
+                舊版 ringFill 只畫「半個環」，不管 0% 還是 100% 看起來都一樣——
+                0 成就時仍顯示半圈金色，解鎖一個就跳到全滿前的最後一刻。 */}
+            <View
+              style={styles.progressRing}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('achievement.progress') + ' ' + pct + '%'}
+              accessibilityValue={{ min: 0, max: 100, now: pct }}
+            >
               <View style={[styles.ringBg, { borderColor: theme.bgMedium }]} />
-              <View style={[styles.ringFill, {
-                borderColor: theme.gold,
-                // Simple arc simulation using percentage
-              }]} />
+              <Svg width={80} height={80} style={StyleSheet.absoluteFill} accessible={false}>
+                {/* 從 12 點方向起畫：把座標系轉 -90°，不要用已淘汰的 rotation/origin */}
+                <G rotation={-90} origin="40, 40">
+                  <Circle
+                    cx={40} cy={40} r={36}
+                    stroke={theme.gold}
+                    strokeWidth={4}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
+                    strokeDashoffset={RING_CIRCUMFERENCE * (1 - pct / 100)}
+                  />
+                </G>
+              </Svg>
               <Text style={[styles.ringText, { color: theme.textGold }]}>{pct}%</Text>
             </View>
             <View style={styles.overviewStats}>
@@ -161,11 +182,6 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   ringBg: {
     position: 'absolute', width: 80, height: 80, borderRadius: 40,
     borderWidth: 4,
-  },
-  ringFill: {
-    position: 'absolute', width: 80, height: 80, borderRadius: 40,
-    borderWidth: 4, borderTopColor: 'transparent', borderRightColor: 'transparent',
-    transform: [{ rotate: '45deg' }],
   },
   ringText: { fontSize: 20, fontWeight: '900' },
   overviewStats: {},

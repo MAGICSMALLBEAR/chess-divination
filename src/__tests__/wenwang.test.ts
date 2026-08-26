@@ -8,6 +8,7 @@ import {
   buildNaJiaReading, flyingHiddenRelation, type SixRelative,
 } from '../services/najja';
 import { judgeUseGod } from '../services/wenwang';
+import { detectTriads } from '../services/conditions';
 import { hexagramLines, poemIdFromTrigrams, trigramsFromLines, type LineValue } from '../services/hexagram';
 import { branchesClash } from '../services/sexagenary';
 
@@ -419,6 +420,36 @@ describe('結構性條件（進退神、暗動、三合局）', () => {
     const r = readingFor(0, 0);
     const noMoving = judgeUseGod({ reading: r, subject: '世爻' });
     expect(noMoving.reasons.some(x => x.label.includes('局'))).toBe(false);
+  });
+
+  test('「用神入局」一定真的在局中', () => {
+    // 舊版只比五行：局與用神同氣就貼「入局」標籤，哪怕用神爻坐在
+    // 局的 positions 之外（64 卦掃描下 136 次中有 16 次如此）。
+    const offenders: string[] = [];
+    let seen = 0;
+    for (const { upper, lower } of eachHexagram()) {
+      const r = readingFor(upper, lower);
+      for (let movingLine = 1; movingLine <= 6; movingLine++) {
+        const a = judgeUseGod({
+          reading: r,
+          changed: changedFor(upper, lower, movingLine),
+          movingLine,
+          subject: '世爻',
+        });
+        const mentions = a.reasons.filter(x => x.label.includes('入局'));
+        if (mentions.length === 0) continue;
+        seen += mentions.length;
+        // 斷語採計的唯一入口是 judgeUseGod，用同一份輸入重算三合局
+        const triads = detectTriads({ lines: r.lines, movingLine, dayBranch: r.dayBranch });
+        const useGod = a.lines[0];
+        if (!useGod || !triads.some(t => t.positions.includes(useGod.position))) {
+          offenders.push(`#${poemIdFromTrigrams(upper, lower)} 第${movingLine}爻`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+    // 掃不到任何「入局」的話，上面那條就只是空轉
+    expect(seen).toBeGreaterThan(0);
   });
 
   test('補上結構性條件後，斷語仍落在五等第之內且分數等於理由之和', () => {

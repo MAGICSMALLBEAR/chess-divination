@@ -7,6 +7,11 @@ import {
   screenFromNotificationData,
   subscribeToNotificationTaps,
   requestNotificationPermission,
+  hasNotificationPermission,
+  verificationReminderId,
+  scheduleVerificationReminder,
+  cancelVerificationReminder,
+  cancelAllVerificationReminders,
   scheduleDailyReminder,
   cancelDailyReminder,
   isReminderScheduled,
@@ -336,5 +341,144 @@ describe('isReminderScheduled', () => {
   test('查詢失敗時回傳 false 而非拋錯', async () => {
     mocked.getAllScheduledNotificationsAsync.mockRejectedValue(new Error('unavailable'));
     await expect(isReminderScheduled()).resolves.toBe(false);
+  });
+});
+
+// ====== 占驗提醒（14 天後回填結果） ======
+
+/** 造一筆占卜記錄。timestamp 由呼叫端控制，讓 14 天期限可測 */
+function makeRecord(timestamp: number) {
+  return {
+    id: 'rec-1',
+    timestamp,
+    outcome: null,
+    poemTitle: '乾為天',
+  };
+}
+
+describe('hasNotificationPermission', () => {
+  test('已授權時回傳 true', async () => {
+    await expect(hasNotificationPermission()).resolves.toBe(true);
+  });
+
+  test('未授權時回傳 false', async () => {
+    mocked.getPermissionsAsync.mockResolvedValue({ status: 'denied' } as never);
+    await expect(hasNotificationPermission()).resolves.toBe(false);
+  });
+});
+
+describe('verificationReminderId', () => {
+  test('以固定前綴加記錄 id 組成識別碼', () => {
+    expect(verificationReminderId('abc')).toBe('verification-reminder-abc');
+  });
+});
+
+describe('scheduleVerificationReminder', () => {
+  test('成功時以記錄 id 排程，內容含詩名與導頁資料', async () => {
+    const record = makeRecord(Date.now() + 1000);
+
+    await expect(scheduleVerificationReminder(record as never)).resolves.toBe(true);
+
+    const arg = mocked.scheduleNotificationAsync.mock.calls[0][0];
+    expect(arg.identifier).toBe('verification-reminder-rec-1');
+    expect(arg.content.title).toBeTruthy();
+    expect(arg.content.body).toContain(record.poemTitle);
+    expect(arg.content.data).toMatchObject({ screen: '/stats', recordId: 'rec-1' });
+  });
+
+  test('觸發時間是占卜後第 14 天', async () => {
+    const record = makeRecord(Date.now() + 1000);
+
+    await scheduleVerificationReminder(record as never);
+
+    const arg = mocked.scheduleNotificationAsync.mock.calls[0][0];
+    expect(arg.trigger).toMatchObject({ type: 'date' });
+    const triggerDate = (arg.trigger as { date: Date }).date;
+    expect(triggerDate.getTime()).toBe(record.timestamp + 14 * 86_400_000);
+  });
+
+  test('web 平台不排程，回傳 false', async () => {
+    setPlatform('web');
+    await expect(scheduleVerificationReminder(makeRecord(Date.now() + 1000) as never))
+      .resolves.toBe(false);
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('已有結果的記錄不再提醒', async () => {
+    const record = { ...makeRecord(Date.now() + 1000), outcome: '大吉' };
+    await expect(scheduleVerificationReminder(record as never)).resolves.toBe(false);
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('沒有通知權限時不排程（不彈權限框）', async () => {
+    mocked.getPermissionsAsync.mockResolvedValue({ status: 'denied' } as never);
+    await expect(scheduleVerificationReminder(makeRecord(Date.now() + 1000) as never))
+      .resolves.toBe(false);
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('14 天期限已過的記錄不排程', async () => {
+    // 占卜發生在 14 天以前，排程時間點落在現在之前
+    const old = Date.now() - 14 * 86_400_000 - 1000;
+    await expect(scheduleVerificationReminder(makeRecord(old) as never))
+      .resolves.toBe(false);
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('排程拋錯時回傳 false 而非往上拋', async () => {
+    mocked.scheduleNotificationAsync.mockRejectedValue(new Error('boom'));
+    await expect(scheduleVerificationReminder(makeRecord(Date.now() + 1000) as never))
+      .resolves.toBe(false);
+  });
+});
+
+describe('cancelVerificationReminder', () => {
+  test('以記錄 id 對應的識別碼取消', async () => {
+    await cancelVerificationReminder('rec-9');
+    expect(mocked.cancelScheduledNotificationAsync)
+      .toHaveBeenCalledWith('verification-reminder-rec-9');
+  });
+
+  test('底層拋錯時安靜吞下', async () => {
+    mocked.cancelScheduledNotificationAsync.mockRejectedValue(new Error('not found'));
+    await expect(cancelVerificationReminder('rec-9')).resolves.toBeUndefined();
+  });
+});
+
+describe('cancelAllVerificationReminders', () => {
+  /**
+   * 迴歸：清除所有歷史時沒有 id 清單可逐筆取消（記錄已不在），而且
+   * 先前刪除的記錄也會留下孤兒排程，14 天後照樣響。此函式掃排程本身，
+   * 前綴相符的一律取消。
+   */
+  test('只取消前綴相符的排程，其他排程不受影響', async () => {
+    mocked.getAllScheduledNotificationsAsync.mockResolvedValue([
+      { identifier: 'verification-reminder-a' },
+      { identifier: 'verification-reminder-b' },
+      { identifier: 'daily-divination-reminder' },
+      { identifier: undefined },
+    ] as never);
+
+    await cancelAllVerificationReminders();
+
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(2);
+    expect(mocked.cancelScheduledNotificationAsync)
+      .toHaveBeenCalledWith('verification-reminder-a');
+    expect(mocked.cancelScheduledNotificationAsync)
+      .toHaveBeenCalledWith('verification-reminder-b');
+    expect(mocked.cancelScheduledNotificationAsync)
+      .not.toHaveBeenCalledWith('daily-divination-reminder');
+  });
+
+  test('web 平台直接回傳，不查詢也不取消', async () => {
+    setPlatform('web');
+    await cancelAllVerificationReminders();
+    expect(mocked.getAllScheduledNotificationsAsync).not.toHaveBeenCalled();
+    expect(mocked.cancelScheduledNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('查詢拋錯時安靜吞下', async () => {
+    mocked.getAllScheduledNotificationsAsync.mockRejectedValue(new Error('unavailable'));
+    await expect(cancelAllVerificationReminders()).resolves.toBeUndefined();
   });
 });

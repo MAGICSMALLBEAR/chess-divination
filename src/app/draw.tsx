@@ -221,17 +221,20 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1, gap: 6,
+    // 底色與邊框同 board.tsx：不設色時 RN 預設是黑——
+    // 深色主題（App 預設）下未選中的 chip 等於整排隱形
+    backgroundColor: t.bgCard, borderColor: t.bgMedium,
   },
-  categoryChipActive: { borderColor: t.gold },
+  categoryChipActive: { borderColor: t.gold, backgroundColor: t.bgMedium },
   categoryChipIcon: { fontSize: 16 },
-  categoryChipLabel: { fontSize: FontSize.small },
+  categoryChipLabel: { fontSize: FontSize.small, color: t.textMuted },
   categoryChipLabelActive: { color: t.textGold, fontWeight: '600' },
   countRow: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
   countBtn: {
-    borderRadius: 16, borderWidth: 1,
+    borderRadius: 16, borderWidth: 1, borderColor: t.bgMedium,
     padding: Spacing.md, alignItems: 'center',
   },
   countNum: {

@@ -133,6 +133,26 @@ export async function cancelVerificationReminder(recordId: string): Promise<void
   catch { console.warn('取消占驗提醒排程失敗'); }
 }
 
+/**
+ * 清掉所有占驗提醒。
+ *
+ * 「清除所有歷史」沒有一份 id 清單可以逐筆取消（記錄已經不在了），
+ * 而且在這之前刪掉的記錄本來就留下了孤兒排程——那些提醒 14 天後
+ * 照樣會響，指向一筆已經不存在的占卜。所以這裡改掃排程本身，
+ * 凡是我們的前綴一律取消，順手把過去累積的孤兒也清乾淨。
+ */
+export async function cancelAllVerificationReminders(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      scheduled
+        .filter(n => n.identifier?.startsWith(VERIFICATION_REMINDER_PREFIX))
+        .map(n => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+    );
+  } catch { console.warn('清除占驗提醒排程失敗'); }
+}
+
 /** 排程每日占卜提醒（每天上午 9:00） */
 export async function scheduleDailyReminder(): Promise<boolean> {
   // 先取消舊的排程

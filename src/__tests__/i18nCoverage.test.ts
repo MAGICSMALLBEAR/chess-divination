@@ -11,7 +11,10 @@ import fs from 'fs';
 import path from 'path';
 
 const SRC = path.join(__dirname, '..');
-const SCAN_DIRS = ['app', 'components'];
+// hooks 也在掃描範圍：useDrawDivination 等 hook 會組出顯示給使用者看的
+// 文案，硬編中文同樣要攔。資料服務層（services/data）的中文是命理資料
+// 值，本來就不屬於介面文字，維持不掃。
+const SCAN_DIRS = ['app', 'components', 'hooks'];
 
 /** 中日韓統一表意文字。全形標點不算——它們常出現在 t() 的前後綴 */
 const CJK = /[一-鿿]/;
@@ -21,10 +24,13 @@ const CJK = /[一-鿿]/;
  * - icons/PieceIcon.tsx  棋子上的漢字（帥將仕士…）就是棋子本身，
  *                        翻譯後就不是象棋了
  * - ChessBoard.tsx       「楚河漢界」是畫在棋盤上的字，屬於棋具而非介面
+ * - hooks/useI18n.ts     它本身就是 t 的供應者（useI18n 的實作），
+ *                        必須直接 import 翻譯服務
  */
 const ALLOWLIST = new Set([
   path.join('components', 'icons', 'PieceIcon.tsx'),
   path.join('components', 'ChessBoard.tsx'),
+  path.join('hooks', 'useI18n.ts'),
   // 伺服器端 API Route，沒有使用者的語言資訊可用。這些訊息也不會被
   // 顯示出來——aiInterpretation.ts 只看 HTTP 狀態碼，自行產生譯好的文案。
   path.join('app', 'api', 'interpret+api.ts'),
@@ -35,6 +41,8 @@ const ALLOWLIST = new Set([
  * - 以吉凶等級／五行／卦名等資料值做比較或查表，
  *   這些是儲存在記錄裡的資料值，不是給人讀的介面文字
  * - 送給模型的提示詞（本來就要是中文）
+ * - console 診斷訊息：開發者主控台才看得到，不是介面文字，
+ *   與程式碼註解共用中文語言
  */
 const DATA_VALUE_PATTERNS = [
   /===\s*'[一-鿿]+'/,           // r.poemLevel === '大吉'
@@ -42,6 +50,7 @@ const DATA_VALUE_PATTERNS = [
   /['"]?[一-鿿]+['"]?\s*:/,     // 物件的中文 key（查表用）
   /\[['"][一-鿿]+['"]\]/,       // Colors['中平'] 這種查表
   /reading\.strength|reading\.bodyUse/, // 組給 AI 的卦象提示詞
+  /console\.(?:warn|log|error|info|debug)\(/, // 開發者診斷訊息
 ];
 
 function collectFiles(dir: string, acc: string[] = []): string[] {
@@ -99,6 +108,13 @@ function stripComments(source: string): string[] {
 }
 
 describe('i18n 覆蓋率', () => {
+  /** 掃到的 UI 檔數下限。比它少代表掃描本身壞了（路徑改動），測試會空轉 */
+  const scannedFiles = () => SCAN_DIRS.flatMap(d => collectFiles(path.join(SRC, d)));
+
+  test('掃描範圍實際涵蓋 UI 檔案（守門測試的自我檢查）', () => {
+    expect(scannedFiles().length).toBeGreaterThan(40);
+  });
+
   test('UI 檔案不得出現硬編中文字串', () => {
     const offenders: string[] = [];
 
@@ -120,8 +136,12 @@ describe('i18n 覆蓋率', () => {
 
   test('UI 檔案應透過 useI18n 取得 t，而非直接 import', () => {
     // 直接 import 的 t 不會訂閱語言變更，切語言後該畫面不會重繪。
-    // ErrorBoundary 是唯一例外：class component 不能用 hook。
-    const allowed = new Set([path.join('components', 'ErrorBoundary.tsx')]);
+    // 例外：ErrorBoundary 是 class component 不能用 hook；
+    // useI18n.ts 本身是 t 的供應者。
+    const allowed = new Set([
+      path.join('components', 'ErrorBoundary.tsx'),
+      path.join('hooks', 'useI18n.ts'),
+    ]);
     const offenders: string[] = [];
 
     for (const dir of SCAN_DIRS) {
@@ -130,8 +150,12 @@ describe('i18n 覆蓋率', () => {
         if (allowed.has(relative)) continue;
 
         const source = fs.readFileSync(file, 'utf8');
-        // import { t } / import { t, ... } / import { ..., t } from '@/services/i18n'
-        if (/import\s*\{[^}]*\bt\b[^}]*\}\s*from\s*['"]@?\/?[^'"]*services\/i18n['"]/.test(source)) {
+        // 三種都攔：import { t }（含混搭、含 t as 別名）、
+        // import * as i18n、import i18n from …——全部都不訂閱語言變更
+        const hasNamedT = /import\s*\{[^}]*\bt\b[^}]*\}\s*from\s*['"]@?\/?[^'"]*services\/i18n['"]/.test(source);
+        const hasAliasedT = /import\s*\{[^}]*\bt\s+as\s+\w+[^}]*\}\s*from\s*['"]@?\/?[^'"]*services\/i18n['"]/.test(source);
+        const hasNamespace = /import\s+\*\s+as\s+\w+\s+from\s*['"]@?\/?[^'"]*services\/i18n['"]/.test(source);
+        if (hasNamedT || hasAliasedT || hasNamespace) {
           offenders.push(relative);
         }
       }

@@ -10,7 +10,7 @@ import {
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import type { CustomCategory } from '@/services/storage';
-import { getSettings, saveSettings, deleteCustomCategory } from '@/services/storage';
+import { getSettings, updateSettings, deleteCustomCategory } from '@/services/storage';
 import { confirmAction } from '@/services/dialog';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -48,7 +48,10 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
   }
 
   async function saveCategories(updated: CustomCategory[]) {
-    await saveSettings({ customCategories: updated });
+    // 走佇列合併而非 saveSettings 快照覆寫：直接寫入會蓋掉並發的
+    // 其他設定寫入（storage.ts 的寫入佇列不變量），且併入時
+    // deletedCategoryKeys 墓碑會原樣保留，跨裝置同步不會復活已刪類別。
+    await updateSettings(() => ({ customCategories: updated }));
     setCategories(updated);
     onChanged?.();
   }
@@ -117,7 +120,12 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
           <TouchableOpacity onPress={() => openEdit(i)} style={styles.actionBtn}>
             <Text style={{ color: theme.textMuted, fontSize: 12 }}>{t('common.edit')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(i)} style={styles.actionBtn}>
+          <TouchableOpacity
+            onPress={() => handleDelete(i)}
+            style={styles.actionBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.delete')}
+          >
             <Icon name="trash" size={14} color={theme.textRed} />
           </TouchableOpacity>
         </View>
@@ -156,9 +164,10 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
             <TouchableOpacity
               style={[styles.iconSelectBtn, { backgroundColor: theme.bgCard, borderColor: theme.bgMedium }]}
               onPress={() => setShowIconPicker(!showIconPicker)}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.icon')}
             >
               <Icon name={editIcon} size={20} color={theme.gold} />
-              <Text style={[styles.iconSelectLabel, { color: theme.textPrimary }]}> {editIcon}</Text>
             </TouchableOpacity>
 
             {showIconPicker && (
@@ -170,6 +179,8 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
                         key={name}
                         style={[styles.iconCell, editIcon === name && { borderColor: theme.gold, backgroundColor: theme.bgMedium }]}
                         onPress={() => { setEditIcon(name); setShowIconPicker(false); }}
+                        accessibilityRole="button"
+                        accessibilityLabel={name}
                       >
                         <Icon name={name} size={20} color={editIcon === name ? theme.gold : theme.textMuted} />
                       </TouchableOpacity>
@@ -245,7 +256,6 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     borderRadius: 8, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 10, gap: 8,
   },
-  iconSelectLabel: { fontSize: FontSize.body },
   iconGrid: {
     borderRadius: 8, borderWidth: 1, marginTop: 8,
     padding: 8,

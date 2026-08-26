@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface SpinnerProps {
   text?: string;
@@ -12,10 +13,13 @@ interface SpinnerProps {
 
 export default function Spinner({ text, size = 32, color }: SpinnerProps) {
   const { theme } = useAppTheme();
+  const reduced = useReducedMotion();
   const tint = color ?? theme.gold;
   const spinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // 減少動態效果：不啟動旋轉，只留靜態的半弧
+    if (reduced) return;
     const loop = Animated.loop(
       Animated.timing(spinAnim, {
         toValue: 1,
@@ -25,7 +29,7 @@ export default function Spinner({ text, size = 32, color }: SpinnerProps) {
     );
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduced]);
 
   const rotate = spinAnim.interpolate({
     inputRange: [0, 1],

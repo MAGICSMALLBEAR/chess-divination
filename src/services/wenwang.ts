@@ -307,7 +307,9 @@ export function judgeUseGod({
       const source = triad.fromDay ? `（${triad.fromDay}由日辰補足）` : '';
       const inTriad = subjectLine ? triad.positions.includes(subjectLine.position) : false;
 
-      if (triad.element === element) {
+      if (triad.element === element && inTriad) {
+        // 「入局」必須真的在局中——只看五行相同就貼入局標籤，會把
+        // 坐在局外的用神也說成入局（64 卦掃描下 136 次中有 16 次如此）。
         reasons.push({ label: `${where}成${source}，用神入局得助`, score: SCORE.用神入局 });
       } else if (GENERATES[triad.element] === element) {
         reasons.push({ label: `${where}成${source}，局生用神`, score: SCORE.合局生用神 });

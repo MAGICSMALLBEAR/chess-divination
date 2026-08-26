@@ -8,6 +8,7 @@ import Svg, { Rect, Line, Text as SvgText, G } from 'react-native-svg';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useMeasuredWidth } from '@/hooks/useGrid';
+import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { FontSize, Spacing, Layout } from '@/constants/theme';
 
@@ -33,6 +34,7 @@ const CHART_PADDING = { top: 16, right: 16, bottom: 28, left: 8 };
 
 export default function TrendChart({ data, title }: Props) {
   const { theme } = useAppTheme();
+  const { t } = useI18n();
   // 量測自身容器而非視窗：Web 靜態匯出下取不到視窗尺寸（見 useGrid.ts 檔頭），
   // 沿用 useLayout 會讓圖表永遠是最小寬度。
   const { onLayout, width } = useMeasuredWidth();
@@ -56,7 +58,12 @@ export default function TrendChart({ data, title }: Props) {
       <Text style={[styles.title, { color: theme.textGold }]}>{title}</Text>
       {/* 量測完成前不畫圖，避免以 0 寬度閃現 */}
       {chartWidth > 0 && (
-      <Svg width={chartWidth + CHART_PADDING.right} height={CHART_HEIGHT}>
+      <Svg
+        width={chartWidth + CHART_PADDING.right}
+        height={CHART_HEIGHT}
+        accessible
+        accessibilityLabel={t('stats.trend', { n: data.length })}
+      >
         <G x={CHART_PADDING.left} y={CHART_PADDING.top}>
           {/* 基準線 */}
           <Line
@@ -70,22 +77,50 @@ export default function TrendChart({ data, title }: Props) {
             const totalH = (d.total / maxTotal) * BAR_MAX_HEIGHT;
             const y = BAR_MAX_HEIGHT - totalH;
 
+            // 真堆疊：凶在最下、中性居中、吉在最上。
+            // 舊版只畫「吉」一段——某天抽了三次全是下下，圖上看起來
+            // 跟沒抽一樣，凶的分佈從未畫出來過。
+            const goodH = (d.good / maxTotal) * BAR_MAX_HEIGHT;
+            const neutralH = (d.neutral / maxTotal) * BAR_MAX_HEIGHT;
+            const badH = (d.bad / maxTotal) * BAR_MAX_HEIGHT;
+            const top = BAR_MAX_HEIGHT - totalH;
+
             return (
               <G key={i}>
-                {/* 總數柱 */}
+                {/* 總數柱（淡金外框） */}
                 <Rect
                   x={x} y={y}
                   width={barWidth} height={totalH}
                   fill={theme.gold} opacity={0.3} rx={3}
                 />
-                {/* 吉柱（上半部） */}
+                {/* 凶（底部） */}
+                {d.bad > 0 && (
+                  <Rect
+                    x={x + 2}
+                    y={top + goodH + neutralH}
+                    width={barWidth - 4}
+                    height={badH}
+                    fill={theme.danger} opacity={0.85} rx={2}
+                  />
+                )}
+                {/* 中性（中段） */}
+                {d.neutral > 0 && (
+                  <Rect
+                    x={x + 2}
+                    y={top + goodH}
+                    width={barWidth - 4}
+                    height={neutralH}
+                    fill={theme.textMuted} opacity={0.8} rx={2}
+                  />
+                )}
+                {/* 吉（頂部） */}
                 {d.good > 0 && (
                   <Rect
                     x={x + 2}
-                    y={BAR_MAX_HEIGHT - (d.good / maxTotal) * BAR_MAX_HEIGHT}
+                    y={top}
                     width={barWidth - 4}
-                    height={(d.good / maxTotal) * BAR_MAX_HEIGHT}
-                    fill={theme.gold} opacity={0.8} rx={2}
+                    height={goodH}
+                    fill={theme.gold} opacity={0.9} rx={2}
                   />
                 )}
                 {/* 日期標籤 */}

@@ -376,17 +376,21 @@ export async function getFolders(): Promise<Folder[]> {
 }
 
 export async function addFolder(name: string): Promise<Folder> {
-  const s = await getSettings();
-  const folders = s.folders || [];
-  const folder: Folder = {
-    // 用 generateId 而非單純的 Date.now()——同一毫秒內連續建立兩個資料夾
-    // 會拿到相同 id，刪除其一會連帶刪掉另一個。
-    id: `folder-${generateId()}`,
-    name,
-    color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
-    recordIds: [],
-  };
-  await saveSettings({ folders: [...folders, folder] });
+  // 整包讀-改-寫必須在佇列裡完成，否則與另一次資料夾寫入（例如刪除）
+  // 交錯時，兩邊各自基於同一份寫前快照算出新陣列，後寫的把前一次蓋掉
+  let folder!: Folder;
+  await updateSettings(current => {
+    const folders = current.folders || [];
+    folder = {
+      // 用 generateId 而非單純的 Date.now()——同一毫秒內連續建立兩個資料夾
+      // 會拿到相同 id，刪除其一會連帶刪掉另一個。
+      id: `folder-${generateId()}`,
+      name,
+      color: FOLDER_COLORS[folders.length % FOLDER_COLORS.length],
+      recordIds: [],
+    };
+    return { folders: [...folders, folder] };
+  });
   return folder;
 }
 
@@ -417,19 +421,19 @@ export async function deleteCustomCategory(key: string): Promise<CustomCategory[
 }
 
 export async function addToFolder(folderId: string, recordId: string): Promise<void> {
-  const s = await getSettings();
-  const folders = (s.folders || []).map(f =>
-    f.id === folderId ? { ...f, recordIds: [...new Set([...f.recordIds, recordId])] } : f
-  );
-  await saveSettings({ folders });
+  await updateSettings(current => ({
+    folders: (current.folders || []).map(f =>
+      f.id === folderId ? { ...f, recordIds: [...new Set([...f.recordIds, recordId])] } : f
+    ),
+  }));
 }
 
 export async function removeFromFolder(folderId: string, recordId: string): Promise<void> {
-  const s = await getSettings();
-  const folders = (s.folders || []).map(f =>
-    f.id === folderId ? { ...f, recordIds: f.recordIds.filter(id => id !== recordId) } : f
-  );
-  await saveSettings({ folders });
+  await updateSettings(current => ({
+    folders: (current.folders || []).map(f =>
+      f.id === folderId ? { ...f, recordIds: f.recordIds.filter(id => id !== recordId) } : f
+    ),
+  }));
 }
 
 // ====== Daily Fortune ======

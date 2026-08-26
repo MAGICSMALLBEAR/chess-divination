@@ -256,6 +256,10 @@ export const translations: Record<string, Record<Lang, string>> = {
   'board.placed': { 'zh-TW': '已放置 {n} 顆', en: '{n} placed', ja: '{n} 配置済み' },
   'board.placedTag': { 'zh-TW': '已放置', en: 'Placed', ja: '配置済み' },
   'board.selected': { 'zh-TW': '已選中', en: 'Selected', ja: '選択中' },
+  // 無障礙標籤：position 是牌陣角色（如「過去」）或格子座標，piece 是棋名（如「帥」）
+  'board.removePieceAt': { 'zh-TW': '{position}的{piece}，點擊移除', en: '{piece} at {position}. Tap to remove', ja: '{position}の{piece}、タップで取り除く' },
+  'board.placePieceAt': { 'zh-TW': '在{position}放置棋子，{hint}', en: 'Place a piece at {position}. {hint}', ja: '{position}に駒を配置、{hint}' },
+  'board.cellPosition': { 'zh-TW': '第 {row} 行第 {col} 列', en: 'row {row}, column {col}', ja: '{row} 行目 {col} 列目' },
 
   // 結果頁（擴充）
   'reveal.hexPrimary': { 'zh-TW': '本卦', en: 'Primary Hexagram', ja: '本卦' },
@@ -369,6 +373,9 @@ export const translations: Record<string, Record<Lang, string>> = {
   'collection.sortOldest': { 'zh-TW': '最早', en: 'Oldest', ja: '古い順' },
   'collection.sortBest': { 'zh-TW': '最佳', en: 'Best', ja: '吉順' },
   'collection.search': { 'zh-TW': '搜尋籤詩內容', en: 'Search records', ja: '記録を検索' },
+  'collection.loadFailed': { 'zh-TW': '記錄讀取失敗，請下拉重試。', en: 'Records could not be loaded. Pull down to retry.', ja: '記録を読み込めませんでした。下に引いて再試行してください。' },
+  'collection.saveFailed': { 'zh-TW': '變更沒能存起來，請確認裝置儲存空間後再試。', en: 'The change could not be saved. Check your device storage and try again.', ja: '変更を保存できませんでした。端末の空き容量を確認して再試行してください。' },
+  'collection.deleteFailed': { 'zh-TW': '刪除沒能完成，請確認裝置儲存空間後再試。', en: 'The deletion could not be completed. Check your device storage and try again.', ja: '削除を完了できませんでした。端末の空き容量を確認して再試行してください。' },
   'collection.batchDelete': { 'zh-TW': '批量刪除', en: 'Delete Selected', ja: '一括削除' },
   'collection.deselect': { 'zh-TW': '取消選擇', en: 'Deselect', ja: '選択解除' },
   'collection.confirmBatch': { 'zh-TW': '確定要刪除 {n} 筆記錄嗎？', en: 'Delete {n} records?', ja: '{n} 件の記録を削除しますか？' },
@@ -453,14 +460,17 @@ export const translations: Record<string, Record<Lang, string>> = {
   'settings.syncRateLimited': { 'zh-TW': '同步太過頻繁，請稍候一分鐘再試。', en: 'Too many sync requests. Please wait a minute and try again.', ja: '同期の回数が多すぎます。1分ほど待って再試行してください。' },
   'settings.syncInvalidKey': { 'zh-TW': '配對碼無效，請重新輸入 48 位十六進位字元。', en: 'Invalid pairing code. Re-enter the 48 hexadecimal characters.', ja: 'ペアリングコードが無効です。48文字の16進数を入力し直してください。' },
   'settings.syncServerError': { 'zh-TW': '同步伺服器暫時無法回應，稍後再試。', en: 'The sync server is temporarily unavailable. Try again later.', ja: '同期サーバーが一時的に応答しません。しばらくして再試行してください。' },
+  'settings.syncFailed': { 'zh-TW': '同步過程發生未預期的錯誤，資料未變更。請確認裝置儲存空間後再試。', en: 'Sync failed unexpectedly and nothing was changed. Check your device storage and try again.', ja: '同期中に予期しないエラーが発生し、データは変更されていません。端末の空き容量を確認して再試行してください。' },
   'settings.syncOk': { 'zh-TW': '同步完成！', en: 'Sync complete', ja: '同期が完了しました' },
   'settings.syncPartial': { 'zh-TW': '上傳成功，但無法下載遠端資料。', en: 'Upload succeeded, but remote data could not be downloaded.', ja: 'アップロードは成功しましたが、リモートデータを取得できませんでした。' },
   'settings.notifyDenied': { 'zh-TW': '無法設定', en: 'Cannot enable', ja: '設定できません' },
   'settings.notifyDeniedDesc': { 'zh-TW': '請先授予通知權限後再試。', en: 'Grant notification permission first, then try again.', ja: '通知の許可を与えてから再試行してください。' },
+  'settings.notifyWebUnsupported': { 'zh-TW': '網頁版不支援本地通知，請在 App 內開啟每日提醒。', en: 'Web browsers do not support local notifications. Turn on daily reminders inside the app.', ja: 'ウェブ版はローカル通知に対応していません。アプリ内で毎日のリマインダーを有効にしてください。' },
   'settings.onboardingReset': { 'zh-TW': '已重置', en: 'Reset', ja: 'リセットしました' },
   'settings.onboardingResetDesc': { 'zh-TW': '下次開啟 App 時將重新顯示引導', en: 'The intro will show again next time you open the app', ja: '次回起動時にチュートリアルを表示します' },
   'settings.clearConfirm': { 'zh-TW': '確定要清除所有占卜記錄嗎？此操作無法復原。', en: 'Clear all divination records? This cannot be undone.', ja: 'すべての占い記録を消去しますか？この操作は取り消せません。' },
   'settings.cleared': { 'zh-TW': '已清除', en: 'Cleared', ja: '消去しました' },
+  'settings.clearFailed': { 'zh-TW': '歷史沒能清除，請確認裝置儲存空間後再試一次。', en: 'History could not be cleared. Check your device storage and try again.', ja: '履歴を消去できませんでした。端末の空き容量を確認して再試行してください。' },
 
   // 自訂類別
   'category.title': { 'zh-TW': '自訂問事類別', en: 'Custom Question Types', ja: 'カスタム問い分類' },

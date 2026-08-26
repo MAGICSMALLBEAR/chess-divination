@@ -10,13 +10,16 @@ import type { HexagramResult } from '@/services/divination';
 import { drawPieces, computeHexagram, generateDrawSummary } from '@/services/divination';
 import { addHistory, recordFromDivination } from '@/services/storage';
 import { notify } from '@/services/dialog';
-import { t } from '@/services/i18n';
+import { useI18n } from '@/hooks/useI18n';
 import { scheduleVerificationReminder } from '@/services/notifications';
 
 export type DrawStep = 'select-count' | 'drawing' | 'result';
 
 export function useDrawDivination() {
   const router = useRouter();
+  // 直接 import 的 t 不訂閱語言變更——儲存失敗的提示會一直用
+  // 抽棋頁載入當下的語言。走 useI18n 讓提示跟著目前語言走。
+  const { t } = useI18n();
   const [step, setStep] = useState<DrawStep>('select-count');
   const [pieceCount, setPieceCount] = useState<1 | 2 | 3>(2);
   const [drawnPieces, setDrawnPieces] = useState<ChessPiece[]>([]);
@@ -108,7 +111,7 @@ export function useDrawDivination() {
     } finally {
       savingRef.current = false;
     }
-  }, [selectedPoem, drawnPieces, questionCategory, questionText, hexagram, router, reset]);
+  }, [selectedPoem, drawnPieces, questionCategory, questionText, hexagram, router, reset, t]);
 
   return {
     step,

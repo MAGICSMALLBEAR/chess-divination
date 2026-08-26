@@ -160,7 +160,7 @@ const getServerSize = () => 0;
  * Web 端改以 `window.innerWidth` 為準並用 useSyncExternalStore 訂閱 resize
  * （避免 useEffect 在 hydration 時序下取到過期值）；原生端維持 RN 的回傳值。
  */
-function useViewport(): { width: number; height: number } {
+export function useViewport(): { width: number; height: number } {
   const rn = useWindowDimensions();
 
   const domWidth = useSyncExternalStore(subscribeToResize, getDomWidth, getServerSize);

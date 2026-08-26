@@ -208,7 +208,7 @@ describe('暗動', () => {
 
   test('休囚死之爻逢日沖不算暗動——那是日破', () => {
     // 旺相才動得起來，這是暗動與日破的唯一分野。
-    // 逐一比對「逢日沖的靜爻」與「判為暗動的爻」，兩者只能差在旺衰。
+    // 逐一比對「逢日沖的靜爻」與「判為暗動的爻」，兩者只能差在旺衰與月破。
     const mismatched: string[] = [];
     let excluded = 0;
     for (const seasonElement of ['木', '火', '土', '金', '水']) {
@@ -221,7 +221,8 @@ describe('暗動', () => {
         for (const line of clashed) {
           const state = strengthState(line.element, seasonElement);
           const isDark = dark.some(d => d.position === line.position);
-          if (isDark !== (state === '旺' || state === '相')) {
+          // 月破之爻逢日沖是破上加破，永不算暗動
+          if (isDark !== (state === '旺' || state === '相') || (isDark && line.isMonthBroken)) {
             mismatched.push(`#${poemIdFromTrigrams(upper, lower)} ${line.branch} ${state}`);
           }
           if (!isDark) excluded += 1;
@@ -231,5 +232,24 @@ describe('暗動', () => {
     expect(mismatched).toEqual([]);
     // 若一個都沒被排除，上面那條比對就等於沒測到「排除」這一半
     expect(excluded).toBeGreaterThan(0);
+  });
+
+  /**
+   * 月破優先於旺衰：土旺月裡月破之爻必為土支、土令下恆旺，
+   * 月建＝日支的日子它同時逢日沖——但那是破上加破，不是暗動。
+   */
+  test('月破之爻逢日沖不算暗動', () => {
+    const fake = (position: number): NaJiaLine => ({
+      position, branch: '子', element: '水', isWorld: false,
+      name: `第${position}爻`, stemBranch: '甲子', relative: '兄弟',
+      spirit: '青龍', isVoid: false, isDayClashed: true,
+      isResponding: false, isMonthBroken: false,
+    });
+    const broken = { ...fake(1), isMonthBroken: true };
+    const intact = fake(2);
+    const reading = { lines: [broken, intact], dayBranch: '午' } as never;
+
+    const dark = darkMovingLines({ reading, movingLine: 3, seasonElement: '水' });
+    expect(dark.map(l => l.position)).toEqual([2]);
   });
 });

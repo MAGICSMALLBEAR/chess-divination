@@ -4,7 +4,7 @@
 // 擴散完成後整體淡出，揭露下方內容。
 
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,6 +12,7 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useViewport } from '@/hooks/useLayout';
 
 // ── 墨滴斑點定義 ──
 interface DropConfig {
@@ -102,7 +103,9 @@ interface Props {
 }
 
 export default function InkSplashOverlay({ visible, onComplete }: Props) {
-  const { width, height } = useWindowDimensions();
+  // 同 useLayout.ts 的政策：Web 靜態匯出下 useWindowDimensions 取不到值，
+  // 墨滴直徑會算成 0。一律走 useViewport。
+  const { width, height } = useViewport();
   const diagonal = Math.sqrt(width * width + height * height);
   const reducedMotion = useReducedMotion();
 

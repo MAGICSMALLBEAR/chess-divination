@@ -11,6 +11,7 @@ import { localizePoem } from '@/services/localize';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFontLoad } from '@/hooks/useFontLoad';
 import { useI18n } from '@/hooks/useI18n';
@@ -50,6 +51,7 @@ export default function PoemCard({
 }: PoemCardProps) {
   const [expandedCategory, setExpandedCategory] = useState<string>(highlightedCategory);
   const speed = useAnimationSpeed();
+  const reduced = useReducedMotion();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
@@ -68,6 +70,14 @@ export default function PoemCard({
     scrollAnim.setValue(0);
     contentOpacity.setValue(0);
     lineAnimations.forEach(a => a.setValue(0));
+
+    // 減少動態效果：直接顯示最終展開態，不跑捲軸與逐行動畫
+    if (reduced) {
+      scrollAnim.setValue(1);
+      contentOpacity.setValue(1);
+      lineAnimations.forEach(a => a.setValue(1));
+      return;
+    }
 
     const start = (anim: Animated.CompositeAnimation) => {
       running.push(anim);
@@ -102,7 +112,7 @@ export default function PoemCard({
     });
 
     return () => running.forEach(a => a.stop());
-  }, [speed, contentOpacity, lineAnimations, scrollAnim]);
+  }, [reduced, speed, contentOpacity, lineAnimations, scrollAnim]);
 
   const scrollScaleY = scrollAnim.interpolate({
     inputRange: [0, 1],
