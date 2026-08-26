@@ -10,7 +10,7 @@ import {
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import type { CustomCategory } from '@/services/storage';
-import { getSettings, saveSettings } from '@/services/storage';
+import { getSettings, saveSettings, deleteCustomCategory } from '@/services/storage';
 import { confirmAction } from '@/services/dialog';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -96,7 +96,11 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
       destructive: true,
     });
     if (!confirmed) return;
-    await saveCategories(categories.filter((_, i) => i !== index));
+    // 走 deleteCustomCategory 而非直接寫回剩下的類別：刪除要留墓碑，
+    // 否則另一台裝置的舊副本會在下次同步時把它復活
+    const remaining = await deleteCustomCategory(categories[index].key);
+    setCategories(remaining);
+    onChanged?.();
   }
 
   return (

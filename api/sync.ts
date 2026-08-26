@@ -1,7 +1,10 @@
 // Upstash Redis backed cloud-sync endpoint. Connect Redis in Vercel Marketplace.
 import { byteLength, createRateLimiter } from '../src/services/rateLimit';
 
-const MAX_BODY_BYTES = 512 * 1024;
+// 雲端那份存的是兩台裝置的聯集（CLOUD_HISTORY_LIMIT = 1000 筆，
+// 單筆實測約 440–610 bytes），512KB 會讓滿載的使用者一同步就撞 413。
+// 1MB 容得下聯集，也仍在 Upstash REST 單次請求的限制之內。
+const MAX_BODY_BYTES = 1024 * 1024;
 
 // 配對碼本身就是憑證，但**任何**格式正確的 48 位十六進位字串都能寫入一組新的
 // key——不需要猜中既有配對碼，隨機產一個就能存 512KB。沒有限流時，單一來源

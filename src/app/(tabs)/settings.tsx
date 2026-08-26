@@ -17,7 +17,7 @@ import { confirmAction, notify } from '@/services/dialog';
 import { clearHistory } from '@/services/storage';
 import CustomCategoriesSection from '@/components/CustomCategoriesSection';
 import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission } from '@/services/notifications';
-import { getSyncKey, saveSyncKey, syncWithCloud } from '@/services/cloudSync';
+import { getSyncKey, saveSyncKey, syncWithCloud, type SyncFailure } from '@/services/cloudSync';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { LANG_OPTIONS, type Lang } from '@/services/i18n';
@@ -127,6 +127,17 @@ export default function SettingsScreen() {
     );
   }
 
+  /** 每種失敗給它自己的說明——先前一律顯示「尚未設定同步伺服器」，
+      斷網或資料超限的使用者照著訊息去設環境變數也不會好 */
+  const SYNC_FAIL_KEYS: Record<SyncFailure, string> = {
+    'not-configured': 'settings.syncUnset',
+    offline: 'settings.syncOffline',
+    'too-large': 'settings.syncTooLarge',
+    'rate-limited': 'settings.syncRateLimited',
+    'invalid-key': 'settings.syncInvalidKey',
+    'server-error': 'settings.syncServerError',
+  };
+
   async function handleCloudSync() {
     setSyncing(true);
     const result = await syncWithCloud();
@@ -134,7 +145,7 @@ export default function SettingsScreen() {
       await loadSettings();
       notify(t('settings.cloudSync'), t('settings.syncOk'));
     } else {
-      notify(t('settings.cloudSync'), t('settings.syncUnset'));
+      notify(t('settings.cloudSync'), t(SYNC_FAIL_KEYS[result]));
     }
     setSyncing(false);
   }

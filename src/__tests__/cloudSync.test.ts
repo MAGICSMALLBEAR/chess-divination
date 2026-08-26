@@ -20,7 +20,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { mergeHistories, mergeFromCloud, mergeSettings } from '../services/cloudSync';
+import {
+  mergeHistories, mergeFromCloud, mergeSettings, syncWithCloud, uploadToCloud,
+} from '../services/cloudSync';
 import { STORAGE_KEYS, type AppSettings } from '../services/storage';
 
 const rec = (id: string, timestamp: number) => ({ id, timestamp });
@@ -361,5 +363,195 @@ describe('墓碑（已刪除記錄的同步）', () => {
 
     expect((merged.history as { id: string }[]).map(r => r.id)).toEqual(['c']);
     expect(merged.deletedIds?.sort()).toEqual(['a', 'b']);
+  });
+});
+
+describe('資料夾／類別的刪除墓碑', () => {
+  /**
+   * 迴歸：記錄有墓碑、資料夾沒有——A 刪掉資料夾後同步，B 那邊還留著上次
+   * 同步的舊副本，取聯集就讓它復活了。使用者刪一次、它回來一次。
+   */
+  test('本地刪掉的資料夾不會被雲端舊副本復活', () => {
+    const local = settings({
+      folders: [{ id: 'keep', name: '留著', color: 'red', recordIds: [] }],
+      deletedFolderIds: ['gone'],
+    });
+    const cloud = settings({
+      folders: [
+        { id: 'keep', name: '留著', color: 'red', recordIds: [] },
+        { id: 'gone', name: '已刪除', color: 'blue', recordIds: ['R1'] },
+      ],
+    });
+
+    const merged = mergeSettings(local, cloud);
+
+    expect(merged.folders!.map(f => f.id)).toEqual(['keep']);
+    expect(merged.deletedFolderIds).toContain('gone');
+  });
+
+  test('另一台裝置刪掉的資料夾，本地這份也要跟著消失', () => {
+    const local = settings({
+      folders: [{ id: 'gone', name: '本地還留著', color: 'red', recordIds: ['R1'] }],
+    });
+    const cloud = settings({ deletedFolderIds: ['gone'] });
+
+    expect(mergeSettings(local, cloud).folders).toEqual([]);
+  });
+
+  test('自訂類別的墓碑同樣生效，且兩邊墓碑取聯集', () => {
+    const local = settings({
+      customCategories: [{ key: 'c1', label: '搬家', icon: 'home' }],
+      deletedCategoryKeys: ['c2'],
+    });
+    const cloud = settings({
+      customCategories: [
+        { key: 'c1', label: '搬家', icon: 'home' },
+        { key: 'c2', label: '已刪除', icon: 'star' },
+        { key: 'c3', label: '對面刪的', icon: 'box' },
+      ],
+      deletedCategoryKeys: ['c3'],
+    });
+
+    const merged = mergeSettings(local, cloud);
+
+    expect(merged.customCategories!.map(c => c.key)).toEqual(['c1']);
+    expect(merged.deletedCategoryKeys!.sort()).toEqual(['c2', 'c3']);
+  });
+
+  /** 沒有墓碑的舊資料不該被誤刪——欄位缺席時行為必須與從前一致 */
+  test('兩邊都沒有墓碑欄位時，資料夾與類別全數保留', () => {
+    const local = settings({
+      folders: [{ id: 'f1', name: '感情', color: 'red', recordIds: [] }],
+      customCategories: [{ key: 'c1', label: '搬家', icon: 'home' }],
+    });
+
+    const merged = mergeSettings(local, settings());
+
+    expect(merged.folders).toHaveLength(1);
+    expect(merged.customCategories).toHaveLength(1);
+  });
+});
+
+describe('兩台都滿載時的記錄交換', () => {
+  beforeEach(() => { mockStore.clear(); });
+
+  /**
+   * 迴歸：本機與雲端各滿 500 筆時，舊作法上傳的也只有 500 筆——雲端被
+   * 本機那份整個取代，永遠不持有聯集，兩台來回覆蓋、誰都拿不到對方的記錄。
+   * 上傳那份要存得下聯集，這個迴圈才會停。
+   */
+  test('上傳的 payload 含兩邊聯集，本機仍只留 500 筆', async () => {
+    const local = Array.from({ length: 500 }, (_, i) => rec(`L${i}`, i));
+    const cloud = Array.from({ length: 500 }, (_, i) => rec(`C${i}`, 1000 + i));
+    mockStore.set(STORAGE_KEYS.HISTORY, JSON.stringify(local));
+
+    const merged = await mergeFromCloud({
+      version: 3, timestamp: 0, history: cloud, favorites: [],
+      settings: {}, dailyFortune: null, deletedIds: [],
+    });
+
+    // 上傳那份：兩邊 1000 筆一個不少
+    const uploaded = (merged.history as { id: string }[]).map(r => r.id);
+    expect(uploaded).toHaveLength(1000);
+    expect(uploaded.filter(id => id.startsWith('L'))).toHaveLength(500);
+    expect(uploaded.filter(id => id.startsWith('C'))).toHaveLength(500);
+
+    // 寫回本機那份：維持單機上限，且不丟本地獨有的記錄
+    const written = JSON.parse(mockStore.get(STORAGE_KEYS.HISTORY)!) as { id: string }[];
+    expect(written).toHaveLength(500);
+    expect(written.filter(r => r.id.startsWith('L'))).toHaveLength(500);
+  });
+
+  test('聯集也受上限保護，不會無限膨脹', () => {
+    const local = Array.from({ length: 800 }, (_, i) => rec(`L${i}`, i));
+    const cloud = Array.from({ length: 800 }, (_, i) => rec(`C${i}`, 1000 + i));
+
+    expect(mergeHistories(local, cloud, 1000)).toHaveLength(1000);
+  });
+});
+
+describe('同步失敗的原因回報', () => {
+  const originalFetch = global.fetch;
+
+  /** 讓 GET/PUT 各自回指定的狀態碼 */
+  function mockFetch(handler: (method: string) => Response | Promise<Response>) {
+    global.fetch = jest.fn((_url: unknown, init?: { method?: string }) =>
+      Promise.resolve(handler(init?.method ?? 'GET'))) as unknown as typeof fetch;
+  }
+
+  beforeEach(() => {
+    mockStore.clear();
+    mockStore.set('@chess_divination_sync_key', 'a'.repeat(48));
+  });
+  afterEach(() => { global.fetch = originalFetch; });
+
+  /**
+   * 缺陷本身：任何失敗都顯示「尚未設定雲端同步伺服器」。
+   * 斷網、超限、被限流的使用者照著訊息去設環境變數也不會好。
+   */
+  test.each([
+    [501, 'not-configured'],
+    [401, 'invalid-key'],
+    [413, 'too-large'],
+    [429, 'rate-limited'],
+    [500, 'server-error'],
+  ])('伺服器回 %s 時回報 %s', async (status, expected) => {
+    mockFetch(method =>
+      method === 'GET'
+        ? new Response(null, { status: 404 })      // 雲端尚無資料
+        : new Response(null, { status: status as number }));
+
+    expect(await syncWithCloud()).toBe(expected);
+  });
+
+  test('連不上時回報 offline 而非「未設定」', async () => {
+    global.fetch = jest.fn(() => Promise.reject(new TypeError('Failed to fetch'))) as unknown as typeof fetch;
+    expect(await syncWithCloud()).toBe('offline');
+  });
+
+  test('一切正常時回報 ok', async () => {
+    mockFetch(method =>
+      method === 'GET'
+        ? new Response(null, { status: 404 })
+        : Response.json({ ok: true }));
+
+    expect(await syncWithCloud()).toBe('ok');
+  });
+
+  /**
+   * 下載失敗就地停手，不是為了訊息好看：照舊往下走會拿本機那份去 PUT，
+   * 一次暫時的斷網就把雲端的聯集抹平。
+   */
+  test('下載失敗時不上傳，避免把雲端資料蓋掉', async () => {
+    const calls: string[] = [];
+    global.fetch = jest.fn((_url: unknown, init?: { method?: string }) => {
+      calls.push(init?.method ?? 'GET');
+      return Promise.resolve(new Response(null, { status: 500 }));
+    }) as unknown as typeof fetch;
+
+    expect(await syncWithCloud()).toBe('server-error');
+    expect(calls).toEqual(['GET']);
+  });
+
+  /** 上傳去掉冗餘的收藏副本，payload 才不會接近雙倍大 */
+  test('上傳的 payload 不夾帶收藏的完整副本', async () => {
+    let body: string | undefined;
+    global.fetch = jest.fn((_url: unknown, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'PUT') body = init.body;
+      return Promise.resolve(Response.json({ ok: true }));
+    }) as unknown as typeof fetch;
+
+    await uploadToCloud({
+      version: 3, timestamp: 0,
+      history: [{ id: 'a', timestamp: 1, isFavorited: true }],
+      favorites: [{ id: 'a', timestamp: 1, isFavorited: true }],
+      settings: {}, dailyFortune: null, deletedIds: [],
+    });
+
+    const sent = JSON.parse(body!);
+    expect(sent.favorites).toEqual([]);
+    // 收藏靠 history 的 isFavorited 還原，資訊沒有遺失
+    expect(sent.history[0].isFavorited).toBe(true);
+    expect(sent.version).toBe(3);
   });
 });

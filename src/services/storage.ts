@@ -124,6 +124,15 @@ export interface AppSettings {
   unlockedAchievements?: string[];
   customCategories?: CustomCategory[];
   /**
+   * 已刪除的資料夾 id／自訂類別 key（墓碑）。
+   *
+   * 記錄有墓碑、資料夾與類別沒有：mergeSettings 對兩者都是取聯集，
+   * 一端刪掉的資料夾會在下次同步時從另一端的舊副本復活。與 usageDates
+   * 同樣放在 AppSettings 裡，不必新增儲存鍵，也自動進備份。
+   */
+  deletedFolderIds?: string[];
+  deletedCategoryKeys?: string[];
+  /**
    * 占者性別。只用於感情問事的用神取法（男占以妻財、女占以官鬼，取法相反）。
    * 未設定時感情不出用神斷語——取反的用神比沒有用神更誤導。
    */
@@ -381,10 +390,30 @@ export async function addFolder(name: string): Promise<Folder> {
   return folder;
 }
 
+/** 墓碑清單上限，比照記錄墓碑的作法夾住無限成長 */
+const DELETED_KEYS_LIMIT = 200;
+
+/** 記下刪除，讓同步不會把它從另一端的舊副本復活 */
+function withTombstone(existing: string[] | undefined, id: string): string[] {
+  return [...new Set([...(existing || []), id])].slice(-DELETED_KEYS_LIMIT);
+}
+
 export async function deleteFolder(id: string): Promise<void> {
-  const s = await getSettings();
-  const folders = (s.folders || []).filter(f => f.id !== id);
-  await saveSettings({ folders });
+  // 讀-改-寫走 updateSettings 的佇列，避免與其他寫入交錯時
+  // 資料夾刪除與墓碑其中一邊被覆蓋掉
+  await updateSettings(current => ({
+    folders: (current.folders || []).filter(f => f.id !== id),
+    deletedFolderIds: withTombstone(current.deletedFolderIds, id),
+  }));
+}
+
+/** 刪除自訂類別並留下墓碑；與 deleteFolder 同理 */
+export async function deleteCustomCategory(key: string): Promise<CustomCategory[]> {
+  const updated = await updateSettings(current => ({
+    customCategories: (current.customCategories || []).filter(c => c.key !== key),
+    deletedCategoryKeys: withTombstone(current.deletedCategoryKeys, key),
+  }));
+  return updated.customCategories || [];
 }
 
 export async function addToFolder(folderId: string, recordId: string): Promise<void> {

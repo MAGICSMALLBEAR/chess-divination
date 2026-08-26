@@ -448,6 +448,11 @@ export const translations: Record<string, Record<Lang, string>> = {
   'settings.restoreFailRead': { 'zh-TW': '無法讀取備份檔，請確認檔案完整後再試。', en: 'Could not read the backup file. Check that it is intact and try again.', ja: 'バックアップファイルを読み取れませんでした。ファイルが壊れていないか確認してください。' },
   // 變數名須與 services/cloudSync.ts 讀取的相同，否則使用者照著設了也不會生效
   'settings.syncUnset': { 'zh-TW': '尚未設定雲端同步伺服器。請設定 EXPO_PUBLIC_CLOUD_SYNC_URL 環境變數。', en: 'No sync server configured. Set the EXPO_PUBLIC_CLOUD_SYNC_URL environment variable.', ja: '同期サーバーが未設定です。EXPO_PUBLIC_CLOUD_SYNC_URL 環境変数を設定してください。' },
+  'settings.syncOffline': { 'zh-TW': '連不上同步伺服器，請確認網路後再試。', en: 'Could not reach the sync server. Check your connection and try again.', ja: '同期サーバーに接続できません。通信状況を確認してください。' },
+  'settings.syncTooLarge': { 'zh-TW': '資料量超過伺服器上限，未能上傳。可先刪除部分舊記錄再同步。', en: 'The data exceeds the server limit and was not uploaded. Delete some old records and sync again.', ja: 'データがサーバーの上限を超えたためアップロードできません。古い記録を削除してから再試行してください。' },
+  'settings.syncRateLimited': { 'zh-TW': '同步太過頻繁，請稍候一分鐘再試。', en: 'Too many sync requests. Please wait a minute and try again.', ja: '同期の回数が多すぎます。1分ほど待って再試行してください。' },
+  'settings.syncInvalidKey': { 'zh-TW': '配對碼無效，請重新輸入 48 位十六進位字元。', en: 'Invalid pairing code. Re-enter the 48 hexadecimal characters.', ja: 'ペアリングコードが無効です。48文字の16進数を入力し直してください。' },
+  'settings.syncServerError': { 'zh-TW': '同步伺服器暫時無法回應，稍後再試。', en: 'The sync server is temporarily unavailable. Try again later.', ja: '同期サーバーが一時的に応答しません。しばらくして再試行してください。' },
   'settings.syncOk': { 'zh-TW': '同步完成！', en: 'Sync complete', ja: '同期が完了しました' },
   'settings.syncPartial': { 'zh-TW': '上傳成功，但無法下載遠端資料。', en: 'Upload succeeded, but remote data could not be downloaded.', ja: 'アップロードは成功しましたが、リモートデータを取得できませんでした。' },
   'settings.notifyDenied': { 'zh-TW': '無法設定', en: 'Cannot enable', ja: '設定できません' },
