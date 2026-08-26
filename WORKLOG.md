@@ -1500,14 +1500,18 @@ https://chess-divination-app.vercel.app ；deployment `dpl_6wGbaMjajcoroZGKQqLTG
 
 ## 未來待辦
 
-### 🔵 四路審查的未修項（Session 32 提出，Session 33 續清）
+### 🔵 四路審查的未修項（Session 32 提出，Session 33／34 續清）
 
 Session 32 修掉「線上壞掉」與「靜默毀資料」兩層，留下 25 條；Session 33
-再處理掉 8 條，**剩餘 17 條列於下表**。
+處理掉 8 條，Session 34 再清掉 7 條，**剩餘 10 條列於下表**。
 
-已結案的 8 條不再列出，於此記錄去向：A5 設定寫入序列化、A9 無障礙標籤與
-觸控目標、A13 隨機籤詩捲動、A14 等級配色、A15 收藏頁搜尋、A18 all_levels
-成就、A19 負數延遲——皆已修並補測試（見 Session 33）。
+已結案的 15 條不再列出，於此記錄去向：
+
+- **Session 33**：A5 設定寫入序列化、A9 無障礙標籤與觸控目標、A13 隨機
+  籤詩捲動、A14 等級配色、A15 收藏頁搜尋、A18 all_levels 成就、A19 負數延遲
+- **Session 34**：A2 通知處理器與點擊導頁、A10 設定接線（預設抽棋數量／
+  動畫速度）、A22 用神兩現取發動之爻、A8 墨滴轉場接 reducedMotion、
+  A3 資料夾／類別刪除墓碑、A4 兩台滿載時的記錄聯集、A6 同步失敗診斷
 
 **A1 為誤判，已刪除**：react-native-web 0.21 的 `PressResponder.onClick`
 本來就會 `stopPropagation()`，巢狀 Touchable 不會連鎖觸發。結論已用
@@ -1517,20 +1521,13 @@ Session 32 修掉「線上壞掉」與「靜默毀資料」兩層，留下 25 �
 
 | # | 缺陷 | 位置 | 嚴重度 | 說明 |
 |---|------|------|--------|------|
-| A2 | **`setupNotificationHandler()` 從未被呼叫** | `services/notifications.ts:15` | 🟡 中（僅原生） | 只有測試引用過。expo-notifications 未設 handler 時的預設行為就是**不顯示**——App 在前景時，每日提醒與 14 天占驗提醒直接被丟棄。另外沒有任何 `addNotificationResponseReceivedListener`，通知帶的 `data.screen` 是死資料，點了不會導頁 |
-| A3 | **資料夾／自訂類別沒有刪除墓碑** | `services/cloudSync.ts` `mergeSettings` | 🟡 中 | 記錄有墓碑、資料夾沒有：一端刪掉的資料夾會在下次同步復活。可行作法是在 `AppSettings` 內加 `deletedFolderIds`／`deletedCategoryKeys`，比照 `usageDates` 取聯集後過濾——不必新增儲存鍵，也會自動進備份 |
-| A4 | **兩台都滿 500 筆時互不交換記錄** | `services/cloudSync.ts:128-137` | 🟡 中 | 超限時只犧牲雲端獨有的記錄，註解說「下次同步會補回」——但另一端也滿載時，每次 PUT 都用自己的 500 筆整個取代雲端，兩台永遠來回覆蓋，雲端從不持有聯集 |
-| A6 | **同步失敗訊息與實情不符** | `(tabs)/settings.tsx` `handleCloudSync` | 🟡 中 | `syncWithCloud` 只回 `'ok' \| 'error'`，任何失敗都顯示「尚未設定雲端同步伺服器」。payload 超過 512KB（收藏存的是完整記錄副本，易達標）或單純斷網時，使用者得到的是錯誤的診斷 |
 | A7 | **淺色主題對比度不足** | `constants/theme.ts` | 🟡 中 | 實測相對亮度比：宣紙主題 `textMuted` 對 `bgInk` ≈ 2.88:1、`gold` ≈ 3.6:1，皆未達 WCAG AA 4.5:1，而這兩個色正用在 10–12px 的說明文字與區塊標題上。暗色主題 `textMuted` ≈ 4.1:1 也是勉強不過。Session 33 已補 `services/contrast.ts` 與守門測試，等級標籤的前景色改為由底色推得；**本文與標題的主題色尚未套用**，仍待處理 |
-| A8 | **`InkSplashOverlay` 不理會 reducedMotion** | `components/InkSplashOverlay.tsx:104-165` | 🟡 中 | 每次開牌都跑約 1.7 秒的全螢幕墨滴。`PieceDraw3D` 與 `PieceEntryFlyIn` 都有接 `useReducedMotion`，所以這是漏接而非政策 |
-| A10 | **`pieceCountPreset` 設定沒有作用** | `(tabs)/settings.tsx:248` | 🟡 中 | 「預設抽棋數量」存得進設定，但抽棋流程從不讀它，畫面永遠是 1/2/3 三個按鈕且無預選。反向的孿生問題：`drawAnimationSpeed` 有人讀卻沒有 UI 可寫 |
 | A11 | **空名稱／空白名稱的靜默無反應** | `collection.tsx:95`、`CustomCategoriesSection.tsx:70`、`settings.tsx:160` | 🟢 低 | 資料夾與類別名稱為空時直接 return，按鈕看起來壞掉；姓名沒有 trim 也沒有 maxLength，存成全空白後畫面顯示空白且「未設定」的後備永遠不出現 |
 | A12 | **`+html.tsx` 的 `lang` 寫死 zh-TW** | `app/+html.tsx:6,21` | 🟢 低（僅 web） | 切成 en/ja 後讀屏與斷字仍當作中文；`theme-color` 也固定深色，淺色主題的瀏覽器外框不跟隨 |
 | A16 | **儲存失敗時的未處理 rejection** | `hooks/useDrawDivination.ts:83`、`useBoardDivination.ts:130`、`reveal.tsx:147-168` | 🟢 低 | `await addHistory(record)` 無 try/catch。AsyncStorage 寫入失敗時，抽棋模式永遠停在「解讀中…」，回填占驗／收藏則是按了完全沒有回饋 |
 | A17 | **統計的「本週／本月」是滾動視窗** | `app/stats.tsx:44-45` | 🟢 低 | 用 `now - timestamp < 7/30 天` 判斷而非日曆週期，標籤與行為不符；未來時間戳（時鐘偏移或手改備份）永遠被計入 |
 | A20 | **`buildBackup` 遇單一壞鍵整份失敗** | `services/backup.ts:33-35` | 🟢 低 | 逐鍵 raw `JSON.parse`，一個鍵壞掉就「備份失敗」；讀取端對壞鍵是降級成 `[]`／預設值，兩邊不一致 |
 | A21 | **ErrorBoundary 蓋掉整個 App 含導覽** | `app/_layout.tsx:43` | 🟢 低 | 包住整個 Stack，遇到必然重現的畫面錯誤時「重試」只會再炸一次，沒有任何路徑回到設定頁去還原資料 |
-| A22 | **用神兩現時取最先出現者而非發動者** | `services/wenwang.ts:157-159` | 🟡 中 | 卜筮正宗的取法是優先取發動之爻。現行寫法取 `lines[0]`，若第二現才是動爻，回頭生剋與進退神整段不會被檢查，斷語因此少計。reasons 有揭露「取 X 爻為主」，但分數不完整 |
 | A23 | **日干支用裝置本地日期而非台北時間** | `services/sexagenary.ts:44-49` | 🟢 低 | 目標客群裝置多為 UTC+8 故實務無礙，但裝置設在其他時區時日柱會差一天，連帶影響旬空、六神與暗動 |
 | A24 | **棋子→八卦的分佈嚴重不均** | `data/pieces.ts:45-53` | 🟢 低（設計） | 八卦計數為 乾1 兌7 離4 震4 巽4 坎4 艮7 坤1，兩顆棋時乾為天／坤為地各約 1/1024，兌為澤／艮為山約 49/1024，相差 49 倍。抽棋本身均勻無模除偏差；這是紅黑錯卦配對設計的副作用，若要卦象等機率需在此處調整 |
 | A25 | **分享卡截圖以 `opacity: 0` 離屏渲染** | `app/reveal.tsx:626-629` | ❓ 待實機確認 | react-native-view-shot 對透明視圖的截圖在 iOS 上有產生空白 PNG 的回報。無法從原始碼判定，需實機跑一次圖片分享確認 |
@@ -1592,3 +1589,5 @@ Session 32 修掉「線上壞掉」與「靜默毀資料」兩層，留下 25 �
 | Session 30 | 牌陣系統：五種佈局 + 占驗統計（測試 601） | 8/23 |
 | Session 31 | 主題接線 + 原生還原 + 原生音效 + 平行工作整合（測試 635、E2E 108） | 8/24 |
 | Session 32 | 四路審查：修掉線上壞掉（web Alert 空殼等）與靜默毀資料兩層；動爻先天數修正（測試 743、E2E 108） | 8/24 |
+| Session 33 | 四路審查續清 8 條，其中 A1 證偽（測試 781、E2E 112） | 8/24 |
+| Session 34 | 四路審查再清 7 條：通知接線、設定接線、用神兩現、reducedMotion、雲端同步三修（測試 841、E2E 112） | 8/26 |

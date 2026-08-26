@@ -678,14 +678,25 @@ Phase 5  動畫重製        1.5 週
 - ~~原生端書法字體子集化留待日後處理~~ ✅ 已於 Session 27 完成（Noto Serif TC 子集 1.2MB + JP 補新字體）。
 - 文王卦的應期與親屬關係斷語刻意不做——前者起卦只到日柱、推到時辰等於編日期；後者 App 沒有問卜者與對象的關係輸入（Session 26 重新檢視後維持此界線）。
 
-#### 四路審查未修項（Session 32 提出，Session 33 續清；剩餘 17 條）
+#### 四路審查未修項（Session 32 提出，Session 33／34 續清；剩餘 10 條）
 
 Session 32 修掉「線上壞掉」與「靜默毀資料」兩層後留下 25 條，Session 33
-再清掉 8 條。詳細說明見 WORKLOG「未來待辦」。
+清掉 8 條，Session 34 再清掉 7 條。詳細說明見 WORKLOG「未來待辦」。
 
 **已結案（Session 33）**：A5 設定寫入序列化、A9 無障礙標籤與觸控目標、
 A13 隨機籤詩捲動、A14 等級配色、A15 收藏頁搜尋、A18 all_levels 成就、
 A19 負數延遲。
+
+**已結案（Session 34）**：
+
+- **A2** 通知處理器由 `_layout` 掛上，並補通知點擊導頁（含冷啟動）與畫面白名單
+- **A10** 抽棋頁真的讀 `pieceCountPreset`（標為建議選項），設定頁補上動畫速度 UI
+- **A22** 用神兩現改優先取發動之爻，回頭生剋與進退神才會被檢查
+- **A8** `InkSplashOverlay` 接上 reducedMotion（跳過時仍通知父層完成）
+- **A3** 資料夾／自訂類別加刪除墓碑（`deletedFolderIds`／`deletedCategoryKeys`）
+- **A4** 雲端那份改存聯集（1000 筆），本機仍 500；payload v3 不再重複夾帶
+  收藏副本，伺服器上限 512KB → 1MB
+- **A6** 同步失敗改為具名原因；並修掉「下載失敗仍上傳」會抹平雲端聯集的路徑
 
 **A1 為誤判已刪除**：react-native-web 0.21 的 `PressResponder.onClick` 本來
 就會 `stopPropagation()`，巢狀 Touchable 不會連鎖觸發；結論以真瀏覽器
@@ -693,16 +704,9 @@ e2e（`e2e/nestedPress.spec.ts`）釘住。
 
 🟡 中：
 
-- **A2** `setupNotificationHandler()` 從未被呼叫，前景通知全部被丟棄，通知帶的導頁資料是死的（僅原生）
-- **A3** 資料夾／自訂類別沒有刪除墓碑，一端刪掉另一端同步又復活
-- **A4** 兩台都滿 500 筆時互不交換記錄，雲端從不持有聯集
-- **A6** 同步失敗一律顯示「尚未設定雲端同步伺服器」，與實情不符
 - **A7** 淺色主題本文對比度不足（2.88:1、3.6:1），未達 WCAG AA。Session 33
   已補 `services/contrast.ts` 與守門測試、等級標籤已改為由底色推得前景色；
   **主題本身的本文與標題色尚未套用**
-- **A8** `InkSplashOverlay` 不理會 reducedMotion（1.7 秒全螢幕墨滴）
-- **A10** `pieceCountPreset` 設定存得進卻從不被讀；孿生問題：`drawAnimationSpeed` 有人讀卻無 UI
-- **A22** 用神兩現取最先出現者而非發動者，回頭生剋與進退神少計
 
 🟢 低：
 
