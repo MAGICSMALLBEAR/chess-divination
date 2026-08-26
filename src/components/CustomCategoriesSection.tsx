@@ -105,7 +105,7 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
 
   return (
     <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-      <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('category.title')}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('category.title')}</Text>
       <Text style={[styles.hint, { color: theme.textMuted }]}>
         {t('category.desc')}
       </Text>
@@ -137,7 +137,7 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
       <Modal visible={showEditor} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.modalTitle, { color: theme.gold }]}>
+            <Text style={[styles.modalTitle, { color: theme.textGold }]}>
               {editingIndex !== null ? t('category.edit') : t('category.add')}
             </Text>
 

@@ -302,7 +302,7 @@ export default function BoardScreen() {
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.duplicateRule} onPress={() => setAllowRepeatedPieces(!allowRepeatedPieces)}>
-          <Text style={[styles.duplicateRuleText, allowRepeatedPieces && { color: theme.gold }]}>
+          <Text style={[styles.duplicateRuleText, allowRepeatedPieces && { color: theme.textGold }]}>
             {allowRepeatedPieces ? '✓ ' : '○ '}{t('board.allowDuplicates')}
           </Text>
         </TouchableOpacity>

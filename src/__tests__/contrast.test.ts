@@ -4,11 +4,15 @@
 // 所以測試的重點有二：算出來的數字對不對（拿 WCAG 的已知值校準），
 // 以及 readableTextOn 是否真的保證了它宣稱的下限。
 
+import fs from 'fs';
+import path from 'path';
 import {
   parseHex, relativeLuminance, contrastRatio, readableTextOn,
   meetsAA, meetsAALarge, INK_ON_LIGHT, PAPER_ON_DARK, PURE_INK,
 } from '../services/contrast';
-import { LevelColors, DEFAULT_LEVEL_COLOR } from '../constants/theme';
+import {
+  LevelColors, DEFAULT_LEVEL_COLOR, DarkTheme, LightTheme,
+} from '../constants/theme';
 
 describe('parseHex', () => {
   test('解析六位色碼', () => {
@@ -161,5 +165,98 @@ describe('門檻判斷', () => {
   test('meetsAALarge 以 3:1 為界，且比 meetsAA 寬鬆', () => {
     expect(meetsAALarge('#949494', '#FFFFFF')).toBe(true);
     expect(meetsAA('#949494', '#FFFFFF')).toBe(false);
+  });
+});
+
+/**
+ * 主題色盤的對比度守門。
+ *
+ * A7 的實情比「淺色主題有兩個色不夠」更廣：淺色主題的 textMuted 對 bgInk
+ * 只有 2.88:1、gold 3.20:1，而它們正用在 10–12px 的說明文字與區塊標題上；
+ * 深色主題的 textMuted 對 bgDark 也只有 4.42:1。這類缺陷不會有人回報
+ * ——畫面「看得到」，只是讀起來吃力——所以只能靠計算守住。
+ *
+ * 判準取 WCAG AA 內文 4.5:1 而非大字的 3:1：專案的說明文字是 10–13px，
+ * 遠低於大字門檻（18pt / 14pt 粗體）。
+ */
+describe('主題色盤達到 WCAG AA', () => {
+  /** 會有文字坐在上面的背景。bgMedium 是作用中的分頁籤底色，最暗 */
+  const TEXT_SURFACES = ['bgInk', 'bgDark', 'bgMedium', 'bgCard'] as const;
+
+  /** 會被當成文字色使用的欄位（含 LiuYaoPanel 以 colorFor 取用的三個語意色） */
+  const TEXT_COLORS = [
+    'textPrimary', 'textSecondary', 'textMuted', 'textGold', 'textRed',
+    'success', 'warning', 'danger',
+  ] as const;
+
+  for (const [name, theme] of [['墨色', DarkTheme], ['宣紙', LightTheme]] as const) {
+    describe(name, () => {
+      test.each(TEXT_COLORS)('%s 在每個文字底色上都達 4.5:1', color => {
+        const failures = TEXT_SURFACES
+          .map(surface => ({ surface, ratio: contrastRatio(theme[color], theme[surface]) }))
+          .filter(x => x.ratio < 4.5)
+          .map(x => `${x.surface} ${x.ratio.toFixed(2)}:1`);
+        expect(failures).toEqual([]);
+      });
+
+      /**
+       * textInverse 只出現在金色按鈕上（quickDraw／interpretBtn／nextBtn…）。
+       * 淺色主題的金是中間調，配宣紙色只有 3.04:1——CTA 的文字反而最難讀。
+       */
+      test('金色按鈕上的反白文字達 4.5:1', () => {
+        expect(contrastRatio(theme.textInverse, theme.gold)).toBeGreaterThanOrEqual(4.5);
+      });
+
+      /** gold 退居底色與邊框後只需 3:1（UI 元件邊界的 AA 標準） */
+      test('金色作為邊框對頁面底色達 3:1', () => {
+        expect(contrastRatio(theme.gold, theme.bgInk)).toBeGreaterThanOrEqual(3);
+      });
+
+      /**
+       * 三級文字層級必須維持可分辨。只要求「達標」的話，把 muted 一路加深
+       * 到與 secondary 同色也會過——那是修好了對比、弄丟了層級。
+       */
+      test('primary / secondary / muted 的層級沒有塌掉', () => {
+        const [p, s, m] = ['textPrimary', 'textSecondary', 'textMuted']
+          .map(k => contrastRatio(theme[k as keyof typeof theme] as string, theme.bgInk));
+        expect(p).toBeGreaterThan(s);
+        expect(s).toBeGreaterThan(m);
+        // 相鄰兩級至少差 1.3 倍，否則畫面上分不出主次
+        expect(p / s).toBeGreaterThan(1.3);
+        expect(s / m).toBeGreaterThan(1.3);
+      });
+    });
+  }
+});
+
+/**
+ * gold 同時被當文字與底色用，是 A7 的根源：一個色不可能同時滿足
+ * 「在淺底上當小字要夠深」與「當按鈕底色要夠亮」。色盤本來就分了
+ * gold（裝飾／邊框）與 textGold（文字），這條守住兩者不再混用。
+ */
+describe('gold 不再被當成文字色', () => {
+  const SRC = path.join(__dirname, '..');
+
+  function collectFiles(dir: string, acc: string[] = []): string[] {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === '__tests__') continue;
+        collectFiles(full, acc);
+      } else if (entry.name.endsWith('.tsx')) {
+        acc.push(full);
+      }
+    }
+    return acc;
+  }
+
+  test('沒有任何畫面用 color: theme.gold（應改用 textGold）', () => {
+    // 前置的否定環視排除 borderColor／backgroundColor／tintColor；
+    // \b 讓 goldLight／goldSoft／goldFaint／goldDark 不被誤判
+    const pattern = /(?<![A-Za-z])color:\s*(?:theme|t)\.gold\b/;
+    const offenders = collectFiles(SRC)
+      .filter(f => pattern.test(fs.readFileSync(f, 'utf-8')))
+      .map(f => path.relative(SRC, f));
+    expect(offenders).toEqual([]);
   });
 });

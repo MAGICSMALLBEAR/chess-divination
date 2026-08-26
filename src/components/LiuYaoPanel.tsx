@@ -89,7 +89,7 @@ export default function LiuYaoPanel({
   return (
     <View style={[styles.box, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.gold }]}>▎{t('liuyao.title')}</Text>
+        <Text style={[styles.title, { color: theme.textGold }]}>▎{t('liuyao.title')}</Text>
         {hourBranch ? (
           <Text style={[styles.hour, { color: theme.textMuted }]}>
             {t('liuyao.castAt', { hour: hourBranchName(hourBranch) })}
@@ -115,7 +115,7 @@ export default function LiuYaoPanel({
         {t('liuyao.moving', { name: movingLineName, n: movingLine })}
       </Text>
       <View style={[styles.yaoBox, { borderColor: theme.bgMedium, backgroundColor: theme.bgInk }]}>
-        <Text style={[styles.yaoLabel, { color: theme.gold }]}>{t('liuyao.yaoReading')}</Text>
+        <Text style={[styles.yaoLabel, { color: theme.textGold }]}>{t('liuyao.yaoReading')}</Text>
         {movingGuidance.classicalText ? (
           <>
             <Text style={[styles.classicalText, { color: theme.textPrimary }]}>
@@ -132,7 +132,7 @@ export default function LiuYaoPanel({
 
       {naJia && (
         <View style={[styles.najjaBox, { borderColor: theme.bgMedium, backgroundColor: theme.bgInk }]}>
-          <Text style={[styles.yaoLabel, { color: theme.gold }]}>{t('liuyao.najjaTitle')}</Text>
+          <Text style={[styles.yaoLabel, { color: theme.textGold }]}>{t('liuyao.najjaTitle')}</Text>
           <Text style={[styles.sourceNote, { color: theme.textMuted }]}>
             {t('liuyao.najjaMeta', { palace: naJia.palace, element: naJia.palaceElement, generation: naJia.generation, day: naJia.dayStemBranch, month: naJia.monthBranch, xun: naJia.xun, void: naJia.voidBranches.join('') })}
           </Text>
@@ -163,7 +163,7 @@ export default function LiuYaoPanel({
           ))}
           {primaryMovingNaJia && changedMovingNaJia && changingRelation && (
             <View style={[styles.transformBox, { borderColor: theme.bgMedium }]}>
-              <Text style={[styles.transformTitle, { color: theme.gold }]}>{t('liuyao.transformTitle')}</Text>
+              <Text style={[styles.transformTitle, { color: theme.textGold }]}>{t('liuyao.transformTitle')}</Text>
               <Text style={[styles.transformText, { color: theme.textSecondary }]}>
                 {t('liuyao.transformText', {
                   from: `${primaryMovingNaJia.stemBranch}${primaryMovingNaJia.element}`,
@@ -176,7 +176,7 @@ export default function LiuYaoPanel({
           {/* 伏神：卦中不現的六親，用神不上卦時的唯一依據 */}
           {naJia.hidden.length > 0 && (
             <View style={[styles.transformBox, { borderColor: theme.bgMedium }]}>
-              <Text style={[styles.transformTitle, { color: theme.gold }]}>{t('liuyao.hiddenTitle')}</Text>
+              <Text style={[styles.transformTitle, { color: theme.textGold }]}>{t('liuyao.hiddenTitle')}</Text>
               {naJia.hidden.map(h => (
                 <Text
                   key={`${h.position}-${h.relative}`}
@@ -201,7 +201,7 @@ export default function LiuYaoPanel({
           {/* 用神斷語：把整張盤收斂成「所問之事如何」 */}
           {verdict && (
             <View style={[styles.transformBox, { borderColor: theme.goldFaint }]}>
-              <Text style={[styles.transformTitle, { color: theme.gold }]}>{t('liuyao.verdictTitle')}</Text>
+              <Text style={[styles.transformTitle, { color: theme.textGold }]}>{t('liuyao.verdictTitle')}</Text>
               <Text style={[styles.verdictLine, { color: colorFor(LEVEL_TONE[verdict.verdict] || 'neutral') }]}>
                 {t('liuyao.verdictLine', {
                   relative: verdict.subject === '世爻'

@@ -352,7 +352,7 @@ export default function CollectionScreen() {
             <TouchableOpacity key={o}
               style={[styles.sortBtn, sortOrder === o && { borderColor: theme.gold }]}
               onPress={() => setSortOrder(o)}>
-              <Text style={[styles.sortText, sortOrder === o && { color: theme.gold }]}>
+              <Text style={[styles.sortText, sortOrder === o && { color: theme.textGold }]}>
                 {t(o === 'newest' ? 'collection.sortNewest' : o === 'oldest' ? 'collection.sortOldest' : 'collection.sortBest')}
               </Text>
             </TouchableOpacity>
@@ -448,7 +448,7 @@ export default function CollectionScreen() {
                   autoFocus
                 />
                 <TouchableOpacity style={styles.folderBtn} onPress={handleAddFolder}>
-                  <Text style={{ color: theme.gold, fontWeight: '600' }}>{t('common.add')}</Text>
+                  <Text style={{ color: theme.textGold, fontWeight: '600' }}>{t('common.add')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowAddFolder(false)}>
                   <Text style={{ color: theme.textMuted }}>{t('common.cancel')}</Text>
@@ -456,7 +456,7 @@ export default function CollectionScreen() {
               </View>
             ) : (
               <TouchableOpacity style={[styles.addFolderBtn, { borderColor: theme.bgMedium }]} onPress={() => setShowAddFolder(true)}>
-                <Text style={{ color: theme.gold }}>＋ {t('collection.newFolder')}</Text>
+                <Text style={{ color: theme.textGold }}>＋ {t('collection.newFolder')}</Text>
               </TouchableOpacity>
             )}
 

@@ -124,7 +124,7 @@ export default function LibraryScreen() {
         <Text style={[styles.filterLabel, { color: theme.textMuted }]}>{t('library.element')}</Text>
         {[...new Set(TRIGRAM_ELEMENTS)].map(element => (
           <TouchableOpacity key={element} style={[styles.filterChip, elementFilter === element && { borderColor: theme.gold }]} onPress={() => setElementFilter(element === elementFilter ? null : element)}>
-            <Text style={[styles.filterText, elementFilter === element && { color: theme.gold }]}>{element}</Text>
+            <Text style={[styles.filterText, elementFilter === element && { color: theme.textGold }]}>{element}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -174,7 +174,7 @@ export default function LibraryScreen() {
                 onPress={() => router.push('/draw')}
               >
                 <Icon name="dice" size={16} color={theme.gold} />
-                <Text style={[styles.drawBtnText, { color: theme.gold }]}> {t('library.divineWith')}</Text>
+                <Text style={[styles.drawBtnText, { color: theme.textGold }]}> {t('library.divineWith')}</Text>
               </TouchableOpacity>
             )}
             <Text style={[styles.expandHint, { color: theme.textMuted }]}>

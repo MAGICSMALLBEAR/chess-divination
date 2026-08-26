@@ -74,7 +74,7 @@ export default function AchievementsScreen() {
         <View style={[styles.overviewCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
           <View style={styles.overviewTitleRow}>
             <Icon name="trophy" size={18} color={theme.gold} />
-            <Text style={[styles.overviewTitle, { color: theme.gold }]}> {t('achievement.progress')}</Text>
+            <Text style={[styles.overviewTitle, { color: theme.textGold }]}> {t('achievement.progress')}</Text>
           </View>
           <View style={styles.progressRow}>
             {/* 進度環 */}
@@ -84,7 +84,7 @@ export default function AchievementsScreen() {
                 borderColor: theme.gold,
                 // Simple arc simulation using percentage
               }]} />
-              <Text style={[styles.ringText, { color: theme.gold }]}>{pct}%</Text>
+              <Text style={[styles.ringText, { color: theme.textGold }]}>{pct}%</Text>
             </View>
             <View style={styles.overviewStats}>
               <Text style={[styles.statBig, { color: theme.textPrimary }]}>{unlocked}<Text style={[styles.statSmall, { color: theme.textMuted }]}>/{total}</Text></Text>

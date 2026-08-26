@@ -41,6 +41,6 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   linkText: {
     fontSize: FontSize.small,
-    color: t.gold,
+    color: t.textGold,
   },
 });

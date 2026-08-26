@@ -168,7 +168,7 @@ export default function StatsScreen() {
 
         {/* 占驗總覽 */}
         <View style={[styles.accuracyCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎{t('stats.journal')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>▎{t('stats.journal')}</Text>
 
           {accuracy.rate === null ? (
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>
@@ -237,7 +237,7 @@ export default function StatsScreen() {
         {/* 吉凶分佈與棋子排行。寬螢幕並排，窄螢幕上下堆疊 */}
         <View testID="card-grid" style={styles.grid}>
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('stats.levelDist')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('stats.levelDist')}</Text>
           {POEM_LEVELS.map(level => {
             const count = levelCounts[level] || 0;
             const pct = total > 0 ? (count / total * 100) : 0;
@@ -256,13 +256,13 @@ export default function StatsScreen() {
 
         {/* 最常抽到的棋子 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('stats.topPieces')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('stats.topPieces')}</Text>
           {sortedTypes.length === 0 && (
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>{t('stats.noData')}</Text>
           )}
           {sortedTypes.slice(0, 7).map(([type, count], i) => (
             <View key={type} style={styles.rankRow}>
-              <Text style={[styles.rankNum, { color: theme.gold }]}>#{i + 1}</Text>
+              <Text style={[styles.rankNum, { color: theme.textGold }]}>#{i + 1}</Text>
               <Text style={[styles.rankType, { color: theme.textPrimary }]}>
                 {PIECE_CHINESE_NAMES[type] ?? type}
               </Text>
@@ -348,7 +348,7 @@ function AccuracySection({ title, rows, theme, styles, colorOf }: {
 }) {
   return (
     <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-      <Text style={[styles.sectionTitle, { color: theme.gold }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{title}</Text>
       {rows.map(row => (
         <View key={row.key} style={styles.barRow}>
           <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{row.label}</Text>

@@ -128,7 +128,7 @@ export default function DrawScreen() {
                   ]}
                   onPress={() => { playDrawPieceSound(); hapticMedium(); startDrawing(n, selectedCategory, questionText); }}
                 >
-                  <Text style={[styles.countNum, preferredCount === n && { color: theme.gold }]}>{n}</Text>
+                  <Text style={[styles.countNum, preferredCount === n && { color: theme.textGold }]}>{n}</Text>
                   <Text style={styles.countLabel}>
                     {t(n === 1 ? 'draw.single' : n === 2 ? 'draw.double' : 'draw.triple')}
                   </Text>
@@ -136,7 +136,7 @@ export default function DrawScreen() {
                     {t(n === 1 ? 'draw.singleDesc' : n === 2 ? 'draw.doubleDesc' : 'draw.tripleDesc')}
                   </Text>
                   {preferredCount === n && (
-                    <Text testID={`draw-count-suggested-${n}`} style={[styles.countSuggested, { color: theme.gold }]}>
+                    <Text testID={`draw-count-suggested-${n}`} style={[styles.countSuggested, { color: theme.textGold }]}>
                       {t('draw.suggested')}
                     </Text>
                   )}

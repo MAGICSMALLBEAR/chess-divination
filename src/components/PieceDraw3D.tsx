@@ -428,7 +428,7 @@ export default function PieceDraw3D({ drawnPieces, drawSummary, onReveal, onRedr
                       <Text style={[styles.pieceBackText, { color: theme.textGold }]}>
                         {getPieceTrigramName(piece)}
                       </Text>
-                      <Text style={[styles.pieceBackGlyph, { color: theme.gold }]}>
+                      <Text style={[styles.pieceBackGlyph, { color: theme.textGold }]}>
                         {getPieceTrigramGlyph(piece)}
                       </Text>
                     </View>

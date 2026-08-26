@@ -70,7 +70,7 @@ export default function HomeScreen() {
           {streak > 1 && (
             <View style={styles.iconRow}>
               <Icon name="flame" size={14} color={theme.gold} />
-              <Text style={[styles.streakText, { color: theme.gold }]}>
+              <Text style={[styles.streakText, { color: theme.textGold }]}>
                 {' '}{t('home.streak', { n: streak })}
               </Text>
             </View>
@@ -87,7 +87,7 @@ export default function HomeScreen() {
             <View style={styles.dailyHeaderRow}>
               <View style={styles.iconRow}>
                 <Icon name="location" size={18} color={theme.gold} />
-                <Text style={[styles.dailyTitle, { color: theme.gold }]}> {t('home.daily')}</Text>
+                <Text style={[styles.dailyTitle, { color: theme.textGold }]}> {t('home.daily')}</Text>
               </View>
               <TouchableOpacity
                 testID="daily-share"
@@ -146,7 +146,7 @@ export default function HomeScreen() {
           <View style={[styles.recentSection, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <View style={styles.iconRow}>
               <Icon name="scroll" size={16} color={theme.gold} />
-              <Text style={[styles.recentTitle, { color: theme.gold }]}> {t('home.recent')}</Text>
+              <Text style={[styles.recentTitle, { color: theme.textGold }]}> {t('home.recent')}</Text>
             </View>
             {recentRecords.map(r => (
               <TouchableOpacity key={r.id} style={styles.recentRow}

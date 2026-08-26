@@ -53,7 +53,7 @@ export default function TrendChart({ data, title }: Props) {
       style={[styles.container, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}
       onLayout={onLayout}
     >
-      <Text style={[styles.title, { color: theme.gold }]}>{title}</Text>
+      <Text style={[styles.title, { color: theme.textGold }]}>{title}</Text>
       {/* 量測完成前不畫圖，避免以 0 寬度閃現 */}
       {chartWidth > 0 && (
       <Svg width={chartWidth + CHART_PADDING.right} height={CHART_HEIGHT}>

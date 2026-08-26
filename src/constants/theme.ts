@@ -63,14 +63,18 @@ export const DarkTheme: ThemeColors = {
 
   textPrimary: '#F5EDE0',
   textSecondary: '#C9B99A',
-  textMuted: '#8A7A60',
+  // 舊值 #8A7A60 對 bgDark 僅 4.42:1、對 bgMedium 3.85:1，未達 AA；
+  // 提亮到剛好越過 4.5 為止，仍與 textSecondary 有明顯層級差
+  textMuted: '#95866E',
   textGold: '#C9A96E',
   textRed: '#E5746A',
   textInverse: '#1A1210',
 
   success: '#6B9B6B',
   warning: '#C9A040',
-  danger: '#C0392B',
+  // 深底上的 #C0392B 只有 3.39:1。改用既有的朱砂亮色（textRed 同值），
+  // 不另外發明一個紅——同一套朱砂在深色主題本來就該用亮的那一階
+  danger: '#E5746A',
 
   pieceRed: '#C0392B',
   pieceBlack: '#2A1F18',
@@ -100,16 +104,22 @@ export const LightTheme: ThemeColors = {
   goldLight: '#C9A96E',
   goldDark: '#8A6830',
 
+  // 淺色主題的文字色一律以「最暗的文字底色」bgMedium（作用中的分頁籤）
+  // 為準達到 AA 4.5:1。舊值多半只顧到 bgInk：textMuted 2.88:1、
+  // gold 3.20:1，而這兩色正用在 10–12px 的說明文字與區塊標題上。
   textPrimary: '#1A1210',
-  textSecondary: '#5A4A38',
-  textMuted: '#9A8A78',
-  textGold: '#8A6830',
-  textRed: '#C0392B',
-  textInverse: '#F5EDE0',
+  // 一併加深，讓 primary > secondary > muted 的層級在加深 muted 後不塌掉
+  textSecondary: '#4A3B2A',
+  textMuted: '#5A5045',
+  textGold: '#654C20',
+  textRed: '#962C22',
+  // 反白文字只出現在金色按鈕上（quickDraw／interpretBtn／nextBtn 等）。
+  // 淺色主題的金是中間調，配宣紙色只有 3.04:1；按鈕文字改用墨色才讀得清楚
+  textInverse: '#1A1A1A',
 
-  success: '#5A8A5A',
-  warning: '#A08030',
-  danger: '#C0392B',
+  success: '#3B5A3B',
+  warning: '#63501E',
+  danger: '#962C22',
 
   pieceRed: '#C0392B',
   pieceBlack: '#1A1210',

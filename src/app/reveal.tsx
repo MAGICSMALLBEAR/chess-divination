@@ -313,7 +313,7 @@ export default function RevealScreen() {
         ) : record.hexagramName ? (
           <View style={[styles.hexBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={[styles.hexLabel, { color: theme.textMuted }]}>{t('reveal.hexPrimary')}</Text>
-            <Text style={[styles.hexName, { color: theme.gold }]}>{record.hexagramName}</Text>
+            <Text style={[styles.hexName, { color: theme.textGold }]}>{record.hexagramName}</Text>
           </View>
         ) : null}
 
@@ -328,7 +328,7 @@ export default function RevealScreen() {
         {/* 棋盤位置解讀 */}
         {record.positionSummary ? (
           <View style={[styles.positionBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-            <Text style={[styles.positionTitle, { color: theme.gold }]}>▎{t('reveal.position')}</Text>
+            <Text style={[styles.positionTitle, { color: theme.textGold }]}>▎{t('reveal.position')}</Text>
             <Text style={[styles.positionText, { color: theme.textSecondary }]}>{record.positionSummary}</Text>
           </View>
         ) : null}
@@ -354,7 +354,7 @@ export default function RevealScreen() {
 
         {/* AI 深度解讀。取不到時不影響下方的規則式解讀 */}
         <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎{t('reveal.aiTitle')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>▎{t('reveal.aiTitle')}</Text>
 
           {aiState.kind === 'idle' && (
             <TouchableOpacity
@@ -364,7 +364,7 @@ export default function RevealScreen() {
               accessibilityLabel={t('reveal.aiPrompt')}
             >
               <Icon name="crystal-ball" size={16} color={theme.gold} />
-              <Text style={[styles.aiBtnText, { color: theme.gold }]}> {t('reveal.aiAsk')}</Text>
+              <Text style={[styles.aiBtnText, { color: theme.textGold }]}> {t('reveal.aiAsk')}</Text>
             </TouchableOpacity>
           )}
 
@@ -400,13 +400,13 @@ export default function RevealScreen() {
 
         {/* 規則式深度解讀 */}
         <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>▎{t('reveal.deepTitle')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>▎{t('reveal.deepTitle')}</Text>
           <Text style={[styles.bodyText, { color: theme.textSecondary }]}>
             {deepReading.interpretation}
           </Text>
           {deepReading.actionPlan.length > 0 && (
             <View style={styles.actionList}>
-              <Text style={[styles.actionTitle, { color: theme.gold }]}>{t('reveal.deepActions')}</Text>
+              <Text style={[styles.actionTitle, { color: theme.textGold }]}>{t('reveal.deepActions')}</Text>
               {deepReading.actionPlan.map((step, i) => (
                 <Text key={i} style={[styles.actionItem, { color: theme.textSecondary }]}>
                   {i + 1}. {step}

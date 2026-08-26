@@ -80,7 +80,7 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
     return (
       <View style={[styles.box, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: theme.gold }]}>▎{t('outcome.title')}</Text>
+          <Text style={[styles.title, { color: theme.textGold }]}>▎{t('outcome.title')}</Text>
           <TouchableOpacity onPress={startEditing} accessibilityLabel={t('outcome.editLabel')}>
             <Text style={[styles.editLink, { color: theme.textMuted }]}>{t('outcome.edit')}</Text>
           </TouchableOpacity>
@@ -108,7 +108,7 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
   return (
     <View style={[styles.box, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.gold }]}>▎{t('outcome.title')}</Text>
+        <Text style={[styles.title, { color: theme.textGold }]}>▎{t('outcome.title')}</Text>
         {editing && outcome ? (
           <TouchableOpacity onPress={() => setEditing(false)}>
             <Text style={[styles.editLink, { color: theme.textMuted }]}>{t('common.cancel')}</Text>

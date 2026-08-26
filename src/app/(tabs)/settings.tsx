@@ -170,7 +170,7 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* 用戶名稱 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.personal')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.personal')}</Text>
           {editingName ? (
             <View style={styles.row}>
               <TextInput
@@ -185,7 +185,7 @@ export default function SettingsScreen() {
                 await update('userName', nameText);
                 setEditingName(false);
               }}>
-                <Text style={{ color: theme.gold, fontWeight: '600' }}>{t('common.save')}</Text>
+                <Text style={{ color: theme.textGold, fontWeight: '600' }}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -203,7 +203,7 @@ export default function SettingsScreen() {
                   style={[styles.option, settings.divinerGender === value && { borderColor: theme.gold }]}
                   onPress={() => update('divinerGender', value)}
                   accessibilityLabel={t(labelKey)}>
-                  <Text style={[styles.optionText, settings.divinerGender === value && { color: theme.gold }]}>
+                  <Text style={[styles.optionText, settings.divinerGender === value && { color: theme.textGold }]}>
                     {t(labelKey)}
                   </Text>
                 </TouchableOpacity>
@@ -215,7 +215,7 @@ export default function SettingsScreen() {
 
         {/* 主題 & 語言 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.appearance')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.appearance')}</Text>
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.theme')}</Text>
             <View style={styles.options}>
@@ -228,7 +228,7 @@ export default function SettingsScreen() {
                   onPress={() => setMode(opt)}>
                   <View style={styles.optionInner}>
                     <Icon name={opt === 'dark' ? 'moon' : opt === 'light' ? 'sun' : 'refresh'} size={16} color={mode === opt ? theme.gold : theme.textMuted} />
-                    <Text style={[styles.optionText, mode === opt && { color: theme.gold }]}>
+                    <Text style={[styles.optionText, mode === opt && { color: theme.textGold }]}>
                       {' '}{t(opt === 'dark' ? 'settings.themeDark' : opt === 'light' ? 'settings.themeLight' : 'settings.themeSystem')}
                     </Text>
                   </View>
@@ -247,7 +247,7 @@ export default function SettingsScreen() {
                     setLang(opt.key);
                     update('lang', opt.key);
                   }}>
-                  <Text style={[styles.optionText, lang === opt.key && { color: theme.gold }]}>
+                  <Text style={[styles.optionText, lang === opt.key && { color: theme.textGold }]}>
                     {opt.label}
                   </Text>
                 </TouchableOpacity>
@@ -258,7 +258,7 @@ export default function SettingsScreen() {
 
         {/* 預設抽棋數量 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.preset')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.preset')}</Text>
           <View style={styles.row}>
             <View style={styles.options}>
               {([1, 2, 3] as const).map((n) => (
@@ -268,7 +268,7 @@ export default function SettingsScreen() {
                   accessibilityState={{ selected: settings.pieceCountPreset === n }}
                   style={[styles.option, settings.pieceCountPreset === n && { borderColor: theme.gold }]}
                   onPress={() => update('pieceCountPreset', n)}>
-                  <Text style={[styles.optionText, settings.pieceCountPreset === n && { color: theme.gold }]}>{t('settings.pieces', { n })}</Text>
+                  <Text style={[styles.optionText, settings.pieceCountPreset === n && { color: theme.textGold }]}>{t('settings.pieces', { n })}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -281,7 +281,7 @@ export default function SettingsScreen() {
             使用者永遠只能用預設的 normal——與「預設抽棋數量」剛好相反：
             那一項存得進去卻沒人讀。兩個都是設定與實際行為對不上。 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.animSpeed')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.animSpeed')}</Text>
           <View style={styles.row}>
             <View style={styles.options}>
               {(['slow', 'normal', 'fast'] as const).map((speed) => (
@@ -291,7 +291,7 @@ export default function SettingsScreen() {
                   accessibilityState={{ selected: settings.drawAnimationSpeed === speed }}
                   style={[styles.option, settings.drawAnimationSpeed === speed && { borderColor: theme.gold }]}
                   onPress={() => update('drawAnimationSpeed', speed)}>
-                  <Text style={[styles.optionText, settings.drawAnimationSpeed === speed && { color: theme.gold }]}>
+                  <Text style={[styles.optionText, settings.drawAnimationSpeed === speed && { color: theme.textGold }]}>
                     {t(speed === 'slow' ? 'settings.speedSlow' : speed === 'normal' ? 'settings.speedNormal' : 'settings.speedFast')}
                   </Text>
                 </TouchableOpacity>
@@ -303,7 +303,7 @@ export default function SettingsScreen() {
 
         {/* 音效 & 觸覺 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.experience')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.experience')}</Text>
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.sound')}</Text>
             <Switch value={settings.soundEnabled}
@@ -329,7 +329,7 @@ export default function SettingsScreen() {
 
         {/* 工具 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.tools')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.tools')}</Text>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/library')}>
             <View style={styles.optionInner}>
               <Icon name="scroll" size={16} color={theme.textSecondary} />
@@ -355,7 +355,7 @@ export default function SettingsScreen() {
 
         {/* 備份 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.data')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.data')}</Text>
           <TouchableOpacity style={styles.row} onPress={handleBackup}>
             <View style={styles.optionInner}>
               <Icon name="save" size={16} color={theme.textSecondary} />
@@ -387,7 +387,7 @@ export default function SettingsScreen() {
               <TouchableOpacity onPress={async () => {
                 if (await saveSyncKey(syncKeyText)) setEditingSyncKey(false);
                 else notify(t('settings.cloudSync'), t('settings.syncKeyInvalid'));
-              }}><Text style={{ color: theme.gold, fontWeight: '600' }}>{t('common.save')}</Text></TouchableOpacity>
+              }}><Text style={{ color: theme.textGold, fontWeight: '600' }}>{t('common.save')}</Text></TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity style={styles.row} onPress={() => setEditingSyncKey(true)}>
@@ -432,7 +432,7 @@ export default function SettingsScreen() {
 
         {/* 關於 */}
         <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
-          <Text style={[styles.sectionTitle, { color: theme.gold }]}>{t('settings.about')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('settings.about')}</Text>
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.version')}</Text>
             <Text style={{ color: theme.textPrimary }}>1.0.0</Text>
