@@ -5,7 +5,7 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 86 個 |
-| Git Commits | 90 次 |
+| Git Commits | 91 次 |
 | Jest 測試 | 939 個 · 48 套件 · 全部通過 |
 | E2E 測試 | 112 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
@@ -1886,6 +1886,22 @@ SpaceMono 英文字體載入上」的註解——但**檔案本身沒刪**。它
 TS 零錯誤 · Jest 939 全過（48 suites）· E2E 112。
 資產與翻譯表清乾淨，兩個方向都補上守門。
 
+**Production 已部署**：2026-08-27 push `19866b8` 觸發
+`chess-divination-50xvof75x-magicsmallbears-projects.vercel.app`（Ready）。
+
+這輪是刪東西，所以線上驗證要反過來比對——**被刪的必須從 bundle 消失**。
+但單看它們消失不算數：抓到 404 頁或空回應也會「消失」。所以驗證腳本
+同時比對正向對照，兩邊都對才算數：
+
+- 正向對照 FOUND：`collection.noHistory`、`library.search`（取代死鍵的
+  那兩個）、`board.removePieceAt`、`isPlausibleCapture`、`settings.syncOffline`
+- Session 36 刪除 GONE：`poem.level`、`collection.empty`、`common.ok`、
+  `home.shareFailed`、`home.copyFailed`、`library.keyword`、`settings.syncPartial`
+- `SpaceMono` ABSENT（任何資產路徑都查不到）
+- entry bundle hash 由 `e4e25177…` 換成 `55cb874e…`，確認不是快取舊檔
+- 九條路由（`/`／`/reveal`／`/library`／`/collection`／`/stats`／
+  `/achievements`／`/settings`／`/draw`／`/board`）皆回 200
+
 ---
 
 ## 功能完整清單
@@ -1977,7 +1993,7 @@ Session 35 清掉最後 1 條（A25）。**25 條全數結案**。A25 的截圖�
 
 | # | 待辦 | 優先度 | 備註 |
 |---|------|--------|------|
-| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/26 push `0b8a3c0`，production 已含 Session 35，bundle 標記與九條路由皆驗證）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
+| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/27 push `19866b8`，production 已含 Session 36，正反向 bundle 比對與九條路由皆驗證）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
 | 2 | ~~**單元測試覆蓋率補強**~~ ✅ | 🟢 已完成 | 265 → 536，31 套件全過（8/16） |
 | 3 | **iOS/Android 實機測試** | 🟡 中 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端觸覺、字體、手勢；一併確認分享圖片有內容（A25 防線的現場驗證） |
 | 4 | **EAS Build 原生測試** | 🟢 低 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
