@@ -1,6 +1,47 @@
 # 原生版驗證清單
 
-此專案的 Web 自動測試不涵蓋原生能力。每次準備上架前，請先建立 preview binary：
+分兩階段：**先用 Expo Go 掃一遍**（不需 EAS 帳號、不需 build，五分鐘就能開始），
+真的要上架前再用 preview binary 做完整驗收。兩份清單刻意分開——
+Expo Go 驗得到的東西不必等 build，驗不到的也不該讓人誤以為驗過了。
+
+---
+
+## 第一階段：Expo Go（現在就能做）
+
+```sh
+npx expo start --go
+```
+
+手機與電腦連同一個網段，用相機掃終端機的 QR code（Android 用 Expo Go App 內建掃描器）。
+若掃不到，在 Expo Go 手動輸入本機網址即可。
+
+### Expo Go 驗得到
+
+| # | 項目 | 怎麼判定過關 | 為什麼 Web 測不到 |
+|---|------|------------|-----------------|
+| 1 | **分享圖片有內容（A25）** | 揭曉頁按「分享」→ 選存檔或傳給自己 → **打開那張圖，確認看得到籤詩、棋子與卦象，不是全白/全黑** | `view-shot` 的 iOS 端是 `drawViewHierarchyInRect`（照螢幕上的樣子重畫），離屏元件截出空白是有回報的行為。Web 端走的是完全不同的路徑，測不到這件事 |
+| 2 | **空白截圖的降級是否誤傷** | 同上，若拿到的是**文字分享而非圖片**，代表 `isPlausibleCapture` 把正常卡片誤判成空白 | 門檻 4KB 是估的，沒有實機樣本驗證過真卡片的實際大小 |
+| 3 | **書法字型真的載入** | 籤詩四句應為襯線楷書風，不是系統黑體 | 原生走執行期 `loadAsync` 載入 1.2MB 子集字型，與 Web 的 Google Fonts 是兩套路徑 |
+| 4 | **日文／英文字形不缺字** | 設定切 ja 與 en，看六爻面板的斷語有沒有缺字方框（Session 38 新增的譯文） | 子集字型只收錄掃描到的字元，漏收在 Web 上看不出來（瀏覽器有系統字型後備） |
+| 5 | **觸覺回饋** | 抽棋、落子、收藏時手機應有震動 | `expo-haptics` 在 Web 是 no-op |
+| 6 | **音效** | 抽棋、揭曉、落子、收藏四種音效；靜音鍵開啟時 iOS 的行為 | `sound.web.ts` 有分身，原生走 `expo-audio` |
+| 7 | **本地排程通知** | 設定開「每日提醒」→ 接受權限 → 確認排程成功；占卜後 14 天的占驗提醒可先把裝置日期往後調來驗 | 本地通知在 Expo Go 可用（SDK 57 只有 Android 推播不可用，本 App 不用推播） |
+| 8 | **通知點擊導頁** | 點占驗提醒應進入 `/stats`，而非只是打開首頁 | 冷啟動路徑（`getLastNotificationResponseAsync`）只有真機殺掉 App 後才走得到 |
+| 9 | **減少動態效果** | 系統開啟「減少動態」後再抽棋，墨滴轉場應跳過且**不得殘留遮罩** | 系統層設定，Web 的 `prefers-reduced-motion` 是另一套 |
+| 10 | **安全區與瀏海** | 首頁、揭曉頁、棋盤頁的頂部不被瀏海/動態島遮住；底部導覽不被 home indicator 蓋住 | 模擬器與瀏覽器都不會重現真機的安全區 |
+| 11 | **橫向與旋轉** | 旋轉後版面重算（棋盤格子、卡片寬度），不錯位 | `useViewport` 在原生走 RN 的 `useWindowDimensions`，與 Web 分支不同 |
+| 12 | **雙機雲端同步** | A 機起卦 → B 機輸入相同配對碼 → 歷史／收藏／資料夾／自訂類別皆出現 | 需要兩個真實裝置與真實網路 |
+
+### Expo Go 驗不到（必須等 preview binary）
+
+- **App 圖示與啟動畫面**：Expo Go 顯示的是它自己的圖示
+- **Android 推播**：SDK 53 起 Expo Go 不支援（本 App 只用本地通知，不受影響）
+- **任何 config plugin 的效果**：`app.json` 的原生設定要重新 build 才生效
+- **正式簽章、深連結、分享目標**：都屬 build-time 設定
+
+---
+
+## 第二階段：preview binary（上架前）
 
 ```sh
 eas build --platform android --profile preview
@@ -15,5 +56,6 @@ eas build --platform ios --profile preview
 4. 開啟每日提醒，確認 iOS／Android 權限提示、上午 9 點排程與點擊通知後可進入 App。
 5. 於兩台裝置完成雲端同步：第一台起卦、第二台輸入相同配對碼、確認歷史／收藏／資料夾／自訂類別皆出現。
 6. 斷網、拒絕通知權限、關閉 AI 金鑰及 AI 限流時，主流程皆需保留規則式解讀且不能當機。
+7. App 圖示、啟動畫面、深連結與分享目標（這幾項 Expo Go 驗不到）。
 
 `expo-notifications` 的設定屬 native build-time config；改動 app.json 後必須重新建立 binary，不能只靠 Expo Go 驗證。
