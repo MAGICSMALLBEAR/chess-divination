@@ -69,3 +69,49 @@ describe('原生端字型子集守門', () => {
     expect(mustCoverMissing).toEqual([]);
   });
 });
+
+/**
+ * 字型檔孤兒守門。
+ *
+ * 迴歸背景：B5 把 Expo 範本留下的 SpaceMono 從 `useFonts` 拔掉了，
+ * 卻沒有刪檔——那 92 KB 從此沒有任何程式碼引用，但仍躺在 assets/fonts，
+ * 每個原生 build 都照樣把它打包進去。「停止載入」與「停止打包」是兩件事，
+ * 只做前者會留下看不見的體積。
+ *
+ * 這裡守的是後者：assets/fonts 底下每個字型檔都必須有人 require 或
+ * 在腳本／設定裡指名，否則就是孤兒。
+ */
+describe('字型資產孤兒守門', () => {
+  const REFERENCING_ROOTS = ['src', 'scripts', 'app.json'];
+  const REPO = path.resolve(__dirname, '../..');
+
+  /** 把 REFERENCING_ROOTS 底下的文字檔全部讀成一大串，用來找檔名 */
+  function referencingSources(): string[] {
+    const texts: string[] = [];
+    const walk = (target: string) => {
+      const stat = fs.statSync(target);
+      if (stat.isDirectory()) {
+        for (const entry of fs.readdirSync(target)) walk(path.join(target, entry));
+        return;
+      }
+      if (!/\.(tsx?|jsx?|json|py|md)$/.test(target)) return;
+      texts.push(fs.readFileSync(target, 'utf-8'));
+    };
+    for (const root of REFERENCING_ROOTS) walk(path.join(REPO, root));
+    return texts;
+  }
+
+  const fontFiles = () =>
+    fs.readdirSync(FONTS_DIR).filter(f => /\.(ttf|otf|woff2?)$/i.test(f));
+
+  test('掃描範圍實際讀到檔案（守門測試的自我檢查）', () => {
+    expect(referencingSources().length).toBeGreaterThan(40);
+    expect(fontFiles().length).toBeGreaterThan(0);
+  });
+
+  test('assets/fonts 底下沒有沒人引用的字型檔', () => {
+    const sources = referencingSources();
+    const orphans = fontFiles().filter(f => !sources.some(s => s.includes(f)));
+    expect(orphans).toEqual([]);
+  });
+});

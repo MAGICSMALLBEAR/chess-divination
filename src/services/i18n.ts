@@ -33,7 +33,6 @@ export const translations: Record<string, Record<Lang, string>> = {
   'draw.count': { 'zh-TW': '選擇抽取棋子數量', en: 'Select number of pieces', ja: '引く駒の数を選ぶ' },
 
   // 籤詩
-  'poem.level': { 'zh-TW': '吉凶', en: 'Fortune Level', ja: '吉凶' },
   'poem.vernacular': { 'zh-TW': '白話解釋', en: 'Explanation', ja: '解説' },
   'poem.story': { 'zh-TW': '典故參考', en: 'Reference Story', ja: '典故' },
   'poem.categories': { 'zh-TW': '各面向詳解', en: 'Category Details', ja: '項目別詳細' },
@@ -41,7 +40,6 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 收藏
   'collection.history': { 'zh-TW': '歷史記錄', en: 'History', ja: '履歴' },
   'collection.favorites': { 'zh-TW': '我的收藏', en: 'My Favorites', ja: 'お気に入り' },
-  'collection.empty': { 'zh-TW': '尚無占卜記錄', en: 'No records yet', ja: 'まだ記録がありません' },
 
   // 設定
   'settings.title': { 'zh-TW': '設定', en: 'Settings', ja: '設定' },
@@ -175,7 +173,6 @@ export const translations: Record<string, Record<Lang, string>> = {
   'common.share': { 'zh-TW': '分享', en: 'Share', ja: '共有' },
   'common.favorite': { 'zh-TW': '收藏', en: 'Favorite', ja: 'お気に入り' },
   'common.loading': { 'zh-TW': '載入中...', en: 'Loading...', ja: '読み込み中...' },
-  'common.ok': { 'zh-TW': '確定', en: 'OK', ja: 'OK' },
   'common.add': { 'zh-TW': '新增', en: 'Add', ja: '追加' },
   'common.edit': { 'zh-TW': '編輯', en: 'Edit', ja: '編集' },
   'common.clear': { 'zh-TW': '清除', en: 'Clear', ja: 'クリア' },
@@ -214,8 +211,6 @@ export const translations: Record<string, Record<Lang, string>> = {
   'home.streak': { 'zh-TW': '連續 {n} 天', en: '{n}-day streak', ja: '{n}日連続' },
   'home.motto1': { 'zh-TW': '棋局如人生，落子無悔。', en: 'The board is life; every move is final.', ja: '棋局は人生の如し、着手に悔いなし。' },
   'home.motto2': { 'zh-TW': '觀棋不語真君子，起手無回大丈夫。', en: 'Watch in silence; commit without retreat.', ja: '観棋不語こそ君子、起手無回こそ大丈夫。' },
-  'home.shareFailed': { 'zh-TW': '分享失敗', en: 'Share failed', ja: '共有に失敗しました' },
-  'home.copyFailed': { 'zh-TW': '複製到剪貼簿失敗', en: 'Failed to copy to clipboard', ja: 'クリップボードへのコピーに失敗しました' },
 
   // 模式選擇
   'mode.pick': { 'zh-TW': '選擇占卜方式', en: 'Choose a Divination Mode', ja: '占い方法を選ぶ' },
@@ -408,7 +403,6 @@ export const translations: Record<string, Record<Lang, string>> = {
   'library.divineWith': { 'zh-TW': '以此卦占卜', en: 'Divine with this hexagram', ja: 'この卦で占う' },
   'library.notFound': { 'zh-TW': '找不到符合的籤詩', en: 'No matching poems', ja: '該当する詩がありません' },
   'library.element': { 'zh-TW': '五行', en: 'Element', ja: '五行' },
-  'library.keyword': { 'zh-TW': '問事方向', en: 'Topic', ja: '相談内容' },
 
   // 籤詩卡
   'poem.pieces': { 'zh-TW': '棋象：', en: 'Pieces:', ja: '棋象：' },
@@ -462,7 +456,6 @@ export const translations: Record<string, Record<Lang, string>> = {
   'settings.syncServerError': { 'zh-TW': '同步伺服器暫時無法回應，稍後再試。', en: 'The sync server is temporarily unavailable. Try again later.', ja: '同期サーバーが一時的に応答しません。しばらくして再試行してください。' },
   'settings.syncFailed': { 'zh-TW': '同步過程發生未預期的錯誤，資料未變更。請確認裝置儲存空間後再試。', en: 'Sync failed unexpectedly and nothing was changed. Check your device storage and try again.', ja: '同期中に予期しないエラーが発生し、データは変更されていません。端末の空き容量を確認して再試行してください。' },
   'settings.syncOk': { 'zh-TW': '同步完成！', en: 'Sync complete', ja: '同期が完了しました' },
-  'settings.syncPartial': { 'zh-TW': '上傳成功，但無法下載遠端資料。', en: 'Upload succeeded, but remote data could not be downloaded.', ja: 'アップロードは成功しましたが、リモートデータを取得できませんでした。' },
   'settings.notifyDenied': { 'zh-TW': '無法設定', en: 'Cannot enable', ja: '設定できません' },
   'settings.notifyDeniedDesc': { 'zh-TW': '請先授予通知權限後再試。', en: 'Grant notification permission first, then try again.', ja: '通知の許可を与えてから再試行してください。' },
   'settings.notifyWebUnsupported': { 'zh-TW': '網頁版不支援本地通知，請在 App 內開啟每日提醒。', en: 'Web browsers do not support local notifications. Turn on daily reminders inside the app.', ja: 'ウェブ版はローカル通知に対応していません。アプリ内で毎日のリマインダーを有効にしてください。' },

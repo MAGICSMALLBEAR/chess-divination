@@ -164,3 +164,70 @@ describe('i18n 覆蓋率', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * 反向守門：翻譯表裡不得有沒人用的鍵。
+ *
+ * 迴歸背景：介面改版時常見的是「換一個更好的鍵」——`collection.empty`
+ * 被 `collection.noHistory` 取代、`library.keyword` 被 `library.search`
+ * 取代——舊鍵沒人刪，三種語言的字串就一直躺在表裡跟著 bundle 出貨。
+ * 更麻煩的是它會誤導：日後有人看到 `settings.syncPartial` 會以為畫面
+ * 真的有「部分同步」這個狀態，其實那個狀態根本不存在。
+ *
+ * 動態組出來的鍵（t(`outcome.${status}`)）掃不到字面量，所以列前綴白名單，
+ * 每一條都要指出是誰組的——白名單長出來就代表動態鍵變多了，該檢討。
+ */
+describe('翻譯鍵反向覆蓋', () => {
+  /** 以樣板字串動態組出的鍵，掃描找不到字面量，逐條記錄組它的地方 */
+  const DYNAMIC_PREFIXES: [string, string][] = [
+    ['outcome.', 'OutcomeMarker.tsx / collection.tsx 的 t(`outcome.${status}`)'],
+    ['stats.season', 'stats.tsx 的 t(`stats.season${season}`)'],
+  ];
+
+  const i18nSource = () =>
+    fs.readFileSync(path.join(SRC, 'services', 'i18n.ts'), 'utf8');
+
+  /**
+   * 掃 src 全部（含 data/services，籤詩與陣型的 labelKey 寫在那裡），
+   * 排除 i18n.ts 自己與 __tests__。
+   *
+   * 排除 __tests__ 不是為了跑得快：測試檔裡出現的鍵名是在「討論」這個鍵，
+   * 不是在用它。第一版沒排除，本測試的註解裡剛好舉了一個死鍵當例子，
+   * 注入驗證就這樣被自己餵飽而假綠——同理註解也要先剝掉。
+   */
+  function usageText(): string {
+    const chunks: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === '__tests__') continue;
+          walk(full);
+          continue;
+        }
+        if (!/\.tsx?$/.test(entry.name)) continue;
+        if (full === path.join(SRC, 'services', 'i18n.ts')) continue;
+        chunks.push(stripComments(fs.readFileSync(full, 'utf8')).join('\n'));
+      }
+    };
+    walk(SRC);
+    return chunks.join('\n');
+  }
+
+  const keys = () =>
+    [...new Set([...i18nSource().matchAll(/^\s*'([\w.]+)':\s*\{/gm)].map(m => m[1]))];
+
+  test('翻譯表與掃描範圍都不是空的（守門測試的自我檢查）', () => {
+    expect(keys().length).toBeGreaterThan(300);
+    expect(usageText().length).toBeGreaterThan(100_000);
+  });
+
+  test('每個翻譯鍵都有人用', () => {
+    const text = usageText();
+    const dead = keys().filter(key => {
+      if (DYNAMIC_PREFIXES.some(([prefix]) => key.startsWith(prefix))) return false;
+      return !text.includes(`'${key}'`) && !text.includes(`"${key}"`) && !text.includes(`\`${key}\``);
+    });
+    expect(dead).toEqual([]);
+  });
+});
