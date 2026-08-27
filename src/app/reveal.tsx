@@ -37,13 +37,12 @@ import { recordUsage, syncAchievements } from '@/services/achievements';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { useLayout } from '@/hooks/useLayout';
+import { SplitReading } from '@/components/SplitReading';
 
 export default function RevealScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
-  const { contentWidth } = useLayout();
   const { t } = useI18n();
   const { recordId, mode } = useLocalSearchParams<{ recordId: string; mode: string }>();
   const [record, setRecord] = useState<DivinationRecord | null>(null);
@@ -286,7 +285,7 @@ export default function RevealScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <InkBackground />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-       <View style={[styles.inner, { width: contentWidth }]}>
+       <View style={styles.inner}>
 
         {/* 墨滴擴散轉場：覆蓋在內容之上的墨滴遮罩 */}
         <InkSplashOverlay
@@ -294,6 +293,8 @@ export default function RevealScreen() {
           onComplete={handleSplashComplete}
         />
 
+        <SplitReading
+         head={<>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -319,7 +320,8 @@ export default function RevealScreen() {
             </Text>
           </View>
         )}
-
+         </>}
+         rail={<>
         {/* 卦例推演：本卦／互卦／變卦 + 體用 */}
         {reading ? (
           <View style={styles.panelWrap}>
@@ -353,7 +355,8 @@ export default function RevealScreen() {
             <Text style={[styles.positionText, { color: theme.textSecondary }]}>{record.positionSummary}</Text>
           </View>
         ) : null}
-
+         </>}
+         main={<>
         {/* 棋子飛入動畫 */}
         {record.drawnPieceChars.length > 0 && (
           <PieceEntryFlyIn
@@ -459,6 +462,8 @@ export default function RevealScreen() {
           <Icon name="home" size={16} color={theme.textSecondary} />
           <Text style={styles.homeBtnText}> {t('reveal.home')}</Text>
         </TouchableOpacity>
+         </>}
+        />
        </View>
       </ScrollView>
 
@@ -494,7 +499,7 @@ export default function RevealScreen() {
 const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: t.bgInk },
   scroll: { flexGrow: 1, paddingBottom: 40, alignItems: 'center' },
-  // 內容以 contentWidth 限寬並置中，避免在平板／桌面被撐成整個視窗寬
+  // 限寬與分欄由 SplitReading 決定；這裡只負責置中
   inner: { alignItems: 'center' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { fontSize: FontSize.body, color: t.textSecondary },

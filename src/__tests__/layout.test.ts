@@ -169,3 +169,61 @@ describe('尺寸透傳', () => {
     expect(landscape.width).toBe(844);
   });
 });
+
+describe('閱讀型雙欄版面（split）', () => {
+  test('手機與平板維持單欄', () => {
+    expect(layoutAt(390).split).toBeNull();
+    expect(layoutAt(768).split).toBeNull();
+    expect(layoutAt(1024).split).toBeNull();
+  });
+
+  /**
+   * 斷點刻意高於 desktop(1024)。1024 若分欄，主欄扣掉側欄與間距後
+   * 會壓在可讀行寬的下緣，兩欄都不好讀——寬度不夠時單欄長捲軸較佳。
+   */
+  test('split 斷點前一像素仍為單欄', () => {
+    expect(layoutAt(Layout.split - 1).split).toBeNull();
+  });
+
+  test('達到 split 斷點後分欄', () => {
+    const l = layoutAt(Layout.split);
+    expect(l.split).not.toBeNull();
+    expect(l.split!.railWidth).toBe(Layout.railWidth);
+  });
+
+  test('主欄不低於一般閱讀寬度', () => {
+    for (const w of [Layout.split, 1280, 1440, 1920, 2560]) {
+      const l = layoutAt(w);
+      expect(`${w}: ${l.split!.mainWidth >= Layout.maxContent}`).toBe(`${w}: true`);
+    }
+  });
+
+  test('主欄受上限約束，超寬螢幕不無限拉長行寬', () => {
+    expect(layoutAt(2560).split!.mainWidth).toBe(Layout.maxSplitMain);
+    expect(layoutAt(3840).split!.mainWidth).toBe(Layout.maxSplitMain);
+  });
+
+  /** 側欄裝的是尺寸大致固定的六爻盤，跟著視窗長大只會產生更多空白 */
+  test('側欄寬度固定，不隨視窗變動', () => {
+    const widths = [Layout.split, 1440, 1920, 3840].map(w => layoutAt(w).split!.railWidth);
+    expect(new Set(widths).size).toBe(1);
+  });
+
+  test('兩欄加間距後仍放得進視窗', () => {
+    for (const w of [Layout.split, 1280, 1440]) {
+      const l = layoutAt(w);
+      const used = l.split!.mainWidth + Spacing.xl + l.split!.railWidth;
+      expect(`${w}: ${used <= w - Spacing.xl * 2}`).toBe(`${w}: true`);
+    }
+  });
+
+  /**
+   * split 與 columns 是兩套獨立規則：後者給同質卡片網格（圖鑑、收藏），
+   * 前者給異質的閱讀版面。混用會讓籤詩被切成跟六爻盤一樣寬的窄柱。
+   */
+  test('split 與網格欄數互不影響', () => {
+    const l = layoutAt(1024);
+    expect(l.columns).toBe(3);      // 網格已是三欄
+    expect(l.split).toBeNull();     // 閱讀版面仍單欄
+  });
+});

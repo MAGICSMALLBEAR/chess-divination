@@ -109,6 +109,7 @@ export default function ChessBoard({
       {/* 棋盤 */}
       <View
         ref={boardRef}
+        testID="chess-board"
         onLayout={measureBoard}
         style={[
           styles.board,

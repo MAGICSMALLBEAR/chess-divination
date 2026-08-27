@@ -31,10 +31,22 @@ export interface LayoutInfo {
   gridWidth: number;
   /** 網格中單一卡片的寬度，已扣除欄間距 */
   cardWidth: number;
+  /**
+   * 閱讀型畫面的雙欄配置；`null` 代表此寬度應維持單欄。
+   *
+   * 與 `columns`／`gridWidth` 分開是刻意的：那組是給**同質卡片網格**用的
+   * （圖鑑、收藏——每張卡地位相同，切幾欄只是密度問題）。閱讀型畫面是
+   * **異質**的，主欄要保住行寬、側欄只是查證用的憑據，兩者不能共用同一組
+   * 斷點與寬度，否則籤詩會被切成和六爻盤一樣寬的窄柱。
+   */
+  split: { mainWidth: number; railWidth: number } | null;
 }
 
 /** 網格欄間距 */
 export const GRID_GAP = Spacing.sm;
+
+/** 雙欄閱讀版面的主欄與側欄間距 */
+export const SPLIT_GAP = Spacing.xl;
 
 /**
  * 由視窗尺寸推導版面資訊。
@@ -59,6 +71,15 @@ export function computeLayout(rawWidth: number, height: number): LayoutInfo {
 
   const cardWidth = (gridWidth - GRID_GAP * (columns - 1)) / columns;
 
+  // 雙欄閱讀版面：側欄寬度固定，主欄吃掉剩下的並夾在可讀區間。
+  // 側欄固定而非按比例，是因為它裝的是六爻盤這種尺寸大致固定的圖表——
+  // 讓它隨視窗長大只會在圖表旁邊產生更多空白。
+  const splitOuter = Math.min(width - Spacing.xl * 2, Layout.maxSplitMain + SPLIT_GAP + Layout.railWidth);
+  const splitMain = splitOuter - SPLIT_GAP - Layout.railWidth;
+  const split = width >= Layout.split && splitMain >= Layout.maxContent
+    ? { mainWidth: splitMain, railWidth: Layout.railWidth }
+    : null;
+
   return {
     width,
     height,
@@ -68,6 +89,7 @@ export function computeLayout(rawWidth: number, height: number): LayoutInfo {
     columns,
     gridWidth,
     cardWidth,
+    split,
   };
 }
 
