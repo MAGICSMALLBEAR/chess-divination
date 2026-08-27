@@ -771,11 +771,28 @@ sticky 以 e2e 注入迴歸驗證（改成 relative 後，紅的正是「捲動�
 那條斷言）——它能不能生效取決於捲動祖先、`alignItems: 'flex-start'`、
 以及 RN 型別不認得的 `'sticky'` 有沒有真的傳到 DOM，三件都只有真瀏覽器知道。
 
+### Session 38 — 六爻散文翻譯（8/27）
+
+Session 35 把這條估成「需另立術語表」而擱置，實際清點發現那是把三堆混在一起算：
+《周易》爻辭原典 384 條、資料值字面量 148 條、專案自撰散文 57 條。
+只有第三堆該翻，而且不難。
+
+- `data/translations/divination.ts` + `localizeProse(key, fallback, params?)`，
+  沿用籤詩那套「中文在服務裡當真相來源、en/ja 在資料層」的分工
+- **術語保留漢字、只翻連接文、英文首見加註**：納甲盤上就印著 `妻財`／`世爻`，
+  斷語譯成 Wealth 會讓兩處對不起來
+- 經文與資料值維持原文，邊界釘進 `divinationProse.test.ts`（含注入驗證）
+- **清點時我自己漏了一整塊**：第一輪只掃單引號字串、沒掃樣板字串，
+  而文王卦那份逐條理由全是樣板組的。是英文截圖看出來的，不是測試
+
+順帶發現 `summarizeReading()` 是死碼（註解說供分享用，實際只有測試呼叫），
+未翻並列入待辦，不順手刪。
+
 #### 外部資源／產品決策（與 WORKLOG 同步）
 
 - Vercel 加 `DEEPSEEK_API_KEY`（AI 解讀最後一步；前端已會降級）
 - iOS/Android 實機測試（Expo Go）→ EAS Build → 上架（App Store $99/年、Google Play $25）→ 自訂域名。實機時一併確認分享圖片有內容（A25 防線的現場驗證）
-- **待產品決策**：LiuYaoPanel 的六類命理散文（yaoReading／liuyao／
-  useGod／wenwang）在 en/ja 下仍是中文原文——命理術語（六親、世應、
-  納甲、沖合）翻譯後會喪失原意，與介面文案性質不同。Session 35 判定
-  為待決策：要翻譯需另立術語表，要維持需寫進「刻意不翻譯」清單
+- ~~**待產品決策**：LiuYaoPanel 的六類命理散文~~ ✅ Session 38 結案。
+  57 條自撰散文已翻成 en/ja（術語保留漢字、只翻連接文、英文首見加註）；
+  384 條《周易》爻辭原典與 148 條資料值字面量維持原文，理由與邊界
+  釘在 `divinationProse.test.ts`

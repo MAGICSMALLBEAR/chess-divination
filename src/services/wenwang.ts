@@ -23,6 +23,7 @@ import type { UseGodSubject } from './useGod';
 import { advanceOrRetreat, detectTriads, darkMovingLines } from './conditions';
 import { strengthState, type StrengthState } from './liuyao';
 import { monthBranchContext, seasonOf, SEASON_ELEMENT } from './date';
+import { localizeProse } from './localize';
 
 const GENERATES: Readonly<Record<string, string>> = {
   金: '水', 水: '木', 木: '火', 火: '土', 土: '金',
@@ -186,7 +187,7 @@ export function judgeUseGod({
     return {
       subject, relative, lines, hidden, element: null,
       monthState: null, dayRelation: null,
-      reasons: [{ label: '用神不上卦且無伏神可取', score: 0 }],
+      reasons: [{ label: localizeProse('wenwang.noUseGod', '用神不上卦且無伏神可取'), score: 0 }],
       score: 0, verdict: '平',
     };
   }
@@ -194,7 +195,7 @@ export function judgeUseGod({
   // ── 世爻為用：先講明是誰持世，否則使用者看不出斷的是哪一爻 ──
   if (byWorld && subjectLine) {
     reasons.push({
-      label: `自占以世爻為用神，世在${subjectLine.position}爻${subjectLine.stemBranch}（${subjectLine.relative}持世）`,
+      label: localizeProse('wenwang.selfSubject', `自占以世爻為用神，世在${subjectLine.position}爻${subjectLine.stemBranch}（${subjectLine.relative}持世）`, { pos: subjectLine.position, sb: subjectLine.stemBranch, rel: subjectLine.relative }),
       score: 0,
     });
   }
@@ -203,28 +204,28 @@ export function judgeUseGod({
   const month = monthBranchContext(at);
   const seasonElement = SEASON_ELEMENT[seasonOf(month.branch)];
   const monthState = strengthState(element, seasonElement);
-  reasons.push({ label: `月建${reading.monthBranch}令${seasonElement}當權，用神屬${element}為「${monthState}」`, score: SCORE.月建[monthState] });
+  reasons.push({ label: localizeProse('wenwang.monthState', `月建${reading.monthBranch}令${seasonElement}當權，用神屬${element}為「${monthState}」`, { month: reading.monthBranch, season: seasonElement, element, state: monthState }), score: SCORE.月建[monthState] });
 
   // ── 日辰作用 ──
   const dayRelation = dayRelationOf(element, branch, reading.dayBranch);
-  reasons.push({ label: `日建${reading.dayStemBranch}：${dayRelation}`, score: SCORE[dayRelation] });
+  reasons.push({ label: localizeProse('wenwang.dayBranch', `日建${reading.dayStemBranch}：${dayRelation}`, { day: reading.dayStemBranch, rel: dayRelation }), score: SCORE[dayRelation] });
 
   // ── 空亡與月破 ──
   // 上卦與伏神一視同仁：伏神落空亡、逢月破同樣是「事起不來」之象
   if (subjectLine?.isVoid || (hidden && reading.voidBranches.includes(hidden.branch))) {
-    reasons.push({ label: `用神${branch}落${reading.xun}空亡`, score: SCORE.空亡 });
+    reasons.push({ label: localizeProse('wenwang.void', `用神${branch}落${reading.xun}空亡`, { branch, xun: reading.xun }), score: SCORE.空亡 });
   }
   const isMonthBroken = subjectLine?.isMonthBroken
     ?? (hidden ? BRANCH_OPPOSITES[hidden.branch] === reading.monthBranch : false);
   if (isMonthBroken) {
-    reasons.push({ label: `用神${branch}逢月建${reading.monthBranch}沖，為月破`, score: SCORE.月破 });
+    reasons.push({ label: localizeProse('wenwang.monthBroken', `用神${branch}逢月建${reading.monthBranch}沖，為月破`, { branch, month: reading.monthBranch }), score: SCORE.月破 });
   }
 
   // ── 伏神 ──
   if (hidden) {
     const canEmerge = hidden.canEmerge;
     reasons.push({
-      label: `用神不上卦，伏於${hidden.position}爻${hidden.flyingStemBranch}之下（${hidden.relation}）`,
+      label: localizeProse('wenwang.hidden', `用神不上卦，伏於${hidden.position}爻${hidden.flyingStemBranch}之下（${hidden.relation}）`, { pos: hidden.position, flying: hidden.flyingStemBranch, rel: hidden.relation }),
       score: canEmerge ? SCORE.伏而可出 : SCORE.伏而不出,
     });
   }
@@ -234,9 +235,9 @@ export function judgeUseGod({
   // 與用神本身的旺衰不在同一層，混進同一個分數會失焦。
   if (byWorld && subjectLine) {
     if (taboo && subjectLine.relative === taboo) {
-      reasons.push({ label: `${taboo}持世，所問之患纏身`, score: SCORE.忌神持世 });
+      reasons.push({ label: localizeProse('wenwang.tabooHoldsSelf', `${taboo}持世，所問之患纏身`, { taboo }), score: SCORE.忌神持世 });
     } else if (favorable && subjectLine.relative === favorable) {
-      reasons.push({ label: `${favorable}持世，助事之神在己`, score: SCORE.喜神持世 });
+      reasons.push({ label: localizeProse('wenwang.favorableHoldsSelf', `${favorable}持世，助事之神在己`, { fav: favorable }), score: SCORE.喜神持世 });
     }
   }
 
@@ -246,9 +247,9 @@ export function judgeUseGod({
   for (const dark of darkMovingLines({ reading, movingLine, seasonElement })) {
     if (dark.position === subjectLine?.position) continue;
     if (GENERATES[dark.element] === element) {
-      reasons.push({ label: `${dark.position}爻${dark.relative}${dark.stemBranch}逢日辰沖而暗動，生用神`, score: SCORE.暗動生用神 });
+      reasons.push({ label: localizeProse('wenwang.darkGenerates', `${dark.position}爻${dark.relative}${dark.stemBranch}逢日辰沖而暗動，生用神`, { pos: dark.position, rel: dark.relative, sb: dark.stemBranch }), score: SCORE.暗動生用神 });
     } else if (OVERCOMES[dark.element] === element) {
-      reasons.push({ label: `${dark.position}爻${dark.relative}${dark.stemBranch}逢日辰沖而暗動，剋用神`, score: SCORE.暗動剋用神 });
+      reasons.push({ label: localizeProse('wenwang.darkRestrains', `${dark.position}爻${dark.relative}${dark.stemBranch}逢日辰沖而暗動，剋用神`, { pos: dark.position, rel: dark.relative, sb: dark.stemBranch }), score: SCORE.暗動剋用神 });
     }
   }
 
@@ -262,18 +263,18 @@ export function judgeUseGod({
       const overcomesUseGod = OVERCOMES[mover.element] === element;
 
       if (generatesUseGod) {
-        reasons.push({ label: `${movingLine}爻${mover.relative}${mover.stemBranch}動而生用神`, score: SCORE.動爻生用神 });
+        reasons.push({ label: localizeProse('wenwang.moverGenerates', `${movingLine}爻${mover.relative}${mover.stemBranch}動而生用神`, { line: movingLine, rel: mover.relative, sb: mover.stemBranch }), score: SCORE.動爻生用神 });
       } else if (overcomesUseGod) {
-        reasons.push({ label: `${movingLine}爻${mover.relative}${mover.stemBranch}動而剋用神`, score: SCORE.動爻剋用神 });
+        reasons.push({ label: localizeProse('wenwang.moverRestrains', `${movingLine}爻${mover.relative}${mover.stemBranch}動而剋用神`, { line: movingLine, rel: mover.relative, sb: mover.stemBranch }), score: SCORE.動爻剋用神 });
       }
 
       // 喜忌之神發動。這與上面的五行生剋是同一件事的兩種說法，
       // 生剋已經計過分就不再計一次——同一個動作不該扣兩次分。
       if (!generatesUseGod && !overcomesUseGod) {
         if (taboo && mover.relative === taboo) {
-          reasons.push({ label: `${movingLine}爻${taboo}發動，為所問之忌神`, score: SCORE.忌神發動 });
+          reasons.push({ label: localizeProse('wenwang.tabooMoves', `${movingLine}爻${taboo}發動，為所問之忌神`, { line: movingLine, taboo }), score: SCORE.忌神發動 });
         } else if (favorable && mover.relative === favorable) {
-          reasons.push({ label: `${movingLine}爻${favorable}發動，為所問之喜神`, score: SCORE.喜神發動 });
+          reasons.push({ label: localizeProse('wenwang.favorableMoves', `${movingLine}爻${favorable}發動，為所問之喜神`, { line: movingLine, fav: favorable }), score: SCORE.喜神發動 });
         }
       }
     }
@@ -283,18 +284,18 @@ export function judgeUseGod({
       const transformed = changed.lines[movingLine - 1];
       if (transformed) {
         if (GENERATES[transformed.element] === element) {
-          reasons.push({ label: `用神發動化${transformed.stemBranch}，回頭生`, score: SCORE.回頭生 });
+          reasons.push({ label: localizeProse('wenwang.backGenerate', `用神發動化${transformed.stemBranch}，回頭生`, { sb: transformed.stemBranch }), score: SCORE.回頭生 });
         } else if (OVERCOMES[transformed.element] === element) {
-          reasons.push({ label: `用神發動化${transformed.stemBranch}，回頭剋`, score: SCORE.回頭剋 });
+          reasons.push({ label: localizeProse('wenwang.backRestrain', `用神發動化${transformed.stemBranch}，回頭剋`, { sb: transformed.stemBranch }), score: SCORE.回頭剋 });
         }
 
         // 進退神：化出同五行之支，順進逆退。與回頭生剋不重疊——
         // 同五行必為比和，回頭那兩條本來就不會觸發。
         const progression = advanceOrRetreat(branch, transformed.branch);
         if (progression === '進神') {
-          reasons.push({ label: `用神${branch}化${transformed.branch}，為進神`, score: SCORE.化進神 });
+          reasons.push({ label: localizeProse('wenwang.advancing', `用神${branch}化${transformed.branch}，為進神`, { branch, to: transformed.branch }), score: SCORE.化進神 });
         } else if (progression === '退神') {
-          reasons.push({ label: `用神${branch}化${transformed.branch}，為退神`, score: SCORE.化退神 });
+          reasons.push({ label: localizeProse('wenwang.retreating', `用神${branch}化${transformed.branch}，為退神`, { branch, to: transformed.branch }), score: SCORE.化退神 });
         }
       }
     }
@@ -310,14 +311,14 @@ export function judgeUseGod({
       if (triad.element === element && inTriad) {
         // 「入局」必須真的在局中——只看五行相同就貼入局標籤，會把
         // 坐在局外的用神也說成入局（64 卦掃描下 136 次中有 16 次如此）。
-        reasons.push({ label: `${where}成${source}，用神入局得助`, score: SCORE.用神入局 });
+        reasons.push({ label: localizeProse('wenwang.triadJoin', `${where}成${source}，用神入局得助`, { where, source }), score: SCORE.用神入局 });
       } else if (GENERATES[triad.element] === element) {
-        reasons.push({ label: `${where}成${source}，局生用神`, score: SCORE.合局生用神 });
+        reasons.push({ label: localizeProse('wenwang.triadGenerates', `${where}成${source}，局生用神`, { where, source }), score: SCORE.合局生用神 });
       } else if (OVERCOMES[triad.element] === element) {
-        reasons.push({ label: `${where}成${source}，局剋用神`, score: SCORE.合局剋用神 });
+        reasons.push({ label: localizeProse('wenwang.triadRestrains', `${where}成${source}，局剋用神`, { where, source }), score: SCORE.合局剋用神 });
       } else if (inTriad && GENERATES[element] === triad.element) {
         // 用神自己在局中卻生局，是把力氣送出去
-        reasons.push({ label: `${where}成${source}，用神在局中而洩氣`, score: SCORE.用神洩於局 });
+        reasons.push({ label: localizeProse('wenwang.triadDrains', `${where}成${source}，用神在局中而洩氣`, { where, source }), score: SCORE.用神洩於局 });
       }
     }
   }
@@ -326,8 +327,8 @@ export function judgeUseGod({
     const chosenAsMover = movingLine !== undefined && subjectLine?.position === movingLine;
     reasons.push({
       label: chosenAsMover
-        ? `用神${subject}兩現，${movingLine}爻為動爻，取之為主`
-        : `用神${subject}兩現，取${subjectLine!.position}爻為主`,
+        ? localizeProse('wenwang.dualMoving', `用神${subject}兩現，${movingLine}爻為動爻，取之為主`, { subject, line: movingLine })
+        : localizeProse('wenwang.dualPick', `用神${subject}兩現，取${subjectLine!.position}爻為主`, { subject, pos: subjectLine!.position }),
       score: 0,
     });
   }

@@ -17,6 +17,7 @@ import {
   monthBranchContext, monthBranchName, seasonOf, SEASON_ELEMENT,
   type Season,
 } from './date';
+import { localizeProse } from './localize';
 
 // ====== 型別 ======
 
@@ -151,23 +152,23 @@ function buildBodyUse(upper: number, lower: number, movingLine: number): BodyUse
   if (bodyElement === useElement) {
     relation = '體用比和';
     level = '吉';
-    text = `體用同為${bodyElement}，比和相得。事與己意相合，推行順暢，不必費力周旋。`;
+    text = localizeProse('liuyao.bodyUse.harmony', `體用同為${bodyElement}，比和相得。事與己意相合，推行順暢，不必費力周旋。`, { body: bodyElement });
   } else if (GENERATES[useElement] === bodyElement) {
     relation = '用生體';
     level = '大吉';
-    text = `${useElement}生${bodyElement}，用生體。外力來助，貴人相扶，是最為有利之象，宜順勢承接。`;
+    text = localizeProse('liuyao.bodyUse.useFeedsBody', `${useElement}生${bodyElement}，用生體。外力來助，貴人相扶，是最為有利之象，宜順勢承接。`, { use: useElement, body: bodyElement });
   } else if (OVERCOMES[bodyElement] === useElement) {
     relation = '體剋用';
     level = '吉';
-    text = `${bodyElement}剋${useElement}，體剋用。局面操之在我，雖須費力，終能掌控收成。`;
+    text = localizeProse('liuyao.bodyUse.bodyOvercomesUse', `${bodyElement}剋${useElement}，體剋用。局面操之在我，雖須費力，終能掌控收成。`, { body: bodyElement, use: useElement });
   } else if (GENERATES[bodyElement] === useElement) {
     relation = '體生用';
     level = '小凶';
-    text = `${bodyElement}生${useElement}，體生用。心力向外耗洩，付出多而回收少，宜留餘地，勿過度投入。`;
+    text = localizeProse('liuyao.bodyUse.bodyFeedsUse', `${bodyElement}生${useElement}，體生用。心力向外耗洩，付出多而回收少，宜留餘地，勿過度投入。`, { body: bodyElement, use: useElement });
   } else {
     relation = '用剋體';
     level = '凶';
-    text = `${useElement}剋${bodyElement}，用剋體。外壓強於己身，此時強求必受挫，宜退守待時。`;
+    text = localizeProse('liuyao.bodyUse.useOvercomesBody', `${useElement}剋${bodyElement}，用剋體。外壓強於己身，此時強求必受挫，宜退守待時。`, { use: useElement, body: bodyElement });
   }
 
   return { body, use, bodyElement, useElement, relation, level, text };
@@ -186,6 +187,12 @@ function buildBodyUse(upper: number, lower: number, movingLine: number): BodyUse
  * 這是判「體卦有沒有力氣」的依據。同樣是「體剋用」，
  * 體卦當令則真能剋得動，體卦入死則有心無力，吉凶不該相同。
  */
+/** 旺衰斷語的翻譯鍵。漢字狀態名不適合直接當 key（要進 en/ja 的物件字面量） */
+const STRENGTH_KEY: Readonly<Record<StrengthState, string>> = {
+  旺: 'liuyao.strength.wang', 相: 'liuyao.strength.xiang', 休: 'liuyao.strength.xiu',
+  囚: 'liuyao.strength.qiu', 死: 'liuyao.strength.si',
+};
+
 const STRENGTH_TEXT: Readonly<Record<StrengthState, string>> = {
   旺: '體卦當令而旺，己身氣足，所斷之吉更實、所斷之凶亦能扛。',
   相: '體卦受令氣所生而相，得時之助，氣勢正在積蓄。',
@@ -224,7 +231,7 @@ function buildStrength(bodyElement: string, at: Date): SeasonalStrength {
     bodyElement,
     state,
     shift: STRENGTH_SHIFT[state],
-    text: `${monthBranchName(monthBranch)}（${monthContext.term}後，${season}）令${seasonElement}當權，體卦屬${bodyElement}為「${state}」。${STRENGTH_TEXT[state]}`,
+    text: `${monthBranchName(monthBranch)}（${monthContext.term}後，${season}）令${seasonElement}當權，體卦屬${bodyElement}為「${state}」。${localizeProse(STRENGTH_KEY[state], STRENGTH_TEXT[state])}`,
   };
 }
 

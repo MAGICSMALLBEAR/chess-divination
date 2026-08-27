@@ -12,6 +12,7 @@
 // 未設定性別時寧可不出斷語——猜錯就等於把用神取反，比不斷更糟。
 
 import type { SixRelative } from './najja';
+import { localizeProse } from './localize';
 
 /** 用神取法：指定六親，或以世爻（問卜者本人）為用神 */
 export type UseGodSubject = SixRelative | '世爻';
@@ -23,6 +24,8 @@ export interface UseGodCandidate {
   /** 盤面上要標「用」的六親；世爻為用時無六親可標，故為空陣列 */
   relatives: readonly SixRelative[];
   description: string;
+  /** description 的翻譯鍵。en/ja 下保留六親漢字、只翻連接文（見 translations/divination.ts） */
+  descKey: string;
   /** 助事之神：發動或持世時對所問有利 */
   favorable?: SixRelative;
   /** 壞事之神：發動或持世時對所問不利 */
@@ -31,6 +34,7 @@ export interface UseGodCandidate {
 
 const CANDIDATES: Readonly<Record<string, UseGodCandidate>> = {
   wealth: {
+    descKey: 'useGod.wealth',
     subject: '妻財',
     relatives: ['妻財'],
     description: '財運問事以「妻財」為候選用神，可觀其在本卦的位置與時間條件。忌兄弟劫財，喜子孫生財。',
@@ -38,6 +42,7 @@ const CANDIDATES: Readonly<Record<string, UseGodCandidate>> = {
     taboo: '兄弟',
   },
   career: {
+    descKey: 'useGod.career',
     subject: '官鬼',
     relatives: ['官鬼'],
     description: '事業問事以「官鬼」為候選用神，可觀職責、職位與外在規範的條件。喜父母為文書印信，忌子孫剋官。',
@@ -45,6 +50,7 @@ const CANDIDATES: Readonly<Record<string, UseGodCandidate>> = {
     taboo: '子孫',
   },
   study: {
+    descKey: 'useGod.study',
     subject: '父母',
     relatives: ['父母'],
     description: '學業／證照問事以「父母」為候選用神，可觀資料、師長與文書條件。喜官鬼生文書，忌妻財剋父母。',
@@ -52,6 +58,7 @@ const CANDIDATES: Readonly<Record<string, UseGodCandidate>> = {
     taboo: '妻財',
   },
   health: {
+    descKey: 'useGod.health',
     subject: '世爻',
     relatives: [],
     description: '疾病問事以「世爻」為用神（自占，世爻即問卜者本人）；官鬼為病症之象，子孫為醫藥解神。',
@@ -59,6 +66,7 @@ const CANDIDATES: Readonly<Record<string, UseGodCandidate>> = {
     taboo: '官鬼',
   },
   travel: {
+    descKey: 'useGod.travel',
     subject: '世爻',
     relatives: [],
     description: '出行問事以「世爻」為用神（自占，世爻即行者本人）；父母為舟車行程，兄弟為阻隔劫耗之神。',
@@ -70,6 +78,7 @@ const CANDIDATES: Readonly<Record<string, UseGodCandidate>> = {
 /** 感情取法隨占者性別相反：男占妻財、女占官鬼。 */
 const MARRIAGE_BY_GENDER: Readonly<Record<DivinerGender, UseGodCandidate>> = {
   male: {
+    descKey: 'useGod.loveMale',
     subject: '妻財',
     relatives: ['妻財'],
     description: '感情問事，男占以「妻財」為用神（所求之對象）；忌兄弟爭競劫奪，喜子孫生財。',
@@ -77,6 +86,7 @@ const MARRIAGE_BY_GENDER: Readonly<Record<DivinerGender, UseGodCandidate>> = {
     taboo: '兄弟',
   },
   female: {
+    descKey: 'useGod.loveFemale',
     subject: '官鬼',
     relatives: ['官鬼'],
     description: '感情問事，女占以「官鬼」為用神（所求之對象）；忌子孫剋官，喜妻財生官。',
@@ -98,7 +108,19 @@ export function useGodForCategory(
   if (!category) return null;
   if (category === 'marriage') {
     // 性別未設定時取法無從決定；取反的用神比沒有用神更誤導
-    return options.gender ? MARRIAGE_BY_GENDER[options.gender] : null;
+    return options.gender ? localized(MARRIAGE_BY_GENDER[options.gender]) : null;
   }
-  return CANDIDATES[category] ?? null;
+  const found = CANDIDATES[category];
+  return found ? localized(found) : null;
+}
+
+/**
+ * 依目前語言換掉 description，其餘欄位原樣保留。
+ *
+ * subject／favorable／taboo 是六親資料值（會與盤面比對），不能翻；
+ * 只有 description 是給人讀的句子。回傳副本而非就地改寫，
+ * 否則第一次呼叫就會把常數表汙染成當時的語言。
+ */
+function localized(c: UseGodCandidate): UseGodCandidate {
+  return { ...c, description: localizeProse(c.descKey, c.description) };
 }

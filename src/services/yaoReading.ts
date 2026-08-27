@@ -3,6 +3,7 @@
 // 經文採《周易》原典；六十四卦均已逐條校對。
 
 import type { BodyUseReading } from './liuyao';
+import { localizeProse } from './localize';
 
 export interface MovingLineGuidance {
   /** 本卦與動爻對應的《周易》原文；尚未校對時為 null。 */
@@ -190,37 +191,41 @@ const VERIFIED_YAO_TEXTS: YaoTexts = {
   64: ['初六：濡其尾，吝。', '九二：曳其輪，貞吉。', '六三：未濟，征凶，利涉大川。', '九四：貞吉，悔亡，震用伐鬼方，三年有賞于大國。', '六五：貞吉，无悔，君子之光，有孚，吉。', '上九：有孚于飲酒，无咎，濡其首，有孚失是。'],
 };
 
-const POSITION_GUIDANCE: readonly Omit<MovingLineGuidance, 'classicalText'>[] = [
+const POSITION_GUIDANCE: readonly (Omit<MovingLineGuidance, 'classicalText'> & { key: string })[] = [
   {
-    plainLanguage: '初爻是事情剛發端的位置。先辨清局勢、保留實力，比立刻表態或押注更重要。',
+    key: 'yao.pos1',    plainLanguage: '初爻是事情剛發端的位置。先辨清局勢、保留實力，比立刻表態或押注更重要。',
     action: '今天先完成一項低風險的準備：蒐集資訊、列出條件，或把下一步延後一晚再決定。',
   },
   {
-    plainLanguage: '二爻居內卦之中，重點在把基礎做穩，並讓可信任的人看見你的需求與能力。',
+    key: 'yao.pos2',    plainLanguage: '二爻居內卦之中，重點在把基礎做穩，並讓可信任的人看見你的需求與能力。',
     action: '找一位能給實際回饋的人確認方向；把合作條件、時間與責任寫清楚。',
   },
   {
-    plainLanguage: '三爻正處內外交界，最容易因急於跨越而失衡。勤勉可以，但必須保留警覺。',
+    key: 'yao.pos3',    plainLanguage: '三爻正處內外交界，最容易因急於跨越而失衡。勤勉可以，但必須保留警覺。',
     action: '把大動作拆成兩步，先做可回復的小測試；同時準備一個停損點。',
   },
   {
-    plainLanguage: '四爻進入外卦，是進退轉折處。可嘗試，但不宜把試探誤當成定局。',
+    key: 'yao.pos4',    plainLanguage: '四爻進入外卦，是進退轉折處。可嘗試，但不宜把試探誤當成定局。',
     action: '用一個小規模試行取代全面投入；等關鍵訊號明朗再擴大。',
   },
   {
-    plainLanguage: '五爻居尊位且得中，適合整合資源、公開承擔與定下主軸；仍要讓決策能被檢驗。',
+    key: 'yao.pos5',    plainLanguage: '五爻居尊位且得中，適合整合資源、公開承擔與定下主軸；仍要讓決策能被檢驗。',
     action: '確認目標後選定一個主責與期限，主動邀請能補足盲點的人加入。',
   },
   {
-    plainLanguage: '上爻到了事情的極點。成果可收束，但若再加碼，容易從優勢轉為過度。',
+    key: 'yao.pos6',    plainLanguage: '上爻到了事情的極點。成果可收束，但若再加碼，容易從優勢轉為過度。',
     action: '先完成收尾、結算與交接；暫停新增承諾，留出空間檢討下一輪方向。',
   },
 ];
 
 function verdictNote(verdict: BodyUseReading['level']): string {
-  if (verdict === '大吉' || verdict === '吉') return ' 體用與時令較支持推進，仍以分段確認取代一次押滿。';
-  if (verdict === '小凶' || verdict === '凶') return ' 體用條件偏緊，這一步以防守、減少成本與保有選擇權為先。';
-  return ' 條件尚未定型，先用可回復的行動取得更多訊號。';
+  if (verdict === '大吉' || verdict === '吉') {
+    return localizeProse('yao.verdict.good', ' 體用與時令較支持推進，仍以分段確認取代一次押滿。');
+  }
+  if (verdict === '小凶' || verdict === '凶') {
+    return localizeProse('yao.verdict.bad', ' 體用條件偏緊，這一步以防守、減少成本與保有選擇權為先。');
+  }
+  return localizeProse('yao.verdict.neutral', ' 條件尚未定型，先用可回復的行動取得更多訊號。');
 }
 
 /** 取得指定本卦與動爻的經文（若已校對）和專案白話行動指引。 */
@@ -233,8 +238,8 @@ export function getMovingLineGuidance(
   const base = POSITION_GUIDANCE[position - 1];
   return {
     classicalText: VERIFIED_YAO_TEXTS[poemId]?.[position - 1] ?? null,
-    plainLanguage: `${base.plainLanguage}${verdictNote(verdict)}`,
-    action: base.action,
+    plainLanguage: `${localizeProse(`${base.key}.plain`, base.plainLanguage)}${verdictNote(verdict)}`,
+    action: localizeProse(`${base.key}.action`, base.action),
   };
 }
 
