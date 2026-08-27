@@ -5,7 +5,7 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 89 個 |
-| Git Commits | 94 次 |
+| Git Commits | 96 次 |
 | Jest 測試 | 958 個 · 49 套件 · 全部通過 |
 | E2E 測試 | 124 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
@@ -2069,6 +2069,18 @@ TS 零錯誤 · Jest 958 全過（49 suites）· E2E 124。
 六爻散文翻譯決策結案：**57 條自撰散文已翻（術語保留），384 條經文與
 148 條資料值維持原文並釘成測試**。設計面 #14 結案。
 
+**Production 已部署**：push `52480b9` 觸發
+`chess-divination-oqqq4zue8-magicsmallbears-projects.vercel.app`（Ready）。
+
+線上驗證直接切語言讀側欄文字，四條同時成立才算數
+（少任何一條都可能是「看起來對」的假象）：
+
+- **連接文已翻**：en 出現 `is the candidate`、ja 出現 `用神の候補`
+- **術語仍是漢字**：兩種語言下都還找得到 `妻財`，與納甲盤對得起來
+- **爻辭維持原文**：`六二：屯如邅如` 在三種語言下都在
+- **不是降級 fallback**：中文原句 `為候選用神，可觀其在本卦的位置` 已不存在
+  ——沒有這條的話，「找得到妻財」在完全沒翻的情況下也會通過
+
 ---
 
 ## 功能完整清單
@@ -2160,7 +2172,7 @@ Session 35 清掉最後 1 條（A25）。**25 條全數結案**。A25 的截圖�
 
 | # | 待辦 | 優先度 | 備註 |
 |---|------|--------|------|
-| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/27 push `5ca1294`，production 已含 Session 37，線上實測雙欄幾何與 sticky）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
+| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/27 push `52480b9`，production 已含 Session 38，線上實測 en/ja 斷語翻譯與術語保留）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
 | 2 | ~~**單元測試覆蓋率補強**~~ ✅ | 🟢 已完成 | 265 → 536，31 套件全過（8/16） |
 | 3 | **iOS/Android 實機測試** | 🟡 中 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端觸覺、字體、手勢；一併確認分享圖片有內容（A25 防線的現場驗證） |
 | 4 | **EAS Build 原生測試** | 🟢 低 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
