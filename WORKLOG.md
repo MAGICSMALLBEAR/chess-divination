@@ -5,7 +5,7 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 87 個 |
-| Git Commits | 92 次 |
+| Git Commits | 93 次 |
 | Jest 測試 | 947 個 · 48 套件 · 全部通過 |
 | E2E 測試 | 124 個 · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
@@ -1983,6 +1983,18 @@ RN Web 的 ScrollView 是不是 sticky 的定位祖先、那一列有沒有
 TS 零錯誤 · Jest 947 全過（48 suites）· E2E 124。
 揭曉頁桌面雙欄上線，棋盤頁維持單欄並把理由釘成測試。
 
+**Production 已部署**：push `5ca1294` 觸發
+`chess-divination-ivgh8fa3o-magicsmallbears-projects.vercel.app`（Ready）。
+
+版面這種東西比對 bundle 字串不算數——「檔案裡有這段程式碼」不等於
+「瀏覽器裡排出來是對的」。所以線上驗證改成**對 production 量實際幾何**：
+
+- 1440px 視窗下 split 容器 x=194／寬 1052，側欄 x=906／寬 340
+  （確實在右半邊，不是疊在下面）
+- **捲動 700px 後側欄停在 y=24**——sticky 在 production 真的生效，
+  不是只有本機 dist 會動
+- `/board` 在同一視窗下查無 `reading-split`，維持單欄
+
 ---
 
 ## 功能完整清單
@@ -2074,7 +2086,7 @@ Session 35 清掉最後 1 條（A25）。**25 條全數結案**。A25 的截圖�
 
 | # | 待辦 | 優先度 | 備註 |
 |---|------|--------|------|
-| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/27 push `19866b8`，production 已含 Session 36，正反向 bundle 比對與九條路由皆驗證）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
+| 1 | **Vercel 部署驗證 + AI 解讀上線** | 🔴 高 | 部署 ✅（8/27 push `5ca1294`，production 已含 Session 37，線上實測雙欄幾何與 sticky）。AI 解讀僅餘最後一步：在 Vercel 專案設定加入 `DEEPSEEK_API_KEY`（`api/interpret` 目前回 501 `AI_NOT_CONFIGURED`，前端降級規則式解讀），加完再驗證 |
 | 2 | ~~**單元測試覆蓋率補強**~~ ✅ | 🟢 已完成 | 265 → 536，31 套件全過（8/16） |
 | 3 | **iOS/Android 實機測試** | 🟡 中 | `npx expo start --go`，用手機掃碼進 Expo Go 測試原生端觸覺、字體、手勢；一併確認分享圖片有內容（A25 防線的現場驗證） |
 | 4 | **EAS Build 原生測試** | 🟢 低 | `eas build --platform ios/android --profile preview`，在 TestFlight/內部測試安裝 |
