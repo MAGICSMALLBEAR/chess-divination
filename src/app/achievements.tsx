@@ -93,7 +93,7 @@ export default function AchievementsScreen() {
               <View style={[styles.ringBg, { borderColor: theme.bgMedium }]} />
               <Svg width={80} height={80} style={StyleSheet.absoluteFill} accessible={false}>
                 {/* 從 12 點方向起畫：把座標系轉 -90°，不要用已淘汰的 rotation/origin */}
-                <G rotation={-90} origin="40, 40">
+                <G transform="rotate(-90 40 40)">
                   <Circle
                     cx={40} cy={40} r={36}
                     stroke={theme.gold}
