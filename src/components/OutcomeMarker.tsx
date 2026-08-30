@@ -18,9 +18,11 @@ import { Spacing, FontSize } from '@/constants/theme';
 
 interface Props {
   outcome?: DivinationOutcome;
+  recordNote?: string;
   /** 占卜當時的時間，用來顯示「占卜後 n 天回填」 */
   timestamp: number;
   onSave: (status: OutcomeStatus, note?: string) => void | Promise<void>;
+  onSaveNote: (note: string) => void | Promise<void>;
   onClear: () => void | Promise<void>;
 }
 
@@ -31,21 +33,22 @@ function toneOf(theme: ThemeColors, status: OutcomeStatus): string {
   return theme.danger;
 }
 
-export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: Props) {
+export default function OutcomeMarker({ outcome, recordNote, timestamp, onSave, onSaveNote, onClear }: Props) {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
 
   const [editing, setEditing] = useState(false);
   const [picked, setPicked] = useState<OutcomeStatus | null>(outcome?.status ?? null);
-  const [note, setNote] = useState(outcome?.note ?? '');
+  const [note, setNote] = useState(outcome?.note ?? recordNote ?? '');
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
-    if (!picked || saving) return;
+    if ((!picked && !note.trim()) || saving) return;
     setSaving(true);
     try {
-      await onSave(picked, note);
+      if (picked) await onSave(picked, note);
+      else await onSaveNote(note);
       setEditing(false);
     } finally {
       // 存檔失敗時也要解除鎖定，否則按鈕永遠停在「儲存中」而使用者無從重試
@@ -68,7 +71,7 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
 
   function startEditing() {
     setPicked(outcome?.status ?? null);
-    setNote(outcome?.note ?? '');
+    setNote(outcome?.note ?? recordNote ?? '');
     setEditing(true);
   }
 
@@ -173,15 +176,15 @@ export default function OutcomeMarker({ outcome, timestamp, onSave, onClear }: P
         <TouchableOpacity
           style={[
             styles.saveBtn,
-            { borderColor: picked ? theme.gold : theme.bgMedium },
-            !picked && styles.saveDisabled,
+            { borderColor: (picked || note.trim()) ? theme.gold : theme.bgMedium },
+            !(picked || note.trim()) && styles.saveDisabled,
           ]}
           onPress={handleSave}
-          disabled={!picked || saving}
-          accessibilityState={{ disabled: !picked || saving }}
+          disabled={(!picked && !note.trim()) || saving}
+          accessibilityState={{ disabled: (!picked && !note.trim()) || saving }}
         >
-          <Icon name="check" size={14} color={picked ? theme.gold : theme.textMuted} />
-          <Text style={[styles.saveText, { color: picked ? theme.gold : theme.textMuted }]}>
+          <Icon name="check" size={14} color={(picked || note.trim()) ? theme.gold : theme.textMuted} />
+          <Text style={[styles.saveText, { color: (picked || note.trim()) ? theme.gold : theme.textMuted }]}> 
             {' '}{t(saving ? 'common.saving' : 'outcome.saveBtn')}
           </Text>
         </TouchableOpacity>

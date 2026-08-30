@@ -38,6 +38,8 @@ export interface DivinationRecord {
   mode: DivinationMode;
   questionCategory?: string;
   questionText?: string;         // user's written question
+  /** 使用者為這次籤詩留下的自由筆記，不需先填占驗結果。 */
+  note?: string;
   positionSummary?: string;      // board position interpretation summary
   /** 棋盤占卜所用牌陣；舊記錄缺省為自由佈局，保留向後相容。 */
   spreadId?: SpreadId;
@@ -302,6 +304,18 @@ export async function setOutcome(
 /** 清除占驗，讓記錄回到「未驗」狀態 */
 export async function clearOutcome(id: string): Promise<void> {
   await patchRecord(id, ({ outcome, ...rest }) => rest);
+}
+
+/** 儲存籤詩筆記；空白內容會清除既有筆記。 */
+export async function setRecordNote(id: string, note: string): Promise<void> {
+  const trimmed = note.trim();
+  await patchRecord(id, r => {
+    if (!trimmed) {
+      const { note: _note, ...rest } = r;
+      return rest;
+    }
+    return { ...r, note: trimmed };
+  });
 }
 
 /** 同時套用到歷史與收藏兩份副本 */

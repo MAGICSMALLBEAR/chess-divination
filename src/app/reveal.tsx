@@ -19,7 +19,7 @@ import { buildLiuYaoReading } from '@/services/liuyao';
 import { trigramsFromIndex } from '@/services/hexagram';
 import type { DivinationRecord, OutcomeStatus } from '@/services/storage';
 import {
-  getHistory, toggleFavorite, isLegacyRecord, usesLegacyMovingLine, setOutcome, clearOutcome, getSettings,
+  getHistory, toggleFavorite, isLegacyRecord, usesLegacyMovingLine, setOutcome, clearOutcome, setRecordNote, getSettings,
 } from '@/services/storage';
 import type { DivinerGender } from '@/services/useGod';
 import { getPoemById } from '@/data/poems';
@@ -168,6 +168,17 @@ export default function RevealScreen() {
       await loadRecord();
     } catch (e) {
       console.warn('占驗清除失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveOutcomeFailed'));
+    }
+  }
+
+  async function handleSaveNote(note: string) {
+    if (!record) return;
+    try {
+      await setRecordNote(record.id, note);
+      await loadRecord();
+    } catch (e) {
+      console.warn('籤詩筆記儲存失敗:', e);
       notify(t('error.saveFailed'), t('error.saveOutcomeFailed'));
     }
   }
@@ -443,8 +454,10 @@ export default function RevealScreen() {
         {/* 占驗回填。放在解讀之後——剛揭曉時結果還沒發生，先問「準不準」只會困惑 */}
         <OutcomeMarker
           outcome={record.outcome}
+          recordNote={record.note}
           timestamp={record.timestamp}
           onSave={handleSaveOutcome}
+          onSaveNote={handleSaveNote}
           onClear={handleClearOutcome}
         />
 
