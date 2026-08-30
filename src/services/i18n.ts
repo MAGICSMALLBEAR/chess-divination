@@ -520,6 +520,22 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 每日提醒推播
   'notify.title': { 'zh-TW': '🏮 今日占卜', en: '🏮 Today\'s Divination', ja: '🏮 今日の占い' },
   'notify.body': { 'zh-TW': '靜心片刻，讓象棋的智慧引領您今天的方向。', en: 'Take a quiet moment and let the wisdom of the board guide your day.', ja: '静かなひとときを。棋の知恵が今日の道を照らします。' },
+
+  // 靈棋（《靈棋經》十二子）
+  // 卦目標記（如「二上一中」）是原典名稱，維持漢字不譯，由 services/lingqi.ts
+  // 的 lingqiNotation() 產生，不列於本表。
+  'lingqi.title': { 'zh-TW': '靈棋十二子', en: 'The Twelve Lingqi Pieces', ja: '靈棋十二子' },
+  'lingqi.homeDesc': { 'zh-TW': '依《靈棋經》的上、中、下十二子，一次擲定成卦', en: 'Cast the twelve upper, middle, and lower pieces of the Lingqi Jing at once to form a sign', ja: '『靈棋經』の上・中・下の十二子を一度に擲ち、卦を成す' },
+  'lingqi.subtitle': { 'zh-TW': '上為天、中為人、下為地。十二枚棋子一次擲定，請先靜心專注於一個問題。', en: 'Upper is Heaven, middle is Man, lower is Earth. Cast all twelve pieces at once; first quiet your mind and focus on one question.', ja: '上は天、中は人、下は地。十二枚の棋子を一度に擲ちます。まず心を静め、一つの問いに集中してください。' },
+  'lingqi.rule': { 'zh-TW': '上／中／下各四枚，正面朝上的數量構成一卦；同一問題不重擲。', en: 'Four pieces each for upper, middle, and lower; the number of face-up pieces forms a sign. Do not cast again for the same question.', ja: '上・中・下に各四枚。表を向いた枚数で一卦を成します。同じ問いで再び擲ってはいけません。' },
+  'lingqi.countLine': { 'zh-TW': '天 {u} 枚　人 {m} 枚　地 {l} 枚', en: 'Heaven {u} · Man {m} · Earth {l}', ja: '天 {u} 枚　人 {m} 枚　地 {l} 枚' },
+  'lingqi.source': { 'zh-TW': '此組合是《靈棋經》125 卦中的原典索引。卦辭資料將以校對後的原典版本載入，不與現有 64 籤詩混用。', en: 'This combination indexes one of the 125 signs in the Lingqi Jing. The verse texts will be loaded from a collated edition of the original, kept separate from the existing 64 poems.', ja: 'この組み合わせは『靈棋經』125 卦の原典索引です。卦辞は校訂した原典版で読み込み、既存の64首の籤詩とは混ぜません。' },
+  'lingqi.cast': { 'zh-TW': '擲出十二靈棋', en: 'Cast the Twelve Lingqi', ja: '十二靈棋を擲つ' },
+  'lingqi.recast': { 'zh-TW': '另問一事，再擲靈棋', en: 'Ask another question, cast again', ja: '別の問いで、再び靈棋を擲つ' },
+
+  // 問事快速帶入（抽棋與棋盤兩頁共用）
+  'prompts.label': { 'zh-TW': '快速帶入問題', en: 'Quick question prompts', ja: 'クイック質問入力' },
+  'prompts.a11y': { 'zh-TW': '帶入問題：{prompt}', en: 'Insert question: {prompt}', ja: '質問を挿入：{prompt}' },
 };
 
 // Singleton + Listener pattern

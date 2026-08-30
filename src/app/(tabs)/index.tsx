@@ -179,6 +179,14 @@ export default function HomeScreen() {
         {/* 模式選擇 */}
         <ModeSelector onSelectMode={handleSelectMode} />
 
+        <TouchableOpacity
+          style={[styles.lingqiBtn, { borderColor: theme.gold, backgroundColor: theme.bgDark }]}
+          onPress={() => router.push('/lingqi')}
+        >
+          <Text style={[styles.lingqiTitle, { color: theme.textGold }]}>{t('lingqi.title')}</Text>
+          <Text style={[styles.lingqiDesc, { color: theme.textSecondary }]}>{t('lingqi.homeDesc')}</Text>
+        </TouchableOpacity>
+
         {/* 棋道箴言 */}
         <View style={styles.quoteCard}>
           <Text style={styles.quote}>
@@ -212,6 +220,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     borderWidth: 1, borderColor: t.bgMedium, padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
+  lingqiBtn: { marginHorizontal: Spacing.md, borderWidth: 1, borderRadius: 16, padding: Spacing.lg, marginTop: Spacing.md },
+  lingqiTitle: { fontSize: FontSize.heading, fontWeight: '700', textAlign: 'center', marginBottom: 6 },
+  lingqiDesc: { fontSize: FontSize.small, lineHeight: 20, textAlign: 'center' },
   dailyHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: Spacing.md,

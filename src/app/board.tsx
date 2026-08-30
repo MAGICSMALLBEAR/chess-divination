@@ -11,6 +11,7 @@ import { Icon } from '@/components/icons';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { confirmAction } from '@/services/dialog';
 import { useQuestionCategories } from '@/hooks/useQuestionCategories';
+import QuestionPrompts from '@/components/QuestionPrompts';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -45,6 +46,7 @@ export default function BoardScreen() {
   } = useBoardDivination();
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
+  const selectedCategoryLabel = categories.find(category => category.key === selectedCategory)?.label ?? selectedCategory;
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [spreadId, setSpreadId] = useState<SpreadId>('free');
@@ -200,6 +202,8 @@ export default function BoardScreen() {
           onChangeText={setQuestionText}
           maxLength={200}
         />
+        <QuestionPrompts category={selectedCategory} categoryLabel={selectedCategoryLabel} onSelect={setQuestionText} />
+
         {/* 牌陣選擇。切換時清空棋盤，避免將不同角色的舊落子混入新牌陣。 */}
         <Text style={styles.spreadTitle}>{t('board.spread')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.spreadScroll}

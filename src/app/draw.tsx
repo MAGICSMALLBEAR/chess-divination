@@ -11,6 +11,7 @@ import PieceDraw3D from '@/components/PieceDraw3D';
 import { Icon } from '@/components/icons';
 import { useDrawDivination } from '@/hooks/useDrawDivination';
 import { useQuestionCategories } from '@/hooks/useQuestionCategories';
+import QuestionPrompts from '@/components/QuestionPrompts';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -35,6 +36,7 @@ export default function DrawScreen() {
   const [questionText, setQuestionText] = useState('');
   /** 設定裡的預設抽棋數量，標為建議選項（見下方讀取設定的 effect） */
   const [preferredCount, setPreferredCount] = useState<1 | 2 | 3 | null>(null);
+  const selectedCategoryLabel = categories.find(category => category.key === selectedCategory)?.label ?? selectedCategory;
 
   // 讀取上次選擇的類別與預設抽棋數量。
   //
@@ -89,6 +91,7 @@ export default function DrawScreen() {
               maxLength={200}
               textAlignVertical="top"
             />
+            <QuestionPrompts category={selectedCategory} categoryLabel={selectedCategoryLabel} onSelect={setQuestionText} />
             {/* 問事類別 */}
             <View style={styles.categoryGrid}>
               {categories.map((cat) => (

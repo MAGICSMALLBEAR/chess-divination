@@ -58,6 +58,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="draw" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="lingqi" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="board" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="reveal" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
