@@ -16,19 +16,17 @@ import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { useLayout } from '@/hooks/useLayout';
+import { useLayout, computeBoardTray } from '@/hooks/useLayout';
 import { useMeasuredWidth } from '@/hooks/useGrid';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
 import { SPREADS, SPREAD_DESC_KEYS, SPREAD_HINT_KEYS, SPREAD_LABEL_KEYS, type SpreadId, nextSpreadSlot } from '@/services/spreads';
 
 /**
- * 棋盤格子大小依可用寬度換算，旋轉與視窗縮放皆會重算。
- * 上限放寬到 56：桌面容器有 720px 可用，鎖在 44 會讓棋盤顯得侷促。
+ * 棋盤格距上限。桌面容器有 720px 以上可用，鎖在 44 會讓棋盤顯得侷促。
+ * 全螢幕另有自己的上限。
  */
-function cellSizeFor(width: number): number {
-  if (width <= 0) return 32;   // 尚未量測，先給可用的預設值
-  return Math.min(56, Math.max(28, (width - 32) / 9));
-}
+const MAX_CELL = 56;
+const MAX_CELL_FULLSCREEN = 68;
 
 export default function BoardScreen() {
   const router = useRouter();
@@ -64,10 +62,13 @@ export default function BoardScreen() {
     setSpreadId(id);
   };
 
-  // 全螢幕模式下棋盤格子加大；一般模式依量測到的容器寬度換算
-  const cellSz = isFullscreen
-    ? Math.min(68, (width - 16) / 9)
-    : cellSizeFor(innerWidth);
+  // 全螢幕模式下棋盤格子加大；一般模式依量測到的容器寬度換算。
+  // 兩者都可能把棋子池移到棋盤右側——寬螢幕上池子排在下面時，
+  // 每放一顆子都要跨越整個棋盤高度來回移動視線。
+  const boardTray = isFullscreen
+    ? computeBoardTray(width, MAX_CELL_FULLSCREEN, 16)
+    : computeBoardTray(innerWidth, MAX_CELL);
+  const cellSz = boardTray.cellSize;
 
   const currentPool = showRedPieces ? ALL_RED_PIECES : ALL_BLACK_PIECES;
   const spreadContext = { optionA, optionB };
@@ -101,6 +102,8 @@ export default function BoardScreen() {
             allowRepeatedPieces={allowRepeatedPieces}
             spreadSlots={spread.slots}
             activeSpreadSlot={activeSpreadSlot}
+            trayPosition={boardTray.trayPosition}
+            trayWidth={boardTray.trayWidth}
             style={styles.fsBoard}
           />
           <View style={styles.fsControls}>
@@ -197,7 +200,6 @@ export default function BoardScreen() {
           onChangeText={setQuestionText}
           maxLength={200}
         />
-
         {/* 牌陣選擇。切換時清空棋盤，避免將不同角色的舊落子混入新牌陣。 */}
         <Text style={styles.spreadTitle}>{t('board.spread')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.spreadScroll}
@@ -259,7 +261,7 @@ export default function BoardScreen() {
           <View style={styles.hintRow}>
             <Icon name="lightbulb" size={16} color={theme.textMuted} />
             <Text style={[styles.hintText, { color: theme.textMuted }]}>
-              {' '}{t('board.hint')}
+              {' '}{t(boardTray.trayPosition === 'side' ? 'board.hintSide' : 'board.hint')}
             </Text>
           </View>
         )}
@@ -277,6 +279,8 @@ export default function BoardScreen() {
           allowRepeatedPieces={allowRepeatedPieces}
           spreadSlots={spread.slots}
           activeSpreadSlot={activeSpreadSlot}
+          trayPosition={boardTray.trayPosition}
+          trayWidth={boardTray.trayWidth}
           style={styles.boardStyle}
         />
 
@@ -347,6 +351,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   scroll: { flexGrow: 1, paddingBottom: 40, alignItems: 'center' },
   // 內容限寬並置中。720 比一般閱讀寬度(560)寬一些——
   // 棋盤與 7 個問事類別在 560 下會顯得侷促、類別列還會被截斷。
+  // 720 同時也剛好夠棋子池側置：棋盤吃滿 56 格距後仍餘三欄棋子的寬度
+  // （見 computeBoardTray）。
   inner: {
     alignItems: 'center',
     width: '100%', maxWidth: 720, alignSelf: 'center',

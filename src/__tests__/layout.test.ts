@@ -2,7 +2,9 @@
 // 測的是 computeLayout 純函式——斷點與寬度計算的全部邏輯都在其中，
 // useLayout hook 僅負責接上 useWindowDimensions，無需模擬 RN 模組。
 
-import { computeLayout } from '../hooks/useLayout';
+import {
+  computeLayout, computeBoardTray, trayWidthForColumns, BOARD_TRAY,
+} from '../hooks/useLayout';
 import { Layout, Spacing } from '../constants/theme';
 
 /** 以指定視窗寬度取得版面資訊 */
@@ -225,5 +227,76 @@ describe('閱讀型雙欄版面（split）', () => {
     const l = layoutAt(1024);
     expect(l.columns).toBe(3);      // 網格已是三欄
     expect(l.split).toBeNull();     // 閱讀版面仍單欄
+  });
+});
+
+/**
+ * 棋盤頁的棋子池位置。
+ *
+ * 測的是幾何而非外觀：池子側置只有在「棋盤仍放得下、池子也放得下」時才成立，
+ * 而這兩件事都是寬度算術。真正排出來對不對要靠 e2e 量幾何（見 splitReading.spec）。
+ */
+describe('棋盤棋子池版面', () => {
+  const MAX_CELL = 56;
+  /** 棋盤實際佔用寬度 = 9 條縱線 × 格距 */
+  const boardW = (cell: number) => cell * 9;
+
+  test('尚未量測到寬度時給得出可用的預設值', () => {
+    const b = computeBoardTray(0, MAX_CELL);
+    expect(b.trayPosition).toBe('below');
+    expect(b.cellSize).toBe(32);
+  });
+
+  test('窄螢幕棋子池排在棋盤下方', () => {
+    for (const w of [390, 560, 719]) {
+      expect(computeBoardTray(w, MAX_CELL).trayPosition).toBe('below');
+    }
+  });
+
+  test('達門檻後棋子池移到棋盤右側', () => {
+    for (const w of [BOARD_TRAY.minWidth, 800, 1024]) {
+      expect(computeBoardTray(w, MAX_CELL).trayPosition).toBe('side');
+    }
+  });
+
+  /** 側置的意義在於少走視線，若代價是棋盤縮水就不划算 */
+  test('側置不會把棋盤壓得比排在下方時更小', () => {
+    for (const w of [BOARD_TRAY.minWidth, 800, 1024, 1440]) {
+      const side = computeBoardTray(w, MAX_CELL);
+      // 同寬度下排在下方會拿到的格距（不必扣掉池寬）
+      const below = Math.min(MAX_CELL, Math.max(28, (w - 32) / 9));
+      expect(`${w}: ${side.cellSize >= below}`).toBe(`${w}: true`);
+    }
+  });
+
+  test('棋盤加間距加棋子池仍放得進容器', () => {
+    for (const w of [BOARD_TRAY.minWidth, 760, 800, 1024, 1440]) {
+      const b = computeBoardTray(w, MAX_CELL);
+      const used = boardW(b.cellSize) + BOARD_TRAY.gap + b.trayWidth;
+      expect(`${w}: ${used <= w}`).toBe(`${w}: true`);
+    }
+  });
+
+  /** 欄寬只能是 3 或 4 欄——2 欄比棋盤還高、5 欄比棋盤還寬，都失去側置的意義 */
+  test('棋子池維持三到四欄', () => {
+    for (const w of [BOARD_TRAY.minWidth, 800, 1440, 2560]) {
+      const { trayWidth } = computeBoardTray(w, MAX_CELL);
+      expect(trayWidth).toBeGreaterThanOrEqual(trayWidthForColumns(3));
+      expect(trayWidth).toBeLessThanOrEqual(trayWidthForColumns(4));
+    }
+  });
+
+  /** 超寬螢幕上多出來的空間不該灌進池子——棋子散開反而要多掃一次視線 */
+  test('池寬不隨視窗無限長大', () => {
+    expect(computeBoardTray(3840, MAX_CELL).trayWidth)
+      .toBe(computeBoardTray(1440, MAX_CELL).trayWidth);
+  });
+
+  /** 全螢幕用較大的格距上限與較窄的留白，同一套規則要能套用 */
+  test('全螢幕參數下棋盤吃滿格距上限且池子側置', () => {
+    const b = computeBoardTray(1440, 68, 16);
+    expect(b.trayPosition).toBe('side');
+    expect(b.cellSize).toBe(68);
+    expect(boardW(68) + BOARD_TRAY.gap + b.trayWidth).toBeLessThanOrEqual(1440);
   });
 });

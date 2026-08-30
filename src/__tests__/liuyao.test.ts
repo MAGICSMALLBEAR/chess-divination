@@ -3,7 +3,7 @@ import {
   lineName, hexagramIndex, YANG, YIN,
 } from '../services/hexagram';
 import {
-  buildLiuYaoReading, summarizeReading, strengthState, applyStrength,
+  buildLiuYaoReading, strengthState, applyStrength,
   type StrengthState,
 } from '../services/liuyao';
 import { TRIGRAM_ELEMENTS } from '../services/hexagram';
@@ -156,13 +156,16 @@ describe('體用生剋', () => {
     expect(r.bodyUse.level).toBe('大吉');
   });
 
-  test('summary should mention all three hexagrams', () => {
+  // 三卦本身要成立：本卦、互卦、變卦各有卦名，動爻有爻名。
+  // （「解讀文字裡有沒有提到這三卦」由 interpretation.test.ts 管，
+  //   那才是真正會被使用者看到的輸出。）
+  test('reading should carry all three named hexagrams', () => {
     const r = buildLiuYaoReading(KAN, ZHEN, 3);
-    const text = summarizeReading(r);
-    expect(text).toContain(r.primary.name);
-    expect(text).toContain(r.nuclear.name);
-    expect(text).toContain(r.changed.name);
-    expect(text).toContain(r.movingLineName);
+    for (const name of [r.primary.name, r.nuclear.name, r.changed.name, r.movingLineName]) {
+      expect(name).toBeTruthy();
+    }
+    // 動爻在第 3 爻，變卦必與本卦不同
+    expect(r.changed.name).not.toBe(r.primary.name);
   });
 });
 
@@ -388,18 +391,19 @@ describe('卦例的月建旺衰', () => {
   });
 });
 
-describe('摘要含旺衰', () => {
-  test('summarizeReading 帶入月建與旺衰說明', () => {
-    const text = summarizeReading(buildLiuYaoReading(QIAN, DUI, 1, AUTUMN));
-    expect(text).toContain('酉月');
-    expect(text).toContain('旺');
+describe('卦例含旺衰', () => {
+  test('旺衰說明帶入月建與旺衰狀態', () => {
+    const { strength } = buildLiuYaoReading(QIAN, DUI, 1, AUTUMN);
+    expect(strength.text).toContain('酉月');
+    expect(strength.text).toContain('旺');
   });
 
   /**
-   * 旺衰沒有改動判定時不該多印一句「調整為…」——
-   * 那會讓使用者以為有調整卻看到前後相同的等級。
+   * shift 為 0 時 finalLevel 必須與 bodyUse.level 相同。
+   * 呈現端（interpretation.ts）靠這個差異決定要不要多寫一句「調整為…」，
+   * 若這裡不成立，使用者會看到「有調整」卻前後同級。
    */
-  test('旺衰未改動判定時不出現調整說明', () => {
+  test('旺衰未改動判定時等級不變', () => {
     // 找一組 shift 為 0（休）的卦例
     let found = false;
     for (let upper = 0; upper < 8 && !found; upper++) {
@@ -407,7 +411,6 @@ describe('摘要含旺衰', () => {
         const r = buildLiuYaoReading(upper, lower, 1, AUTUMN);
         if (r.strength.shift === 0) {
           expect(r.finalLevel).toBe(r.bodyUse.level);
-          expect(summarizeReading(r)).not.toContain('調整為');
           found = true;
         }
       }
@@ -415,16 +418,14 @@ describe('摘要含旺衰', () => {
     expect(found).toBe(true);
   });
 
-  test('旺衰改動判定時明確寫出前後等級', () => {
+  /** 反面：秋月 64 組裡至少要有一組真的被旺衰改掉等級，否則 applyStrength 等同沒接上 */
+  test('旺衰確實會改動判定', () => {
     let found = false;
     for (let upper = 0; upper < 8 && !found; upper++) {
       for (let lower = 0; lower < 8 && !found; lower++) {
         const r = buildLiuYaoReading(upper, lower, 1, AUTUMN);
         if (r.finalLevel !== r.bodyUse.level) {
-          const text = summarizeReading(r);
-          expect(text).toContain('調整為');
-          expect(text).toContain(r.bodyUse.level);
-          expect(text).toContain(r.finalLevel);
+          expect(r.strength.shift).not.toBe(0);
           found = true;
         }
       }

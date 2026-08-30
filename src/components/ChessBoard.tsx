@@ -20,7 +20,8 @@ export interface PlacedPiece {
 interface ChessBoardProps {
   placedPieces?: PlacedPiece[];
   availablePieces?: ChessPieceType[];
-  onPlacePiece?: (col: number, row: number) => void;
+  /** `piece` 只有拖曳落子會傳——被拖的那顆就是要放的那顆，沒有先選取的步驟 */
+  onPlacePiece?: (col: number, row: number, piece?: ChessPieceType) => void;
   onRemovePiece?: (col: number, row: number) => void;
   onSelectAvailable?: (piece: ChessPieceType) => void;
   selectedPiece?: ChessPieceType | null;
@@ -31,8 +32,20 @@ interface ChessBoardProps {
   spreadSlots?: readonly SpreadSlot[];
   /** 下一個必須落子的角色格位。 */
   activeSpreadSlot?: SpreadSlot | null;
+  /**
+   * 棋子池的位置。
+   * `below` 是預設，也是窄螢幕唯一站得住的排法；`side` 把棋子池移到棋盤右側，
+   * 讓「挑棋子」與「落子」落在同一個視線高度——寬螢幕上兩者上下相隔一整個
+   * 棋盤高度，每放一顆子就要來回捲動一次。
+   */
+  trayPosition?: 'below' | 'side';
+  /** `side` 時棋子池的欄寬；由呼叫端依剩餘空間換算，決定棋子排成幾欄。 */
+  trayWidth?: number;
   style?: ViewStyle;
 }
+
+/** 棋盤與側置棋子池之間的間距 */
+export const TRAY_GAP = Spacing.lg;
 
 export default function ChessBoard({
   placedPieces = [],
@@ -46,8 +59,11 @@ export default function ChessBoard({
   allowRepeatedPieces = false,
   spreadSlots = [],
   activeSpreadSlot = null,
+  trayPosition = 'below',
+  trayWidth,
   style,
 }: ChessBoardProps) {
+  const trayAtSide = trayPosition === 'side';
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
   const boardRef = useRef<View>(null);
@@ -105,7 +121,7 @@ export default function ChessBoard({
   };
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, trayAtSide && styles.containerSide, style]}>
       {/* 棋盤 */}
       <View
         ref={boardRef}
@@ -285,11 +301,18 @@ export default function ChessBoard({
 
       {/* 可選棋子區 */}
       {availablePieces.length > 0 && (
-        <View style={styles.availableArea}>
+        <View
+          testID="piece-tray"
+          style={[
+            styles.availableArea,
+            trayAtSide && styles.availableAreaSide,
+            trayAtSide && trayWidth ? { width: trayWidth } : null,
+          ]}
+        >
           <Text style={styles.availableTitle}>
             {t('board.place')} ({placedPieces.length}/{maxPieces})
           </Text>
-          <View style={styles.availableRow}>
+          <View style={[styles.availableRow, trayAtSide && styles.availableRowSide]}>
             {availablePieces.map((piece) => {
               const isPlaced = placedPieces.some(
                 pp => pp.piece.id === piece.id
@@ -317,7 +340,7 @@ export default function ChessBoard({
                         grid?.col === activeSpreadSlot.col && grid?.row === activeSpreadSlot.row
                       );
                       if (grid && isValidSpreadTarget) {
-                        onPlacePiece?.(grid.col, grid.row);
+                        onPlacePiece?.(grid.col, grid.row, p);
                       } else {
                         onSelectAvailable?.(p);
                       }
@@ -337,6 +360,9 @@ export default function ChessBoard({
 
 const makeStyles = (t: ThemeColors) => StyleSheet.create({
   container: { alignItems: 'center' },
+  // 側置時對齊頂端而非拉伸：棋子池比棋盤矮很多，stretch 會把它撐成整個
+  // 棋盤高度，標題與棋子被推到一片空白的中間。
+  containerSide: { flexDirection: 'row', alignItems: 'flex-start' },
   board: { position: 'relative' },
   boardBg: {
     position: 'absolute',
@@ -390,6 +416,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   availableArea: {
     marginTop: Spacing.lg, alignItems: 'center',
   },
+  availableAreaSide: {
+    marginTop: 0, marginLeft: TRAY_GAP, alignItems: 'flex-start',
+  },
   availableTitle: {
     fontSize: FontSize.small, color: t.textSecondary, marginBottom: Spacing.sm,
   },
@@ -397,6 +426,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', flexWrap: 'wrap',
     justifyContent: 'center', gap: Spacing.sm,
   },
+  // 側欄靠左起排：置中在最後一列不滿時會讓棋子左右浮動，換了棋色就跳位。
+  availableRowSide: { justifyContent: 'flex-start' },
   availablePiece: {
     alignItems: 'center', padding: 4, borderRadius: 12,
   },

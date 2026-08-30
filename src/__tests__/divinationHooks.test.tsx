@@ -267,6 +267,35 @@ describe('useBoardDivination', () => {
       expect(result.current.placedPieces[0].piece).toBe(pieceA);
     });
 
+    /**
+     * 拖曳落子沒有「先選取」這個中間步驟，被拖的那顆就是要放的那顆。
+     * 少了第三個參數時這裡會在 `!selectedPiece` 就 return——畫面上的表現是
+     * 拖了一顆棋過去卻毫無反應，看起來像拖曳功能根本不存在。
+     */
+    test('未先選取時，帶著棋子呼叫仍能落子', () => {
+      const { result } = renderHook(() => useBoardDivination());
+
+      expect(result.current.selectedPiece).toBeNull();
+      act(() => { result.current.placePieceOnBoard(4, 4, pieceB); });
+
+      expect(result.current.placedPieces).toHaveLength(1);
+      expect(result.current.placedPieces[0].piece).toBe(pieceB);
+      expect(result.current.placedPieces[0]).toMatchObject({ col: 4, row: 4 });
+    });
+
+    /** 已選 A 又拖 B：落下的必須是 B，不是沿用 selectedPiece 的 A */
+    test('帶著棋子呼叫時不沿用已選取的另一顆', () => {
+      const { result } = renderHook(() => useBoardDivination());
+
+      act(() => { result.current.selectPiece(pieceA); });
+      act(() => { result.current.placePieceOnBoard(4, 4, pieceB); });
+
+      expect(result.current.placedPieces).toHaveLength(1);
+      expect(result.current.placedPieces[0].piece).toBe(pieceB);
+      // 落子後選取一律清空，避免殘留的 A 影響下一次點擊落子
+      expect(result.current.selectedPiece).toBeNull();
+    });
+
     test('同一顆棋子不可重複選取', () => {
       const { result } = renderHook(() => useBoardDivination());
 

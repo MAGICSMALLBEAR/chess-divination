@@ -247,6 +247,9 @@ export const translations: Record<string, Record<Lang, string>> = {
   'common.questionPlaceholder': { 'zh-TW': '寫下您想問的問題', en: 'Write down your question', ja: '聞きたいことを書く' },
   // 符號須與 ChessBoard 實際畫在可放置格上的字元一致（見 dropIcon）
   'board.hint': { 'zh-TW': '先從下方棋子庫選擇一顆棋子，再點擊棋盤上的 + 號放置', en: 'Pick a piece below, then tap a + on the board to place it', ja: '下の駒を選び、盤上の + をタップして配置' },
+  // 寬螢幕上棋子庫移到棋盤右側（見 computeBoardTray），提示裡的方位得跟著改，
+  // 否則會叫使用者往一個沒有東西的方向找
+  'board.hintSide': { 'zh-TW': '先從右側棋子庫選擇一顆棋子，再點擊棋盤上的 + 號放置', en: 'Pick a piece on the right, then tap a + on the board to place it', ja: '右の駒を選び、盤上の + をタップして配置' },
   'board.allowDuplicates': { 'zh-TW': '允許重複棋子', en: 'Allow repeated pieces', ja: '同じ駒を許可' },
   'board.placed': { 'zh-TW': '已放置 {n} 顆', en: '{n} placed', ja: '{n} 配置済み' },
   'board.placedTag': { 'zh-TW': '已放置', en: 'Placed', ja: '配置済み' },

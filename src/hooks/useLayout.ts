@@ -49,6 +49,66 @@ export const GRID_GAP = Spacing.sm;
 export const SPLIT_GAP = Spacing.xl;
 
 /**
+ * 棋盤頁棋子池側置的幾何。
+ *
+ * 與 `split` 分開是同一個理由的延伸：這不是閱讀版面，寬度單位是棋子而非行寬。
+ * 棋子池的欄寬只能是 3 或 4 欄——2 欄會把 16 顆棋排成 8 列比棋盤還高，
+ * 5 欄以上又比棋盤本身還寬，兩者都讓「同一視線高度挑子落子」的目的失效。
+ */
+export const BOARD_TRAY = {
+  /** 單顆棋子在池中的佔位：ChessPiece 36 + 左右 padding 4 */
+  pieceCell: 44,
+  /** 棋子之間的間距，與 ChessBoard 的 availableRow gap 一致 */
+  pieceGap: Spacing.sm,
+  /** 棋盤與棋子池之間的間距，與 ChessBoard 的 TRAY_GAP 一致 */
+  gap: Spacing.lg,
+  /** 側置的最小容器寬度。低於此值棋盤會被壓到比放在下面時還小，不划算 */
+  minWidth: 720,
+} as const;
+
+/** n 欄棋子所需的寬度（末欄不含尾隨間距） */
+export function trayWidthForColumns(columns: number): number {
+  return columns * BOARD_TRAY.pieceCell + (columns - 1) * BOARD_TRAY.pieceGap;
+}
+
+export interface BoardTrayLayout {
+  /** 棋子池排在棋盤下方或右側 */
+  trayPosition: 'below' | 'side';
+  cellSize: number;
+  /** 側置時的棋子池欄寬；`below` 時為 0 */
+  trayWidth: number;
+}
+
+/**
+ * 由容器寬度推導棋盤格距與棋子池位置。
+ *
+ * `maxCell` 是格距上限（一般模式 56、全螢幕 68），`margin` 是容器左右留白。
+ * 側置時先扣掉最小棋子池寬再算格距，確保棋盤不會把池子擠到放不下；
+ * 剩餘空間再回填給池子，但上限四欄——超寬螢幕上把池子拉寬只會讓棋子散開，
+ * 反而要多掃一次視線。
+ */
+export function computeBoardTray(
+  containerWidth: number,
+  maxCell: number,
+  margin = 32,
+): BoardTrayLayout {
+  // 尚未量測到寬度，先給可用的預設值（沿用量測前的舊行為）
+  if (containerWidth <= 0) return { trayPosition: 'below', cellSize: 32, trayWidth: 0 };
+
+  const cellFor = (usable: number) => Math.min(maxCell, Math.max(28, usable / 9));
+
+  if (containerWidth < BOARD_TRAY.minWidth) {
+    return { trayPosition: 'below', cellSize: cellFor(containerWidth - margin), trayWidth: 0 };
+  }
+
+  const minTray = trayWidthForColumns(3);
+  const maxTray = trayWidthForColumns(4);
+  const cellSize = cellFor(containerWidth - margin - minTray - BOARD_TRAY.gap);
+  const leftover = containerWidth - margin - cellSize * 9 - BOARD_TRAY.gap;
+  return { trayPosition: 'side', cellSize, trayWidth: Math.min(maxTray, Math.max(minTray, leftover)) };
+}
+
+/**
  * 由視窗尺寸推導版面資訊。
  * 抽為純函式讓斷點與寬度計算可直接單元測試，
  * hook 本身只負責接上 useWindowDimensions。

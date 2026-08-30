@@ -48,12 +48,19 @@ export function useBoardDivination() {
     setSelectedPiece(piece);
   }, [placedPieces, allowRepeatedPieces]);
 
-  // 放置棋子到棋盤
-  const placePieceOnBoard = useCallback((col: number, row: number) => {
-    if (!selectedPiece) return;
+  // 放置棋子到棋盤。
+  //
+  // `piece` 是拖曳落子用的：拖曳沒有「先選取再落子」的中間步驟，被拖的那顆
+  // 就是要放的那顆。少了這個參數就只能放 `selectedPiece`，於是
+  //   - 什麼都沒選時直接拖：這裡在第一行就 return，拖曳看起來毫無反應
+  //   - 已選 A 再拖 B：放下去的是 A
+  // 點擊路徑不傳，維持沿用 selectedPiece。
+  const placePieceOnBoard = useCallback((col: number, row: number, piece?: ChessPiece) => {
+    const target = piece ?? selectedPiece;
+    if (!target) return;
     if (placedPieces.some(pp => pp.col === col && pp.row === row)) return;
 
-    setPlacedPieces(prev => [...prev, { piece: selectedPiece, col, row }]);
+    setPlacedPieces(prev => [...prev, { piece: target, col, row }]);
     setSelectedPiece(null);
     playPlacePieceSound();
     hapticLight();

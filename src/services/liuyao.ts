@@ -286,26 +286,9 @@ export function trigramLabel(trigram: number): string {
   return `${TRIGRAM_NAMES[trigram]}${TRIGRAM_GLYPHS[trigram]}${TRIGRAM_SYMBOLS[trigram]}`;
 }
 
-/** 產生三卦、體用與旺衰的文字摘要，供分享與離線解讀使用 */
-export function summarizeReading(reading: LiuYaoReading): string {
-  const { primary, changed, nuclear, movingLineName, bodyUse, strength, finalLevel } = reading;
-
-  const lines = [
-    `本卦：${primary.name}——目前的處境。`,
-    `動爻：${movingLineName}（第 ${reading.movingLine} 爻）——變化的關鍵所在。`,
-    `互卦：${nuclear.name}——過程中未浮上檯面的因素。`,
-    `變卦：${changed.name}——事情發展後的結果。`,
-    '',
-    `體卦${trigramLabel(bodyUse.body)}（我）、用卦${trigramLabel(bodyUse.use)}（事）。`,
-    bodyUse.text,
-    '',
-    strength.text,
-  ];
-
-  // 只在旺衰真的改動了判定時說明，否則多一句話卻沒有資訊
-  if (finalLevel !== bodyUse.level) {
-    lines.push(`綜合時令，斷語由「${bodyUse.level}」調整為「${finalLevel}」。`);
-  }
-
-  return lines.join('\n');
-}
+// 這裡原本還有一個 summarizeReading()，註解寫「供分享與離線解讀使用」，
+// 但兩個用途都早已由別人接走：分享文字是 socialShare.ts 的
+// formatDivinationShareText()（含本卦→變卦與體用等級），離線解讀是
+// interpretation.ts 的規則式解讀（同樣三卦＋體用＋旺衰，散文更完整且已翻譯）。
+// 它從未被任何畫面呼叫，六條中文樣板也因此沒有 i18n——真接上去只會多一份
+// 未翻譯的重複內容。故刪除；原本掛在它身上的旺衰斷言改測 reading 本身。
