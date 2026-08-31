@@ -8,10 +8,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
-import { Icon } from '@/components/icons';
-import type { DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
-import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder } from '@/services/storage';
-import { localizedPoemTitle, recordMatchesSearch } from '@/services/poemList';
+import { Icon, type IconName } from '@/components/icons';
+import type { DivinationMode, DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
+import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder, recordHasLevel } from '@/services/storage';
+import { recordMatchesSearch, recordTitle } from '@/services/poemList';
+import { recordLink } from '@/services/recordLink';
 import { getLevelColor } from '@/data/poems';
 import { confirmAction } from '@/services/dialog';
 import { notify } from '@/services/dialog';
@@ -28,6 +29,18 @@ import { SPREAD_LABEL_KEYS } from '@/services/spreads';
 
 type TabType = 'history' | 'favorites' | 'folders';
 const TAB_ORDER: TabType[] = ['history', 'favorites', 'folders'];
+
+/**
+ * 記錄卡上的占卜模式標示。寫成以 DivinationMode 為鍵的完整對照表而非三元式，
+ * 是為了讓日後新增模式時由 tsc 指出這裡漏改——原本的
+ * `mode === 'draw' ? 'dice' : 'chess-board'` 會把新模式默默歸成棋盤。
+ */
+const MODE_ICONS: Record<DivinationMode, IconName> = {
+  draw: 'dice', board: 'chess-board', lingqi: 'lingqi',
+};
+const MODE_LABEL_KEYS: Record<DivinationMode, string> = {
+  draw: 'collection.modeDraw', board: 'collection.modeBoard', lingqi: 'collection.modeLingqi',
+};
 
 /** 純圖示按鈕的觸控外擴。14–18pt 的圖示加上這圈約可達 44pt 建議值 */
 const ICON_HIT_SLOP = { top: 13, bottom: 13, left: 13, right: 13 };
@@ -219,10 +232,7 @@ export default function CollectionScreen() {
   }
 
   function handleView(record: DivinationRecord) {
-    router.push({
-      pathname: '/reveal',
-      params: { recordId: record.id, mode: record.mode },
-    });
+    router.push(recordLink(record));
   }
 
   // 滑動手勢：偵測水平滾動結束時切換目前分頁
@@ -275,19 +285,23 @@ export default function CollectionScreen() {
         </View>
         <View style={styles.cardCenter}>
           <View style={styles.cardHeader}>
-            <View style={[
-              styles.levelMini,
-              // 同上：原本 中吉／中平／下下 三個等級共用 textMuted，
-              // 清單掃過去分不出哪一筆比較好
-              { backgroundColor: getLevelColor(record.poemLevel) },
-            ]}>
-              {/* 前景色由底色推得而非一律白字：中平那格是米黃底，配白字
-                  只有約 1.9:1，這枚標籤才 11px，等於印了看不見的字 */}
-              <Text style={[styles.levelMiniText, { color: readableTextOn(getLevelColor(record.poemLevel)) }]}>{record.poemLevel}</Text>
-            </View>
+            {/* 靈棋記錄沒有吉凶等級（《靈棋經》原典未載，我們也不代為補寫），
+                整枚標籤省略——留著會是一格沒有字的色塊 */}
+            {recordHasLevel(record) && (
+              <View style={[
+                styles.levelMini,
+                // 同上：原本 中吉／中平／下下 三個等級共用 textMuted，
+                // 清單掃過去分不出哪一筆比較好
+                { backgroundColor: getLevelColor(record.poemLevel) },
+              ]}>
+                {/* 前景色由底色推得而非一律白字：中平那格是米黃底，配白字
+                    只有約 1.9:1，這枚標籤才 11px，等於印了看不見的字 */}
+                <Text style={[styles.levelMiniText, { color: readableTextOn(getLevelColor(record.poemLevel)) }]}>{record.poemLevel}</Text>
+              </View>
+            )}
             <View style={styles.modeRow}>
-              <Icon name={record.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={theme.textMuted} />
-              <Text style={styles.modeLabel}> {t(record.mode === 'draw' ? 'collection.modeDraw' : 'collection.modeBoard')}</Text>
+              <Icon name={MODE_ICONS[record.mode]} size={12} color={theme.textMuted} />
+              <Text style={styles.modeLabel}> {t(MODE_LABEL_KEYS[record.mode])}</Text>
               {record.spreadId && record.spreadId !== 'free' && (
                 <View style={styles.spreadChip}>
                   <Text style={styles.spreadChipText}>{t(SPREAD_LABEL_KEYS[record.spreadId])}</Text>
@@ -297,7 +311,7 @@ export default function CollectionScreen() {
           </View>
           {/* 記錄存的是中文原題；與 reveal 頁一致，顯示時依目前語言翻譯 */}
           <Text style={styles.cardTitle} numberOfLines={1}>
-            {localizedPoemTitle(record.poemId)}
+            {recordTitle(record)}
           </Text>
           <View style={styles.cardMetaRow}>
             <Text style={styles.cardDate}>{formatDate(record.timestamp)}</Text>
@@ -545,9 +559,9 @@ export default function CollectionScreen() {
                   if (!rec) return null;
                   return (
                     <TouchableOpacity key={rid} style={styles.folderRecord}
-                      onPress={() => router.push({ pathname: '/reveal', params: { recordId: rec.id, mode: rec.mode } })}>
+                      onPress={() => router.push(recordLink(rec))}>
                       <Text style={[styles.folderRecText, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {rec.drawnPieceChars.join(' ')} · {localizedPoemTitle(rec.poemId)}
+                        {rec.drawnPieceChars.join(' ')} · {recordTitle(rec)}
                       </Text>
                     </TouchableOpacity>
                   );

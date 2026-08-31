@@ -48,6 +48,20 @@ export function localizedPoemTitle(poemId: number): string {
   return localizePoem(getPoemById(poemId)).title;
 }
 
+/**
+ * 記錄清單要顯示的標題。
+ *
+ * 不能一律走 localizedPoemTitle(record.poemId)：靈棋記錄走的是《靈棋經》
+ * 125 卦目而非六十四籤詩，其 poemId 恆為 0，而 getPoemById 對無效 id 的
+ * fallback 是籤詩 #1——那會讓每一筆靈棋記錄都印成「龍騰九霄」。
+ *
+ * 靈棋的卦名（如「大通卦」）與六十四卦卦名同屬不翻譯的命理資料值，
+ * 三語介面都顯示漢字原文，故直接取記錄上的 poemTitle。
+ */
+export function recordTitle(record: Pick<SearchableRecord, 'poemId' | 'poemTitle'> & { mode?: string }): string {
+  return record.mode === 'lingqi' ? record.poemTitle : localizedPoemTitle(record.poemId);
+}
+
 /** recordMatchesSearch 只需要記錄裡的這幾個欄位，不必整個 DivinationRecord */
 export interface SearchableRecord {
   poemId: number;
@@ -55,6 +69,8 @@ export interface SearchableRecord {
   poemContent: string;
   drawnPieceChars: string[];
   questionText?: string;
+  /** 靈棋記錄不查籤詩表，見 recordTitle 與 recordMatchesSearch */
+  mode?: string;
 }
 
 /**
@@ -77,12 +93,13 @@ export function recordMatchesSearch(record: SearchableRecord, query: string, lan
   const q = query.trim().toLowerCase();
   if (!q) return true;
 
-  const localizedTitle = localizedPoemTitle(record.poemId).toLowerCase();
-  if (localizedTitle.includes(q)) return true;
+  if (recordTitle(record).toLowerCase().includes(q)) return true;
 
   // 籤詩全文（含譯文的內容與白話）也要能搜——卡片上雖只印標題，
-  // 但使用者記得的往往是詩句而非篇名
-  if (poemMatchesSearch(getPoemById(record.poemId), query, lang)) return true;
+  // 但使用者記得的往往是詩句而非篇名。
+  // 靈棋記錄不走這條：它的 poemId 恆為 0，比對籤詩 #1 的內容只會誤命中，
+  // 其卦名與詩句改由下方的 poemTitle／poemContent 快照涵蓋。
+  if (record.mode !== 'lingqi' && poemMatchesSearch(getPoemById(record.poemId), query, lang)) return true;
 
   const own = [record.poemTitle, record.poemContent, record.drawnPieceChars.join(''), record.questionText ?? ''];
   return own.some(text => text.toLowerCase().includes(q));

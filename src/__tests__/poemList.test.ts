@@ -197,8 +197,18 @@ describe('列表畫面的籤詩標題接線（靜態守門）', () => {
     expect(collectionSrc).not.toMatch(/\{rec\.poemTitle\}/);
   });
 
-  test('兩個畫面都走 localizedPoemTitle', () => {
-    expect(homeSrc).toContain('localizedPoemTitle(');
-    expect(collectionSrc).toContain('localizedPoemTitle(');
+  /**
+   * 兩個畫面都得走 recordTitle，而不是直接呼叫 localizedPoemTitle。
+   *
+   * 差別在靈棋記錄：它走《靈棋經》125 卦目，poemId 恆為 0，而 getPoemById
+   * 對無效 id 的 fallback 是籤詩 #1——直接呼叫 localizedPoemTitle 會讓
+   * 每一筆靈棋記錄都印成「龍騰九霄」，而且畫面上看起來像一筆正常記錄，
+   * 不會有任何錯誤跡象。recordTitle 是唯一分得清兩種記錄的那道門。
+   */
+  test('兩個畫面都走 recordTitle，不直接呼叫 localizedPoemTitle', () => {
+    expect(homeSrc).toContain('recordTitle(');
+    expect(collectionSrc).toContain('recordTitle(');
+    expect(homeSrc).not.toContain('localizedPoemTitle(');
+    expect(collectionSrc).not.toContain('localizedPoemTitle(');
   });
 });

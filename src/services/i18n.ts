@@ -149,6 +149,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'stats.overview': { 'zh-TW': '總次數', en: 'Total', ja: '総回数' },
   'stats.draw': { 'zh-TW': '抽棋', en: 'Draw', ja: '抽棋' },
   'stats.board': { 'zh-TW': '佈局', en: 'Board', ja: '配置' },
+  'stats.lingqi': { 'zh-TW': '靈棋', en: 'Lingqi', ja: '靈棋' },
   'stats.fav': { 'zh-TW': '收藏', en: 'Fav', ja: 'お気に入り' },
   'stats.levelDist': { 'zh-TW': '吉凶分佈', en: 'Fortune Distribution', ja: '吉凶分布' },
   'stats.topPieces': { 'zh-TW': '最常抽到棋子類型', en: 'Most Drawn Pieces', ja: '最も引かれた駒' },
@@ -392,6 +393,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'collection.records': { 'zh-TW': '{n} 筆', en: '{n}', ja: '{n} 件' },
   'collection.modeDraw': { 'zh-TW': '抽棋', en: 'Draw', ja: '抽棋' },
   'collection.modeBoard': { 'zh-TW': '佈局', en: 'Board', ja: '配置' },
+  'collection.modeLingqi': { 'zh-TW': '靈棋', en: 'Lingqi', ja: '靈棋' },
 
   // 成就
   'achievement.title': { 'zh-TW': '成就徽章', en: 'Achievements', ja: '実績バッジ' },
@@ -529,7 +531,14 @@ export const translations: Record<string, Record<Lang, string>> = {
   'lingqi.subtitle': { 'zh-TW': '上為天、中為人、下為地。十二枚棋子一次擲定，請先靜心專注於一個問題。', en: 'Upper is Heaven, middle is Man, lower is Earth. Cast all twelve pieces at once; first quiet your mind and focus on one question.', ja: '上は天、中は人、下は地。十二枚の棋子を一度に擲ちます。まず心を静め、一つの問いに集中してください。' },
   'lingqi.rule': { 'zh-TW': '上／中／下各四枚，正面朝上的數量構成一卦；同一問題不重擲。', en: 'Four pieces each for upper, middle, and lower; the number of face-up pieces forms a sign. Do not cast again for the same question.', ja: '上・中・下に各四枚。表を向いた枚数で一卦を成します。同じ問いで再び擲ってはいけません。' },
   'lingqi.countLine': { 'zh-TW': '天 {u} 枚　人 {m} 枚　地 {l} 枚', en: 'Heaven {u} · Man {m} · Earth {l}', ja: '天 {u} 枚　人 {m} 枚　地 {l} 枚' },
-  'lingqi.source': { 'zh-TW': '此組合是《靈棋經》125 卦中的原典索引。卦辭資料將以校對後的原典版本載入，不與現有 64 籤詩混用。', en: 'This combination indexes one of the 125 signs in the Lingqi Jing. The verse texts will be loaded from a collated edition of the original, kept separate from the existing 64 poems.', ja: 'この組み合わせは『靈棋經』125 卦の原典索引です。卦辞は校訂した原典版で読み込み、既存の64首の籤詩とは混ぜません。' },
+  // 象曰／詩曰是原典的段落名稱。卦辭本文維持漢字不譯（那是資料值），
+  // 但這幾個是介面標籤，英文得是英文——i18n.test 的「英文不得殘留漢字」
+  // 守的就是這條界線，別為了對齊術語把漢字漏進英文介面。
+  'lingqi.xiang': { 'zh-TW': '象曰', en: 'The Image', ja: '象曰' },
+  'lingqi.xiangAlt': { 'zh-TW': '又曰', en: 'The Image, second passage', ja: '又曰' },
+  'lingqi.shi': { 'zh-TW': '詩曰', en: 'The Verse', ja: '詩曰' },
+  'lingqi.shiAlt': { 'zh-TW': '又', en: 'A second verse', ja: '又' },
+  'lingqi.source': { 'zh-TW': '卦辭為《靈棋經》原典（公有領域），逐字保留、不與 64 籤詩混用。原典未載吉凶等級，故本卦不計入吉凶統計。', en: 'The verses are the original text of the Lingqi Jing (public domain), kept verbatim and never mixed with the 64 poems. The original records no auspiciousness grade, so these castings are excluded from the grade statistics.', ja: '卦辞は『靈棋經』の原典（パブリックドメイン）を一字一句そのまま用い、64首の籤詩とは混ぜません。原典に吉凶の等級はないため、この卦は吉凶統計に含めません。' },
   'lingqi.cast': { 'zh-TW': '擲出十二靈棋', en: 'Cast the Twelve Lingqi', ja: '十二靈棋を擲つ' },
   'lingqi.recast': { 'zh-TW': '另問一事，再擲靈棋', en: 'Ask another question, cast again', ja: '別の問いで、再び靈棋を擲つ' },
 

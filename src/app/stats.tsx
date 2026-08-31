@@ -9,7 +9,7 @@ import { PIECE_CHINESE_NAMES } from '@/components/icons';
 import TrendChart from '@/components/TrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { getHistory, type DivinationRecord } from '@/services/storage';
+import { getHistory, recordHasLevel, type DivinationRecord } from '@/services/storage';
 import { startOfLocalWeek, startOfLocalMonth } from '@/services/date';
 import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
@@ -55,6 +55,7 @@ export default function StatsScreen() {
   const total = filtered.length;
   const drawCount = filtered.filter(r => r.mode === 'draw').length;
   const boardCount = filtered.filter(r => r.mode === 'board').length;
+  const lingqiCount = filtered.filter(r => r.mode === 'lingqi').length;
   const favCount = filtered.filter(r => r.isFavorited).length;
 
   // 棋子統計
@@ -65,9 +66,10 @@ export default function StatsScreen() {
   }));
   const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
 
-  // 吉凶分佈
+  // 吉凶分佈。靈棋走《靈棋經》原典，原文未載吉凶等級，我們也不代為補寫——
+  // 不濾掉的話會多出一條以空字串為名的長條。
   const levelCounts: Record<string, number> = {};
-  filtered.forEach(r => {
+  filtered.filter(recordHasLevel).forEach(r => {
     levelCounts[r.poemLevel] = (levelCounts[r.poemLevel] || 0) + 1;
   });
 
@@ -165,6 +167,10 @@ export default function StatsScreen() {
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={styles.statNum}>{boardCount}</Text>
             <Text style={[styles.statLabel, { color: theme.textMuted }]}>{t('stats.board')}</Text>
+          </View>
+          <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+            <Text style={styles.statNum}>{lingqiCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>{t('stats.lingqi')}</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
             <Text style={styles.statNum}>{favCount}</Text>

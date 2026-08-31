@@ -10,7 +10,8 @@ import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
 import { generateDailyFortune } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
-import { localizedPoemTitle } from '@/services/poemList';
+import { recordTitle } from '@/services/poemList';
+import { recordLink } from '@/services/recordLink';
 import { getLevelColor } from '@/data/poems';
 import { shareNative, copyToClipboard } from '@/services/socialShare';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -150,10 +151,10 @@ export default function HomeScreen() {
             </View>
             {recentRecords.map(r => (
               <TouchableOpacity key={r.id} style={styles.recentRow}
-                onPress={() => router.push({ pathname: '/reveal', params: { recordId: r.id, mode: r.mode } })}>
+                onPress={() => router.push(recordLink(r))}>
                 <Text style={[styles.recentPieces, { color: theme.textPrimary }]}>{r.drawnPieceChars.join(' ')}</Text>
                 {/* 記錄存的是中文原題；與 reveal 頁一致，顯示時依目前語言翻譯 */}
-                <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{localizedPoemTitle(r.poemId)}</Text>
+                <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{recordTitle(r)}</Text>
                 {/* 等級色走 getLevelColor 這份語意色盤。原本是手寫的三元式，
                     而且兩個分支都回 theme.textMuted——中平與下下看起來
                     一模一樣，五個等級只剩兩種顏色。 */}

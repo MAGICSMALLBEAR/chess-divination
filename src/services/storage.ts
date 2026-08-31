@@ -24,7 +24,7 @@ export const STORAGE_KEYS = {
 
 // ====== Types ======
 
-export type DivinationMode = 'draw' | 'board';
+export type DivinationMode = 'draw' | 'board' | 'lingqi';
 
 export interface DivinationRecord {
   id: string;
@@ -43,6 +43,15 @@ export interface DivinationRecord {
   positionSummary?: string;      // board position interpretation summary
   /** 棋盤占卜所用牌陣；舊記錄缺省為自由佈局，保留向後相容。 */
   spreadId?: SpreadId;
+  /**
+   * 靈棋卦目鍵值 `上-中-下`，僅 mode === 'lingqi' 的記錄有。
+   *
+   * 靈棋走《靈棋經》125 卦目，不是六十四籤詩那一套，因此這類記錄的
+   * poemId 恆為 0 且不可拿去查籤詩——顯示標題請走 recordTitle()。
+   * 原典也未載吉凶等級，poemLevel 恆為空字串，統計的吉凶分佈與
+   * 依等級應驗率一律排除（見 recordHasLevel()）。
+   */
+  lingqiKey?: string;
   timestamp: number;
   isFavorited: boolean;
   /**
@@ -513,4 +522,39 @@ export function recordFromDivination(
     movingLine: hexagram?.movingLine,
     hourBranch: hexagram?.hourBranch,
   };
+}
+
+/**
+ * 靈棋記錄。走《靈棋經》125 卦目而非六十四籤詩，故 poemId 留 0、poemLevel 留空——
+ * 兩者都不可被當成籤詩欄位使用，理由與邊界見 DivinationRecord.lingqiKey。
+ */
+export function recordFromLingqi(
+  oracle: { key: string; notation: string; name: string; shi: string[] },
+  questionCategory?: string,
+  questionText?: string,
+): Omit<DivinationRecord, 'id'> {
+  return {
+    poemId: 0,
+    poemTitle: oracle.name,
+    poemContent: oracle.shi.join('\n'),
+    poemLevel: '',
+    drawnPieceTypes: [],
+    drawnPieceColors: [],
+    drawnPieceChars: [],
+    mode: 'lingqi',
+    questionCategory,
+    questionText,
+    lingqiKey: oracle.key,
+    timestamp: Date.now(),
+    isFavorited: false,
+    engineVersion: DIVINATION_ENGINE_VERSION,
+  };
+}
+
+/**
+ * 這筆記錄有沒有吉凶等級。靈棋走的《靈棋經》原典未載等級，我們也不替它補寫，
+ * 因此吉凶分佈與依等級應驗率必須先過這一關，否則靈棋記錄會以空字串自成一類。
+ */
+export function recordHasLevel(record: Pick<DivinationRecord, 'poemLevel'>): boolean {
+  return record.poemLevel.length > 0;
 }

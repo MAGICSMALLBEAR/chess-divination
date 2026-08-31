@@ -1,7 +1,11 @@
 /**
  * 靈棋十二子：上、中、下各四枚；一次擲出，以朝上數量成卦。
- * 鍵值共有 5 × 5 × 5 = 125 種，能直接對應《靈棋經》的卦目。
+ * 鍵值共有 5 × 5 × 5 = 125 種，正好對應《靈棋經》的卦目。
  */
+import { LINGQI_ORACLES, type LingqiOracle } from '@/data/lingqiOracles';
+
+export type { LingqiOracle };
+
 export interface LingqiCast {
   upper: number;
   middle: number;
@@ -24,14 +28,30 @@ function validate(cast: LingqiCast): void {
   }
 }
 
-// 卦目標記法（如「二上一中」）。與棋子漢字、卦名同屬命理資料值——
-// 它是《靈棋經》原典的卦目名稱，維持漢字原樣不翻譯。
-const NUMERALS = ['零', '一', '二', '三', '四'];
+const BY_KEY = new Map(LINGQI_ORACLES.map(oracle => [oracle.key, oracle]));
 
+/**
+ * 取該擲法對應的卦目。125 種組合在原典中皆有卦，因此查不到即為資料檔損毀，
+ * 讓它擲出例外而不是靜默回傳預設卦——後者會讓使用者讀到與擲出結果無關的斷語。
+ */
+export function lingqiOracle(cast: LingqiCast): LingqiOracle {
+  const key = lingqiKey(cast);
+  const oracle = BY_KEY.get(key);
+  if (!oracle) throw new Error(`靈棋卦目缺漏：${key}`);
+  return oracle;
+}
+
+export function lingqiOracleByKey(key: string): LingqiOracle | undefined {
+  return BY_KEY.get(key);
+}
+
+/**
+ * 卦目標記（如「二上一中」）。與棋子漢字、卦名同屬命理資料值——
+ * 它是《靈棋經》原典的卦目名稱，維持漢字原樣不翻譯。
+ *
+ * 取自資料檔而非自行拼字：原典對數量為零的一才略去不寫，全零者另有專名
+ * 「純陰饅」而不是照規則拼出來的空字串。自行拼字會在那一卦上與原典對不起來。
+ */
 export function lingqiNotation(cast: LingqiCast): string {
-  const parts: Array<[string, number]> = [['上', cast.upper], ['中', cast.middle], ['下', cast.lower]];
-  return parts
-    .filter(([, count]) => count > 0)
-    .map(([kind, count]) => `${NUMERALS[count]}${kind}`)
-    .join('') || '三才皆隱';
+  return lingqiOracle(cast).notation;
 }

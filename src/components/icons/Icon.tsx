@@ -15,7 +15,7 @@ const VIEW = 24;
 
 export type IconName =
   | 'home' | 'scroll' | 'settings'
-  | 'dice' | 'chess-board'
+  | 'dice' | 'chess-board' | 'lingqi'
   | 'crystal-ball'
   | 'heart' | 'heart-filled'
   | 'share' | 'refresh' | 'trash' | 'undo' | 'check' | 'lock'
@@ -93,6 +93,22 @@ function IconPaths({ name }: { name: IconName }) {
           <Circle cx="18.5" cy="5.5" r="0.8" />
           <Circle cx="5.5" cy="18.5" r="0.8" />
           <Circle cx="18.5" cy="18.5" r="0.8" />
+        </>
+      );
+
+    // 靈棋：上、中、下三列各四枚。畫成三列而非骰子那樣的四格，
+    // 是因為「三才各四枚」正是這個占法與抽棋的差別所在。
+    case 'lingqi':
+      return (
+        <>
+          {[5, 12, 19].map(y => (
+            <React.Fragment key={y}>
+              <Circle cx="4" cy={y} r="1.9" />
+              <Circle cx="9.3" cy={y} r="1.9" />
+              <Circle cx="14.7" cy={y} r="1.9" />
+              <Circle cx="20" cy={y} r="1.9" />
+            </React.Fragment>
+          ))}
         </>
       );
 
