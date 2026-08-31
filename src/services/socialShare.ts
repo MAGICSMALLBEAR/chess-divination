@@ -132,3 +132,44 @@ export function formatDivinationShareText(params: {
 
   return parts.join('\n');
 }
+
+/**
+ * 格式化靈棋結果為分享文字。
+ *
+ * 另立一支而不共用上面那支：靈棋沒有吉凶等級、沒有棋子、沒有六爻盤，
+ * 硬塞進籤詩的版式會分享出「 · 明陽卦」這種前面缺一塊的標題，
+ * 以及一行空的「抽得：」。它有的是卦目、象、象曰與詩曰。
+ */
+export function formatLingqiShareText(params: {
+  notation: string;
+  name: string;
+  image: string;
+  cast?: { upper: number; middle: number; lower: number };
+  xiang: string[];
+  shi: string[];
+  question?: string;
+}): string {
+  const parts = [
+    `🏮【${t('home.title')}】${params.name} · ${params.image}`,
+    `　 ${params.notation}`,
+  ];
+
+  if (params.cast) {
+    parts.push(`🎲 ${t('share.lingqiCast', { u: params.cast.upper, m: params.cast.middle, l: params.cast.lower })}`);
+  }
+  if (params.question) parts.push('', `❓ ${params.question}`);
+
+  parts.push(
+    '',
+    ...params.xiang,
+    '',
+    ...params.shi,
+    '',
+    `📜 ${t('share.lingqiSource')}`,
+    '',
+    '🔗 chess-divination-app.vercel.app',
+    t('home.tagline'),
+  );
+
+  return parts.join('\n');
+}

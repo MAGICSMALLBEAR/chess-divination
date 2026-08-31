@@ -27,6 +27,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 模式選擇
   'mode.draw': { 'zh-TW': '抽棋占卜', en: 'Draw Divination', ja: '抽棋占い' },
   'mode.board': { 'zh-TW': '棋盤佈局', en: 'Board Layout', ja: '棋盤配置' },
+  'mode.lingqi': { 'zh-TW': '靈棋十二子', en: 'The Twelve Lingqi Pieces', ja: '靈棋十二子' },
 
   // 占卜流程
   'draw.question': { 'zh-TW': '請問您想問什麼？', en: 'What would you like to ask?', ja: '何をお聞きになりますか？' },
@@ -510,6 +511,8 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 分享出去的文字。收到的人看得到，故與介面同樣需要翻譯
   'share.hexagram': { 'zh-TW': '卦：{name}', en: 'Hexagram: {name}', ja: '卦：{name}' },
   'share.drawn': { 'zh-TW': '抽得：{pieces}', en: 'Drawn: {pieces}', ja: '引いた駒：{pieces}' },
+  'share.lingqiCast': { 'zh-TW': '擲得：天 {u} 枚　人 {m} 枚　地 {l} 枚', en: 'Cast: Heaven {u} · Man {m} · Earth {l}', ja: '擲出：天 {u} 枚　人 {m} 枚　地 {l} 枚' },
+  'share.lingqiSource': { 'zh-TW': '卦辭出自《靈棋經》原典', en: 'Verses from the original Lingqi Jing', ja: '卦辞は『靈棋經』原典より' },
   'share.changed': { 'zh-TW': '{from} → {to}（動爻 {line}）', en: '{from} → {to} (moving line {line})', ja: '{from} → {to}（動爻 {line}）' },
   'share.bodyUse': { 'zh-TW': '體用：{relation} · {level}', en: 'Body/Use: {relation} · {level}', ja: '体用：{relation} · {level}' },
 

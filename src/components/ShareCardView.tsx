@@ -14,7 +14,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Rect, G, Line, Circle } from 'react-native-svg';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
-import { Icon } from '@/components/icons';
+import { Icon, type IconName } from '@/components/icons';
 import { HexagramGlyph } from '@/components/icons/TrigramGlyph';
 import { hexagramLines, trigramsFromIndex, trigramLine } from '@/services/hexagram';
 import type { LineValue } from '@/services/hexagram';
@@ -26,6 +26,19 @@ import { ShareCardPalette as P, ShareCardLevelColors } from '@/constants/theme';
 /** 日期格式跟隨介面語言：卡片上的色彩固定，文字則該是使用者讀得懂的語言 */
 const DATE_LOCALES: Record<string, string> = {
   'zh-TW': 'zh-TW', en: 'en-US', ja: 'ja-JP',
+};
+
+/**
+ * 分享卡底部的模式標示。與 collection.tsx 同樣寫成對照表而非三元式——
+ * `mode === 'draw' ? ... : ...` 會把任何新模式默默印成「棋盤佈局」，
+ * 而分享卡是送出去的成品，錯了看不出來也收不回來。
+ * mode 在此是 string（分享卡不綁 storage 的型別），故保留 fallback。
+ */
+const CARD_MODE_ICONS: Record<string, IconName> = {
+  draw: 'dice', board: 'chess-board', lingqi: 'lingqi',
+};
+const CARD_MODE_LABEL_KEYS: Record<string, string> = {
+  draw: 'mode.draw', board: 'mode.board', lingqi: 'mode.lingqi',
 };
 
 const CARD_WIDTH = 400;
@@ -132,10 +145,13 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
             ))}
           </View>
 
-          {/* 吉凶等級 */}
-          <View style={[styles.levelChip, { backgroundColor: levelColor }]}>
-            <Text style={styles.levelText}>{props.poemLevel}</Text>
-          </View>
+          {/* 吉凶等級。靈棋走《靈棋經》原典，原文未載等級——整枚標籤省略，
+              否則會印出一格沒有字的色塊，而且落在 levelColor 的 中平 預設色上 */}
+          {props.poemLevel ? (
+            <View style={[styles.levelChip, { backgroundColor: levelColor }]}>
+              <Text style={styles.levelText}>{props.poemLevel}</Text>
+            </View>
+          ) : null}
 
           {/* 籤題 */}
           <Text style={styles.poemTitle}>{props.poemTitle}</Text>
@@ -194,9 +210,9 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
           {/* 底部資訊 */}
           <View style={styles.footer}>
             <View style={styles.footerModeRow}>
-              <Icon name={props.mode === 'draw' ? 'dice' : 'chess-board'} size={12} color={P.inkMuted} />
+              <Icon name={CARD_MODE_ICONS[props.mode] ?? 'chess-board'} size={12} color={P.inkMuted} />
               <Text style={styles.footerMode}>
-                {' '}{t(props.mode === 'draw' ? 'mode.draw' : 'mode.board')}
+                {' '}{t(CARD_MODE_LABEL_KEYS[props.mode] ?? 'mode.board')}
               </Text>
             </View>
             <Text style={styles.footerDate}>{dateStr}</Text>

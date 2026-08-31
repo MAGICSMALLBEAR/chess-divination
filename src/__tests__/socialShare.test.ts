@@ -6,6 +6,7 @@ import {
   shareToFacebook,
   copyToClipboard,
   formatDivinationShareText,
+  formatLingqiShareText,
 } from '../services/socialShare';
 
 const originalOS = Platform.OS;
@@ -306,5 +307,42 @@ describe('copyToClipboard', () => {
     jest.spyOn(Clipboard, 'setStringAsync').mockRejectedValue(new Error('failed'));
 
     await expect(copyToClipboard('文字')).resolves.toBe(false);
+  });
+});
+
+
+describe('靈棋分享文字', () => {
+  const oracle = {
+    notation: '三上一中一下',
+    name: '明陽卦',
+    image: '小吉之象',
+    cast: { upper: 3, middle: 1, lower: 1 },
+    xiang: ['仕宦及時', '祿與年期'],
+    shi: ['東風吹動九衢開', '和氣還從日下來'],
+  };
+
+  test('卦名、象、卦目與卦辭都在', () => {
+    const text = formatLingqiShareText(oracle);
+    expect(text).toContain('明陽卦');
+    expect(text).toContain('小吉之象');
+    expect(text).toContain('三上一中一下');
+    expect(text).toContain('東風吹動九衢開');
+    expect(text).toContain('仕宦及時');
+  });
+
+  /**
+   * 不共用籤詩那支的理由就在這裡：籤詩版的標題是
+   * `${poemLevel} · ${poemTitle}`，靈棋沒有等級，套進去會變成
+   * 前面缺一塊的「 · 明陽卦」，還會多一行空的「抽得：」。
+   */
+  test('標題不以分隔點開頭，也沒有空的棋子行', () => {
+    const text = formatLingqiShareText(oracle);
+    expect(text).not.toMatch(/】\s*·/);
+    expect(text).not.toContain('抽得：');
+  });
+
+  test('有問題時帶上問題，沒有就不留空行標記', () => {
+    expect(formatLingqiShareText({ ...oracle, question: '該接這份工作嗎' })).toContain('該接這份工作嗎');
+    expect(formatLingqiShareText(oracle)).not.toContain('❓');
   });
 });

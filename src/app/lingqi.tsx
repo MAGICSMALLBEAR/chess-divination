@@ -7,17 +7,20 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import OutcomeMarker from '@/components/OutcomeMarker';
+import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import { Icon } from '@/components/icons';
 import { castLingqi, lingqiOracle, lingqiOracleByKey, type LingqiCast, type LingqiOracle } from '@/services/lingqi';
 import {
-  addHistory, getHistory, getSettings, saveSettings,
+  addHistory, getHistory, getSettings, saveSettings, toggleFavorite,
   recordFromLingqi, setOutcome, clearOutcome, setRecordNote,
   type DivinationRecord, type OutcomeStatus,
 } from '@/services/storage';
 import { cancelVerificationReminder, scheduleVerificationReminder } from '@/services/notifications';
-import { notify } from '@/services/dialog';
-import { hapticMedium } from '@/services/haptics';
+import { confirmAction, notify } from '@/services/dialog';
+import { copyToClipboard, formatLingqiShareText, shareNative, shareToLine } from '@/services/socialShare';
+import { hapticMedium, hapticSuccess } from '@/services/haptics';
+import { playFavoriteSound } from '@/services/sound';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useLayout } from '@/hooks/useLayout';
@@ -38,6 +41,8 @@ export default function LingqiScreen() {
   const [cast, setCast] = useState<LingqiCast | null>(null);
   const [oracle, setOracle] = useState<LingqiOracle | null>(null);
   const [record, setRecord] = useState<DivinationRecord | null>(null);
+  const [isFav, setIsFav] = useState(false);
+  const shareRef = useRef<ShareCardHandle>(null);
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
   const selectedCategoryLabel = categories.find(c => c.key === selectedCategory)?.label ?? selectedCategory;
@@ -62,6 +67,7 @@ export default function LingqiScreen() {
       const saved = lingqiOracleByKey(found.lingqiKey);
       if (!saved) return;
       setRecord(found);
+      setIsFav(found.isFavorited);
       setOracle(saved);
       setCast(null);
       if (found.questionText) setQuestionText(found.questionText);
@@ -86,6 +92,7 @@ export default function LingqiScreen() {
 
       const saved = await addHistory(recordFromLingqi(result, selectedCategory, questionText.trim() || undefined));
       setRecord(saved);
+      setIsFav(saved.isFavorited);
       void scheduleVerificationReminder(saved);
     } catch (e) {
       // 儲存失敗（空間滿／儲存損毀）不能只是靜默——卦已經擲了，
@@ -101,6 +108,56 @@ export default function LingqiScreen() {
     setCast(null);
     setOracle(null);
     setRecord(null);
+    setIsFav(false);
+  }
+
+  async function handleToggleFavorite() {
+    if (!record) return;
+    try {
+      const result = await toggleFavorite(record);
+      setIsFav(result);
+      playFavoriteSound();
+      hapticSuccess();
+      await refreshRecord(record.id);
+    } catch (e) {
+      // 失敗時不動 isFav：讓畫面維持真實狀態，否則星星亮著但資料沒存，
+      // 重進頁面又變回去（與 reveal.tsx 同一個理由）
+      console.warn('收藏狀態儲存失敗:', e);
+      notify(t('error.saveFailed'), t('error.saveFavoriteFailed'));
+    }
+  }
+
+  async function handleShare() {
+    if (!oracle) return;
+    // 先試圖片卡（原生走 view-shot 擷取離屏的 ShareCardView）。
+    // 回傳 false 代表擷取或系統分享不可用（Web 端即是），改走文字分享。
+    if (await shareRef.current?.share()) return;
+
+    const text = formatLingqiShareText({
+      notation: oracle.notation,
+      name: oracle.name,
+      image: oracle.image,
+      cast: cast ?? undefined,
+      xiang: oracle.xiang,
+      shi: oracle.shi,
+      question: record?.questionText,
+    });
+
+    if (await shareNative({ title: t('reveal.shareTitle'), text })) return;
+
+    const confirmed = await confirmAction({
+      title: t('reveal.shareLine'),
+      message: t('reveal.shareLineDesc'),
+      confirmLabel: t('common.confirm'),
+      cancelLabel: t('common.cancel'),
+    });
+    if (confirmed) {
+      shareToLine({ title: t('reveal.shareTitle'), text });
+    } else {
+      // 複製成功與否都要說一聲，否則使用者按了像是沒反應（同 reveal.tsx）
+      const ok = await copyToClipboard(text);
+      notify(t(ok ? 'reveal.copied' : 'reveal.copyManual'));
+    }
   }
 
   const refreshRecord = useCallback(async (id: string) => {
@@ -241,6 +298,34 @@ export default function LingqiScreen() {
               />
             )}
 
+            {/* 收藏與分享。與 PoemCard 底部同一組動作，靈棋沒有 PoemCard，
+                故在此自行排一列 */}
+            {record && (
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={styles.favBtn}
+                  testID="lingqi-favorite"
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isFav }}
+                  accessibilityLabel={t(isFav ? 'common.unfavorite' : 'common.favorite')}
+                  onPress={handleToggleFavorite}
+                >
+                  <Icon name={isFav ? 'heart-filled' : 'heart'} size={16} color={isFav ? theme.textRed : theme.textSecondary} />
+                  <Text style={styles.favBtnText}> {t(isFav ? 'common.unfavorite' : 'common.favorite')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.shareBtn}
+                  testID="lingqi-share"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.share')}
+                  onPress={handleShare}
+                >
+                  <Icon name="share" size={16} color={theme.textInverse} />
+                  <Text style={styles.shareBtnText}> {t('common.share')}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <TouchableOpacity style={styles.recastBtn} testID="lingqi-recast" accessibilityRole="button" onPress={handleRecast}>
               <Icon name="lingqi" size={18} color={theme.gold} />
               <Text style={styles.recastText}> {t('lingqi.recast')}</Text>
@@ -248,6 +333,26 @@ export default function LingqiScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* 隱藏的分享卡片。隱藏手法與理由同 reveal.tsx：只靠離屏定位，
+          刻意不加 opacity: 0（view-shot 的 iOS 端會截出空白 PNG），
+          改以 aria-hidden 把整張卡擋在無障礙樹外，免得報讀器再念一遍卦辭。 */}
+      {oracle && record && (
+        <View style={styles.shareHidden} aria-hidden>
+          <ShareCardView
+            ref={shareRef}
+            poemTitle={oracle.name}
+            poemContent={oracle.shi.join('\n')}
+            // 靈棋沒有吉凶等級——傳空字串，分享卡會整枚略過那格標籤
+            poemLevel=""
+            poemHexagram={`${oracle.notation}　${oracle.image}`}
+            pieceChars={[]}
+            pieceColors={[]}
+            mode={record.mode}
+            timestamp={record.timestamp}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -305,6 +410,18 @@ const makeStyles = (theme: ThemeColors) => StyleSheet.create({
   verseLabel: { fontSize: FontSize.small, fontWeight: '700', color: theme.textGold, marginBottom: Spacing.sm },
   verseLine: { fontSize: FontSize.body, lineHeight: 28, color: theme.textPrimary, textAlign: 'center' },
   source: { fontSize: FontSize.caption, lineHeight: 19, color: theme.textMuted, textAlign: 'center' },
+  actionRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+  favBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: theme.bgMedium, backgroundColor: theme.bgCard,
+  },
+  favBtnText: { fontSize: FontSize.small, fontWeight: '600', color: theme.textSecondary },
+  shareBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12, paddingVertical: 12, backgroundColor: theme.gold,
+  },
+  shareBtnText: { fontSize: FontSize.small, fontWeight: '700', color: theme.textInverse },
+  shareHidden: { position: 'absolute', top: -9999, left: -9999, pointerEvents: 'none' },
   recastBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     marginTop: Spacing.md, borderRadius: 12, paddingVertical: 14, borderWidth: 1, borderColor: theme.gold,

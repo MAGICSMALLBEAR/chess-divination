@@ -4,6 +4,8 @@ import { recordFromLingqi, recordHasLevel, type DivinationRecord } from '../serv
 import { recordTitle } from '../services/poemList';
 import { recordLink } from '../services/recordLink';
 import { accuracyByLevel, accuracyByMode } from '../services/verification';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const ALL_CASTS = (() => {
   const casts = [];
@@ -169,5 +171,37 @@ describe('靈棋在占驗統計裡的邊界', () => {
   /** 但依模式的應驗率要含靈棋——那正是「靈棋準不準」這個問題 */
   test('依模式的應驗率含靈棋', () => {
     expect(accuracyByMode(records).map(b => b.key).sort()).toEqual(['draw', 'lingqi']);
+  });
+});
+
+
+/**
+ * 分享卡是「送出去的成品」——錯了看不出來也收不回來，因此這幾條守的是
+ * 原始碼而非行為：它們擋的兩件事在畫面上都不會報錯，只會默默印錯。
+ */
+describe('分享卡對靈棋的處理（靜態守門）', () => {
+  const raw = readFileSync(join(__dirname, '../components/ShareCardView.tsx'), 'utf8');
+  /**
+   * 比對前先剝註解。第一版沒剝，「不得出現 mode === 'draw' ?」那條被我自己
+   * 解釋這條規則的註解餵成紅燈——與 Session 36 反向守門被註解餵成綠燈同源，
+   * 方向相反而已：**靜態守門一律只看程式碼本身**。
+   */
+  const src = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+
+  test('沒有等級時整枚標籤略過，而不是印一格空色塊', () => {
+    expect(src).toContain('props.poemLevel ? (');
+    // levelColor 對空字串會落到「中平」的預設色，無條件渲染就是一格無字色塊
+    expect(src).toMatch(/ShareCardLevelColors\['中平'\]/);
+  });
+
+  test('底部模式走對照表，不是 draw/其餘 的三元式', () => {
+    expect(src).toContain('CARD_MODE_ICONS');
+    expect(src).toContain('CARD_MODE_LABEL_KEYS');
+    expect(src).not.toMatch(/mode === 'draw' \?/);
+  });
+
+  test('對照表涵蓋靈棋', () => {
+    expect(src).toMatch(/CARD_MODE_ICONS[^}]*lingqi:/);
+    expect(src).toMatch(/CARD_MODE_LABEL_KEYS[^}]*lingqi: 'mode\.lingqi'/);
   });
 });

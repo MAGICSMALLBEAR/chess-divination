@@ -63,6 +63,49 @@ test.describe('靈棋十二子', () => {
     await expect(page.getByTestId('lingqi-cast')).toBeVisible();
   });
 
+  test('收藏鈕會寫進記錄，再按一次取消', async ({ page }) => {
+    await page.goto('/lingqi');
+    await cast(page);
+
+    const isFavorited = () => page.evaluate(
+      key => JSON.parse(window.localStorage.getItem(key as string) ?? '[]')[0].isFavorited,
+      HISTORY_KEY,
+    );
+    expect(await isFavorited()).toBe(false);
+
+    await page.getByTestId('lingqi-favorite').click();
+    await expect.poll(isFavorited).toBe(true);
+
+    await page.getByTestId('lingqi-favorite').click();
+    await expect.poll(isFavorited).toBe(false);
+  });
+
+  test('分享在 Web 端降級為文字，內容是卦辭而非籤詩版式', async ({ page }) => {
+    // Web 端截不了圖也沒有系統分享選單，會一路降到「LINE / 複製」的詢問。
+    // 取消 → 複製到剪貼簿，這裡攔下剪貼簿內容看它寫了什麼。
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/lingqi');
+    await cast(page);
+
+    const notation = await page.getByTestId('lingqi-result').innerText();
+    const name = notation.match(/(\S+卦)/)![1];
+
+    // 會連跳兩個原生對話框：先 confirm（LINE？取消則複製），複製完再 alert 告知。
+    // 用常駐 handler 而非 page.once——只接第一個的話，第二個會落到 Playwright
+    // 的自動關閉上，而複製與通知之間的時序就此變成看運氣（這條原本就是這樣 flaky 的）。
+    page.on('dialog', d => (d.type() === 'confirm' ? d.dismiss() : d.accept()));
+    await page.getByTestId('lingqi-share').click();
+
+    // 剪貼簿是在對話框關掉之後才寫入的，點擊 resolve 不代表已經寫完
+    const clipboard = () => page.evaluate(() => navigator.clipboard.readText());
+    await expect.poll(clipboard).toContain(name);
+
+    const copied = await clipboard();
+    // 靈棋沒有吉凶等級與棋子——籤詩版式的這兩段不該出現
+    expect(copied).not.toContain('抽得：');
+    expect(copied).not.toMatch(/】\s*·/);
+  });
+
   test('首頁最近紀錄點靈棋那筆，回到靈棋頁而不是 reveal 頁', async ({ page }) => {
     await page.goto('/lingqi');
     await cast(page);
