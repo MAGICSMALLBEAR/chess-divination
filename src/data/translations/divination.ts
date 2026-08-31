@@ -277,4 +277,133 @@ export const divinationProse: Record<string, Partial<Record<Lang, string>>> = {
     en: '用神 does not appear in the hexagram and no 伏神 (hidden line) can be drawn on',
     ja: '用神が卦に現れず、伏神も取れません',
   },
+
+  // ── 靈棋深度解讀（lingqiInterpretation）──
+  // 上才（天時）、中才（人和）、下才（地利）是靈棋十二子固有的三才框架，
+  // 譯文直接用 Heaven's timing／the human element／earthly standing 對應，
+  // 不保留漢字——靈棋頁面沒有印著這幾個詞的盤面，沒有「對不起來」的問題。
+
+  'lingqi.rank.upper.full': {
+    en: 'Of the upper pieces (Heaven\'s timing), {n} face up — the timing is strong; the outer environment and the moment are the biggest variables in this matter.',
+    ja: '上才（天時）{n} 子が表——天時が盛んで、外の環境とタイミングがこの件の最大の変数です。',
+  },
+  'lingqi.rank.upper.mid': {
+    en: 'Of the upper pieces (Heaven\'s timing), {n} face up — the timing is middling; circumstances neither help nor hinder, and the outcome lies mostly in your own hands.',
+    ja: '上才（天時）{n} 子が表——天時は中平。環境も時機も味方も敵もせず、成否は自分次第です。',
+  },
+  'lingqi.rank.upper.empty': {
+    en: 'Not a single upper piece faces up — the timing has not come. Prepare quietly rather than pushing against the current.',
+    ja: '上才（天時）はすべて伏す——時は未だ来ず。大勢に逆らわず、まず備えましょう。',
+  },
+  'lingqi.rank.middle.full': {
+    en: 'Of the middle pieces (the human element), {n} face up — the human element is strong; the people around you and your own actions hold the key to this matter.',
+    ja: '中才（人和）{n} 子が表——人和が盛んで、身近な人と自分の行いがこの件の鍵です。',
+  },
+  'lingqi.rank.middle.mid': {
+    en: 'Of the middle pieces (the human element), {n} face up — help and hindrance are mixed; your own action is the deciding factor.',
+    ja: '中才（人和）{n} 子が表——助力と妨げが半ばで、決め手は自分の行動です。',
+  },
+  'lingqi.rank.middle.empty': {
+    en: 'Not a single middle piece faces up — outside help is scarce and you stand alone for now; steady what you can do by yourself first.',
+    ja: '中才（人和）はすべて伏す——外の助けは頼りにくく、当面は孤軍。まず自分でできることを固めましょう。',
+  },
+  'lingqi.rank.lower.full': {
+    en: 'Of the lower pieces (earthly standing), {n} face up — your foundation and resources hold firm; you can proceed with confidence.',
+    ja: '下才（地利）{n} 子が表——地の利が盛んで、基盤と資源はしっかりしています。安心して進めます。',
+  },
+  'lingqi.rank.lower.mid': {
+    en: 'Of the lower pieces (earthly standing), {n} face up — conditions are adequate; take stock of the resources in hand before acting.',
+    ja: '下才（地利）{n} 子が表——条件はまずまず。動く前に手元の資源を棚卸ししましょう。',
+  },
+  'lingqi.rank.lower.empty': {
+    en: 'Not a single lower piece faces up — the foundation is not yet firm; shore up your conditions before committing more.',
+    ja: '下才（地利）はすべて伏す——基盤がまだ固まっていません。条件を整えてから加勢を。',
+  },
+
+  'lingqi.lead.upper': {
+    en: 'This sign turns on Heaven\'s timing — read the outer environment and the moment first, and only then your own effort.',
+    ja: 'この卦は天時を主軸に——まず外の環境とタイミングを読み、その後に自分の努力を論じます。',
+  },
+  'lingqi.lead.middle': {
+    en: 'This sign turns on the human element — read yourself and the people around you first, and only then how favourable the circumstances are.',
+    ja: 'この卦は人和を主軸に——まず自分と身近な人を読み、その後に環境の順逆を論じます。',
+  },
+  'lingqi.lead.lower': {
+    en: 'This sign turns on earthly standing — read your foundation and resources first, and only then timing and connections.',
+    ja: 'この卦は地利を主軸に——まず基盤と資源を読み、その後に時機と人脈を論じます。',
+  },
+  'lingqi.lead.tie.upperMiddle': {
+    en: 'Heaven\'s timing and the human element are both strong — the outer environment and your own actions weigh equally; tend to both.',
+    ja: '天時と人和が並んで盛ん——外の環境も自分の行いも同じ重さです。両方に目を配りましょう。',
+  },
+  'lingqi.lead.tie.upperLower': {
+    en: 'Heaven\'s timing and earthly standing are both strong — the moment and the foundation are both in place; success now depends on action.',
+    ja: '天時と地利が並んで盛ん——時機も基盤も整っています。成否は行動にかかっています。',
+  },
+  'lingqi.lead.tie.middleLower': {
+    en: 'The human element and earthly standing are both strong — people and conditions are both ready; what is missing is putting them to use.',
+    ja: '人和と地利が並んで盛ん——人も条件も揃っています。欠けているのはそれを使いこなすことです。',
+  },
+  'lingqi.lead.balanced': {
+    en: 'The three powers are evenly matched and none dominates — inner and outer conditions are interwoven; read the whole picture rather than one side of it.',
+    ja: '三才の数が揃い、際立つ才はありません——内外の条件が絡み合う事柄です。一面だけを見ず、全体で読みましょう。',
+  },
+
+  'lingqi.lens.marriage': {
+    en: 'For a relationship question: hold the imagery of the Image against how you two are getting along now — which line sounds like them, and which like you.',
+    ja: '恋愛の問い：象曰の意象を二人の今の関係に重ねてください——どの句が相手で、どの句が自分か。',
+  },
+  'lingqi.lens.career': {
+    en: 'For a career question: hold the imagery of the Image against your current position and your next step — is this a sign of holding ground or of advancing?',
+    ja: '仕事の問い：象曰の意象を今の立場と次の一手に重ねて——守りの象か、進みの象か。',
+  },
+  'lingqi.lens.wealth': {
+    en: 'For a wealth question: hold the imagery of the Image against how money comes in and goes out — it can arrive and it can be kept; which link is missing?',
+    ja: '金運の問い：象曰の意象をお金の入りと出に重ねて——入る・留まる、欠けているのはどちらか。',
+  },
+  'lingqi.lens.health': {
+    en: 'For a health question: hold the imagery of the Image against the signs of body and mind and your daily rhythm — note the imbalance the text points to.',
+    ja: '健康の問い：象曰の意象を心身の徴候と生活リズムに重ねて——文中が指す乱れに目を留めましょう。',
+  },
+  'lingqi.lens.study': {
+    en: 'For a study question: hold the imagery of the Image against your stage and method of learning — is it the foundation or the method that is stuck?',
+    ja: '学業の問い：象曰の意象を学びの段階と方法に重ねて——つまずいているのは基礎か方法か。',
+  },
+  'lingqi.lens.travel': {
+    en: 'For a journey question: hold the imagery of the Image against how smoothly the trip may go — if the text shows signs of obstruction, prepare more before setting out.',
+    ja: '旅行の問い：象曰の意象を道中の順逆に重ねて——文中に険しい象があれば、出発前に備えを。',
+  },
+  'lingqi.lens.general': {
+    en: 'The question has no particular category: hold the imagery of the Image directly against the current state of the matter.',
+    ja: '分類を定めない問い：象曰の意象を、事の現況にそのまま重ねてください。',
+  },
+
+  'lingqi.action.mirror': {
+    en: 'Use the Image as a mirror: hold its imagery against the present state of the matter; do not force it word for word.',
+    ja: '象を鏡に：象曰の意象を事の現況に重ね、一字一句に無理に当てはめないこと。',
+  },
+  'lingqi.action.focus.upper': {
+    en: 'The timing is strongest: confirm the outer moment and conditions first, then decide the pace of your move.',
+    ja: '天時が最も盛ん：まず外の時機と条件を確認してから、動くペースを決めましょう。',
+  },
+  'lingqi.action.focus.middle': {
+    en: 'The human element is strongest: settle the people around you and your own state first; when relationships are in order, the matter follows.',
+    ja: '人和が最も盛ん：まず身近な人と自分の状態を整えましょう。関係が整えば事も進みます。',
+  },
+  'lingqi.action.focus.lower': {
+    en: 'Your standing is strongest: take stock of resources and foundation first, and shore up the conditions before acting.',
+    ja: '地利が最も盛ん：まず資源と基盤を棚卸しし、条件を整えてから動きましょう。',
+  },
+  'lingqi.action.focus.tie': {
+    en: 'Tied strengths weigh equally: start from whichever is closer to the present situation, and let the other follow.',
+    ja: '並び立つ才は等しく重い：現況により近い一才から着手し、もう一才は後から追わせましょう。',
+  },
+  'lingqi.action.focus.balanced': {
+    en: 'The three powers are even: begin with the step closest to daily life, and verify in small increments.',
+    ja: '三才は均衡：日常生活に最も近い一歩から始め、小さく検証しましょう。',
+  },
+  'lingqi.action.verse': {
+    en: 'Close with the Verse: it often points out where the matter is heading; treat it as a reference to check against, not as fate.',
+    ja: '詩で締めくくる：詩曰は事の行方を指すことが多い。宿命ではなく、照合の参照として。',
+  },
 };

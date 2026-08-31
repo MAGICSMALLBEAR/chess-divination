@@ -21,13 +21,21 @@ test.describe('靈棋十二子', () => {
     await cast(page);
 
     const result = page.getByTestId('lingqi-result');
-    // 卦名一律以「卦」字結尾（大通卦、漸泰卦……），象以「之象」結尾
-    await expect(result.getByText(/卦$/).first()).toBeVisible();
+    // 象以「之象」結尾；卦名則以記錄的標題為準——原典有少數卦目名
+    // 不以「卦」結尾（抑災勢、救助教、鬼災勢、歲登勢、人事勢），
+    // 用 /卦$/ 比對會在擲到那五卦時失敗（既有測試的隱性 flaky）。
+    const title = await page.evaluate(
+      key => JSON.parse(window.localStorage.getItem(key as string) ?? '[]')[0].poemTitle,
+      HISTORY_KEY,
+    ) as string;
+    await expect(result.getByText(title, { exact: true })).toBeVisible();
     await expect(result.getByText(/之象$/).first()).toBeVisible();
 
-    // 象曰與詩曰兩段都要在——原型只印卦目標記，這兩段就是這次補的東西
-    await expect(result.getByText('象曰')).toBeVisible();
-    await expect(result.getByText('詩曰')).toBeVisible();
+    // 象曰與詩曰兩段都要在——原型只印卦目標記，這兩段就是這次補的東西。
+    // exact 是因為深度解讀的句子裡也會提到「象曰」（以象為鏡、以詩曰收束），
+    // 比對標題必須逐字吻合，否則一條文字匹配到三處。
+    await expect(result.getByText('象曰', { exact: true })).toBeVisible();
+    await expect(result.getByText('詩曰', { exact: true })).toBeVisible();
 
     // 卦辭本文得有實際字句，而不是只有段落標題。
     // 取結果區的全部文字，扣掉標籤後仍應有相當篇幅的漢字。
@@ -49,7 +57,9 @@ test.describe('靈棋十二子', () => {
     // poemId 0 是刻意的——它不可被拿去查籤詩表，見 services/poemList.ts
     expect(history[0].poemId).toBe(0);
     expect(history[0].poemLevel).toBe('');
-    expect(history[0].poemTitle).toMatch(/卦$/);
+    // 卦目名稱少數不以「卦」結尾（抑災勢等），「是卦名」以與畫面一致為準
+    expect(history[0].poemTitle.length).toBeGreaterThan(0);
+    await expect(page.getByTestId('lingqi-result')).toContainText(history[0].poemTitle);
 
     // 畫面上顯示的標題就是那個卦名，不是籤詩 #1「龍騰九霄」
     await expect(page.getByTestId('lingqi-result')).not.toContainText('龍騰九霄');
@@ -87,8 +97,11 @@ test.describe('靈棋十二子', () => {
     await page.goto('/lingqi');
     await cast(page);
 
-    const notation = await page.getByTestId('lingqi-result').innerText();
-    const name = notation.match(/(\S+卦)/)![1];
+    // 卦名取自記錄而非畫面 regex——原典少數卦目名不以「卦」結尾（抑災勢等）
+    const name = await page.evaluate(
+      key => JSON.parse(window.localStorage.getItem(key as string) ?? '[]')[0].poemTitle,
+      HISTORY_KEY,
+    ) as string;
 
     // 會連跳兩個原生對話框：先 confirm（LINE？取消則複製），複製完再 alert 告知。
     // 用常駐 handler 而非 page.once——只接第一個的話，第二個會落到 Playwright
@@ -104,6 +117,36 @@ test.describe('靈棋十二子', () => {
     // 靈棋沒有吉凶等級與棋子——籤詩版式的這兩段不該出現
     expect(copied).not.toContain('抽得：');
     expect(copied).not.toMatch(/】\s*·/);
+  });
+
+  /**
+   * 深度解讀是規則式組出來的（services/lingqiInterpretation.ts），
+   * 單元測試驗得了句子，驗不了「畫面真的把它印在卦辭之後」——
+   * Session 42 的原型正是每一塊都對、就是沒有卦辭，所以這條走真瀏覽器。
+   */
+  test('卦辭之後接著規則式深度解讀與三步行動計畫', async ({ page }) => {
+    await page.goto('/lingqi');
+    await cast(page);
+
+    const deep = page.getByTestId('lingqi-deep');
+    await expect(deep).toBeVisible({ timeout: 30_000 });
+    // 結構導讀必含三才三句（任何擲法都會印），且行動計畫三條都在
+    await expect(deep.getByText(/上才（天時）/)).toBeVisible();
+    await expect(deep.getByText(/中才（人和）/)).toBeVisible();
+    await expect(deep.getByText(/下才（地利）/)).toBeVisible();
+    await expect(deep.getByText('建議行動')).toBeVisible();
+    await expect(deep.getByText(/^3\. /m)).toBeVisible();
+
+    // 歷史記錄還原時（不是重擲）深度解讀也在——lingqi.tsx 以
+    // record?.questionCategory ?? selectedCategory 取分類，還原時不該閃一下 general
+    const title = (await page.evaluate(
+      key => JSON.parse(window.localStorage.getItem(key as string) ?? '[]')[0].poemTitle,
+      HISTORY_KEY,
+    )) as string;
+    await page.goto('/');
+    await page.getByText(title, { exact: true }).first().click();
+    await expect(page.getByTestId('lingqi-deep')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('lingqi-deep').getByText(/上才（天時）/)).toBeVisible();
   });
 
   test('首頁最近紀錄點靈棋那筆，回到靈棋頁而不是 reveal 頁', async ({ page }) => {

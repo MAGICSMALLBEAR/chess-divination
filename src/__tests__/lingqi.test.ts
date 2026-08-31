@@ -1,4 +1,6 @@
 import { castLingqi, lingqiKey, lingqiNotation, lingqiOracle, lingqiOracleByKey } from '../services/lingqi';
+import { buildLingqiInterpretation } from '../services/lingqiInterpretation';
+import { setLang, getLang, type Lang } from '../services/i18n';
 import { LINGQI_ORACLES } from '../data/lingqiOracles';
 import { recordFromLingqi, recordHasLevel, type DivinationRecord } from '../services/storage';
 import { recordTitle } from '../services/poemList';
@@ -203,5 +205,74 @@ describe('分享卡對靈棋的處理（靜態守門）', () => {
   test('對照表涵蓋靈棋', () => {
     expect(src).toMatch(/CARD_MODE_ICONS[^}]*lingqi:/);
     expect(src).toMatch(/CARD_MODE_LABEL_KEYS[^}]*lingqi: 'mode\.lingqi'/);
+  });
+});
+
+describe('靈棋規則式深度解讀', () => {
+  const original: Lang = getLang();
+  afterEach(() => setLang(original));
+
+  const reading = (key: string, questionCategory?: string) =>
+    buildLingqiInterpretation({ oracle: lingqiOracleByKey(key)!, questionCategory });
+
+  test('125 種擲法都能組出解讀與三步行動計畫，且不留插值佔位', () => {
+    setLang('zh-TW');
+    for (const cast of ALL_CASTS) {
+      const result = buildLingqiInterpretation({ oracle: lingqiOracle(cast) });
+      expect(result.interpretation.length).toBeGreaterThan(0);
+      expect(result.actionPlan).toHaveLength(3);
+      for (const step of result.actionPlan) expect(step.length).toBeGreaterThan(0);
+      // zh 版不經 localizeProse 的插值（直接回傳 fallback），
+      // {n} 若殘留代表服務端忘了 bake 數字，畫面上會印出佔位符
+      expect(result.interpretation).not.toContain('{n}');
+    }
+  });
+
+  test('三才階層：0 為全伏、1–2 為中平、3–4 為盛', () => {
+    setLang('zh-TW');
+    const result = reading('4-0-2').interpretation;
+    expect(result).toContain('上才（天時）4 子朝上，天時正旺');
+    expect(result).toContain('中才（人和）全伏');
+    expect(result).toContain('下才（地利）2 子朝上，地利中平');
+  });
+
+  test('主軸：唯一最盛者領讀，並盛者並讀，全等者均衡', () => {
+    setLang('zh-TW');
+    expect(reading('4-1-1').interpretation).toContain('此卦以天時為主軸');
+    expect(reading('4-4-1').interpretation).toContain('此卦天時與人和並盛');
+    expect(reading('4-4-4').interpretation).toContain('三才之數相當');
+    expect(reading('1-4-4').interpretation).toContain('此卦人和與地利並盛');
+  });
+
+  test('閱讀之鏡隨所問分類，未知分類降級為不分門類', () => {
+    setLang('zh-TW');
+    expect(reading('2-3-1', 'career').interpretation).toContain('問事業');
+    expect(reading('2-3-1', 'marriage').interpretation).toContain('問感情');
+    expect(reading('2-3-1', '股市').interpretation).toContain('未分門類');
+  });
+
+  test('行動計畫第二條隨主軸而異', () => {
+    setLang('zh-TW');
+    expect(reading('0-0-4').actionPlan[1]).toContain('地利最盛');
+    expect(reading('4-0-4').actionPlan[1]).toContain('並盛之才並重');
+    expect(reading('2-2-2').actionPlan[1]).toContain('三才均衡');
+  });
+
+  test('英文輸出無中文殘留', () => {
+    setLang('en');
+    const result = reading('4-1-1', 'career');
+    const text = [result.interpretation, ...result.actionPlan].join('\n');
+    expect(text).not.toMatch(/[一-鿿]/);
+    expect(result.interpretation).toContain("Heaven's timing");
+    expect(result.interpretation).toContain('career question');
+  });
+
+  test('日文輸出與中文原文不同', () => {
+    setLang('zh-TW');
+    const zh = reading('4-1-1');
+    setLang('ja');
+    const ja = reading('4-1-1');
+    expect(ja.interpretation).not.toBe(zh.interpretation);
+    expect(ja.interpretation).toContain('天時');
   });
 });

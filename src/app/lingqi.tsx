@@ -11,6 +11,7 @@ import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView'
 import QuestionPrompts from '@/components/QuestionPrompts';
 import { Icon } from '@/components/icons';
 import { castLingqi, lingqiOracle, lingqiOracleByKey, type LingqiCast, type LingqiOracle } from '@/services/lingqi';
+import { buildLingqiInterpretation } from '@/services/lingqiInterpretation';
 import {
   addHistory, getHistory, getSettings, saveSettings, toggleFavorite,
   recordFromLingqi, setOutcome, clearOutcome, setRecordNote,
@@ -46,6 +47,13 @@ export default function LingqiScreen() {
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
   const selectedCategoryLabel = categories.find(c => c.key === selectedCategory)?.label ?? selectedCategory;
+
+  // 規則式深度解讀。在 render 時取語言（localizeProse 讀 getLang），
+  // 本頁有 useI18n 訂閱，切語言會重算。分類取記錄上存的那份——
+  // 歷史記錄還原時 record 與 oracle 同批 setState，不會先閃一下 general 的鏡頭。
+  const lingqiReading = oracle
+    ? buildLingqiInterpretation({ oracle, questionCategory: record?.questionCategory ?? selectedCategory })
+    : null;
 
   // in-flight 防護：連點會讓 addHistory 的 read-modify-write 互相覆蓋
   // （與 useDrawDivination 同一個理由）
@@ -287,6 +295,24 @@ export default function LingqiScreen() {
 
             <Text style={styles.source}>{t('lingqi.source')}</Text>
 
+            {/* 規則式深度解讀。放在原典出處之後——先讀原文，再讀我們的導讀。
+                與 reveal.tsx 的「規則式深度解讀」同一標題鍵與同一誠實邊界：
+                只說三才結構與閱讀方向，不編造卦辭沒有的話。 */}
+            {lingqiReading && (
+              <View style={styles.deepBox} testID="lingqi-deep">
+                <Text style={styles.deepTitle}>▎{t('reveal.deepTitle')}</Text>
+                <Text style={styles.deepText}>{lingqiReading.interpretation}</Text>
+                <View style={styles.deepActions}>
+                  <Text style={styles.deepActionTitle}>{t('reveal.deepActions')}</Text>
+                  {lingqiReading.actionPlan.map((step, i) => (
+                    <Text key={i} style={styles.deepActionItem}>
+                      {i + 1}. {step}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {record && (
               <OutcomeMarker
                 outcome={record.outcome}
@@ -410,6 +436,12 @@ const makeStyles = (theme: ThemeColors) => StyleSheet.create({
   verseLabel: { fontSize: FontSize.small, fontWeight: '700', color: theme.textGold, marginBottom: Spacing.sm },
   verseLine: { fontSize: FontSize.body, lineHeight: 28, color: theme.textPrimary, textAlign: 'center' },
   source: { fontSize: FontSize.caption, lineHeight: 19, color: theme.textMuted, textAlign: 'center' },
+  deepBox: { borderWidth: 1, borderRadius: 16, padding: Spacing.lg, gap: Spacing.sm, backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
+  deepTitle: { fontSize: FontSize.small, fontWeight: '700', color: theme.textGold },
+  deepText: { fontSize: FontSize.body, lineHeight: 26, color: theme.textSecondary },
+  deepActions: { marginTop: Spacing.sm },
+  deepActionTitle: { fontSize: FontSize.small, fontWeight: '600', color: theme.textGold, marginBottom: Spacing.sm },
+  deepActionItem: { fontSize: FontSize.body, lineHeight: 26, color: theme.textSecondary, marginBottom: 4 },
   actionRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
   favBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
