@@ -20,7 +20,8 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout, computeBoardTray } from '@/hooks/useLayout';
 import { useMeasuredWidth } from '@/hooks/useGrid';
 import { ALL_RED_PIECES, ALL_BLACK_PIECES } from '@/data/pieces';
-import { SPREADS, SPREAD_DESC_KEYS, SPREAD_HINT_KEYS, SPREAD_LABEL_KEYS, type SpreadId, nextSpreadSlot } from '@/services/spreads';
+import { SPREADS, SPREAD_DESC_KEYS, SPREAD_HINT_KEYS, SPREAD_LABEL_KEYS, type SpreadId, nextSpreadSlot, getSpreadMaxPieces } from '@/services/spreads';
+import { formationCounts, FORMATION_PER_SIDE } from '@/services/formation';
 
 /**
  * 棋盤格距上限。桌面容器有 720px 以上可用，鎖在 44 會讓棋盤顯得侷促。
@@ -39,17 +40,18 @@ export default function BoardScreen() {
   const { onLayout: onInnerLayout, width: innerWidth } = useMeasuredWidth();
   const { t } = useI18n();
   const categories = useQuestionCategories();
+  // spreadId 在 hook 之前宣告：兩軍對壘陣需要六子，落子數上限跟著牌陣走
+  const [spreadId, setSpreadId] = useState<SpreadId>('free');
   const {
     placedPieces, selectedPiece, availablePieces, maxPieces,
     selectPiece, placePieceOnBoard, removePieceFromBoard, interpret, reset,
     allowRepeatedPieces, setAllowRepeatedPieces,
-  } = useBoardDivination();
+  } = useBoardDivination(getSpreadMaxPieces(spreadId, 3));
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
   const selectedCategoryLabel = categories.find(category => category.key === selectedCategory)?.label ?? selectedCategory;
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [spreadId, setSpreadId] = useState<SpreadId>('free');
   const [optionA, setOptionA] = useState('');
   const [optionB, setOptionB] = useState('');
 
@@ -106,12 +108,18 @@ export default function BoardScreen() {
             activeSpreadSlot={activeSpreadSlot}
             trayPosition={boardTray.trayPosition}
             trayWidth={boardTray.trayWidth}
+            formationMode={spreadId === 'formation'}
             style={styles.fsBoard}
           />
           <View style={styles.fsControls}>
             <TouchableOpacity style={styles.fsExitBtn} onPress={() => setIsFullscreen(false)}>
               <Text style={{ color: theme.textSecondary }}>← {t('board.exitFullscreen')}</Text>
             </TouchableOpacity>
+            {spreadId === 'formation' && (
+              <Text style={styles.fsFormationCounts}>
+                {t('board.formationRed')} {formationCounts(placedPieces).red}/{FORMATION_PER_SIDE}　·　{t('board.formationBlack')} {formationCounts(placedPieces).black}/{FORMATION_PER_SIDE}
+              </Text>
+            )}
             <View style={styles.fsPoolTabs}>
               <TouchableOpacity
                 style={[styles.fsPoolTab, showRedPieces && styles.fsPoolTabActive]}
@@ -220,10 +228,30 @@ export default function BoardScreen() {
         <Text style={styles.spreadHint}>
           {activeSpreadSlot
             ? `${t(SPREAD_DESC_KEYS[spreadId])}　${t('board.spreadNext', { label: t(activeSpreadSlot.labelKey) })}`
-            : spreadId === 'free' ? t(SPREAD_DESC_KEYS[spreadId]) : `${t(SPREAD_DESC_KEYS[spreadId])}　${t('board.spreadDone')}`}
+            : spreadId === 'free' ? t(SPREAD_DESC_KEYS[spreadId])
+              : spreadId === 'formation'
+                ? `${t(SPREAD_DESC_KEYS[spreadId])}　${t('board.formationPlaced', { n: placedPieces.length })}`
+                : `${t(SPREAD_DESC_KEYS[spreadId])}　${t('board.spreadDone')}`}
         </Text>
         <View style={styles.spreadGuide}>
           <Text style={styles.spreadGuideHint}>{t(SPREAD_HINT_KEYS[spreadId])}</Text>
+          {/* 兩軍對壘陣的半場計數放在這裡而非棋盤上：棋盤每一格都能落子，
+              固定位置的標籤隨時會被棋子壓住，導覽區不會。 */}
+          {spreadId === 'formation' && (
+            <View style={styles.spreadRoles}>
+              {(['red', 'black'] as const).map((side) => {
+                const count = formationCounts(placedPieces)[side];
+                const active = count < FORMATION_PER_SIDE;
+                return (
+                  <View key={side} style={[styles.spreadRole, active && styles.spreadRoleActive]}>
+                    <Text style={[styles.spreadRoleText, active && styles.spreadRoleTextActive]}>
+                      {t(side === 'red' ? 'board.formationRed' : 'board.formationBlack')} {count}/{FORMATION_PER_SIDE}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
           {spread.slots.length > 0 && (
             <View style={styles.spreadRoles}>
               {spread.slots.map((slot, index) => (
@@ -285,6 +313,7 @@ export default function BoardScreen() {
           activeSpreadSlot={activeSpreadSlot}
           trayPosition={boardTray.trayPosition}
           trayWidth={boardTray.trayWidth}
+          formationMode={spreadId === 'formation'}
           style={styles.boardStyle}
         />
 
@@ -496,6 +525,10 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   fsPoolTabs: {
     flexDirection: 'row', justifyContent: 'center', gap: Spacing.sm,
     marginVertical: Spacing.xs,
+  },
+  fsFormationCounts: {
+    textAlign: 'center', color: t.textSecondary, fontSize: 12,
+    marginTop: Spacing.xs,
   },
   fsPoolTab: {
     paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8,

@@ -8,8 +8,10 @@ import ChessPiece from './ChessPiece';
 import type { ThemeColors } from '@/constants/theme';
 import { BOARD, Spacing, FontSize } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { SpreadSlot } from '@/services/spreads';
+import { FORMATION_PER_SIDE, formationSideOf } from '@/services/formation';
 
 export interface PlacedPiece {
   piece: ChessPieceType;
@@ -41,6 +43,11 @@ interface ChessBoardProps {
   trayPosition?: 'below' | 'side';
   /** `side` 時棋子池的欄寬；由呼叫端依剩餘空間換算，決定棋子排成幾欄。 */
   trayWidth?: number;
+  /**
+   * 兩軍對壘陣：落子限於紅黑雙方半場，各半場最多三子，
+   * 並在棋盤上標出雙方陣區。角色是「哪一半場」而不是「哪一格」。
+   */
+  formationMode?: boolean;
   style?: ViewStyle;
 }
 
@@ -61,10 +68,12 @@ export default function ChessBoard({
   activeSpreadSlot = null,
   trayPosition = 'below',
   trayWidth,
+  formationMode = false,
   style,
 }: ChessBoardProps) {
   const trayAtSide = trayPosition === 'side';
   const styles = useThemedStyles(makeStyles);
+  const { theme } = useAppTheme();
   const { t } = useI18n();
   const boardRef = useRef<View>(null);
   const boardLayoutRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
@@ -111,13 +120,25 @@ export default function ChessBoard({
     return !placedPieces.some(pp => pp.col === col && pp.row === row);
   };
 
-  // 格子位置的口述標籤：牌陣角色名（如「過去」）優先，自由佈局退到行列座標。
+  // 兩軍對壘陣：某半場是否已滿三子。滿了之後該半場不再出現落子點，
+  // 讓「各半場三子」在點擊與拖曳兩條路徑上都由棋盤自己守住。
+  const formationHalfFull = (row: number): boolean => {
+    if (!formationMode) return false;
+    const side = formationSideOf(row);
+    return placedPieces.filter(pp => formationSideOf(pp.row) === side).length >= FORMATION_PER_SIDE;
+  };
+
+  // 格子位置的口述標籤：牌陣角色名（如「過去」）優先，自由佈局退到行列座標；
+  // 兩軍對壘陣再加半場名——螢幕閱讀器分不出棋盤上下，不加就是半盤的「按鈕」。
   // 棋盤對螢幕閱讀器而言是一片「在哪一格放了什麼棋」的資訊，若無標籤，
   // 90 格在語音導覽裡全部讀成「按鈕」。
   const cellSpokenLabel = (col: number, row: number): string => {
     const slot = spreadSlots.find(s => s.col === col && s.row === row);
     if (slot) return t(slot.labelKey);
-    return t('board.cellPosition', { row: row + 1, col: col + 1 });
+    const position = t('board.cellPosition', { row: row + 1, col: col + 1 });
+    if (!formationMode) return position;
+    const half = t(formationSideOf(row) === 'red' ? 'board.formationRed' : 'board.formationBlack');
+    return t('board.formationCellLabel', { half, position });
   };
 
   return (
@@ -211,7 +232,8 @@ export default function ChessBoard({
             const isActiveSpreadCell = !activeSpreadSlot || (
               activeSpreadSlot.col === col && activeSpreadSlot.row === row
             );
-            const available = !placed && !!selectedPiece && isActiveSpreadCell;
+            const available = !placed && !!selectedPiece && isActiveSpreadCell
+              && !formationHalfFull(row);
 
             if (placed) {
               // 已放置棋子：點擊可移除
@@ -263,6 +285,21 @@ export default function ChessBoard({
             // 空位但無選中棋子：不可互動
             return null;
           })
+        )}
+
+        {/* 兩軍對壘陣區：以楚河漢界為界淡染雙方半場。淡染放在互動層之下、
+            格線之上，只做視覺提示，不擋任何落子。半場計數不放在棋盤上——
+            棋盤每一格都能落子，任何固定位置的標籤都可能被棋子壓住，
+            計數改由頁面的牌陣導覽區顯示。 */}
+        {formationMode && (
+          <>
+            <View pointerEvents="none" testID="formation-zone-black" style={[styles.formationZone, {
+              top: 0, height: 4.5 * cellSize, backgroundColor: theme.ink,
+            }]} />
+            <View pointerEvents="none" testID="formation-zone-red" style={[styles.formationZone, {
+              top: 4.5 * cellSize, height: 5.5 * cellSize, backgroundColor: theme.cinnabar,
+            }]} />
+          </>
         )}
 
         {/* 固定牌陣標記：只標示下一手，避免棋盤被文字遮住。 */}
@@ -339,7 +376,9 @@ export default function ChessBoard({
                       const isValidSpreadTarget = !activeSpreadSlot || (
                         grid?.col === activeSpreadSlot.col && grid?.row === activeSpreadSlot.row
                       );
-                      if (grid && isValidSpreadTarget) {
+                      const isValidFormationTarget = !formationMode
+                        || (grid ? !formationHalfFull(grid.row) : false);
+                      if (grid && isValidSpreadTarget && isValidFormationTarget) {
                         onPlacePiece?.(grid.col, grid.row, p);
                       } else {
                         onSelectAvailable?.(p);
@@ -403,6 +442,11 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   spreadMarker: {
     position: 'absolute', zIndex: 16, alignItems: 'center',
+  },
+  // 半場淡染：顏色由呼叫處以 theme 色注入（黑方 ink、紅方 cinnabar），
+  // 這裡只管形狀與透明度，讓色值仍收斂在主題表裡。
+  formationZone: {
+    position: 'absolute', left: 0, right: 0, zIndex: 4, opacity: 0.06,
   },
   spreadMarkerText: {
     color: t.textGold, fontSize: 11, fontWeight: '700',

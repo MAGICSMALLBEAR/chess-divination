@@ -1,6 +1,7 @@
 import {
   SPREADS, SPREAD_LABEL_KEYS, SPREAD_DESC_KEYS, SPREAD_HINT_KEYS,
   getSpread, nextSpreadSlot, spreadContextReading, spreadReadingPrefix, spreadRoleReading,
+  getSpreadMaxPieces,
   type SpreadId,
 } from '../services/spreads';
 import { t, setLang } from '../services/i18n';
@@ -9,6 +10,23 @@ describe('牌陣規則', () => {
   test('自由佈局不強制固定格位', () => {
     expect(getSpread('free').slots).toEqual([]);
     expect(nextSpreadSlot('free', 0)).toBeNull();
+  });
+
+  /** 兩軍對壘陣的「角色」是半場不是格子，故無固定格位、落子數另設六子 */
+  test('兩軍對壘陣無固定格位但要求六子', () => {
+    expect(getSpread('formation').slots).toEqual([]);
+    expect(nextSpreadSlot('formation', 0)).toBeNull();
+    expect(getSpreadMaxPieces('formation', 3)).toBe(6);
+  });
+
+  test('固定牌陣的落子數由角色數決定，未設 maxPieces 時回傳預設值', () => {
+    expect(getSpreadMaxPieces('timeline', 3)).toBe(3);
+    expect(getSpreadMaxPieces('free', 3)).toBe(3);
+  });
+
+  test('兩軍對壘陣不產生角色閱讀前綴', () => {
+    expect(spreadReadingPrefix('formation')).toBe('');
+    expect(spreadRoleReading('formation', [{ pieceName: '車', meaning: 'x' }])).toBe('');
   });
 
   test.each(['timeline', 'choice', 'relationship', 'strategy'] as const)(

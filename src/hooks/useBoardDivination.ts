@@ -6,7 +6,10 @@ import type { ChessPiece } from '@/data/pieces';
 import { ALL_PIECES } from '@/data/pieces';
 import type { Poem } from '@/data/poems';
 import { getPoemById } from '@/data/poems';
-import { computeHexagram } from '@/services/divination';
+import { computeHexagram, type HexagramResult } from '@/services/divination';
+import {
+  computeFormationHexagram, formationForceReading, formationCounts, FORMATION_PER_SIDE,
+} from '@/services/formation';
 import { addHistory, recordFromDivination } from '@/services/storage';
 import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
@@ -26,7 +29,11 @@ export interface PlacedPiece {
 
 export type BoardStep = 'select-pieces' | 'place-pieces' | 'result';
 
-export function useBoardDivination() {
+/**
+ * 落子數依牌陣而異（兩軍對壘陣六子），由呼叫端依 getSpreadMaxPieces 傳入。
+ * 留在 hook 外的理由：牌陣選擇是頁面的狀態，hook 只吃計算好的結果。
+ */
+export function useBoardDivination(maxPieces: number = 3) {
   const router = useRouter();
   // 同 useDrawDivination：直接 import 的 t 不訂閱語言變更
   const { t } = useI18n();
@@ -39,7 +46,6 @@ export function useBoardDivination() {
   const [allowRepeatedPieces, setAllowRepeatedPieces] = useState(false);
 
   const availablePieces = ALL_PIECES;
-  const maxPieces = 3;
 
   // 選擇棋子
   const selectPiece = useCallback((piece: ChessPiece) => {
@@ -105,25 +111,40 @@ export function useBoardDivination() {
         direction: pp.piece.direction,
         pieceName: pp.piece.displayChar,
       }));
-      const positionSummary = spreadReadingPrefix(spreadId)
-        + spreadContextReading(spreadId, spreadContext)
-        + spreadRoleReading(spreadId, placedPieces.map(({ piece }) => ({
-          pieceName: piece.displayChar,
-          meaning: piece.meaning,
-        })))
-        + generatePositionSummaryDeep(placements);
 
       // 使用棋子順序作為順序（依放置先後）
       const pieces = placedPieces.map(pp => pp.piece);
 
-      // 擺位進入起卦：各棋子的格位數總和參與動爻計算，
-      // 使「棋放在哪裡」真正影響卦象，而非僅產生一段文字敘述。
-      const positionSum = placedPieces.reduce(
-        (sum, pp) => sum + pp.col + pp.row * BOARD.cols,
-        0,
-      );
-
-      const hex = computeHexagram(pieces, { extra: positionSum });
+      // 兩軍對壘陣走另一條起卦路徑（紅黑各成一卦，見 formation.ts），
+      // 其餘牌陣沿用抽棋引擎。半場各三子是成陣的必要條件——UI 已限制落子，
+      // 這裡是拖曳路徑的後備守門，防的是狀態被繞過時默默起出半邊卦。
+      let hex: HexagramResult;
+      let positionSummary: string;
+      if (spreadId === 'formation') {
+        const counts = formationCounts(placedPieces);
+        if (counts.red !== FORMATION_PER_SIDE || counts.black !== FORMATION_PER_SIDE) {
+          notify(t('board.formationIncomplete'), t('board.formationIncompleteDesc'));
+          return;
+        }
+        hex = computeFormationHexagram(placedPieces);
+        positionSummary = formationForceReading(placedPieces) + '\n\n'
+          + generatePositionSummaryDeep(placements);
+      } else {
+        // 擺位進入起卦：各棋子的格位數總和參與動爻計算，
+        // 使「棋放在哪裡」真正影響卦象，而非僅產生一段文字敘述。
+        const positionSum = placedPieces.reduce(
+          (sum, pp) => sum + pp.col + pp.row * BOARD.cols,
+          0,
+        );
+        hex = computeHexagram(pieces, { extra: positionSum });
+        positionSummary = spreadReadingPrefix(spreadId)
+          + spreadContextReading(spreadId, spreadContext)
+          + spreadRoleReading(spreadId, placedPieces.map(({ piece }) => ({
+            pieceName: piece.displayChar,
+            meaning: piece.meaning,
+          })))
+          + generatePositionSummaryDeep(placements);
+      }
       const poem = getPoemById(hex.poemId);
       setSelectedPoem(poem);
 

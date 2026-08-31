@@ -87,6 +87,16 @@ export const translations: Record<string, Record<Lang, string>> = {
   'board.spreadChoiceHint': { 'zh-TW': '適合比較兩個選項；請在問題中清楚寫出 A 與 B。', en: 'For comparing two options; state A and B clearly in your question.', ja: '二つの選択肢の比較に。質問に A と B を明記してください。' },
   'board.spreadRelationshipHint': { 'zh-TW': '適合感情、合作或人際溝通問題。', en: 'For relationships, collaboration, and communication.', ja: '恋愛・協力・対人コミュニケーションに。' },
   'board.spreadStrategyHint': { 'zh-TW': '適合工作、計畫與需要推進的決策。', en: 'For work, plans, and decisions that need momentum.', ja: '仕事・計画・前進させたい意思決定に。' },
+  // 兩軍對壘陣（無固定格位，角色是半場不是格子）
+  'board.spreadFormation': { 'zh-TW': '兩軍對壘陣', en: 'Two-Army Formation', ja: '両軍対峙の陣' },
+  'board.spreadFormationDesc': { 'zh-TW': '紅黑雙方各在己方半場布三子，紅方為上卦、黑方為下卦，動爻取子力差。', en: 'Each side places three pieces in its own half; red forms the upper trigram, black the lower, and the moving line comes from the force difference.', ja: '両軍それぞれ自陣に三子を配置。紅方が上卦、黑方が下卦となり、動爻は戦力差から取ります。' },
+  'board.spreadFormationHint': { 'zh-TW': '適合對立、競爭、比較兩造的處境。', en: 'For opposition, rivalry, and weighing two sides.', ja: '対立・競争・両者の比較に。' },
+  'board.formationRed': { 'zh-TW': '紅方陣', en: 'Red Camp', ja: '紅方の陣' },
+  'board.formationBlack': { 'zh-TW': '黑方陣', en: 'Black Camp', ja: '黑方の陣' },
+  'board.formationPlaced': { 'zh-TW': '已布 {n}/6', en: '{n}/6 placed', ja: '{n}/6 配置済み' },
+  'board.formationCellLabel': { 'zh-TW': '{half}{position}', en: '{half}, {position}', ja: '{half}・{position}' },
+  'board.formationIncomplete': { 'zh-TW': '兩軍尚未成陣', en: 'Formation incomplete', ja: '陣が未完成です' },
+  'board.formationIncompleteDesc': { 'zh-TW': '紅黑雙方半場需各布三子。', en: 'Each camp needs three pieces in its own half.', ja: '両陣とも自陣に三子ずつ配置してください。' },
   'board.optionAPlaceholder': { 'zh-TW': '選項 A，例如：留在現職', en: 'Option A, e.g. stay in current role', ja: '選択肢 A、例：現職に残る' },
   'board.optionBPlaceholder': { 'zh-TW': '選項 B，例如：轉換跑道', en: 'Option B, e.g. change career', ja: '選択肢 B、例：転職する' },
 

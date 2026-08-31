@@ -3,7 +3,7 @@
 // 牌陣不改變既有的「棋子 → 卦象」演算法；它只為每一個落子賦予穩定的
 // 提問角色與建議座標。這樣既保留自由佈局，也讓問題能有更清楚的閱讀結構。
 
-export type SpreadId = 'free' | 'timeline' | 'choice' | 'relationship' | 'strategy';
+export type SpreadId = 'free' | 'timeline' | 'choice' | 'relationship' | 'strategy' | 'formation';
 
 /** 牌陣名稱的 i18n 鍵，供棋盤、收藏與日後統計共用。 */
 export const SPREAD_LABEL_KEYS: Record<SpreadId, string> = {
@@ -12,6 +12,7 @@ export const SPREAD_LABEL_KEYS: Record<SpreadId, string> = {
   choice: 'board.spreadChoice',
   relationship: 'board.spreadRelationship',
   strategy: 'board.spreadStrategy',
+  formation: 'board.spreadFormation',
 };
 
 /** 牌陣說明文字的 i18n 鍵。與 LABEL／HINT 同放一處，避免同類對照表散落各頁。 */
@@ -21,6 +22,7 @@ export const SPREAD_DESC_KEYS: Record<SpreadId, string> = {
   choice: 'board.spreadChoiceDesc',
   relationship: 'board.spreadRelationshipDesc',
   strategy: 'board.spreadStrategyDesc',
+  formation: 'board.spreadFormationDesc',
 };
 
 /** 牌陣適用問題的 i18n 鍵，讓引導文字不和目前介面語言混用。 */
@@ -30,6 +32,7 @@ export const SPREAD_HINT_KEYS: Record<SpreadId, string> = {
   choice: 'board.spreadChoiceHint',
   relationship: 'board.spreadRelationshipHint',
   strategy: 'board.spreadStrategyHint',
+  formation: 'board.spreadFormationHint',
 };
 
 export interface SpreadSlot {
@@ -55,6 +58,11 @@ export interface SpreadDefinition {
   description: string;
   questionHint: string;
   slots: readonly SpreadSlot[];
+  /**
+   * 牌陣要求的落子數。固定角色牌陣由 slots 長度決定，此欄位留給
+   * 無固定格位的牌陣（兩軍對壘陣六子）；未設定時沿用呼叫端的預設值。
+   */
+  maxPieces?: number;
 }
 
 export const SPREADS: Record<SpreadId, SpreadDefinition> = {
@@ -109,10 +117,30 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
       { id: 'action', label: '建議行動', labelKey: 'board.slotStrategyAction', description: '最適合先落下的一著。', col: 6, row: 1 },
     ],
   },
+  /**
+   * 兩軍對壘陣沒有固定格位——角色是「哪一半場」而不是「哪一格」，
+   * 半場由楚河漢界劃開（formation.ts），故 slots 為空、落子數另設。
+   */
+  formation: {
+    id: 'formation',
+    name: '兩軍對壘陣',
+    description: '紅黑雙方各在己方半場布三子，紅方為上卦、黑方為下卦，動爻取雙方子力差。',
+    questionHint: '適合對立、競爭、比較兩造的處境。',
+    slots: [],
+    maxPieces: 6,
+  },
 };
 
 export function getSpread(id: SpreadId): SpreadDefinition {
   return SPREADS[id];
+}
+
+/**
+ * 牌陣要求的落子數；牌陣未設定時回傳呼叫端的預設值。
+ * 固定角色牌陣由 slots 長度決定，此處只在無格位牌陣（兩軍對壘陣）派上用場。
+ */
+export function getSpreadMaxPieces(id: SpreadId, fallback: number): number {
+  return SPREADS[id].maxPieces ?? fallback;
 }
 
 /** 固定牌陣依序取下一個可落子的角色；自由佈局則不限制格位。 */
