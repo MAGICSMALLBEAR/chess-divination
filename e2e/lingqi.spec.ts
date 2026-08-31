@@ -125,3 +125,71 @@ test.describe('靈棋十二子', () => {
     expect(notation).toContain(title);
   });
 });
+
+// 「依占卜模式的應驗率」的 E2E
+//
+// 這一段的存在理由：accuracyByMode() 有匯出、有單元測試，卻從來沒有任何
+// 畫面呼叫它——功能清單寫著「分項應驗率：依吉凶等級／問事類別／占卜模式」，
+// 而最後一項使用者從來沒看過。單元測試對「有沒有接到畫面上」是無感的，
+// 這條就是補那個感官。
+
+test.describe('依占卜模式的應驗率', () => {
+  /** 種三筆已回填的記錄：抽棋準、棋盤不準、靈棋準 */
+  async function seedVerified(page: import('@playwright/test').Page) {
+    const base = {
+      poemId: 1, poemTitle: '龍騰九霄', poemContent: '一二三四', poemLevel: '大吉',
+      drawnPieceTypes: [], drawnPieceColors: [], drawnPieceChars: [],
+      isFavorited: false, engineVersion: 2,
+    };
+    const at = Date.now() - 86_400_000;
+    const records = [
+      { ...base, id: 'm1', mode: 'draw', timestamp: at, outcome: { status: 'accurate', recordedAt: at } },
+      { ...base, id: 'm2', mode: 'board', timestamp: at, outcome: { status: 'inaccurate', recordedAt: at } },
+      {
+        ...base, id: 'm3', mode: 'lingqi', poemId: 0, poemLevel: '', poemTitle: '大通卦',
+        lingqiKey: '1-1-1', timestamp: at, outcome: { status: 'accurate', recordedAt: at },
+      },
+    ];
+    await page.addInitScript(
+      ([key, recs]) => window.localStorage.setItem(key as string, JSON.stringify(recs)),
+      [HISTORY_KEY, records] as const,
+    );
+    await page.goto('/stats');
+  }
+
+  test('統計頁真的畫出這一節，三種模式都在', async ({ page }) => {
+    await seedVerified(page);
+    const section = page.getByTestId('accuracy-by-mode');
+    await expect(section).toBeVisible({ timeout: 30_000 });
+    await expect(section).toContainText('抽棋');
+    await expect(section).toContainText('佈局');
+    await expect(section).toContainText('靈棋');
+  });
+
+  /**
+   * 原本的預設標籤是 `k === 'draw' ? '抽棋' : '棋盤'`——靈棋會被標成棋盤，
+   * 於是這一節只剩兩列，而畫面看起來完全正常。列數是最直接的證據。
+   */
+  test('靈棋自成一列，沒有被併進佈局', async ({ page }) => {
+    await seedVerified(page);
+    const section = page.getByTestId('accuracy-by-mode');
+    await expect(section).toBeVisible({ timeout: 30_000 });
+    // 三筆記錄三種模式，各自一列。標籤壞掉時靈棋會併進佈局，只剩兩列
+    await expect(section.getByText('靈棋', { exact: true })).toHaveCount(1);
+    await expect(section.getByText('佈局', { exact: true })).toHaveCount(1);
+    // 應驗率也要分得開：抽棋與靈棋 100%、佈局 0%
+    await expect(section.getByText('0%', { exact: true })).toHaveCount(1);
+    await expect(section.getByText('100%', { exact: true })).toHaveCount(2);
+  });
+
+  test('吉凶等級那一節只有一列——靈棋沒有等級，不該自成一組', async ({ page }) => {
+    await seedVerified(page);
+    const section = page.getByTestId('accuracy-by-level');
+    await expect(section).toBeVisible({ timeout: 30_000 });
+    await expect(section).toContainText('大吉');
+    // 三筆記錄裡兩筆是大吉、一筆是靈棋（無等級）。靈棋若沒被濾掉，
+    // 這裡會多出一列以空字串為名的分項——那一列的標籤是看不見的，
+    // 只有列數看得出來
+    await expect(section.getByText('/', { exact: false })).toHaveCount(1);
+  });
+});

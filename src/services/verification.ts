@@ -181,9 +181,23 @@ export function accuracyByCategory(
 }
 
 /** 依占卜模式分組。`labelOf` 同上，可注入譯文 */
+const MODE_LABELS: Record<string, string> = {
+  draw: '抽棋', board: '棋盤', lingqi: '靈棋',
+};
+
+/**
+ * 依占卜模式分組。
+ *
+ * 預設標籤原本是 `k === 'draw' ? '抽棋' : '棋盤'`——那個式子會把任何新模式
+ * 默默標成「棋盤」，靈棋加進來時就是這樣。改成對照表，認不得的鍵回傳原鍵，
+ * 標成一個看得出不對的值，而不是冒充另一個模式。
+ *
+ * `labelOf` 可由呼叫端注入以取得譯文，理由同 accuracyByCategory：
+ * 本模組是純統計，不引入 i18n。
+ */
 export function accuracyByMode(
   records: DivinationRecord[],
-  labelOf: (key: string) => string = k => (k === 'draw' ? '抽棋' : '棋盤'),
+  labelOf: (key: string) => string = k => MODE_LABELS[k] ?? k,
 ): AccuracyBreakdown[] {
   return breakdownBy(records, r => r.mode || null, labelOf);
 }

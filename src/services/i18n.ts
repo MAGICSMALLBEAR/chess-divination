@@ -355,6 +355,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'stats.pending': { 'zh-TW': '有 {n} 則兩週前的占卜還沒回填結果。', en: '{n} readings from over two weeks ago are still unverified.', ja: '2週間以上前の占いが {n} 件、未記録です。' },
   'stats.byCategory': { 'zh-TW': '各類問事的應驗率', en: 'Accuracy by Question Type', ja: '問い別の的中率' },
   'stats.bySpread': { 'zh-TW': '各牌陣的應驗率', en: 'Accuracy by Spread', ja: '配置別の的中率' },
+  'stats.byMode': { 'zh-TW': '各占卜模式的應驗率', en: 'Accuracy by Divination Mode', ja: '占い方法別の的中率' },
   'stats.byLevel': { 'zh-TW': '各吉凶等級的應驗率', en: 'Accuracy by Fortune Level', ja: '吉凶レベル別の的中率' },
   'stats.byBodyUse': { 'zh-TW': '體用生剋的應驗率', en: 'Accuracy by Body–Use Relation', ja: '体用関係別の的中率' },
   'stats.byMovingLine': { 'zh-TW': '動爻位置的應驗率', en: 'Accuracy by Moving Line', ja: '動爻位置別の的中率' },

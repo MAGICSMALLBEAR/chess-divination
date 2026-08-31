@@ -13,7 +13,7 @@ import { getHistory, recordHasLevel, type DivinationRecord } from '@/services/st
 import { startOfLocalWeek, startOfLocalMonth } from '@/services/date';
 import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
-  accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
+  accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason, accuracyByMode,
   accuracyBySpread,
   bestCategory, medianVerifyDelay, pendingVerification,
   type AccuracyBreakdown,
@@ -24,6 +24,11 @@ import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
 import { SPREAD_LABEL_KEYS, type SpreadId } from '@/services/spreads';
+
+/** 統計頁的模式短標，與上方總覽磚同一組字 */
+const STATS_MODE_KEYS: Record<string, string> = {
+  draw: 'stats.draw', board: 'stats.board', lingqi: 'stats.lingqi',
+};
 
 export default function StatsScreen() {
   const router = useRouter();
@@ -80,6 +85,10 @@ export default function StatsScreen() {
   const accuracy = React.useMemo(() => computeAccuracy(filtered), [filtered]);
   const byLevel = React.useMemo(() => accuracyByLevel(filtered), [filtered]);
   const byBodyUse = React.useMemo(() => accuracyByBodyUse(filtered), [filtered]);
+  // 模式名沿用總覽磚的短標（抽棋／佈局／靈棋），讓上下兩處對得起來；
+  // 分享卡與收藏卡各有自己的用字，故不共用一張鍵表
+  const byMode = React.useMemo(
+    () => accuracyByMode(filtered, key => t(STATS_MODE_KEYS[key] ?? key)), [filtered, t]);
   const byMovingLine = React.useMemo(
     () => accuracyByMovingLine(filtered, n => t('stats.movingLine', { n })), [filtered, t]);
   const bySeason = React.useMemo(
@@ -287,6 +296,7 @@ export default function StatsScreen() {
         {byCategory.length > 0 && (
           <AccuracySection
             title={t('stats.byCategory')}
+            testID="accuracy-by-category"
             rows={byCategory}
             theme={theme}
             styles={styles}
@@ -297,6 +307,7 @@ export default function StatsScreen() {
         {byLevel.length > 0 && (
           <AccuracySection
             title={t('stats.byLevel')}
+            testID="accuracy-by-level"
             rows={byLevel}
             theme={theme}
             styles={styles}
@@ -304,9 +315,20 @@ export default function StatsScreen() {
             colorOf={row => getLevelColor(row.key)}
           />
         )}
+        {byMode.length > 0 && (
+          <AccuracySection
+            title={t('stats.byMode')}
+            testID="accuracy-by-mode"
+            rows={byMode}
+            theme={theme}
+            styles={styles}
+            colorOf={row => rateColor(row.stats.rate ?? 0)}
+          />
+        )}
         {bySpread.length > 0 && (
           <AccuracySection
             title={t('stats.bySpread')}
+            testID="accuracy-by-spread"
             rows={bySpread}
             theme={theme}
             styles={styles}
@@ -316,6 +338,7 @@ export default function StatsScreen() {
         {byBodyUse.length > 0 && (
           <AccuracySection
             title={t('stats.byBodyUse')}
+            testID="accuracy-by-bodyuse"
             rows={byBodyUse}
             theme={theme}
             styles={styles}
@@ -325,6 +348,7 @@ export default function StatsScreen() {
         {byMovingLine.length > 0 && (
           <AccuracySection
             title={t('stats.byMovingLine')}
+            testID="accuracy-by-movingline"
             rows={byMovingLine}
             theme={theme}
             styles={styles}
@@ -351,15 +375,17 @@ export default function StatsScreen() {
  * 每列一個分組，長條寬度即為應驗率，右側標註已驗則數——
  * 只給百分比會讓「1 則全中 = 100%」和「20 則 100%」看起來一樣可信。
  */
-function AccuracySection({ title, rows, theme, styles, colorOf }: {
+function AccuracySection({ title, rows, theme, styles, colorOf, testID }: {
   title: string;
   rows: AccuracyBreakdown[];
   theme: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
   colorOf: (row: AccuracyBreakdown) => string;
+  /** 給 e2e 定位整節用；沒有它就只能靠 DOM 形狀猜，而那會隨排版改動而碎 */
+  testID?: string;
 }) {
   return (
-    <View style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+    <View testID={testID} style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
       <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{title}</Text>
       {rows.map(row => (
         <View key={row.key} style={styles.barRow}>

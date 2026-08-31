@@ -233,6 +233,27 @@ describe('分項統計', () => {
     expect(rows.find(r => r.key === 'board')?.label).toBe('棋盤');
   });
 
+  /**
+   * 預設標籤原本是 `k === 'draw' ? '抽棋' : '棋盤'`，靈棋加進來後會被標成
+   * 「棋盤」——分項統計上多出一組冒充別人的資料，而畫面看起來完全正常。
+   */
+  test('靈棋有自己的預設標籤，不冒充棋盤', () => {
+    const rows = accuracyByMode([
+      verified('accurate', { mode: 'lingqi' }),
+      verified('inaccurate', { mode: 'board' }),
+    ]);
+    expect(rows.find(r => r.key === 'lingqi')?.label).toBe('靈棋');
+    expect(rows.filter(r => r.label === '棋盤').map(r => r.key)).toEqual(['board']);
+  });
+
+  /** 認不得的模式回傳原鍵——標成看得出不對的值，好過冒充某個既有模式 */
+  test('認不得的模式以原鍵為標籤', () => {
+    const rows = accuracyByMode([
+      verified('accurate', { mode: 'tarot' as DivinationRecord['mode'] }),
+    ]);
+    expect(rows[0].label).toBe('tarot');
+  });
+
   test('依固定牌陣分組，排除自由佈局與尚未有欄位的舊記錄', () => {
     const rows = accuracyBySpread([
       verified('accurate', { mode: 'board', spreadId: 'timeline' }),
