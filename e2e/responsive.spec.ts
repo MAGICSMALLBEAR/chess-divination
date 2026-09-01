@@ -134,12 +134,12 @@ test.describe('寬螢幕多欄佈局', () => {
 test.describe('主題', () => {
   test('深色主題下文字與背景有足夠對比', async ({ page }) => {
     await page.goto('/library');
-    await expect(page.getByText('籤詩圖鑑')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('占卜圖鑑')).toBeVisible({ timeout: 15_000 });
 
     // 標題不應與背景同色（曾因硬編色碼導致亮色主題下淺字配淺底）
     const { color, bg } = await page.evaluate(() => {
       const el = Array.from(document.querySelectorAll('div'))
-        .find((e) => e.textContent?.trim() === '籤詩圖鑑');
+        .find((e) => e.textContent?.trim() === '占卜圖鑑');
       const style = el ? getComputedStyle(el) : null;
       return {
         color: style?.color ?? '',

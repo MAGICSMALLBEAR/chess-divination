@@ -140,7 +140,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'draw.suggested': { 'zh-TW': '建議', en: 'Suggested', ja: 'おすすめ' },
   'settings.experience': { 'zh-TW': '體驗設定', en: 'Experience', ja: '体験' },
   'settings.tools': { 'zh-TW': '工具', en: 'Tools', ja: 'ツール' },
-  'settings.library': { 'zh-TW': '籤詩圖鑑', en: 'Poem Library', ja: '詩鑑' },
+  'settings.library': { 'zh-TW': '占卜圖鑑', en: 'Divination Library', ja: '占い図鑑' },
   'settings.stats': { 'zh-TW': '占卜統計', en: 'Statistics', ja: '統計' },
   'settings.data': { 'zh-TW': '資料管理', en: 'Data Management', ja: 'データ管理' },
   'settings.about': { 'zh-TW': '關於', en: 'About', ja: 'について' },
@@ -170,8 +170,12 @@ export const translations: Record<string, Record<Lang, string>> = {
   'stats.filterMonth': { 'zh-TW': '本月', en: 'Month', ja: '今月' },
 
   // 圖鑑
-  'library.title': { 'zh-TW': '籤詩圖鑑', en: 'Poem Library', ja: '詩鑑' },
+  // 圖鑑收的不再只有籤詩：靈棋 125 卦目自 Session 48 起也在同一頁的另一個分頁
+  'library.title': { 'zh-TW': '占卜圖鑑', en: 'Divination Library', ja: '占い図鑑' },
   'library.search': { 'zh-TW': '搜尋籤詩...', en: 'Search poems...', ja: '詩を検索...' },
+  'library.searchLingqi': { 'zh-TW': '搜尋卦目...', en: 'Search oracles...', ja: '卦を検索...' },
+  'library.tabPoems': { 'zh-TW': '籤詩', en: 'Poems', ja: '詩' },
+  'library.tabLingqi': { 'zh-TW': '靈棋', en: 'Lingqi', ja: '霊棋' },
   'library.all': { 'zh-TW': '全部', en: 'All', ja: '全て' },
   'library.expand': { 'zh-TW': '展開詳情', en: 'Expand', ja: '詳細' },
   'library.collapse': { 'zh-TW': '收起', en: 'Collapse', ja: '閉じる' },
@@ -419,6 +423,9 @@ export const translations: Record<string, Record<Lang, string>> = {
   'library.count': { 'zh-TW': '共 {n} 首', en: '{n} poems', ja: '{n} 首' },
   'library.divineWith': { 'zh-TW': '以此卦占卜', en: 'Divine with this hexagram', ja: 'この卦で占う' },
   'library.notFound': { 'zh-TW': '找不到符合的籤詩', en: 'No matching poems', ja: '該当する詩がありません' },
+  'library.countLingqi': { 'zh-TW': '共 {n} 卦', en: '{n} oracles', ja: '{n} 卦' },
+  'library.notFoundLingqi': { 'zh-TW': '找不到符合的卦目', en: 'No matching oracles', ja: '該当する卦がありません' },
+  'library.divineWithLingqi': { 'zh-TW': '擲靈棋占卜', en: 'Cast the Lingqi', ja: '霊棋を擲つ' },
   'library.element': { 'zh-TW': '五行', en: 'Element', ja: '五行' },
 
   // 籤詩卡
@@ -440,7 +447,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'settings.themeLight': { 'zh-TW': '宣紙', en: 'Paper', ja: '宣紙' },
   'settings.themeSystem': { 'zh-TW': '跟隨系統', en: 'System', ja: 'システムに従う' },
   'settings.dailyReminder': { 'zh-TW': '每日提醒', en: 'Daily Reminder', ja: '毎日のリマインダー' },
-  'settings.libraryDesc': { 'zh-TW': '瀏覽 64 首籤詩', en: 'Browse all 64 poems', ja: '64首の詩を見る' },
+  'settings.libraryDesc': { 'zh-TW': '瀏覽 64 首籤詩與 125 卦目', en: 'Browse 64 poems and 125 oracles', ja: '64首の詩と125卦を見る' },
   'settings.statsDesc': { 'zh-TW': '查看統計數據', en: 'View your statistics', ja: '統計を見る' },
   'settings.achievements': { 'zh-TW': '成就徽章', en: 'Achievements', ja: '実績バッジ' },
   'settings.achievementsDesc': { 'zh-TW': '查看解鎖進度', en: 'View unlock progress', ja: '解除状況を見る' },
@@ -524,6 +531,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'share.drawn': { 'zh-TW': '抽得：{pieces}', en: 'Drawn: {pieces}', ja: '引いた駒：{pieces}' },
   'share.lingqiCast': { 'zh-TW': '擲得：天 {u} 枚　人 {m} 枚　地 {l} 枚', en: 'Cast: Heaven {u} · Man {m} · Earth {l}', ja: '擲出：天 {u} 枚　人 {m} 枚　地 {l} 枚' },
   'share.lingqiSource': { 'zh-TW': '卦辭出自《靈棋經》原典', en: 'Verses from the original Lingqi Jing', ja: '卦辞は『靈棋經』原典より' },
+  'share.spread': { 'zh-TW': '牌陣：{name}', en: 'Spread: {name}', ja: '布陣：{name}' },
   'share.changed': { 'zh-TW': '{from} → {to}（動爻 {line}）', en: '{from} → {to} (moving line {line})', ja: '{from} → {to}（動爻 {line}）' },
   'share.bodyUse': { 'zh-TW': '體用：{relation} · {level}', en: 'Body/Use: {relation} · {level}', ja: '体用：{relation} · {level}' },
 

@@ -7,6 +7,7 @@
 
 import type { Poem } from '@/data/poems';
 import { getPoemById } from '@/data/poems';
+import type { LingqiOracle } from '@/data/lingqiOracles';
 import type { Lang } from './i18n';
 import { localizePoem } from './localize';
 
@@ -32,6 +33,27 @@ export function poemMatchesSearch(poem: Poem, query: string, lang: Lang): boolea
   const haystacks = [
     localized.title, localized.content, localized.vernacular,
     poem.title, poem.content, poem.vernacular, poem.hexagramName,
+  ];
+  return haystacks.some(text => text.toLowerCase().includes(q));
+}
+
+/**
+ * 《靈棋經》卦目是否命中搜尋字串。
+ *
+ * 沒有 lang 參數是刻意的，與 poemMatchesSearch 不同：靈棋原典逐字保留、
+ * 三語介面一律顯示漢字（見 data/lingqiOracles.ts 的檔頭），卡片上看得到
+ * 的字就只有這一份，沒有第二種寫法要比對。
+ *
+ * 比對範圍涵蓋卡片收合時看得到的（卦名、卦目、象、詩曰）與展開後才看得到
+ * 的（斷、方位、象曰、又曰、又）——使用者記得的往往是某一句四言或七言，
+ * 而不是卦名。
+ */
+export function lingqiMatchesSearch(oracle: LingqiOracle, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const haystacks = [
+    oracle.name, oracle.notation, oracle.image, oracle.stance, oracle.direction,
+    ...oracle.xiang, ...oracle.xiangAlt, ...oracle.shi, ...oracle.shiAlt,
   ];
   return haystacks.some(text => text.toLowerCase().includes(q));
 }

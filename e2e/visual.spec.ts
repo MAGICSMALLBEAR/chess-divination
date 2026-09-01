@@ -70,7 +70,7 @@ async function fullScreenOverlays(page: Page) {
 }
 
 const PAGES: { path: string; marker: string }[] = [
-  { path: '/library', marker: '籤詩圖鑑' },
+  { path: '/library', marker: '占卜圖鑑' },
   { path: '/stats', marker: '吉凶分佈' },
   { path: '/achievements', marker: '成就徽章' },
   { path: '/board', marker: '棋盤佈局' },

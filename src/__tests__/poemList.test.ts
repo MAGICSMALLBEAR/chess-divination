@@ -9,7 +9,8 @@ import fs from 'fs';
 import path from 'path';
 import { getPoemById } from '../data/poems';
 import { setLang } from '../services/i18n';
-import { poemMatchesSearch, localizedPoemTitle, recordMatchesSearch } from '../services/poemList';
+import { poemMatchesSearch, localizedPoemTitle, recordMatchesSearch, lingqiMatchesSearch } from '../services/poemList';
+import { LINGQI_ORACLES } from '../data/lingqiOracles';
 
 const poem1 = getPoemById(1); // 乾為天 / Dragon Soars the Heavens / 龍 九霄に騰がる
 
@@ -210,5 +211,58 @@ describe('列表畫面的籤詩標題接線（靜態守門）', () => {
     expect(collectionSrc).toContain('recordTitle(');
     expect(homeSrc).not.toContain('localizedPoemTitle(');
     expect(collectionSrc).not.toContain('localizedPoemTitle(');
+  });
+});
+
+/**
+ * 靈棋卦目搜尋。
+ *
+ * 圖鑑加了靈棋分頁後，125 卦目要搜得到——而使用者記得的往往是某一句
+ * 四言或七言，不是卦名。這裡釘住比對範圍涵蓋收合與展開兩種狀態下
+ * 看得到的每一個欄位。
+ */
+describe('lingqiMatchesSearch', () => {
+  const daTong = LINGQI_ORACLES.find(o => o.key === '1-1-1')!;
+
+  test('卦名、卦目與象都命中', () => {
+    expect(lingqiMatchesSearch(daTong, daTong.name)).toBe(true);
+    expect(lingqiMatchesSearch(daTong, '一上一中一下')).toBe(true);
+    expect(lingqiMatchesSearch(daTong, daTong.image)).toBe(true);
+  });
+
+  test('展開後才看得到的象曰與詩曰也搜得到', () => {
+    expect(lingqiMatchesSearch(daTong, daTong.xiang[0])).toBe(true);
+    expect(lingqiMatchesSearch(daTong, daTong.shi[0])).toBe(true);
+  });
+
+  test('斷與方位同樣納入比對', () => {
+    expect(lingqiMatchesSearch(daTong, daTong.stance)).toBe(true);
+    expect(lingqiMatchesSearch(daTong, daTong.direction)).toBe(true);
+  });
+
+  test('空白查詢視為全部通過，不會讓清單變空', () => {
+    expect(lingqiMatchesSearch(daTong, '')).toBe(true);
+    expect(lingqiMatchesSearch(daTong, '   ')).toBe(true);
+  });
+
+  test('不相干的字不命中', () => {
+    expect(lingqiMatchesSearch(daTong, 'zzz')).toBe(false);
+  });
+
+  /**
+   * 靈棋不吃 lang：原典三語都顯示漢字原文（見 data/lingqiOracles.ts 檔頭）。
+   * 切語言後仍搜得到，是這個決定的直接後果，值得釘住。
+   */
+  test('切到 en/ja 仍以漢字原文搜得到', () => {
+    for (const lang of ['en', 'ja'] as const) {
+      setLang(lang);
+      expect(lingqiMatchesSearch(daTong, daTong.name)).toBe(true);
+    }
+  });
+
+  test('125 卦目每一卦都搜得到自己的卦名', () => {
+    const missed = LINGQI_ORACLES.filter(o => !lingqiMatchesSearch(o, o.name));
+    expect(missed).toEqual([]);
+    expect(LINGQI_ORACLES).toHaveLength(125);
   });
 });

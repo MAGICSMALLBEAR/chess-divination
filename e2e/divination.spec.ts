@@ -185,11 +185,11 @@ test.describe('AI 深度解讀', () => {
   });
 });
 
-test.describe('籤詩圖鑑', () => {
+test.describe('占卜圖鑑', () => {
   test('圖鑑顯示全部 64 首籤詩', async ({ page }) => {
     await page.goto('/library');
 
-    await expect(page.getByText('籤詩圖鑑')).toBeVisible();
+    await expect(page.getByText('占卜圖鑑')).toBeVisible();
     await expect(page.getByText('共 64 首')).toBeVisible({ timeout: 15_000 });
   });
 
@@ -209,6 +209,53 @@ test.describe('籤詩圖鑑', () => {
 
     await expect(page.getByText('找不到符合的籤詩')).toBeVisible({ timeout: 10_000 });
   });
+
+  /**
+   * 靈棋分頁。單元測試驗得了 lingqiMatchesSearch 的比對，驗不了
+   * 「125 卦目真的在圖鑑上瀏覽得到」——在此之前靈棋擲出來的卦只能
+   * 從歷史與收藏回頭看，沒有目錄。
+   */
+  test('切到靈棋分頁看得到 125 卦目', async ({ page }) => {
+    await page.goto('/library');
+    await expect(page.getByText('共 64 首')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByTestId('library-tab-lingqi').click();
+    await expect(page.getByTestId('library-count')).toHaveText('共 125 卦');
+    await expect(page.getByTestId('lingqi-card')).toHaveCount(125);
+    // 等級與五行篩選對靈棋無意義，切過去應該收起來
+    await expect(page.getByText('五行')).toBeHidden();
+  });
+
+  test('靈棋卡片展開後看得到象曰與原典出處', async ({ page }) => {
+    await page.goto('/library');
+    await page.getByTestId('library-tab-lingqi').click();
+    await page.getByPlaceholder('搜尋卦目...').fill('大通卦');
+    await expect(page.getByTestId('lingqi-card')).toHaveCount(1);
+
+    const card = page.getByTestId('lingqi-card').first();
+    // 收合時印的是詩曰；象曰要展開才有
+    await expect(card).toContainText('升騰之象');
+    await expect(card.getByText('象曰', { exact: true })).toBeHidden();
+
+    await card.click();
+    await expect(card.getByText('象曰', { exact: true })).toBeVisible();
+    await expect(card).toContainText('從小至大');
+  });
+
+  test('搜尋詩句也找得到卦目，切回籤詩分頁仍是 64 首', async ({ page }) => {
+    await page.goto('/library');
+    await page.getByTestId('library-tab-lingqi').click();
+    // 使用者記得的往往是句子而不是卦名
+    await page.getByPlaceholder('搜尋卦目...').fill('乘龍福自臻');
+    await expect(page.getByTestId('lingqi-card')).toHaveCount(1);
+    await expect(page.getByTestId('lingqi-card').first()).toContainText('大通卦');
+
+    await page.getByTestId('library-tab-poems').click();
+    // 搜尋字串仍在，但籤詩這邊比對不到——換分頁不會憑空冒出結果
+    await expect(page.getByText('找不到符合的籤詩')).toBeVisible();
+    await page.getByPlaceholder('搜尋籤詩...').fill('');
+    await expect(page.getByTestId('library-count')).toHaveText('共 64 首');
+  });
 });
 
 test.describe('頁面可達性', () => {
@@ -217,7 +264,7 @@ test.describe('頁面可達性', () => {
     { path: '/', marker: '象棋占卜' },
     { path: '/draw', marker: '抽棋占卜' },
     { path: '/board', marker: '棋盤佈局' },
-    { path: '/library', marker: '籤詩圖鑑' },
+    { path: '/library', marker: '占卜圖鑑' },
     { path: '/stats', marker: '占卜統計' },
     { path: '/achievements', marker: '成就徽章' },
     { path: '/settings', marker: '設定' },
