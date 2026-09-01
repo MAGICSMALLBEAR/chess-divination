@@ -3,6 +3,8 @@
 // 牌陣不改變既有的「棋子 → 卦象」演算法；它只為每一個落子賦予穩定的
 // 提問角色與建議座標。這樣既保留自由佈局，也讓問題能有更清楚的閱讀結構。
 
+import { POSITION_DEEP_HEADING } from './position';
+
 export type SpreadId = 'free' | 'timeline' | 'choice' | 'relationship' | 'strategy' | 'formation';
 
 /** 牌陣名稱的 i18n 鍵，供棋盤、收藏與日後統計共用。 */
@@ -171,6 +173,23 @@ export function spreadRoleReading(
     const slot = slots[index];
     return `${slot.label}・${piece.pieceName}：${slot.description}\n${piece.meaning}`;
   }).join('\n\n') + '\n\n';
+}
+
+/**
+ * 從已存檔的 positionSummary 取出「牌陣自己的那一段」——牌陣名與角色說明、
+ * 使用者填的選項名稱、兩軍子力對比，也就是深度解讀標題之前的一切。
+ *
+ * 用途是 AI 深度解讀的提示詞。為什麼不把 positionSummary 整段送過去：
+ * 標題之後那半是本 App 自己的規則式文字（每顆棋的五行、方位、建議各一段），
+ * 餵給模型只會換回一份改寫版，還會把提示詞撐長。標題之前那半才是模型
+ * 推不出來的東西——使用者選了哪個牌陣、哪顆棋擔任哪個角色、兩軍強弱如何。
+ *
+ * 自由佈局沒有這一段，回傳空字串，呼叫端據此不送 `board.brief`。
+ */
+export function spreadBriefFromSummary(summary?: string): string {
+  if (!summary) return '';
+  const cut = summary.indexOf(POSITION_DEEP_HEADING);
+  return (cut === -1 ? summary : summary.slice(0, cut)).trim();
 }
 
 /** 將使用者替兩難選項取的名稱寫進結果摘要；空白輸入一律略過。 */

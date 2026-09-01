@@ -83,6 +83,19 @@ describe('請求驗證', () => {
   });
 
   /**
+   * 盤面裡的選項名稱是使用者自己打的字，和 question 一樣是外部輸入。
+   * 單欄上限漏掉它，就等於在 body 上限之下留了一條把 context 撐大的路。
+   */
+  test('盤面欄位同樣受單欄上限管', async () => {
+    const res = await POST(post({
+      poem: validBody.poem,
+      board: { brief: '甲'.repeat(4_001) },
+    }));
+    expect(res.status).toBe(413);
+    expect((await res.json()).error).toBe('FIELD_TOO_LARGE');
+  });
+
+  /**
    * 16KB 上限指的是位元組。用 raw.length（UTF-16 code unit 數）判斷時，
    * 中文一字只算 1 而實際佔 3 個位元組——上限被放寬到約三倍，
    * 而這個 App 送的正是中文籤詩。api/sync.ts 早就改用位元組數，

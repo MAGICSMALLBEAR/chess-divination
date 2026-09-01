@@ -63,7 +63,13 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // 防止單一欄位將模型 context 與費用放大；整體大小已在上方限制。
-  if ([body.question, body.questionCategory, body.poem.title, body.poem.content, body.poem.vernacular].some(v => typeof v === 'string' && v.length > 4_000)) {
+  if ([
+    body.question, body.questionCategory,
+    body.poem.title, body.poem.content, body.poem.vernacular,
+    // 盤面裡的選項名稱是使用者輸入，和 question 同樣是外部字串，
+    // 漏掉這裡等於留一條沒有上限的路把 context 撐大。
+    body.board?.spreadName, body.board?.pieces, body.board?.brief,
+  ].some(v => typeof v === 'string' && v.length > 4_000)) {
     return Response.json({ error: 'FIELD_TOO_LARGE', message: '請求欄位過長。' }, { status: 413 });
   }
 

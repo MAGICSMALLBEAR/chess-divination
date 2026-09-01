@@ -29,6 +29,7 @@ import { cancelVerificationReminder } from '@/services/notifications';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
+import { getSpread, spreadBriefFromSummary } from '@/services/spreads';
 import { shareNative, shareToLine, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
 import { confirmAction, notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
@@ -38,6 +39,23 @@ import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { SplitReading } from '@/components/SplitReading';
+
+/**
+ * 從記錄取出要給 AI 的棋盤資訊。
+ *
+ * 自由佈局沒有牌陣名也沒有角色段落，兩個欄位都會是 undefined，
+ * 只留落子——那仍比什麼都不送好，模型至少知道盤上是哪三顆棋。
+ */
+function boardContext(record: DivinationRecord) {
+  const brief = spreadBriefFromSummary(record.positionSummary);
+  return {
+    spreadName: record.spreadId && record.spreadId !== 'free'
+      ? getSpread(record.spreadId).name
+      : undefined,
+    pieces: record.drawnPieceChars.join('、') || undefined,
+    brief: brief || undefined,
+  };
+}
 
 export default function RevealScreen() {
   const router = useRouter();
@@ -138,6 +156,9 @@ export default function RevealScreen() {
               `${reading.strength.seasonElement}當權，體屬${reading.strength.bodyElement}為${reading.strength.state}`,
           }
         : undefined,
+      // 棋盤佈局。記錄裡本來就有牌陣與盤面，只是從沒送出去過——
+      // 使用者挑了牌陣、把棋放在哪個角色，對 AI 一直是不存在的。
+      board: record?.mode === 'board' ? boardContext(record) : undefined,
     });
 
     if (result.status === 'ok') setAiState({ kind: 'done', text: result.interpretation });

@@ -160,6 +160,16 @@ export interface Placement {
 }
 
 /**
+ * 深度解讀的標題行。
+ *
+ * 匯出成常數而不是各處各寫一次字面量：positionSummary 是「牌陣自己那一段
+ * ＋這段深度解讀」串起來的，要把兩者分開就得認得這條界線（見 spreads.ts
+ * 的 spreadBriefFromSummary）。字面量散在兩個檔案裡，改了標題就會靜默
+ * 切不到，而症狀只是 AI 少拿到一段資料，畫面上完全看不出來。
+ */
+export const POSITION_DEEP_HEADING = '【棋盤佈局深度解讀】';
+
+/**
  * 深度版：傳入棋子卦氣五行與方位資訊
  */
 export function generatePositionSummaryDeep(placements: Placement[]): string {
@@ -169,7 +179,7 @@ export function generatePositionSummaryDeep(placements: Placement[]): string {
     getPositionMeaning(p.col, p.row, p.guaElement, p.direction)
   );
 
-  let summary = '【棋盤佈局深度解讀】\n\n';
+  let summary = `${POSITION_DEEP_HEADING}\n\n`;
 
   // 每顆棋子逐一解讀
   placements.forEach((p, i) => {

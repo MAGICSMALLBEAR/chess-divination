@@ -47,6 +47,12 @@ export interface AiInterpretationInput {
     bodyUseRelation?: string;
     seasonalStrength?: string;
   };
+  /** 棋盤佈局；欄位意義見 aiPrompt.ts 的 InterpretRequestBody */
+  board?: {
+    spreadName?: string;
+    pieces?: string;
+    brief?: string;
+  };
 }
 
 // 函式而非常數：常數會在模組載入時就把譯文定死在當時的語言

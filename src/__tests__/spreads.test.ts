@@ -1,9 +1,10 @@
 import {
   SPREADS, SPREAD_LABEL_KEYS, SPREAD_DESC_KEYS, SPREAD_HINT_KEYS,
   getSpread, nextSpreadSlot, spreadContextReading, spreadReadingPrefix, spreadRoleReading,
-  getSpreadMaxPieces,
+  getSpreadMaxPieces, spreadBriefFromSummary,
   type SpreadId,
 } from '../services/spreads';
+import { generatePositionSummaryDeep, POSITION_DEEP_HEADING } from '../services/position';
 import { t, setLang } from '../services/i18n';
 
 describe('牌陣規則', () => {
@@ -170,5 +171,55 @@ describe('牌陣 i18n 對照表', () => {
   test('三張表彼此不共用同一個鍵', () => {
     const all = TABLES.flatMap(([, table]) => Object.values(table));
     expect(new Set(all).size).toBe(all.length);
+  });
+});
+
+/**
+ * 給 AI 用的盤面摘要。
+ *
+ * 這一段之所以要有測試：切錯邊界不會壞掉任何畫面——AI 照樣回得出解讀，
+ * 只是內容裡的牌陣角色悄悄消失，或反過來把整份規則式深度解讀一起送過去。
+ * 兩種都只有讀提示詞才看得出來。
+ */
+describe('spreadBriefFromSummary', () => {
+  const deep = generatePositionSummaryDeep([
+    { col: 4, row: 4, guaElement: '金', direction: '直線', pieceName: '車' },
+  ]);
+
+  test('切在深度解讀之前：留下牌陣角色，去掉規則式長文', () => {
+    const summary = spreadReadingPrefix('timeline')
+      + spreadRoleReading('timeline', [
+        { pieceName: '車', meaning: '果決前行' },
+        { pieceName: '馬', meaning: '迂迴取勢' },
+        { pieceName: '炮', meaning: '借力打力' },
+      ])
+      + deep;
+
+    const brief = spreadBriefFromSummary(summary);
+    expect(brief).toContain(getSpread('timeline').name);
+    expect(brief).toContain('過去・車');
+    expect(brief).not.toContain(POSITION_DEEP_HEADING);
+    expect(brief).not.toContain('居');
+  });
+
+  test('兩軍對壘陣保留子力對比與勝負判斷', () => {
+    const summary = `兩軍對壘：\n紅方陣：車9＋馬4＝13\n黑方陣：炮5＋兵1＝6\n紅方子力較盛。\n\n` + deep;
+    const brief = spreadBriefFromSummary(summary);
+    expect(brief).toContain('紅方陣：車9＋馬4＝13');
+    expect(brief).toContain('紅方子力較盛');
+    expect(brief).not.toContain(POSITION_DEEP_HEADING);
+  });
+
+  test('自由佈局沒有牌陣段落，回傳空字串', () => {
+    expect(spreadBriefFromSummary(spreadReadingPrefix('free') + deep)).toBe('');
+  });
+
+  test('沒有 positionSummary 的舊記錄不炸也不回 undefined', () => {
+    expect(spreadBriefFromSummary(undefined)).toBe('');
+    expect(spreadBriefFromSummary('')).toBe('');
+  });
+
+  test('找不到標題時整段當作牌陣段落（深度解讀為空的單子佈局）', () => {
+    expect(spreadBriefFromSummary('兩軍對壘：勢均力敵')).toBe('兩軍對壘：勢均力敵');
   });
 });
