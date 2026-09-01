@@ -52,6 +52,12 @@ interface ShareCardViewProps {
   pieceChars: string[];
   pieceColors: string[];
   mode: string;
+  /**
+   * 牌陣名（已譯）。自由佈局與非棋盤模式不傳。
+   * 卡片上接在模式標籤之後，與 socialShare 的文字版分享同一個目的：
+   * 分享出去要看得出這是哪個牌陣的結果。
+   */
+  spreadName?: string;
   timestamp: number;
   /** 先天序 0–63，有值時繪製卦象圖 */
   hexagramIndex?: number;
@@ -213,6 +219,7 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
               <Icon name={CARD_MODE_ICONS[props.mode] ?? 'chess-board'} size={12} color={P.inkMuted} />
               <Text style={styles.footerMode}>
                 {' '}{t(CARD_MODE_LABEL_KEYS[props.mode] ?? 'mode.board')}
+                {props.spreadName ? ` · ${props.spreadName}` : ''}
               </Text>
             </View>
             <Text style={styles.footerDate}>{dateStr}</Text>

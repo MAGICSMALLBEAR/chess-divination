@@ -253,7 +253,7 @@ export default function PoemCard({
             {' '}{t(isFavorited ? 'common.unfavorite' : 'common.favorite')}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.shareBtn} onPress={onShare}>
+        <TouchableOpacity testID="poem-share" style={styles.shareBtn} onPress={onShare}>
           <Icon name="share" size={16} color={theme.textInverse} />
           <Text style={styles.shareBtnText}> {t('common.share')}</Text>
         </TouchableOpacity>

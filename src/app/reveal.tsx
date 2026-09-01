@@ -29,7 +29,7 @@ import { cancelVerificationReminder } from '@/services/notifications';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
-import { getSpread, spreadBriefFromSummary } from '@/services/spreads';
+import { getSpread, spreadBriefFromSummary, SPREAD_LABEL_KEYS } from '@/services/spreads';
 import { shareNative, shareToLine, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
 import { confirmAction, notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
@@ -220,6 +220,14 @@ export default function RevealScreen() {
     }
   }
 
+  /**
+   * 這次占卜用的牌陣名，已譯。自由佈局與非棋盤模式回 undefined——
+   * 「自由佈局」印在卡片上只是雜訊，收藏頁的牌陣晶片也是同一個判斷。
+   */
+  const spreadName = record?.mode === 'board' && record.spreadId && record.spreadId !== 'free'
+    ? t(SPREAD_LABEL_KEYS[record.spreadId])
+    : undefined;
+
   async function handleShare() {
     // 嘗試圖片分享（原生，透過 view-shot 擷取 ShareCardView）。
     // share() 回傳是否真的分享出去；Web 端擷取或系統分享不可用時為 false。
@@ -235,6 +243,7 @@ export default function RevealScreen() {
         lines: poem.content.split('\n'),
         vernacular: poem.vernacular,
         pieceChars: record.drawnPieceChars,
+        spreadName,
         reading: reading ? {
           primaryName: reading.primary.name,
           changedName: reading.changed.name,
@@ -519,6 +528,7 @@ export default function RevealScreen() {
           pieceChars={record.drawnPieceChars}
           pieceColors={record.drawnPieceColors}
           mode={record.mode}
+          spreadName={spreadName}
           timestamp={record.timestamp}
           hexagramIndex={record.hexagramIndex}
           movingLine={record.movingLine}

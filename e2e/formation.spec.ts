@@ -94,3 +94,33 @@ test.describe('兩軍對壘陣', () => {
     expect(records[0].positionSummary).toContain('紅方陣');
   });
 });
+
+/**
+ * 分享出去看不看得出牌陣。
+ *
+ * 在此之前分享內容只有籤詩與卦象——選了兩軍對壘陣，分享給人看跟隨手
+ * 擺三顆棋一模一樣。Web 端會降級成文字分享，剪貼簿是唯一驗得到的出口。
+ */
+test.describe('兩軍對壘陣的分享', () => {
+  test('分享文字帶著牌陣名', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await selectFormationSpread(page);
+    await placeAt(page, 45);
+    await placeAt(page, 47);
+    await placeAt(page, 80);
+    await placeAt(page, 0);
+    await placeAt(page, 1);
+    await placeAt(page, 2);
+    await page.getByText(/已放置 6\/6/).click();
+    await expect(page).toHaveURL(/reveal/);
+    await expect(page.getByText('棋盤佈局解讀')).toBeVisible({ timeout: 30_000 });
+
+    // 先 confirm（LINE？取消則複製），複製完再 alert。常駐 handler 的理由
+    // 見 lingqi.spec.ts——只接第一個會讓時序變成看運氣
+    page.on('dialog', d => (d.type() === 'confirm' ? d.dismiss() : d.accept()));
+    await page.getByTestId('poem-share').click();
+
+    const clipboard = () => page.evaluate(() => navigator.clipboard.readText());
+    await expect.poll(clipboard).toContain('牌陣：兩軍對壘陣');
+  });
+});

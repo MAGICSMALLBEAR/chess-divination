@@ -346,3 +346,38 @@ describe('靈棋分享文字', () => {
     expect(formatLingqiShareText(oracle)).not.toContain('❓');
   });
 });
+
+/**
+ * 分享出去要看得出用的是哪個牌陣。
+ *
+ * 在此之前分享內容只有籤詩與卦象：選了兩軍對壘陣或抉擇陣，分享給人看
+ * 跟隨手擺三顆棋長得一模一樣。牌陣名由呼叫端譯好再傳進來（reveal.tsx），
+ * 因為 SPREAD_LABEL_KEYS 是 i18n 鍵、不是字面值。
+ */
+describe('formatDivinationShareText 的牌陣', () => {
+  const base = {
+    poemTitle: '乾為天',
+    poemLevel: '大吉',
+    hexagramName: '乾為天',
+    lines: ['天行健者自強息'],
+    vernacular: '此卦象徵剛健中正。',
+    pieceChars: ['帥', '車'],
+  };
+
+  test('有牌陣時印成獨立一行', () => {
+    const text = formatDivinationShareText({ ...base, spreadName: '兩軍對壘陣' });
+    expect(text).toContain('牌陣：兩軍對壘陣');
+    const line = text.split('\n').find(l => l.includes('牌陣：'));
+    expect(line).toContain('兩軍對壘陣');
+  });
+
+  test('沒有牌陣時不冒出空的一行', () => {
+    const text = formatDivinationShareText(base);
+    expect(text).not.toContain('牌陣');
+  });
+
+  test('抽棋與自由佈局同樣不帶——呼叫端傳 undefined', () => {
+    const text = formatDivinationShareText({ ...base, spreadName: undefined });
+    expect(text).not.toContain('牌陣');
+  });
+});

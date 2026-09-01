@@ -91,6 +91,13 @@ export function formatDivinationShareText(params: {
   lines: string[];
   vernacular: string;
   pieceChars: string[];
+  /**
+   * 牌陣名（已譯）。自由佈局與非棋盤模式不傳。
+   *
+   * 分享出去的內容原本只有籤詩與卦象，看不出這是哪個牌陣的結果——
+   * 選了兩軍對壘陣或抉擇陣，分享給人看跟隨手擺三顆棋長得一模一樣。
+   */
+  spreadName?: string;
   reading?: {
     primaryName: string;
     changedName: string;
@@ -109,6 +116,10 @@ export function formatDivinationShareText(params: {
     '',
     `🎲 ${t('share.drawn', { pieces: params.pieceChars.join(' ') })}`,
   ];
+
+  if (params.spreadName) {
+    parts.push(`♟ ${t('share.spread', { name: params.spreadName })}`);
+  }
 
   if (params.reading) {
     parts.push(
