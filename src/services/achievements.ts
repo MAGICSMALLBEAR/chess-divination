@@ -12,14 +12,22 @@ export interface Achievement {
   unlocked: boolean;
 }
 
-const ACHIEVEMENTS: Omit<Achievement, 'unlocked'>[] = [
+/**
+ * 成就清單。匯出是為了讓翻譯守門測試直接數這份清單，
+ * 而不是自己抄一份 id 陣列——抄的那份不會跟著新成就長大，
+ * 於是新成就漏翻譯時測試照樣全綠（first_verify／ten_verify 就漏在
+ * 那份手抄清單之外，靠人工補才沒出事）。
+ */
+export const ACHIEVEMENTS: Omit<Achievement, 'unlocked'>[] = [
   { id: 'first_draw', title: '初窺棋道', desc: '完成第一次抽棋占卜', icon: '🎲' },
   { id: 'ten_draws', title: '棋道修行者', desc: '累積 10 次占卜', icon: '🔮' },
   { id: 'fifty_draws', title: '占卜大師', desc: '累積 50 次占卜', icon: '👑' },
   { id: 'first_board', title: '佈局新手', desc: '完成第一次棋盤佈局', icon: '♟️' },
+  { id: 'first_lingqi', title: '靈棋初擲', desc: '完成第一次靈棋占卜', icon: '🎋' },
   { id: 'first_favorite', title: '慧眼識籤', desc: '收藏第一首籤詩', icon: '❤️' },
   { id: 'week_streak', title: '七日問道', desc: '連續使用 7 天', icon: '🔥' },
   { id: 'both_modes', title: '雙修圓滿', desc: '使用過抽棋和佈局兩種模式', icon: '☯️' },
+  { id: 'all_modes', title: '三法俱通', desc: '抽棋、棋盤、靈棋三種模式都用過', icon: '🏮' },
   { id: 'all_levels', title: '知天命', desc: '抽過全部 5 種吉凶等級的籤詩', icon: '📜' },
   { id: 'first_verify', title: '占而後驗', desc: '回填第一次占卜的實際結果', icon: '🔍' },
   { id: 'ten_verify', title: '占驗有簿', desc: '累積回填 10 次占驗', icon: '📖' },
@@ -40,6 +48,12 @@ export async function checkAchievements(stats: {
   levels: string[];
   /** 已回填占驗的則數。舊呼叫端未傳時視為 0，兩項占驗成就自然不解鎖 */
   totalVerified?: number;
+  /**
+   * 靈棋則數與有無。與 totalVerified 同樣是選填——舊呼叫端不傳就是 0／false，
+   * 行為與加入靈棋之前一致，不會因為欄位變多而讓既有測試或備份資料出錯。
+   */
+  totalLingqi?: number;
+  hasLingqi?: boolean;
 }): Promise<string[]> {
   // 先算出「這次符合條件的成就有哪些」，實際的解鎖寫入放到 updateSettings
   // 的 updater 裡再依當下的清單決定。在這裡讀 unlockedAchievements 再寫回，
@@ -49,12 +63,21 @@ export async function checkAchievements(stats: {
     if (condition) earned.push(id);
   };
 
+  // 「累積 N 次占卜」數的是占卜，不是某一種占卜——靈棋自 Session 43 起
+  // 就是完整占卜模式（有歷史、收藏、分享、統計、深度解讀），卻沒被算進來，
+  // 於是只擲靈棋的人一個成就都解不開，連累積數都不會動。
+  const totalReadings = stats.totalDraws + stats.totalBoard + (stats.totalLingqi ?? 0);
+
   tryUnlock('first_draw', stats.hasDraw);
-  tryUnlock('ten_draws', stats.totalDraws + stats.totalBoard >= 10);
-  tryUnlock('fifty_draws', stats.totalDraws + stats.totalBoard >= 50);
+  tryUnlock('ten_draws', totalReadings >= 10);
+  tryUnlock('fifty_draws', totalReadings >= 50);
   tryUnlock('first_board', stats.hasBoard);
+  tryUnlock('first_lingqi', stats.hasLingqi === true);
   tryUnlock('first_favorite', stats.totalFav >= 1);
+  // both_modes 維持原意（抽棋＋棋盤）不動：已經解鎖的人不該因為多了
+  // 第三種模式而看到自己的成就說明變了；三種都用過另給 all_modes。
   tryUnlock('both_modes', stats.hasDraw && stats.hasBoard);
+  tryUnlock('all_modes', stats.hasDraw && stats.hasBoard && stats.hasLingqi === true);
   // 明確比對那五個等級，而不是數 Set 的大小——`size >= 5` 只要湊滿五個
   // 相異字串就成立，4 個真等級加 1 個無法辨識的值（舊備份、資料損毀、
   // 日後新增的等級）就會解鎖「五種等級都抽過」，但使用者其實沒抽齊。
@@ -90,9 +113,14 @@ export async function syncAchievements(): Promise<string[]> {
   return checkAchievements({
     totalDraws: history.filter(r => r.mode === 'draw').length,
     totalBoard: history.filter(r => r.mode === 'board').length,
+    totalLingqi: history.filter(r => r.mode === 'lingqi').length,
     totalFav: favorites.length,
     hasDraw: history.some(r => r.mode === 'draw'),
     hasBoard: history.some(r => r.mode === 'board'),
+    hasLingqi: history.some(r => r.mode === 'lingqi'),
+    // 靈棋記錄的 poemLevel 是空字串（《靈棋經》原典未載吉凶等級），
+    // 這裡不必特別濾掉——all_levels 比對的是那五個等級的字面值，
+    // 空字串湊不進去（見下方 tryUnlock('all_levels') 的註解）。
     levels: history.map(r => r.poemLevel),
     totalVerified: history.filter(r => r.outcome !== undefined).length,
   });

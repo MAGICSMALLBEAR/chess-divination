@@ -6,7 +6,7 @@
 // 正是每一塊都對、就是沒有卦辭。
 
 import { test, expect } from './fixtures';
-import { HISTORY_KEY } from './fixtures';
+import { HISTORY_KEY, SETTINGS_KEY } from './fixtures';
 
 /** 擲一次並等結果出現 */
 async function cast(page: import('@playwright/test').Page) {
@@ -234,5 +234,57 @@ test.describe('依占卜模式的應驗率', () => {
     // 這裡會多出一列以空字串為名的分項——那一列的標籤是看不見的，
     // 只有列數看得出來
     await expect(section.getByText('/', { exact: false })).toHaveCount(1);
+  });
+});
+
+// 靈棋計入成就的 E2E
+//
+// 這一段補的缺口與上一段同型：靈棋自成為完整占卜模式起，成就系統仍只認
+// draw 與 board——只擲靈棋的人一個成就都解不開，連「累積 N 次占卜」的
+// 計數都不會動。單元測試驗得了 checkAchievements 的條件，驗不了成就頁
+// 載入時真的把靈棋那幾筆算進去。
+
+test.describe('靈棋計入成就', () => {
+  /** 種 n 筆靈棋記錄，不含任何抽棋或棋盤 */
+  async function seedLingqiOnly(page: import('@playwright/test').Page, n: number) {
+    const at = Date.now() - 86_400_000;
+    const records = Array.from({ length: n }, (_, i) => ({
+      id: `l${i}`, poemId: 0, poemTitle: '大通卦', poemContent: '一二三四', poemLevel: '',
+      drawnPieceTypes: [], drawnPieceColors: [], drawnPieceChars: [],
+      mode: 'lingqi', lingqiKey: '1-1-1', timestamp: at - i, isFavorited: false, engineVersion: 3,
+    }));
+    await page.addInitScript(
+      ([key, recs]) => window.localStorage.setItem(key as string, JSON.stringify(recs)),
+      [HISTORY_KEY, records] as const,
+    );
+    await page.goto('/achievements');
+    await expect(page.getByText('成就徽章').first()).toBeVisible({ timeout: 30_000 });
+  }
+
+  /** 成就頁載入時會補算一次，等它寫回設定 */
+  async function unlockedIds(page: import('@playwright/test').Page) {
+    return (await page.evaluate(
+      key => JSON.parse(window.localStorage.getItem(key as string) ?? '{}').unlockedAchievements ?? [],
+      SETTINGS_KEY,
+    )) as string[];
+  }
+
+  test('只擲靈棋也解得開累積成就', async ({ page }) => {
+    await seedLingqiOnly(page, 10);
+
+    await expect
+      .poll(() => unlockedIds(page), { message: '成就頁應把靈棋算進累積次數' })
+      .toEqual(expect.arrayContaining(['first_lingqi', 'ten_draws']));
+
+    // 抽棋與棋盤都沒用過，不該被順手解開
+    const ids = await unlockedIds(page);
+    expect(ids).not.toContain('first_draw');
+    expect(ids).not.toContain('first_board');
+  });
+
+  test('新成就在畫面上是看得到的兩張徽章', async ({ page }) => {
+    await seedLingqiOnly(page, 1);
+    await expect(page.getByText('靈棋初擲', { exact: true })).toBeVisible();
+    await expect(page.getByText('三法俱通', { exact: true })).toBeVisible();
   });
 });

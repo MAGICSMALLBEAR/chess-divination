@@ -283,7 +283,7 @@ describe('categoryLabel', () => {
 import { localizePoem, localizePiece, localizeAchievement } from '../services/localize';
 import { getPoemById, type Poem } from '../data/poems';
 import { ALL_PIECES, type ChessPiece } from '../data/pieces';
-import type { Achievement } from '../services/achievements';
+import { ACHIEVEMENTS, type Achievement } from '../services/achievements';
 
 describe('localizePoem', () => {
   test('zh-TW 回傳原始物件（不產生新參考也無妨，欄位一致即為正確）', () => {
@@ -441,8 +441,15 @@ describe('localizeAchievement', () => {
     expect(result.desc!.length).toBeGreaterThan(5);
   });
 
-  test('八項成就全部有 en 和 ja 翻譯', () => {
-    const ids = ['first_draw', 'ten_draws', 'fifty_draws', 'first_board', 'first_favorite', 'week_streak', 'both_modes', 'all_levels'];
+  /**
+   * 列舉真正的成就清單，不再手抄 id。
+   *
+   * 原本抄了八個 id，而清單早已長到十項——漏在外面的 first_verify 與
+   * ten_verify 剛好有人補了翻譯，才沒在畫面上露出英文介面裡的中文成就名。
+   * 手抄的清單不會跟著新成就長大，這種守門測試綠得沒有意義。
+   */
+  test('每一項成就都有 en 和 ja 翻譯', () => {
+    const ids = ACHIEVEMENTS.map(a => a.id);
     const missing: string[] = [];
     for (const lang of ['en', 'ja'] as Lang[]) {
       setLang(lang);

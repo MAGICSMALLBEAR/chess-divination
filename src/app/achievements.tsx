@@ -57,6 +57,7 @@ export default function AchievementsScreen() {
       '♟️': 'chess-board', '❤️': 'heart', '🔥': 'flame',
       '☯️': 'refresh', '📜': 'scroll',
       '🔍': 'lightbulb', '📖': 'scroll',
+      '🎋': 'lingqi', '🏮': 'lantern',
     };
     return map[emoji] || 'star';
   }

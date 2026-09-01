@@ -19,6 +19,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 import {
+  ACHIEVEMENTS,
   getAchievements, checkAchievements, getStreak, recordUsage, syncAchievements,
 } from '../services/achievements';
 import {
@@ -62,9 +63,12 @@ function makeRecord(over: Partial<DivinationRecord> = {}): Omit<DivinationRecord
 }
 
 describe('成就清單', () => {
-  test('回傳全部 10 種成就', async () => {
+  test('回傳清單上的每一項成就', async () => {
     const list = await getAchievements();
-    expect(list).toHaveLength(10);
+    // 比對 id 而不是數量：數量寫死只會在加成就時要人改數字，
+    // 比對 id 才連「重複 id」與「順序被打亂」一起守住。
+    expect(list.map(a => a.id)).toEqual(ACHIEVEMENTS.map(a => a.id));
+    expect(new Set(list.map(a => a.id)).size).toBe(list.length);
   });
 
   test('初始狀態全部未解鎖', async () => {
@@ -370,5 +374,71 @@ describe('syncAchievements 由歷史推算', () => {
     const list = await getAchievements();
     expect(list.find(a => a.id === 'first_draw')?.unlocked).toBe(true);
     expect(list.find(a => a.id === 'first_board')?.unlocked).toBe(false);
+  });
+});
+
+/**
+ * 靈棋自 Session 43 起就是完整占卜模式，成就系統卻只認 draw 與 board：
+ * 只擲靈棋的使用者一個成就都解不開，連「累積 10 次占卜」的計數都不會動。
+ * 以下釘住這件事不再退回去。
+ */
+describe('靈棋計入成就', () => {
+  test('只擲靈棋也解得開累積類成就', async () => {
+    for (let i = 0; i < 10; i++) {
+      await addHistory(makeRecord({ mode: 'lingqi', poemId: 0, poemLevel: '' }));
+    }
+
+    const unlocked = await syncAchievements();
+    expect(unlocked).toContain('first_lingqi');
+    expect(unlocked).toContain('ten_draws');
+    // 抽棋與棋盤都沒用過，這兩項不該被順手解開
+    expect(unlocked).not.toContain('first_draw');
+    expect(unlocked).not.toContain('first_board');
+  });
+
+  test('三種模式混著算，湊得滿 10 次就算數', async () => {
+    for (let i = 0; i < 4; i++) await addHistory(makeRecord({ mode: 'draw' }));
+    for (let i = 0; i < 3; i++) await addHistory(makeRecord({ mode: 'board' }));
+    for (let i = 0; i < 3; i++) await addHistory(makeRecord({ mode: 'lingqi', poemLevel: '' }));
+
+    expect(await syncAchievements()).toContain('ten_draws');
+  });
+
+  test('三種模式都用過才解 all_modes', async () => {
+    await addHistory(makeRecord({ mode: 'draw' }));
+    await addHistory(makeRecord({ mode: 'board' }));
+    expect(await syncAchievements()).not.toContain('all_modes');
+
+    await addHistory(makeRecord({ mode: 'lingqi', poemLevel: '' }));
+    expect(await syncAchievements()).toContain('all_modes');
+  });
+
+  test('both_modes 維持原意：抽棋＋棋盤，靈棋補不上第三種以外的空缺', async () => {
+    await addHistory(makeRecord({ mode: 'draw' }));
+    await addHistory(makeRecord({ mode: 'lingqi', poemLevel: '' }));
+
+    const unlocked = await syncAchievements();
+    expect(unlocked).not.toContain('both_modes');
+    expect(unlocked).not.toContain('all_modes');
+  });
+
+  /**
+   * 靈棋的 poemLevel 是空字串（《靈棋經》原典未載吉凶等級）。
+   * 空字串若被當成一種等級，「五種等級都抽過」就會被四個真等級加它湊滿。
+   */
+  test('靈棋的空等級湊不出知天命', async () => {
+    for (const level of ['大吉', '上吉', '中吉', '中平']) {
+      await addHistory(makeRecord({ poemLevel: level }));
+    }
+    await addHistory(makeRecord({ mode: 'lingqi', poemLevel: '' }));
+
+    expect(await syncAchievements()).not.toContain('all_levels');
+  });
+
+  test('舊呼叫端不傳靈棋欄位時行為不變', async () => {
+    const unlocked = await checkAchievements({ ...EMPTY_STATS, totalDraws: 10 });
+    expect(unlocked).toContain('ten_draws');
+    expect(unlocked).not.toContain('first_lingqi');
+    expect(unlocked).not.toContain('all_modes');
   });
 });

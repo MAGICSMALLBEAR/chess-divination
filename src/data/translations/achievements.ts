@@ -48,6 +48,16 @@ export const achievementTranslations: Record<string, Partial<Record<Lang, Achiev
       desc: '初めての棋盤配置占いを完了する',
     },
   },
+  first_lingqi: {
+    en: {
+      title: 'First Cast of the Spirit Chess',
+      desc: 'Complete your first Lingqi divination',
+    },
+    ja: {
+      title: '霊棋初擲',
+      desc: '初めての霊棋占いを完了する',
+    },
+  },
   first_favorite: {
     en: {
       title: 'Discerning Eye',
@@ -76,6 +86,16 @@ export const achievementTranslations: Record<string, Partial<Record<Lang, Achiev
     ja: {
       title: '双修円満',
       desc: '抽棋と棋盤の両方のモードを使用する',
+    },
+  },
+  all_modes: {
+    en: {
+      title: 'Three Ways Mastered',
+      desc: 'Use all three modes: draw, board and Lingqi',
+    },
+    ja: {
+      title: '三法俱通',
+      desc: '抽棋・棋盤・霊棋の三つのモードをすべて使用する',
     },
   },
   all_levels: {
