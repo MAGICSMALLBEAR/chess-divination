@@ -185,11 +185,11 @@ test.describe('依占卜模式的應驗率', () => {
     };
     const at = Date.now() - 86_400_000;
     const records = [
-      { ...base, id: 'm1', mode: 'draw', timestamp: at, outcome: { status: 'accurate', recordedAt: at } },
-      { ...base, id: 'm2', mode: 'board', timestamp: at, outcome: { status: 'inaccurate', recordedAt: at } },
+      { ...base, id: 'm1', mode: 'draw', timestamp: at, outcome: { status: 'accurate', verifiedAt: at } },
+      { ...base, id: 'm2', mode: 'board', timestamp: at, outcome: { status: 'inaccurate', verifiedAt: at } },
       {
         ...base, id: 'm3', mode: 'lingqi', poemId: 0, poemLevel: '', poemTitle: '大通卦',
-        lingqiKey: '1-1-1', timestamp: at, outcome: { status: 'accurate', recordedAt: at },
+        lingqiKey: '1-1-1', timestamp: at, outcome: { status: 'accurate', verifiedAt: at },
       },
     ];
     await page.addInitScript(

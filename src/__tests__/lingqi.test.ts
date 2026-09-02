@@ -151,7 +151,7 @@ describe('靈棋在占驗統計裡的邊界', () => {
     poemId: 1, poemTitle: '龍騰九霄', poemContent: '一二三四', poemLevel: '大吉',
     drawnPieceTypes: [], drawnPieceColors: [], drawnPieceChars: [],
     mode: 'draw', timestamp: Date.now(), isFavorited: false,
-    outcome: { status: 'accurate', recordedAt: Date.now() },
+    outcome: { status: 'accurate', verifiedAt: Date.now() },
     ...over,
   });
 
