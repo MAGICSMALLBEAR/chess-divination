@@ -5,8 +5,7 @@
 // recordFromLingqi，驗不了畫面有沒有把它們接起來——Session 42 留下的原型
 // 正是每一塊都對、就是沒有卦辭。
 
-import { test, expect } from './fixtures';
-import { HISTORY_KEY, SETTINGS_KEY } from './fixtures';
+import { test, expect, DEFAULT_SETTINGS, HISTORY_KEY, SETTINGS_KEY } from './fixtures';
 
 /** 擲一次並等結果出現 */
 async function cast(page: import('@playwright/test').Page) {
@@ -286,5 +285,55 @@ test.describe('靈棋計入成就', () => {
     await seedLingqiOnly(page, 1);
     await expect(page.getByText('靈棋初擲', { exact: true })).toBeVisible();
     await expect(page.getByText('三法俱通', { exact: true })).toBeVisible();
+  });
+
+  /**
+   * 上面兩條都先開了成就頁——而成就頁載入時本來就會補算一次，
+   * 於是「擲卦當下什麼都沒發生」這件事被它遮住了。
+   *
+   * 真正的缺陷在這裡：recordUsage／syncAchievements 只掛在 reveal 頁上，
+   * 靈棋自成一頁不走 reveal，只擲靈棋的人 usageDates 一天都不會被記下，
+   * 首頁的連續天數與七日問道因此永遠是 0。
+   */
+  test('擲完就算數：不開成就頁也記下使用日與成就', async ({ page }) => {
+    await page.goto('/lingqi');
+    await cast(page);
+
+    const settings = async () => (await page.evaluate(
+      key => JSON.parse(window.localStorage.getItem(key as string) ?? '{}'),
+      SETTINGS_KEY,
+    )) as { usageDates?: string[]; currentStreak?: number; unlockedAchievements?: string[] };
+
+    await expect
+      .poll(async () => (await settings()).usageDates?.length ?? 0, { message: '擲靈棋要記一天使用日' })
+      .toBe(1);
+    expect((await settings()).currentStreak).toBe(1);
+
+    await expect
+      .poll(async () => (await settings()).unlockedAchievements ?? [], { message: '擲靈棋要當場解開靈棋初擲' })
+      .toContain('first_lingqi');
+  });
+
+  /**
+   * 首頁的「連續 N 天」讀的就是那份 usageDates（且滿 2 天才顯示）。
+   * 昨天用過、今天擲一次靈棋，天數就該接上去——在此之前這一擲不算數，
+   * 連續紀錄會在只擲靈棋的那一天斷掉。
+   */
+  test('首頁的連續天數接得上靈棋這一擲', async ({ page }) => {
+    // 用 setDate 而非減 86400000：有日光節約時間的時區減毫秒會算到前天／今天
+    // （與 services/date.ts 的 yesterdayString 同一個理由）
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const ymd = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    await page.addInitScript(
+      ([key, settings]) => window.localStorage.setItem(key as string, JSON.stringify(settings)),
+      [SETTINGS_KEY, { ...DEFAULT_SETTINGS, usageDates: [ymd], currentStreak: 1 }] as const,
+    );
+
+    await page.goto('/lingqi');
+    await cast(page);
+
+    await page.goto('/');
+    await expect(page.getByText('連續 2 天')).toBeVisible({ timeout: 30_000 });
   });
 });

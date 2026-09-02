@@ -6,6 +6,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { t } from './i18n';
+import { recordTitle } from './poemList';
 import type { DivinationRecord } from './storage';
 
 const REMINDER_ID = 'daily-divination-reminder';
@@ -113,7 +114,14 @@ export function verificationReminderId(recordId: string): string {
   return `${VERIFICATION_REMINDER_PREFIX}${recordId}`;
 }
 
-/** 在占卜滿 14 天時提醒一次。 */
+/**
+ * 在占卜滿 14 天時提醒一次。
+ *
+ * 標題走 recordTitle() 而非 record.poemTitle：記錄存的是起卦當下的中文
+ * 原題，en/ja 介面下直接印它，通知裡是中文、點進去的畫面卻是譯文——
+ * 首頁與收藏早就改走 recordTitle 了（見 poemList.ts），只有這裡漏掉。
+ * 靈棋記錄也靠它才不會被當成籤詩 #1（其 poemId 恆為 0）。
+ */
 export async function scheduleVerificationReminder(record: DivinationRecord): Promise<boolean> {
   if (Platform.OS === 'web' || record.outcome || !(await hasNotificationPermission())) return false;
   const trigger = new Date(record.timestamp + 14 * 86_400_000);
@@ -121,7 +129,7 @@ export async function scheduleVerificationReminder(record: DivinationRecord): Pr
   try {
     await Notifications.scheduleNotificationAsync({
       identifier: verificationReminderId(record.id),
-      content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: record.poemTitle }), data: { screen: '/stats', recordId: record.id } },
+      content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: recordTitle(record) }), data: { screen: '/stats', recordId: record.id } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger },
     });
     return true;

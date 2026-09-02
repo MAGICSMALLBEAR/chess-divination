@@ -18,10 +18,11 @@ import {
   type DivinationRecord, type OutcomeStatus,
 } from '@/services/storage';
 import { cancelVerificationReminder, scheduleVerificationReminder } from '@/services/notifications';
+import { recordUsage, syncAchievements } from '@/services/achievements';
 import { confirmAction, notify } from '@/services/dialog';
 import { copyToClipboard, formatLingqiShareText, shareNative, shareToLine } from '@/services/socialShare';
 import { hapticMedium, hapticSuccess } from '@/services/haptics';
-import { playFavoriteSound } from '@/services/sound';
+import { playFavoriteSound, playShakeSound } from '@/services/sound';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useLayout } from '@/hooks/useLayout';
@@ -59,6 +60,22 @@ export default function LingqiScreen() {
   // （與 useDrawDivination 同一個理由）
   const savingRef = useRef(false);
 
+  /**
+   * 記一次使用日並重算成就。
+   *
+   * 抽棋與棋盤都會走到 reveal 頁，這兩件事就掛在那一頁的 mount 上；
+   * 靈棋自成一頁，於是只擲靈棋的使用者從來沒有一天被記進 usageDates——
+   * 首頁的「連續 N 天」與「七日問道」永遠是 0，Session 47 為靈棋補的
+   * 成就也要等使用者自己翻開成就頁才補算得到。
+   *
+   * 與 reveal.tsx 同樣的時機：看到卦目就算一次使用（擲出來的、或從
+   * 歷史記錄點回來的都算），單純打開本頁還沒擲則不算。
+   */
+  function markUsage() {
+    recordUsage().catch(e => console.warn('使用日記錄失敗:', e));
+    syncAchievements().catch(e => console.warn(t('achievement.checkFailed'), e));
+  }
+
   useEffect(() => {
     (async () => {
       const settings = await getSettings();
@@ -80,6 +97,7 @@ export default function LingqiScreen() {
       setCast(null);
       if (found.questionText) setQuestionText(found.questionText);
       if (found.questionCategory) setSelectedCategory(found.questionCategory);
+      markUsage();
     })();
   }, [recordId]);
 
@@ -92,7 +110,11 @@ export default function LingqiScreen() {
     if (savingRef.current) return;
     savingRef.current = true;
     try {
+      // 三種模式裡只有靈棋一聲不響：抽棋落子有 drawPiece、棋盤有 placePiece、
+      // 揭曉頁有 reveal，設定頁的音效開關對只擲靈棋的人等於沒有作用。
+      // shake（搖籤筒）本來就是為「搖了再擲」寫的音色，自六個音效寫成起無人呼叫。
       hapticMedium();
+      playShakeSound();
       const thrown = castLingqi();
       const result = lingqiOracle(thrown);
       setCast(thrown);
@@ -102,6 +124,7 @@ export default function LingqiScreen() {
       setRecord(saved);
       setIsFav(saved.isFavorited);
       void scheduleVerificationReminder(saved);
+      markUsage();
     } catch (e) {
       // 儲存失敗（空間滿／儲存損毀）不能只是靜默——卦已經擲了，
       // 使用者要知道這一次沒有進歷史記錄

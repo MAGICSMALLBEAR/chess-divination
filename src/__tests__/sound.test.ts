@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   setSoundEnabled,
   isSoundEnabled,
@@ -276,3 +278,31 @@ describe('各音效實際產生聲音', () => {
     }
   });
 });
+
+/**
+ * 守門：每一種占卜都該聽得到自己的音效。
+ *
+ * 音效服務本身一直是對的，缺的是畫面那一頭的呼叫——抽棋有 drawPiece、
+ * 棋盤有 placePiece、揭曉頁有 reveal，唯獨靈棋自成一頁，從上線起
+ * 一聲不響：設定頁的音效開關對只擲靈棋的使用者等於沒有作用。
+ * 這條線只有掃來源才守得住（服務層的單元測試永遠是綠的）。
+ */
+describe('占卜動作與音效的接線', () => {
+  function readCode(...segments: string[]): string {
+    return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf-8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split(/\r?\n/)
+      .map(line => line.replace(/\/\/.*$/, ''))
+      .join('\n');
+  }
+
+  test.each([
+    ['抽棋', ['app', 'draw.tsx'], 'playDrawPieceSound('],
+    ['棋盤落子', ['hooks', 'useBoardDivination.ts'], 'playPlacePieceSound('],
+    ['揭曉頁', ['app', 'reveal.tsx'], 'playRevealSound('],
+    ['靈棋擲卦', ['app', 'lingqi.tsx'], 'playShakeSound('],
+  ])('%s 有音效', (_name, segments, call) => {
+    expect(readCode(...(segments as string[]))).toContain(call as string);
+  });
+});
+

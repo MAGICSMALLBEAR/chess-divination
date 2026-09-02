@@ -16,6 +16,7 @@ import {
   cancelDailyReminder,
   isReminderScheduled,
 } from '../services/notifications';
+import { setLang } from '../services/i18n';
 
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -347,12 +348,15 @@ describe('isReminderScheduled', () => {
 // ====== 占驗提醒（14 天後回填結果） ======
 
 /** 造一筆占卜記錄。timestamp 由呼叫端控制，讓 14 天期限可測 */
-function makeRecord(timestamp: number) {
+function makeRecord(timestamp: number, extra: Record<string, unknown> = {}) {
   return {
     id: 'rec-1',
     timestamp,
     outcome: null,
-    poemTitle: '乾為天',
+    mode: 'draw',
+    poemId: 1,
+    poemTitle: '龍騰九霄',
+    ...extra,
   };
 }
 
@@ -384,6 +388,40 @@ describe('scheduleVerificationReminder', () => {
     expect(arg.content.title).toBeTruthy();
     expect(arg.content.body).toContain(record.poemTitle);
     expect(arg.content.data).toMatchObject({ screen: '/stats', recordId: 'rec-1' });
+  });
+
+  /**
+   * 記錄存的是起卦當下的中文原題。通知若直接印它，en/ja 介面下
+   * 收到的是中文、點進去的畫面卻是譯文——首頁與收藏早已改走
+   * recordTitle()，只有這條提醒漏掉。
+   */
+  test('en 介面印譯文標題，不是記錄裡的中文原題', async () => {
+    setLang('en');
+    try {
+      await scheduleVerificationReminder(makeRecord(Date.now() + 1000) as never);
+
+      const body = mocked.scheduleNotificationAsync.mock.calls[0][0].content.body ?? '';
+      expect(body).toContain('Dragon Soars the Heavens');
+      expect(body).not.toContain('龍騰九霄');
+    } finally {
+      setLang('zh-TW');
+    }
+  });
+
+  /**
+   * 靈棋記錄的 poemId 恆為 0，拿去查籤詩表會 fallback 成籤詩 #1——
+   * 每一則靈棋提醒都會印成「龍騰九霄」。
+   */
+  test('靈棋記錄印卦名，不會 fallback 成籤詩 #1', async () => {
+    const record = makeRecord(Date.now() + 1000, {
+      mode: 'lingqi', poemId: 0, poemTitle: '大通卦',
+    });
+
+    await scheduleVerificationReminder(record as never);
+
+    const body = mocked.scheduleNotificationAsync.mock.calls[0][0].content.body ?? '';
+    expect(body).toContain('大通卦');
+    expect(body).not.toContain('龍騰九霄');
   });
 
   test('觸發時間是占卜後第 14 天', async () => {

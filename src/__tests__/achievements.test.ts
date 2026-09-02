@@ -18,6 +18,8 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+import fs from 'fs';
+import path from 'path';
 import {
   ACHIEVEMENTS,
   getAchievements, checkAchievements, getStreak, recordUsage, syncAchievements,
@@ -440,5 +442,43 @@ describe('靈棋計入成就', () => {
     expect(unlocked).toContain('ten_draws');
     expect(unlocked).not.toContain('first_lingqi');
     expect(unlocked).not.toContain('all_modes');
+  });
+});
+
+/**
+ * 守門：成就與連續天數只在「有畫面呼叫」時才會動。
+ *
+ * 缺陷本身：`recordUsage`／`syncAchievements` 只掛在 reveal 頁上，
+ * 而靈棋自成一頁不走 reveal——Session 47 把靈棋接進成就的**條件**，
+ * 卻沒有任何時機去觸發檢查。條件全綠、使用者那端依然全鎖：只擲靈棋
+ * 的人 usageDates 一天都沒有，首頁的連續天數與七日問道永遠是 0。
+ *
+ * 這種缺陷單元測試驗不到（服務層本來就對），型別也擋不住，
+ * 缺的是畫面與服務之間的那條線，故以來源掃描守住。
+ */
+describe('占卜終點畫面的成就接線', () => {
+  const SRC = path.join(__dirname, '..');
+
+  /** 去掉註解，避免「只在註解裡提到」被算成有接線（同 settingsWiring.test.ts） */
+  function readCode(...segments: string[]): string {
+    return fs.readFileSync(path.join(SRC, ...segments), 'utf-8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split(/\r?\n/)
+      .map(line => line.replace(/\/\/.*$/, ''))
+      .join('\n');
+  }
+
+  // 抽棋與棋盤都收束到 reveal 頁；靈棋自成一頁。三種模式的終點就是這兩頁。
+  const ENDPOINTS = [
+    ['reveal.tsx', ['reveal.tsx']],
+    ['lingqi.tsx', ['lingqi.tsx']],
+  ] as const;
+
+  test.each(ENDPOINTS)('%s 記得下使用日', (_name, segments) => {
+    expect(readCode('app', ...segments)).toContain('recordUsage(');
+  });
+
+  test.each(ENDPOINTS)('%s 重算成就', (_name, segments) => {
+    expect(readCode('app', ...segments)).toContain('syncAchievements(');
   });
 });
