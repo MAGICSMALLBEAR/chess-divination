@@ -61,7 +61,7 @@ beforeEach(() => {
 
 const allSounds = () => [
   sound.playShakeSound, sound.playDrawPieceSound, sound.playPlacePieceSound,
-  sound.playRevealSound, sound.playClickSound, sound.playFavoriteSound,
+  sound.playRevealSound, sound.playFavoriteSound,
 ];
 
 describe('原生音效播放', () => {
@@ -69,21 +69,21 @@ describe('原生音效播放', () => {
     expect(sound.isSoundEnabled()).toBe(true);
   });
 
-  test.each(['shake', 'drawPiece', 'placePiece', 'reveal', 'click', 'favorite'] as const)(
+  test.each(['shake', 'drawPiece', 'placePiece', 'reveal', 'favorite'] as const)(
     '%s 音效會實際播放', (name) => {
     const fnByName = {
       shake: () => sound.playShakeSound(), drawPiece: () => sound.playDrawPieceSound(),
       placePiece: () => sound.playPlacePieceSound(), reveal: () => sound.playRevealSound(),
-      click: () => sound.playClickSound(), favorite: () => sound.playFavoriteSound(),
+      favorite: () => sound.playFavoriteSound(),
     };
     fnByName[name]();
     expect(mockPlayers).toHaveLength(1);
     expect(mockPlayers[0].plays).toBe(1);
   });
 
-  test('六種音效各自建立自己的播放器', () => {
+  test('五種音效各自建立自己的播放器', () => {
     for (const fn of allSounds()) fn();
-    expect(mockPlayers).toHaveLength(6);
+    expect(mockPlayers).toHaveLength(5);
     expect(mockPlayers.every(p => p.plays === 1)).toBe(true);
   });
 
@@ -92,13 +92,13 @@ describe('原生音效播放', () => {
    * 同一個 stub，執行期分辨不出誰是誰。這裡真正要擋的是複製貼上導致
    * 兩個音效指向同一個檔——那在原始碼層面看得一清二楚。
    */
-  test('六個音效對應六個不同的 .wav，且檔案都存在', () => {
+  test('五個音效對應五個不同的 .wav，且檔案都存在', () => {
     const src = fs.readFileSync(
       path.join(__dirname, '..', 'services', 'sound.ts'), 'utf-8');
     const paths = [...src.matchAll(/require\('([^']+\.wav)'\)/g)].map(m => m[1]);
 
-    expect(paths).toHaveLength(6);
-    expect(new Set(paths).size).toBe(6);
+    expect(paths).toHaveLength(5);
+    expect(new Set(paths).size).toBe(5);
 
     for (const rel of paths) {
       const file = path.resolve(__dirname, '..', 'services', rel);
@@ -118,14 +118,14 @@ describe('原生音效播放', () => {
   });
 
   test('播放器延遲建立且重複使用，不會每次都新建', () => {
-    sound.playClickSound();
-    sound.playClickSound();
+    sound.playFavoriteSound();
+    sound.playFavoriteSound();
     expect(audio.createAudioPlayer).toHaveBeenCalledTimes(1);
   });
 
   /** iOS 靜音鍵預設會讓 App 靜音；占卜音效是使用者主動觸發的回饋 */
   test('首次播放會設定為靜音鍵下仍可播放，且只設定一次', () => {
-    sound.playClickSound();
+    sound.playFavoriteSound();
     sound.playRevealSound();
 
     expect(audio.setAudioModeAsync).toHaveBeenCalledTimes(1);
@@ -152,16 +152,16 @@ describe('關閉音效', () => {
   });
 
   test('關閉後再開啟可正常播放', () => {
-    sound.playClickSound();
+    sound.playFavoriteSound();
     sound.setSoundEnabled(false);
     sound.setSoundEnabled(true);
-    sound.playClickSound();
+    sound.playFavoriteSound();
 
     expect(mockPlayers[mockPlayers.length - 1].plays).toBe(1);
   });
 
   test('重複關閉不會拋錯', () => {
-    sound.playClickSound();
+    sound.playFavoriteSound();
     sound.setSoundEnabled(false);
     expect(() => sound.setSoundEnabled(false)).not.toThrow();
   });
@@ -175,8 +175,8 @@ describe('播放失敗時的容錯', () => {
   });
 
   test('play 拋錯時不影響呼叫端', () => {
-    sound.playClickSound();
+    sound.playFavoriteSound();
     mockPlayers[0].play = () => { throw new Error('裝置忙碌'); };
-    expect(() => sound.playClickSound()).not.toThrow();
+    expect(() => sound.playFavoriteSound()).not.toThrow();
   });
 });

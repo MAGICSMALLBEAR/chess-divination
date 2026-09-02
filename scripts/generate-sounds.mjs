@@ -1,7 +1,7 @@
 // 原生端音效檔產生器
 //
 // 為什麼要這支腳本：
-// sound.ts 的六個音效是用 Web Audio API 即時合成的（振盪器＋雜訊＋濾波），
+// sound.ts 的五個音效是用 Web Audio API 即時合成的（振盪器＋雜訊＋濾波），
 // 原生端沒有 Web Audio，expo-audio 又只播檔案。若在原生另寫一套音色，
 // 兩個平台就會愈走愈遠；這裡改成「用同一組參數離線算成 WAV」，
 // 音色一致、產物可重現、且不必把任何音訊函式庫帶進 App。
@@ -121,20 +121,7 @@ function sineNote(freq, duration, volume) {
   return out;
 }
 
-/** 由 1000Hz 滑到 600Hz 的短促點擊音，對應 playClickSound */
-function clickTone(duration, volume) {
-  const out = buffer(duration);
-  let phase = 0;
-  for (let i = 0; i < out.length; i++) {
-    const r = i / out.length;
-    const freq = expRamp(1000, 600, r);
-    phase += (2 * Math.PI * freq) / SAMPLE_RATE;
-    out[i] = Math.sin(phase) * expRamp(volume, 0.001, r);
-  }
-  return out;
-}
-
-// ── 六個音效 ──
+// ── 五個音效 ──
 
 const SOUNDS = {
   /** 搖棋：八下木頭碰撞，頻率與間隔皆帶抖動 */
@@ -172,13 +159,6 @@ const SOUNDS = {
     const bells = [784, 1047, 1319];
     const bellStart = (notes.length * 140 + 200) / 1000;
     bells.forEach((f, i) => mix(out, sineNote(f, 0.5, 0.04), bellStart + (i * 120) / 1000));
-    return out;
-  },
-
-  /** 點擊：極短的下滑音 */
-  click() {
-    const out = buffer(0.1);
-    mix(out, clickTone(0.06, 0.06), 0);
     return out;
   },
 

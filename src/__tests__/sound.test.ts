@@ -7,7 +7,6 @@ import {
   playDrawPieceSound,
   playPlacePieceSound,
   playRevealSound,
-  playClickSound,
   playFavoriteSound,
 } from '../services/sound.web';
 
@@ -107,7 +106,6 @@ const ALL_SOUNDS: [string, () => void][] = [
   ['playDrawPieceSound', playDrawPieceSound],
   ['playPlacePieceSound', playPlacePieceSound],
   ['playRevealSound', playRevealSound],
-  ['playClickSound', playClickSound],
   ['playFavoriteSound', playFavoriteSound],
 ];
 
@@ -124,7 +122,7 @@ describe('音效開關', () => {
   });
 
   test('關閉時釋放既有的 AudioContext', () => {
-    playClickSound();
+    playFavoriteSound();
     expect(constructorCalls).toBe(1);
 
     setSoundEnabled(false);
@@ -132,17 +130,17 @@ describe('音效開關', () => {
   });
 
   test('重複關閉不會重複釋放', () => {
-    playClickSound();
+    playFavoriteSound();
     setSoundEnabled(false);
     setSoundEnabled(false);
     expect(fake.closed).toHaveBeenCalledTimes(1);
   });
 
   test('關閉後再開啟會重新建立 AudioContext', () => {
-    playClickSound();
+    playFavoriteSound();
     setSoundEnabled(false);
     setSoundEnabled(true);
-    playClickSound();
+    playFavoriteSound();
     expect(constructorCalls).toBe(2);
   });
 });
@@ -196,14 +194,14 @@ describe('AudioContext 取得失敗時的容錯', () => {
     setSoundEnabled(false);
     setSoundEnabled(true);
 
-    playClickSound();
+    playFavoriteSound();
     expect(constructorCalls).toBe(1);
   });
 });
 
 describe('AudioContext 重用', () => {
   test('多次播放共用同一個 AudioContext', () => {
-    playClickSound();
+    playFavoriteSound();
     playFavoriteSound();
     playDrawPieceSound();
     jest.runAllTimers();
@@ -213,17 +211,14 @@ describe('AudioContext 重用', () => {
 });
 
 describe('各音效實際產生聲音', () => {
-  test('playClickSound 建立一個振盪器並排定起訖', () => {
-    playClickSound();
-
-    expect(fake.oscillators).toHaveLength(1);
-    expect(fake.oscillators[0].start).toHaveBeenCalledTimes(1);
-    expect(fake.oscillators[0].stop).toHaveBeenCalledTimes(1);
-  });
-
-  test('playFavoriteSound 為雙音，建立兩個振盪器', () => {
+  test('playFavoriteSound 為雙音，建立兩個振盪器且各自排定起訖', () => {
     playFavoriteSound();
+
     expect(fake.oscillators).toHaveLength(2);
+    for (const osc of fake.oscillators) {
+      expect(osc.start).toHaveBeenCalledTimes(1);
+      expect(osc.stop).toHaveBeenCalledTimes(1);
+    }
   });
 
   test('playDrawPieceSound 含木擊與雜訊瞬態', () => {
@@ -303,6 +298,42 @@ describe('占卜動作與音效的接線', () => {
     ['靈棋擲卦', ['app', 'lingqi.tsx'], 'playShakeSound('],
   ])('%s 有音效', (_name, segments, call) => {
     expect(readCode(...(segments as string[]))).toContain(call as string);
+  });
+
+  /**
+   * 反向守門：不准有沒人播的音效。
+   *
+   * `playClickSound` 就是這樣活了整整半年——實作、WAV、單元測試一應俱全，
+   * 只是全 App 沒有一顆按鈕呼叫它。單元測試對「有沒有人用」是無感的，
+   * 它自己就是那個使用者（同 S36 的翻譯鍵反向覆蓋守門）。
+   * 掃描範圍刻意排除 `__tests__`：測試檔提到某個函式是在討論它，不是在用它。
+   */
+  test('每個音效都有畫面在播，沒有孤兒', () => {
+    const SRC = path.join(__dirname, '..');
+    const files: string[] = [];
+    (function walk(dir: string) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== '__tests__') walk(full);
+        } else if (/\.tsx?$/.test(entry.name) && !/^sound(\.web)?\.ts$/.test(entry.name)) {
+          files.push(full);
+        }
+      }
+    })(SRC);
+
+    // 反空轉自我檢查：掃不到東西的守門永遠是綠的
+    expect(files.length).toBeGreaterThan(50);
+
+    const callers = files
+      .map(f => fs.readFileSync(f, 'utf-8'))
+      .join('\n');
+    const exported = [...readCode('services', 'sound.web.ts')
+      .matchAll(/export function (play\w+)/g)].map(m => m[1]);
+    expect(exported.length).toBeGreaterThan(0);
+
+    const orphans = exported.filter(name => !callers.includes(`${name}(`));
+    expect(orphans).toEqual([]);
   });
 });
 

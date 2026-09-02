@@ -1,7 +1,7 @@
 // 音效服務（原生版；Web 版見 sound.web.ts）
 //
 // 原生端沒有 Web Audio，expo-audio 也只播檔案，因此改播 assets/sounds/
-// 下的六個 WAV。那些檔案是用 Web 版完全相同的合成參數離線算出來的
+// 下的五個 WAV。那些檔案是用 Web 版完全相同的合成參數離線算出來的
 // （scripts/generate-sounds.mjs），兩個平台音色一致，不會各自演化。
 //
 // 在此之前原生端是全靜音的：getCtx() 直接回 null，設定頁的音效開關
@@ -14,7 +14,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 let enabled = true;
 
 /**
- * 六個音效各自對應一個 WAV。
+ * 五個音效各自對應一個 WAV。
  * 路徑用相對而非 @assets 別名：該別名只存在於 tsconfig，Metro 沒有對應
  * 設定會解析失敗（字型載入同樣用相對路徑）。require 亦須為字面量。
  */
@@ -23,14 +23,13 @@ const SOURCES = {
   drawPiece: require('../../assets/sounds/drawPiece.wav'),
   placePiece: require('../../assets/sounds/placePiece.wav'),
   reveal: require('../../assets/sounds/reveal.wav'),
-  click: require('../../assets/sounds/click.wav'),
   favorite: require('../../assets/sounds/favorite.wav'),
 } as const;
 
 type SoundName = keyof typeof SOURCES;
 
 /**
- * 播放器採延遲建立：六個一次全開會在啟動時多佔資源，
+ * 播放器採延遲建立：五個一次全開會在啟動時多佔資源，
  * 而多數使用者一次只會聽到其中兩三種。
  */
 const players = new Map<SoundName, AudioPlayer>();
@@ -110,9 +109,6 @@ export function playPlacePieceSound() { play('placePiece'); }
 
 /** 籤詩揭示音效：古箏風上升音階 */
 export function playRevealSound() { play('reveal'); }
-
-/** 按鈕點擊音效 */
-export function playClickSound() { play('click'); }
 
 /** 收藏音效：悅耳雙音 */
 export function playFavoriteSound() { play('favorite'); }

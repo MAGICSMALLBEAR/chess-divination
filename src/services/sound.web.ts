@@ -5,7 +5,7 @@
 // 那些 WAV 正是用同一組參數離線算出來的（scripts/generate-sounds.mjs），
 // 兩個平台音色一致。
 //
-// 拆成獨立檔的另一個原因與字型相同：原生版 require 的 6 個 WAV（約 390KB）
+// 拆成獨立檔的另一個原因與字型相同：原生版 require 的 5 個 WAV（約 384KB）
 // 若留在共用檔，會被 Metro 一起包進 web 匯出。
 
 let audioContext: AudioContext | null = null;
@@ -149,24 +149,6 @@ export function playRevealSound() {
   playMelody(notes, 140, 0.4, 0.07, 'sine');
   // 加入鈴鐺泛音
   setTimeout(() => playMelody([784, 1047, 1319], 120, 0.5, 0.04, 'sine'), notes.length * 140 + 200);
-}
-
-/** 按鈕點擊音效 */
-export function playClickSound() {
-  const ctx = getCtx();
-  if (!ctx) return;
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(1000, t);
-  osc.frequency.exponentialRampToValueAtTime(600, t + 0.06);
-  gain.gain.setValueAtTime(0.06, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + 0.06);
 }
 
 /** 收藏音效：悅耳雙音 */
