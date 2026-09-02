@@ -6,7 +6,7 @@
 // 執行：npm run screenshots
 // 產出：screenshots/out/<裝置>/<場景>.png
 //
-// 六個場景取自 SCREENSHOTS_GUIDE.md。每個場景都先種入示範資料，
+// 七個場景取自 SCREENSHOTS_GUIDE.md。每個場景都先種入示範資料，
 // 否則統計、收藏、圖鑑在全新 profile 下都是空畫面，不能當上架素材。
 
 import { test, expect, type Page } from '@playwright/test';
@@ -92,8 +92,43 @@ function buildDemoHistory() {
   }));
 }
 
+/**
+ * 靈棋示範記錄。
+ *
+ * 與 seed 分開建：靈棋走《靈棋經》125 卦目而不是六十四籤詩，poemId 恆為 0、
+ * 吉凶等級為空字串（原典未載），套進上面那份欄位只會生出一筆假記錄。
+ *
+ * 卦目固定取「大通卦」（`1-1-1`，升騰之象）——擲卦是隨機的，素材不能
+ * 每跑一次就換一個卦（同 DAILY_FORTUNE 的理由）。靈棋頁帶 recordId
+ * 進去會還原這一卦而不重擲，正好給截圖一個固定畫面。
+ *
+ * 也讓統計頁的「依占卜模式應驗率」湊得出三種模式——在此之前示範資料
+ * 只有抽棋與棋盤，那一區在素材上永遠少一列。
+ */
+function buildLingqiDemo(now: number) {
+  const hour = 60 * 60 * 1000;
+  return {
+    id: 'demo-lingqi',
+    poemId: 0,
+    poemTitle: '大通卦',
+    poemContent: '',
+    poemLevel: '',
+    drawnPieceTypes: [] as string[],
+    drawnPieceColors: [] as string[],
+    drawnPieceChars: [] as string[],
+    mode: 'lingqi',
+    lingqiKey: '1-1-1',
+    questionCategory: 'career',
+    questionText: '',
+    timestamp: now - 12 * hour,
+    isFavorited: false,
+    engineVersion: 3,
+    outcome: { status: 'accurate', verifiedAt: now - 6 * hour },
+  };
+}
+
 test.beforeEach(async ({ page }) => {
-  const history = buildDemoHistory();
+  const history = [...buildDemoHistory(), buildLingqiDemo(Date.now())];
   const favorites = history.filter(r => r.isFavorited).map(r => r.id);
 
   await page.addInitScript(
@@ -195,9 +230,27 @@ test('5-統計儀表板', async ({ page }, testInfo) => {
   await page.screenshot({ path: shot(testInfo, '5-stats-dashboard') });
 });
 
-test('6-籤詩圖鑑', async ({ page }, testInfo) => {
+test('6-占卜圖鑑', async ({ page }, testInfo) => {
   await goto(page, '/library', 500);
   await page.screenshot({ path: shot(testInfo, '6-poem-library') });
+});
+
+/**
+ * 第三種占卜方式，商店頁少了它就等於沒提。
+ *
+ * 走 recordId 還原而不是按「擲卦」：擲出來的卦是隨機的，
+ * 每跑一次素材就換一個卦名與卦辭。
+ */
+test('7-靈棋十二子', async ({ page }, testInfo) => {
+  await goto(page, '/lingqi?recordId=demo-lingqi', 800);
+
+  // 不吞例外：還原失敗就該讓截圖失敗，而不是靜靜拍下「請擲卦」的空畫面
+  // 比對範圍限在結果區：分享卡（離屏）也印著同一個卦名，
+  // 用全頁的 getByText 會一次匹配到兩處而觸發 strict mode 失敗
+  await expect(page.getByTestId('lingqi-result')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('lingqi-result')).toContainText('大通卦');
+
+  await page.screenshot({ path: shot(testInfo, '7-lingqi-oracle') });
 });
 
 /** 依裝置分資料夾，檔名帶場景序號，方便直接對應上架後台的排序 */
