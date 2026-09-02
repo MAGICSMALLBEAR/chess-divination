@@ -26,7 +26,6 @@ import { playFavoriteSound, playShakeSound } from '@/services/sound';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useLayout } from '@/hooks/useLayout';
-import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { ThemeColors } from '@/constants/theme';
 import { FontSize, Spacing } from '@/constants/theme';
@@ -37,7 +36,6 @@ export default function LingqiScreen() {
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
   const { t } = useI18n();
-  const categories = useQuestionCategories();
   const { recordId } = useLocalSearchParams<{ recordId?: string }>();
 
   const [cast, setCast] = useState<LingqiCast | null>(null);
@@ -47,7 +45,6 @@ export default function LingqiScreen() {
   const shareRef = useRef<ShareCardHandle>(null);
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
-  const selectedCategoryLabel = categories.find(c => c.key === selectedCategory)?.label ?? selectedCategory;
 
   // 規則式深度解讀。在 render 時取語言（localizeProse 讀 getLang），
   // 本頁有 useI18n 訂閱，切語言會重算。分類取記錄上存的那份——
@@ -260,24 +257,11 @@ export default function LingqiScreen() {
               maxLength={200}
               textAlignVertical="top"
             />
-            <QuestionPrompts category={selectedCategory} categoryLabel={selectedCategoryLabel} onSelect={setQuestionText} />
-
-            <View style={styles.categoryGrid}>
-              {categories.map(cat => (
-                <TouchableOpacity
-                  key={cat.key}
-                  style={[styles.categoryChip, selectedCategory === cat.key && styles.categoryChipActive]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: selectedCategory === cat.key }}
-                  onPress={() => handleCategorySelect(cat.key)}
-                >
-                  <Icon name={cat.icon} size={16} color={selectedCategory === cat.key ? theme.gold : theme.textMuted} />
-                  <Text style={[styles.categoryChipLabel, selectedCategory === cat.key && styles.categoryChipLabelActive]}>
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <QuestionPrompts
+              category={selectedCategory}
+              onCategoryChange={handleCategorySelect}
+              onSelect={setQuestionText}
+            />
 
             <TouchableOpacity style={styles.castBtn} testID="lingqi-cast" accessibilityRole="button" onPress={handleCast}>
               <Text style={styles.castText}>{t('lingqi.cast')}</Text>
@@ -436,14 +420,6 @@ const makeStyles = (theme: ThemeColors) => StyleSheet.create({
     minHeight: 88, borderWidth: 1, borderRadius: 12, padding: Spacing.md,
     fontSize: FontSize.body, backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary,
   },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm },
-  categoryChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14,
-    borderRadius: 20, borderWidth: 1, borderColor: theme.bgMedium, backgroundColor: theme.bgCard,
-  },
-  categoryChipActive: { borderColor: theme.gold, backgroundColor: theme.bgMedium },
-  categoryChipLabel: { fontSize: FontSize.small, color: theme.textMuted },
-  categoryChipLabelActive: { color: theme.textGold, fontWeight: '600' },
   castBtn: { marginTop: Spacing.sm, borderRadius: 12, paddingVertical: 14, alignItems: 'center', backgroundColor: theme.gold },
   castText: { fontSize: FontSize.body, fontWeight: '700', color: theme.textInverse },
   oracleHead: { alignItems: 'center', gap: 6, paddingVertical: Spacing.lg },

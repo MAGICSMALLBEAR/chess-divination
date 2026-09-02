@@ -438,6 +438,16 @@ export const translations: Record<string, Record<Lang, string>> = {
   'poem.catHealth': { 'zh-TW': '健康', en: 'Health', ja: '健康' },
   'poem.catStudy': { 'zh-TW': '學業', en: 'Study', ja: '学業' },
   'poem.catTravel': { 'zh-TW': '出行', en: 'Travel', ja: '旅行' },
+  'poem.catRelationship': { 'zh-TW': '關係經營', en: 'Relationship', ja: '関係づくり' },
+  'poem.catReconciliation': { 'zh-TW': '復合／修復', en: 'Reconciliation', ja: '復縁・関係修復' },
+  'poem.catJobSearch': { 'zh-TW': '求職面試', en: 'Job Search', ja: '就職・面接' },
+  'poem.catPromotion': { 'zh-TW': '升遷轉職', en: 'Promotion / Career Move', ja: '昇進・転職' },
+  'poem.catWorkplace': { 'zh-TW': '職場關係', en: 'Workplace', ja: '職場関係' },
+  'poem.catBusiness': { 'zh-TW': '創業合作', en: 'Business / Partnership', ja: '起業・協業' },
+  'poem.catCashflow': { 'zh-TW': '收支規劃', en: 'Cash Flow', ja: '収支計画' },
+  'poem.catExam': { 'zh-TW': '考試申請', en: 'Exams / Applications', ja: '試験・出願' },
+  'poem.catWellbeing': { 'zh-TW': '身心調整', en: 'Wellbeing', ja: '心身の調整' },
+  'poem.catRelocation': { 'zh-TW': '搬遷定居', en: 'Relocation', ja: '引っ越し・定住' },
 
   // 設定（擴充）
   'settings.namePlaceholder': { 'zh-TW': '輸入您的名字', en: 'Enter your name', ja: 'お名前を入力' },
@@ -567,6 +577,11 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 問事快速帶入（抽棋與棋盤兩頁共用）
   'prompts.label': { 'zh-TW': '快速帶入問題', en: 'Quick question prompts', ja: 'クイック質問入力' },
   'prompts.a11y': { 'zh-TW': '帶入問題：{prompt}', en: 'Insert question: {prompt}', ja: '質問を挿入：{prompt}' },
+  'prompts.domain': { 'zh-TW': '1　選擇問事面向', en: '1. Choose an area', ja: '1　問いの分野を選ぶ' },
+  'prompts.scenario': { 'zh-TW': '2　具體情境', en: '2. Choose a situation', ja: '2　具体的な場面を選ぶ' },
+  'prompts.scenarioHint': { 'zh-TW': '選一個即可', en: 'Choose one', ja: '一つ選択' },
+  'prompts.shuffle': { 'zh-TW': '換一批範本', en: 'Show different prompts', ja: '別の例を見る' },
+  'prompts.editHint': { 'zh-TW': '點選後可在上方修改問題', en: 'You can edit the question above after inserting it', ja: '選んだ後、上の質問欄で編集できます' },
 };
 
 // Singleton + Listener pattern
@@ -642,6 +657,16 @@ const CATEGORY_KEYS: Record<string, string> = {
   health: 'poem.catHealth',
   study: 'poem.catStudy',
   travel: 'poem.catTravel',
+  relationship: 'poem.catRelationship',
+  reconciliation: 'poem.catReconciliation',
+  jobSearch: 'poem.catJobSearch',
+  promotion: 'poem.catPromotion',
+  workplace: 'poem.catWorkplace',
+  business: 'poem.catBusiness',
+  cashflow: 'poem.catCashflow',
+  exam: 'poem.catExam',
+  wellbeing: 'poem.catWellbeing',
+  relocation: 'poem.catRelocation',
 };
 
 /**

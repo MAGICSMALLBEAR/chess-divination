@@ -137,7 +137,7 @@ test.describe('雙欄閱讀版面', () => {
    * 棋盤頁刻意不分欄。
    *
    * 一開始把它一併改成雙欄，截圖才看出兩件事：一是它的內容在 900px 視窗下
-   * 幾乎不用捲，本功能要解的「憑據被捲走」在這頁根本不存在；二是問事類別列
+   * 幾乎不用捲，本功能要解的「憑據被捲走」在這頁根本不存在；二是問事面向格
    * 塞進 340px 側欄會被截斷，而 `board.tsx` 的單欄寬度當初正是為了
    * 「類別列不被截斷」才從 560 放寬到 720。
    *
@@ -151,13 +151,13 @@ test.describe('雙欄閱讀版面', () => {
     await expect(page.getByTestId('reading-split')).toHaveCount(0);
   });
 
-  /** 類別列不得被截斷——單欄寬度 720 的存在理由 */
-  test('棋盤頁問事類別列完整顯示不被截斷', async ({ page }) => {
+  /** 面向格不得被截斷——單欄寬度 720 的存在理由 */
+  test('棋盤頁問事面向格完整顯示不被截斷', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/board');
     await expect(page.getByTestId('chess-board')).toBeVisible({ timeout: 30_000 });
 
-    // 最後一個類別（出行）必須完整落在視窗內。塞進窄側欄時它會被截掉。
+    // 最後一個面向（出行）必須完整落在視窗內。塞進窄側欄時它會被截掉。
     const lastChip = page.getByText('出行', { exact: true }).first();
     await expect(lastChip).toBeVisible();
 

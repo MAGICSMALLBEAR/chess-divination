@@ -129,17 +129,18 @@ test.describe('互動元件尺寸', () => {
     expect(r.height, '篩選 chip 高度不足，無法點擊').toBeGreaterThan(20);
   });
 
-  test('棋盤頁問事類別列有可點擊的高度', async ({ page }) => {
+  test('棋盤頁問事面向按鈕有可點擊的高度', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/board');
     await expect(page.getByText('棋盤佈局')).toBeVisible({ timeout: 15_000 });
 
-    await expect
-      .poll(async () => (await readability(page, '綜合')).found, { timeout: 15_000 })
-      .toBe(true);
-
-    const r = await readability(page, '綜合');
-    expect(r.height, '類別 chip 高度不足').toBeGreaterThan(20);
+    // 類別列已併入 QuestionPrompts 的面向格（flex-wrap），不再有水平
+    // ScrollView；守的對象從 chip 換成新的面向按鈕。量按鈕本身而非內層
+    // 文字——文字節點只有字高，量不到可點擊目標的實際高度。
+    await expect(page.getByRole('button', { name: '綜合' })).toBeVisible({ timeout: 15_000 });
+    const box = await page.getByRole('button', { name: '綜合' }).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height, '面向按鈕高度不足，無法點擊').toBeGreaterThan(20);
   });
 
   /** 迴歸：棋盤格子原本依視窗寬度換算，Web 上取不到而縮到最小值 */

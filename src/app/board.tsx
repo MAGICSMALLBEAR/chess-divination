@@ -10,7 +10,6 @@ import ChessBoard from '@/components/ChessBoard';
 import { Icon } from '@/components/icons';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { confirmAction } from '@/services/dialog';
-import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -39,7 +38,6 @@ export default function BoardScreen() {
   // 沿用視窗寬會讓棋盤格子縮到最小值，棋盤在桌面上明顯偏小。
   const { onLayout: onInnerLayout, width: innerWidth } = useMeasuredWidth();
   const { t } = useI18n();
-  const categories = useQuestionCategories();
   // spreadId 在 hook 之前宣告：兩軍對壘陣需要六子，落子數上限跟著牌陣走
   const [spreadId, setSpreadId] = useState<SpreadId>('free');
   const {
@@ -49,7 +47,6 @@ export default function BoardScreen() {
   } = useBoardDivination(getSpreadMaxPieces(spreadId, 3));
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
-  const selectedCategoryLabel = categories.find(category => category.key === selectedCategory)?.label ?? selectedCategory;
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [optionA, setOptionA] = useState('');
@@ -184,23 +181,6 @@ export default function BoardScreen() {
             </View>
 
         {/* 問事類別 */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}
-          contentContainerStyle={styles.catContent}>
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.key}
-              style={[
-                styles.categoryChip,
-                selectedCategory === cat.key && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(cat.key)}
-            >
-              <Icon name={cat.icon} size={14} color={selectedCategory === cat.key ? theme.gold : theme.textMuted} />
-              <Text style={styles.categoryChipLabel}> {cat.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
         {/* 問題輸入 */}
         <TextInput
           style={styles.questionInput}
@@ -210,7 +190,11 @@ export default function BoardScreen() {
           onChangeText={setQuestionText}
           maxLength={200}
         />
-        <QuestionPrompts category={selectedCategory} categoryLabel={selectedCategoryLabel} onSelect={setQuestionText} />
+        <QuestionPrompts
+          category={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          onSelect={setQuestionText}
+        />
 
         {/* 牌陣選擇。切換時清空棋盤，避免將不同角色的舊落子混入新牌陣。 */}
         <Text style={styles.spreadTitle}>{t('board.spread')}</Text>
@@ -398,23 +382,6 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   backBtn: { width: 60 },
   backText: { fontSize: FontSize.body, color: t.textSecondary },
   title: { fontSize: FontSize.heading, fontWeight: '700', color: t.textPrimary },
-  // 用固定 height 而非 maxHeight：水平 ScrollView 在 Web 上沒有明確高度時會塌陷
-  catScroll: { height: 40, marginBottom: Spacing.sm, flexGrow: 0, width: '100%' },
-  // 不置中：類別數量在窄螢幕會超出可視寬度，flexbox 的 center
-  // 在溢出時會把起點推成負值，第一個類別反而被切掉。靠左起排最穩。
-  catContent: {
-    flexDirection: 'row', gap: 6, paddingHorizontal: Spacing.md,
-    alignItems: 'center',
-  },
-  categoryChip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14,
-    backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
-  },
-  categoryChipActive: {
-    borderColor: t.gold, backgroundColor: t.bgMedium,
-  },
-  categoryChipLabel: { fontSize: 12, color: t.textMuted },
   boardStyle: { marginTop: Spacing.md },
   questionInput: {
     width: '100%',

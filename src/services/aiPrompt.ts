@@ -62,6 +62,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   study: '學業',
   travel: '出行',
   general: '綜合',
+  relationship: '關係經營', reconciliation: '復合／修復關係',
+  jobSearch: '求職', promotion: '升遷／轉職', workplace: '職場關係', business: '創業／合作',
+  cashflow: '收支／現金流', exam: '考試／申請', wellbeing: '身心調整', relocation: '搬遷／定居',
 };
 
 /** 把卦象資料組成給模型的使用者訊息 */

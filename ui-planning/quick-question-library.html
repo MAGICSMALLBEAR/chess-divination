@@ -1,0 +1,53 @@
+<div id="quick-question-library">
+  <style>
+    #quick-question-library { font-family: "Noto Serif TC", "PingFang TC", serif; color: #27231e; max-width: 430px; margin: 0 auto; background: #f7f1e5; border: 1px solid #d6c8b2; border-radius: 28px; overflow: hidden; box-shadow: 0 18px 40px rgba(57,42,23,.18); }
+    #quick-question-library * { box-sizing: border-box; }
+    #quick-question-library .top { background: #1c2927; color: #f5ead5; padding: 20px 20px 16px; }
+    #quick-question-library .eyebrow { color: #d8ba7b; font-size: 12px; letter-spacing: .12em; }
+    #quick-question-library h2 { margin: 5px 0 4px; font-size: 23px; font-weight: 500; }
+    #quick-question-library .sub { margin: 0; color: #d8d0c1; font-size: 13px; }
+    #quick-question-library .body { padding: 16px; }
+    #quick-question-library .question { width: 100%; border: 1px solid #cfc0a8; border-radius: 14px; background: #fffaf0; padding: 13px 14px; color: #7a6c5a; font-size: 14px; min-height: 50px; }
+    #quick-question-library .section-title { display: flex; justify-content: space-between; align-items: baseline; margin: 19px 0 9px; }
+    #quick-question-library h3 { font-size: 15px; margin: 0; font-weight: 500; }
+    #quick-question-library .step { color: #9b7a45; font-size: 12px; }
+    #quick-question-library .domains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    #quick-question-library .domain { border: 1px solid #d9ccb6; border-radius: 12px; padding: 10px 6px; background: #fffaf0; text-align: center; color: #554a3c; font: inherit; font-size: 13px; }
+    #quick-question-library .domain span { display:block; font-size:18px; margin-bottom:4px; }
+    #quick-question-library .domain.active { background:#31524b; color:#fff7e9; border-color:#31524b; }
+    #quick-question-library .scenarios { display:flex; gap:8px; flex-wrap:wrap; }
+    #quick-question-library .scenario { background:#eadfca; border:0; border-radius:99px; padding:8px 12px; color:#544937; font:inherit; font-size:13px; }
+    #quick-question-library .scenario.active { background:#c69e54; color:#fffaf0; }
+    #quick-question-library .prompt-list { display:grid; gap:8px; }
+    #quick-question-library .prompt { width:100%; text-align:left; border:1px solid #d9ccb6; border-radius:14px; background:#fffaf0; padding:12px 13px; color:#40372c; font:inherit; font-size:14px; line-height:1.45; display:flex; justify-content:space-between; gap:12px; }
+    #quick-question-library .prompt .add { color:#a67e36; font-size:19px; line-height:18px; }
+    #quick-question-library .more { width:100%; margin-top:9px; border:0; background:transparent; color:#806537; font:inherit; font-size:13px; padding:8px; }
+    #quick-question-library .footer { padding:12px 16px 17px; color:#837764; font-size:12px; text-align:center; }
+  </style>
+  <div class="top">
+    <div class="eyebrow">象棋占卜 · 問事引導</div>
+    <h2>先選情境，再落一句話</h2>
+    <p class="sub">範本只是起點，帶入後仍可自由修改。</p>
+  </div>
+  <main class="body" aria-label="快速提問範本規劃">
+    <div class="question">我想問：這次面試最該展現哪一項優勢？</div>
+    <div class="section-title"><h3>1　你想問哪個面向？</h3><span class="step">先縮小範圍</span></div>
+    <div class="domains">
+      <button class="domain"><span>♡</span>感情</button><button class="domain active"><span>♜</span>事業</button><button class="domain"><span>◌</span>金錢</button>
+      <button class="domain"><span>◒</span>學習</button><button class="domain"><span>☯</span>身心</button><button class="domain"><span>⌂</span>出行居住</button>
+    </div>
+    <div class="section-title"><h3>2　事業 · 具體情境</h3><span class="step">選一個即可</span></div>
+    <div class="scenarios">
+      <button class="scenario active">求職面試</button><button class="scenario">升遷轉職</button><button class="scenario">職場關係</button><button class="scenario">創業合作</button>
+    </div>
+    <div class="section-title"><h3>3　試著這樣問</h3><span class="step">8 則 · 顯示 4 則</span></div>
+    <div class="prompt-list">
+      <button class="prompt">這次面試最該展現哪一項優勢？ <span class="add">＋</span></button>
+      <button class="prompt">這份工作機會是否值得我投入？ <span class="add">＋</span></button>
+      <button class="prompt">我該繼續等待理想職缺，還是接受現有機會？ <span class="add">＋</span></button>
+      <button class="prompt">求職過程中最需要補強的是什麼？ <span class="add">＋</span></button>
+    </div>
+    <button class="more">換一批範本　↻</button>
+  </main>
+  <div class="footer">點選範本即帶入上方問題欄；再次點選可替換。</div>
+</div>

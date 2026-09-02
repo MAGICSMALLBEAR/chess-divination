@@ -10,6 +10,7 @@
 import type { Poem } from '@/data/poems';
 import type { LiuYaoReading } from './liuyao';
 import { trigramLabel } from './liuyao';
+import { questionCategoryDomain } from './questionCategories';
 
 export interface Interpretation {
   interpretation: string;
@@ -89,7 +90,7 @@ export function buildInterpretation(input: InterpretationInput): Interpretation 
   }
 
   // 所問類別的針對性解讀
-  const category = CATEGORY_FIELDS[questionCategory || 'general'] || CATEGORY_FIELDS.general;
+  const category = CATEGORY_FIELDS[questionCategoryDomain(questionCategory)] || CATEGORY_FIELDS.general;
   if (category.key !== 'general') {
     parts.push(`${category.label}方面：${poem.jieYue[category.key]}`);
   }

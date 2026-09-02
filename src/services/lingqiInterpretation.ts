@@ -12,6 +12,7 @@
 
 import type { LingqiOracle } from '@/data/lingqiOracles';
 import { localizeProse } from './localize';
+import { questionCategoryDomain } from './questionCategories';
 
 export interface LingqiInterpretation {
   interpretation: string;
@@ -144,7 +145,8 @@ export function buildLingqiInterpretation(input: {
       ? localizeProse(`lingqi.lead.${lead.rank}`, LEAD_TEXT[lead.rank])
       : localizeProse('lingqi.lead.balanced', LEAD_BALANCED_TEXT);
 
-  const lensKey = CATEGORY_LENS[questionCategory ?? 'general'] ? (questionCategory ?? 'general') : 'general';
+  const domain = questionCategoryDomain(questionCategory);
+  const lensKey = CATEGORY_LENS[domain] ? domain : 'general';
   const lens = localizeProse(`lingqi.lens.${lensKey}`, CATEGORY_LENS[lensKey]);
 
   const focus = lead.tie

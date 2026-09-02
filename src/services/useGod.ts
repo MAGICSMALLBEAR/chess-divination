@@ -13,6 +13,7 @@
 
 import type { SixRelative } from './najja';
 import { localizeProse } from './localize';
+import { questionCategoryDomain } from './questionCategories';
 
 /** 用神取法：指定六親，或以世爻（問卜者本人）為用神 */
 export type UseGodSubject = SixRelative | '世爻';
@@ -106,11 +107,12 @@ export function useGodForCategory(
   options: UseGodOptions = {},
 ): UseGodCandidate | null {
   if (!category) return null;
-  if (category === 'marriage') {
+  const domain = questionCategoryDomain(category);
+  if (domain === 'marriage') {
     // 性別未設定時取法無從決定；取反的用神比沒有用神更誤導
     return options.gender ? localized(MARRIAGE_BY_GENDER[options.gender]) : null;
   }
-  const found = CANDIDATES[category];
+  const found = CANDIDATES[domain];
   return found ? localized(found) : null;
 }
 

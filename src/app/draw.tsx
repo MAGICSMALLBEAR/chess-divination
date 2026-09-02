@@ -8,9 +8,7 @@ import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ChessPiece from '@/components/ChessPiece';
 import PieceDraw3D from '@/components/PieceDraw3D';
-import { Icon } from '@/components/icons';
 import { useDrawDivination } from '@/hooks/useDrawDivination';
-import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
@@ -27,7 +25,6 @@ export default function DrawScreen() {
   const styles = useThemedStyles(makeStyles);
   const { contentWidth } = useLayout();
   const { t } = useI18n();
-  const categories = useQuestionCategories();
   const {
     step, drawnPieces, selectedPoem, drawSummary,
     startDrawing, goToResult, reset,
@@ -36,7 +33,6 @@ export default function DrawScreen() {
   const [questionText, setQuestionText] = useState('');
   /** 設定裡的預設抽棋數量，標為建議選項（見下方讀取設定的 effect） */
   const [preferredCount, setPreferredCount] = useState<1 | 2 | 3 | null>(null);
-  const selectedCategoryLabel = categories.find(category => category.key === selectedCategory)?.label ?? selectedCategory;
 
   // 讀取上次選擇的類別與預設抽棋數量。
   //
@@ -91,30 +87,11 @@ export default function DrawScreen() {
               maxLength={200}
               textAlignVertical="top"
             />
-            <QuestionPrompts category={selectedCategory} categoryLabel={selectedCategoryLabel} onSelect={setQuestionText} />
-            {/* 問事類別 */}
-            <View style={styles.categoryGrid}>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.key}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === cat.key && styles.categoryChipActive,
-                  ]}
-                  onPress={() => handleCategorySelect(cat.key)}
-                >
-                  <Icon name={cat.icon} size={16} color={selectedCategory === cat.key ? theme.gold : theme.textMuted} />
-                  <Text
-                    style={[
-                      styles.categoryChipLabel,
-                      selectedCategory === cat.key && styles.categoryChipLabelActive,
-                    ]}
-                  >
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <QuestionPrompts
+              category={selectedCategory}
+              onCategoryChange={handleCategorySelect}
+              onSelect={setQuestionText}
+            />
 
             <Text style={styles.subtitle}>{t('draw.count')}</Text>
             <View style={styles.countRow}>
@@ -213,25 +190,6 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     padding: Spacing.md, fontSize: FontSize.body,
     minHeight: 80, marginBottom: Spacing.md,
   },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  categoryChip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 20, borderWidth: 1, gap: 6,
-    // 底色與邊框同 board.tsx：不設色時 RN 預設是黑——
-    // 深色主題（App 預設）下未選中的 chip 等於整排隱形
-    backgroundColor: t.bgCard, borderColor: t.bgMedium,
-  },
-  categoryChipActive: { borderColor: t.gold, backgroundColor: t.bgMedium },
-  categoryChipIcon: { fontSize: 16 },
-  categoryChipLabel: { fontSize: FontSize.small, color: t.textMuted },
-  categoryChipLabelActive: { color: t.textGold, fontWeight: '600' },
   countRow: {
     flexDirection: 'row',
     gap: Spacing.md,
