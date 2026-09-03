@@ -3101,8 +3101,12 @@ grep 得到（`=== 'marriage'`、以 key 分組、以 key 當索引），後者�
 - `npm run typecheck` 通過。
 - `npm test -- --runInBand` 通過：53 suites、1,088 tests。
 - `npm run build:web` 通過；Expo Router 靜態路由與兩支 Vercel API functions 均正常產出。
-- 推送前核對：遠端 `master` 是 `90942ee`，故 `742cfd8` 必須推送並等 production
-  deployment Ready 後，才可稱今日變更已上線。
+- GitHub `master` 已推送至 `4939749`（含 `742cfd8`）；Vercel production deployment
+  `dpl_BZh9XvTqx7tVyNB9NnsVx1ECReDy` 為 **Ready**，正式別名
+  `chess-divination-app.vercel.app` 已指向此部署。
+- 部署採 `npx expo export --platform web`，`api/interpret` 與 `api/sync` 兩支 function
+  均已產出並部署至 `iad1`。本次確認的是部署狀態與產物；原生功能仍以後續實機
+  測試為準。
 
 ### 今日後的真實待辦
 
