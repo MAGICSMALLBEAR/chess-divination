@@ -520,3 +520,32 @@ describe('翻譯表的三語完整性', () => {
     expect(mismatched).toEqual([]);
   });
 });
+
+/**
+ * 引導頁「有幾種占卜模式」靠人記得改：S43 靈棋上線後它還寫著「雙重占卜模式」，
+ * 只介紹抽棋與棋盤——新使用者第一次開 App 看到的就是舊的，而畫面、型別、
+ * 既有測試全都不會有意見（S51 才發現，同一批漏改的還有上架文案，見 ca367de）。
+ * 以 DivinationMode 的成員數當真相來源：加第四種模式時這裡會紅。
+ */
+describe('引導頁介紹所有占卜模式', () => {
+  const modes = (() => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'services', 'storage.ts'), 'utf-8');
+    const union = src.match(/export type DivinationMode =([^;]+);/);
+    return union ? [...union[1].matchAll(/'(\w+)'/g)].map(m => m[1]) : [];
+  })();
+
+  // 守門自我檢查：抽不到模式清單時下方的斷言會空過
+  test('抽得到 DivinationMode 的成員', () => {
+    expect(modes).toEqual(expect.arrayContaining(['draw', 'board', 'lingqi']));
+  });
+
+  test.each(ALL_LANGS)('%s 的第二步每一種模式各一段', (lang) => {
+    const desc = translations['onboarding.step2desc'][lang];
+    expect(desc.split('\n\n')).toHaveLength(modes.length);
+  });
+
+  test('中文標題與內文都認得靈棋', () => {
+    expect(translations['onboarding.step2']['zh-TW']).toContain('三種');
+    expect(translations['onboarding.step2desc']['zh-TW']).toContain('靈棋十二子');
+  });
+});

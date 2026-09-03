@@ -154,7 +154,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 引導
   'onboarding.welcome': { 'zh-TW': '歡迎來到象棋占卜', en: 'Welcome to Chess Divination', ja: '象棋占いへようこそ' },
   'onboarding.step1desc': { 'zh-TW': '以棋問道，觀象知機。\n從古老的象棋智慧中，\n尋找人生的方向與啟發。', en: 'Seek wisdom through chess.\nDiscover life guidance\nfrom ancient chess insights.', ja: '棋に問い、兆しを見る。\n古来の象棋の知恵から\n人生の指針を見つける。' },
-  'onboarding.step2': { 'zh-TW': '雙重占卜模式', en: 'Two Divination Modes', ja: '二つの占いモード' },
+  'onboarding.step2': { 'zh-TW': '三種占卜模式', en: 'Three Divination Modes', ja: '三つの占いモード' },
 
   // 統計
   'stats.overview': { 'zh-TW': '總次數', en: 'Total', ja: '総回数' },
@@ -510,7 +510,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'category.deleteDesc': { 'zh-TW': '確定要刪除「{name}」嗎？', en: 'Delete "{name}"?', ja: '「{name}」を削除しますか？' },
 
   // 引導（擴充）
-  'onboarding.step2desc': { 'zh-TW': '抽棋占卜：從 32 顆棋子中\n隨機抽取，快速獲得指引。\n\n棋盤佈局：親手擺放棋子，\n深入探索心中的疑問。', en: 'Draw: pick from 32 pieces at random\nfor quick guidance.\n\nBoard: place the pieces yourself\nto explore a question in depth.', ja: '抽棋：32の駒からランダムに引き、\n手早く導きを得る。\n\n棋盤：自ら駒を配置し、\n問いを深く探る。' },
+  'onboarding.step2desc': { 'zh-TW': '抽棋占卜：從 32 顆棋子中\n隨機抽取，快速獲得指引。\n\n棋盤佈局：親手擺放棋子，\n深入探索心中的疑問。\n\n靈棋十二子：一次擲定十二子，\n讀《靈棋經》的原典卦目。', en: 'Draw: pick from 32 pieces at random\nfor quick guidance.\n\nBoard: place the pieces yourself\nto explore a question in depth.\n\nLingqi: cast twelve pieces at once\nand read the Lingqi Jing oracle.', ja: '抽棋：32の駒からランダムに引き、\n手早く導きを得る。\n\n棋盤：自ら駒を配置し、\n問いを深く探る。\n\n靈棋十二子：十二子を一度に擲ち、\n『靈棋經』の卦を読む。' },
   'onboarding.step3': { 'zh-TW': '64 首原創籤詩', en: '64 Original Poems', ja: '64首のオリジナル詩' },
   'onboarding.step3desc': { 'zh-TW': '每首籤詩對應易經 64 卦，\n融入象棋意象，\n七言絕句搭配全方位解讀。', en: 'Each poem maps to one of the I Ching\'s 64 hexagrams,\nwoven with chess imagery,\nin verse with a full reading.', ja: '各詩は易経64卦に対応し、\n象棋の意象を織り込んだ\n七言絶句と全方位の解読。' },
   'onboarding.step4': { 'zh-TW': '記錄與收藏', en: 'Record and Save', ja: '記録とお気に入り' },
