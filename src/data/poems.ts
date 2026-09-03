@@ -823,10 +823,6 @@ export function getPoemsByLevel(level: string): Poem[] {
   return ALL_POEMS.filter(p => p.level === level);
 }
 
-export function getPoemsByHexagram(hexNum: number): Poem[] {
-  return ALL_POEMS.filter(p => p.hexagramNumber === hexNum);
-}
-
 export const POEM_LEVELS = ['大吉', '上吉', '中吉', '中平', '下下'] as const;
 
 export function getLevelColor(level: string): string {

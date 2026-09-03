@@ -10,10 +10,6 @@ export function setHapticEnabled(on: boolean) {
   enabled = on;
 }
 
-export function isHapticEnabled(): boolean {
-  return enabled;
-}
-
 async function doHaptic(style: Haptics.ImpactFeedbackStyle) {
   if (!enabled) return;
   try {
@@ -36,10 +32,6 @@ export function hapticLight() {
 
 export function hapticMedium() {
   return doHaptic(Haptics.ImpactFeedbackStyle.Medium);
-}
-
-export function hapticHeavy() {
-  return doHaptic(Haptics.ImpactFeedbackStyle.Heavy);
 }
 
 export function hapticSuccess() {

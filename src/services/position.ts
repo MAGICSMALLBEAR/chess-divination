@@ -213,20 +213,3 @@ export function generatePositionSummaryDeep(placements: Placement[]): string {
 
   return summary;
 }
-
-/**
- * 簡易版（向後相容）
- */
-export function generatePositionSummary(positions: { col: number; row: number }[]): string {
-  if (positions.length === 0) return '';
-  const meanings = positions.map(({ col, row }) => getPositionMeaning(col, row));
-  const zones = [...new Set(meanings.map(m => m.zone))];
-  let summary = '【棋盤佈局解讀】\n\n';
-  if (zones.length >= 2) {
-    summary += `棋子分布於${zones.length}個區域：${zones.join('、')}。\n`;
-  } else {
-    summary += `棋子集中於${zones[0]}。${meanings[0].meaning}\n\n`;
-  }
-  summary += `建議：${meanings[0].advice}`;
-  return summary;
-}

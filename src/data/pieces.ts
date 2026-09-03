@@ -215,14 +215,6 @@ export function getPiecesByType(type: PieceType): ChessPiece[] {
   return ALL_PIECES.filter(p => p.type === type);
 }
 
-export function getPiecesByColor(color: PieceColor): ChessPiece[] {
-  return ALL_PIECES.filter(p => p.color === color);
-}
-
-export function getPieceTypeName(type: PieceType, color: PieceColor): string {
-  return PIECE_SPECS[color][type].chineseName;
-}
-
 /** 棋子的卦名，如「乾」 */
 export function getPieceTrigramName(piece: ChessPiece): string {
   return TRIGRAM_NAMES[piece.trigram];

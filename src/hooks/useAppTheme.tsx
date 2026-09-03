@@ -77,9 +77,3 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useAppTheme() {
   return useContext(ThemeContext);
 }
-
-// 簡化版 - 只返回 theme colors
-export function useThemeColors(): ThemeColors {
-  const { theme } = useContext(ThemeContext);
-  return theme;
-}
