@@ -1,5 +1,5 @@
 // 棋盤佈局模式頁面
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
   TextInput,
@@ -10,6 +10,7 @@ import ChessBoard from '@/components/ChessBoard';
 import { Icon } from '@/components/icons';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { confirmAction } from '@/services/dialog';
+import { getSettings, saveSettings } from '@/services/storage';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -51,6 +52,20 @@ export default function BoardScreen() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [optionA, setOptionA] = useState('');
   const [optionB, setOptionB] = useState('');
+
+  // 問事類別記憶：抽棋與靈棋都會讀回上次選的類別，只有棋盤頁不會——
+  // 三頁用的已是同一個選類別元件，其中一頁自己從頭來過只會像是沒存到。
+  useEffect(() => {
+    (async () => {
+      const s = await getSettings();
+      if (s.questionCategory) setSelectedCategory(s.questionCategory);
+    })();
+  }, []);
+
+  const handleCategorySelect = async (cat: string) => {
+    setSelectedCategory(cat);
+    await saveSettings({ questionCategory: cat });
+  };
 
   const spread = SPREADS[spreadId];
   const activeSpreadSlot = nextSpreadSlot(spreadId, placedPieces.length);
@@ -192,7 +207,7 @@ export default function BoardScreen() {
         />
         <QuestionPrompts
           category={selectedCategory}
-          onCategoryChange={setSelectedCategory}
+          onCategoryChange={handleCategorySelect}
           onSelect={setQuestionText}
         />
 

@@ -11,6 +11,7 @@ import { Spacing, FontSize } from '@/constants/theme';
 import { getMovingLineGuidance } from '@/services/yaoReading';
 import { buildNaJiaReading, transformedLineRelation, type NaJiaLine } from '@/services/najja';
 import { useGodForCategory, type DivinerGender } from '@/services/useGod';
+import { questionCategoryDomain } from '@/services/questionCategories';
 import { judgeUseGod } from '@/services/wenwang';
 
 interface Props {
@@ -73,7 +74,9 @@ export default function LiuYaoPanel({
     : null;
   // 感情是唯一取法取決於占者性別的類別。沒設定就靜靜不出斷語，
   // 使用者只會覺得功能壞了——說明缺什麼才有辦法補。
-  const needsGender = questionCategory === 'marriage' && !divinerGender;
+  // 比對的是映回後的主類別：「關係經營」「復合」等子領域走的是同一套
+  // 取法，只認 'marriage' 的話它們會沒有斷語也沒有補設定的提示。
+  const needsGender = questionCategoryDomain(questionCategory) === 'marriage' && !divinerGender;
   // 世爻為用時盤面上沒有六親可標，改標世爻本身
   const marksUseGod = (line: NaJiaLine) =>
     useGod?.subject === '世爻'

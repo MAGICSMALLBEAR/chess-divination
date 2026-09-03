@@ -224,6 +224,38 @@ describe('分項統計', () => {
     expect(rows.find(r => r.key === 'marriage')?.label).toBe('感情');
   });
 
+  // 子領域只是讓使用者把問題說清楚，統計上仍是同一個人生面向：
+  // 各自成列會把樣本切薄，還會與子領域上線前記的舊記錄分立兩行。
+  test('子領域併回主類別，與上線前的舊記錄同一列', () => {
+    const rows = accuracyByCategory([
+      verified('accurate', { questionCategory: 'jobSearch' }),
+      verified('accurate', { questionCategory: 'promotion' }),
+      verified('inaccurate', { questionCategory: 'career' }),
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].key).toBe('career');
+    expect(rows[0].label).toBe('事業');
+    expect(rows[0].stats.verified).toBe(3);
+  });
+
+  test('自訂類別沒有主類別可映，自成一列', () => {
+    const rows = accuracyByCategory([
+      verified('accurate', { questionCategory: 'custom-1735689600000' }),
+    ]);
+    expect(rows.map(r => r.key)).toEqual(['custom-1735689600000']);
+  });
+
+  test('最準的類別湊得到樣本數——子領域分散時湊不到', () => {
+    const records = [
+      verified('accurate', { questionCategory: 'jobSearch' }),
+      verified('accurate', { questionCategory: 'promotion' }),
+      verified('accurate', { questionCategory: 'workplace' }),
+      verified('accurate', { questionCategory: 'business' }),
+      verified('accurate', { questionCategory: 'career' }),
+    ];
+    expect(bestCategory(records)?.key).toBe('career');
+  });
+
   test('依模式分組', () => {
     const rows = accuracyByMode([
       verified('accurate', { mode: 'draw' }),

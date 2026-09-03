@@ -22,3 +22,22 @@ export function questionCategoryDomain(category?: string): string {
   if (!category) return 'general';
   return QUESTION_CATEGORY_DOMAINS[category] ?? category;
 }
+
+/**
+ * 籤詩詳解的七個面向，順序即 PoemCard 分頁的順序。
+ * 與 `Poem.jieYue` 的欄位一一對應（由 poems.test 釘住）。
+ */
+export const POEM_FACETS = [
+  'general', 'marriage', 'career', 'wealth', 'health', 'study', 'travel',
+] as const;
+
+/**
+ * 問事類別對應的詳解面向。
+ *
+ * 子領域先映回主類別；自訂類別映不回來，退回綜合——原樣送進去的話
+ * 七個分頁一個都不會亮，內容也會靜靜掉回綜合，看起來像沒選過類別。
+ */
+export function poemFacetForCategory(category?: string): string {
+  const domain = questionCategoryDomain(category);
+  return (POEM_FACETS as readonly string[]).includes(domain) ? domain : 'general';
+}

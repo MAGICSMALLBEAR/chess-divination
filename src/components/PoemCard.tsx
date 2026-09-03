@@ -8,6 +8,7 @@ import {
 import type { Poem } from '@/data/poems';
 import { getLevelColor } from '@/data/poems';
 import { localizePoem } from '@/services/localize';
+import { poemFacetForCategory } from '@/services/questionCategories';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';
 import { useAnimationSpeed } from '@/hooks/useAnimationSpeed';
@@ -49,7 +50,12 @@ export default function PoemCard({
   onToggleFavorite,
   onShare,
 }: PoemCardProps) {
-  const [expandedCategory, setExpandedCategory] = useState<string>(highlightedCategory);
+  // 開啟時預設展開所問的那一面。子領域（求職、復合…）要先映回主類別才對得上
+  // 分頁；自訂類別映不回來，退回綜合——留著原 key 的話七個分頁一個都不會亮，
+  // 內容也會靜靜掉回綜合，看起來就像使用者根本沒選過類別。
+  const [expandedCategory, setExpandedCategory] = useState<string>(
+    () => poemFacetForCategory(highlightedCategory),
+  );
   const speed = useAnimationSpeed();
   const reduced = useReducedMotion();
   const { theme } = useAppTheme();

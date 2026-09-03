@@ -16,6 +16,7 @@ import type {
 import { trigramsFromIndex } from './hexagram';
 import { buildLiuYaoReading } from './liuyao';
 import { SPREADS, type SpreadId } from './spreads';
+import { questionCategoryDomain } from './questionCategories';
 
 // ====== 常數 ======
 
@@ -167,7 +168,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 /**
- * 依所問類別分組。
+ * 依所問類別分組。子領域先映回主類別再分組。
+ *
+ * 「求職」與「升遷」若各自成列，同一件事會被切成好幾組薄樣本，
+ * 而且會與子領域上線前記的「事業」分立兩列——同一個人生面向散在
+ * 兩處，「哪類問事最準」就再也湊不到 `bestCategory` 要求的樣本數。
+ * 自訂類別的 key 不在映射表內，原樣自成一組。
  *
  * `labelOf` 可由呼叫端注入以取得譯文——本模組是純統計，
  * 不引入 i18n：它被大量測試直接呼叫，讓結果隨全域語言狀態而變
@@ -177,7 +183,11 @@ export function accuracyByCategory(
   records: DivinationRecord[],
   labelOf: (key: string) => string = k => CATEGORY_LABELS[k] ?? k,
 ): AccuracyBreakdown[] {
-  return breakdownBy(records, r => r.questionCategory || null, labelOf);
+  return breakdownBy(
+    records,
+    r => (r.questionCategory ? questionCategoryDomain(r.questionCategory) : null),
+    labelOf,
+  );
 }
 
 /** 依占卜模式分組。`labelOf` 同上，可注入譯文 */

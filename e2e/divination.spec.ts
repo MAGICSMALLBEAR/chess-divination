@@ -341,6 +341,27 @@ test.describe('用神斷語', () => {
     await expect(page.getByText('用神斷語', { exact: true })).toHaveCount(0);
   });
 
+  /**
+   * 子領域（S50 上線）在此之前只是 `!== 'marriage'` 的另一個字串：
+   * 取用神走的是映回後的感情規則，但畫面上的提示只認 'marriage'，
+   * 於是使用者選了「復合／修復關係」就既沒有斷語、也沒有補設定的提示。
+   */
+  test('感情子領域也給得出「請補性別」的提示', async ({ page }) => {
+    await seedRecord(page, 'reconciliation');
+
+    await expect(page.getByText(/感情問事的用神取法男女相反/)).toBeVisible({ timeout: 30_000 });
+  });
+
+  test('事業子領域預設展開的是事業詳解，不是綜合', async ({ page }) => {
+    await seedRecord(page, 'jobSearch');
+
+    // 規則式解讀也會引到同一句事業斷語，故取分頁內容那一則（第一個獨立節點）
+    await expect(page.getByText('事業初創或新專案起步，困難是正常的。堅持下去必有突破。', { exact: true }).first())
+      .toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('萬事起頭難，這是一切的必經之路。不要被眼前的困難嚇倒，每一步都在為未來鋪路。', { exact: true }))
+      .toHaveCount(0);
+  });
+
   test('設定占者性別為男後，感情以妻財為用神', async ({ page }) => {
     await seedRecord(page, 'marriage', 'male');
 
@@ -373,4 +394,36 @@ test.describe('占者性別設定', () => {
     await page.getByText('不指定', { exact: true }).click();
     await expect.poll(() => storedGender(page)).toBeUndefined();
   });
+});
+
+/**
+ * 三個占卜頁用的是同一個選類別元件，記憶卻只有兩頁做。
+ * 同樣不測「重新載入後仍在」——理由同上一個 describe，
+ * 改為斷言「按下去就寫進設定」，那正是缺的那一段。
+ */
+test.describe('問事類別記憶', () => {
+  const storedCategory = (page: Parameters<typeof drawPieces>[0]) =>
+    page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) || '{}').questionCategory,
+      SETTINGS_KEY,
+    );
+
+  for (const [name, path, marker] of [
+    ['抽棋頁', '/draw', '抽棋占卜'],
+    ['棋盤頁', '/board', '棋盤佈局'],
+    ['靈棋頁', '/lingqi', '靈棋十二子'],
+  ] as const) {
+    test(`${name}選了面向就記下來`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.getByText(marker).first()).toBeVisible({ timeout: 15_000 });
+
+      await page.getByRole('button', { name: '事業' }).click();
+      await expect.poll(() => storedCategory(page)).toBe('career');
+
+      // 情境層選的是子領域，存的也該是子領域——存成主類別等於把使用者
+      // 講清楚的那一層丟掉
+      await page.getByRole('button', { name: '求職' }).click();
+      await expect.poll(() => storedCategory(page)).toBe('jobSearch');
+    });
+  }
 });
