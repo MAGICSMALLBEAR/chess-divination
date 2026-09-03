@@ -3083,6 +3083,40 @@ grep 得到（`=== 'marriage'`、以 key 分組、以 key 當索引），後者�
 
 ---
 
+## Session 52 — 程式碼收尾、工作日誌重整與部署核對（9/3）
+
+### 今日完成
+
+- 接手上一輪留下但尚未提交的「工具模組孤兒匯出」清理：移除 `FontWeight`、
+  `getPiecesByColor`、`getPieceTypeName`、`getPoemsByHexagram`、
+  `useThemeColors`、`isHapticEnabled`、`hapticHeavy`、`generatePositionSummary`
+  共 8 個沒有產品呼叫端的舊 API。
+- 新增 `deadExports.test.ts`。它掃描六個核心工具模組的匯出與實際呼叫端，並有
+  自我檢查，避免「守門只因掃描範圍壞掉而空過」。測試專用 API 明列暫緩清單，
+  日後刪除時必須同步移出清單。
+- 清理兩個檔案的檔尾格式；本次提交為 `742cfd8`（`chore: 移除未使用的工具匯出`）。
+
+### 驗證
+
+- `npm run typecheck` 通過。
+- `npm test -- --runInBand` 通過：53 suites、1,088 tests。
+- `npm run build:web` 通過；Expo Router 靜態路由與兩支 Vercel API functions 均正常產出。
+- 推送前核對：遠端 `master` 是 `90942ee`，故 `742cfd8` 必須推送並等 production
+  deployment Ready 後，才可稱今日變更已上線。
+
+### 今日後的真實待辦
+
+程式功能沒有本地待辦。接下來以「實機驗證 → Preview Build → 商店上架」為順序：
+
+1. **Expo Go 實機測試**：iOS 與 Android 各走一次核心占卜流程；重點確認分享圖片
+   沒有被空白判定誤降級、棋盤拖曳、靈棋分享與 AI 端點。
+2. **EAS Preview Build**：登入 Expo 後產生原生 preview，驗證 Expo Go 無法覆蓋的
+   原生分享、推播與字型表現。
+3. **商店與網域**：帳號就緒後才進行 App Store／Google Play 上架；自訂網域則待購買
+   後再將 DNS 指向 Vercel。
+
+---
+
 ## 功能完整清單
 
 ### 占卜核心
@@ -3182,8 +3216,8 @@ Session 35 清掉最後 1 條（A25）。**25 條全數結案**。A25 的截圖�
 
 | # | 待辦 | 你要做的 | 之後我能接手 | 成本 |
 |---|------|---------|------------|------|
-| 3 | **iOS/Android 實機測試** | `npx expo start --go`，手機掃碼 | 依你回報的現象修 | 免費 |
-| 4 | **EAS Build preview** | Expo 帳號登入 | 寫 build profile、跑 build | 免費額度內 |
+| 3 | **iOS/Android 實機測試** | `npx expo start --go`，手機掃碼；依 `NATIVE_TESTING.md` 驗 21 項 | 依你回報的現象修 | 免費 |
+| 4 | **EAS Build preview** | Expo 帳號登入 | 建立／執行 preview build，驗原生分享、推播與字型 | 免費額度內 |
 | 6 | **App Store 上架** | Apple Developer 帳號 | 文案與 24 張截圖已備妥 | $99/年 |
 | 7 | **Google Play 上架** | Play Console 帳號 | 同上 | $25 一次性 |
 | 8 | **自訂域名** | 買 `chess-divination.com` | DNS 指向 Vercel | 域名年費 |
