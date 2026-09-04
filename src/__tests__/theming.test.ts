@@ -29,7 +29,6 @@ const ALLOWLIST = new Set([
   path.join('components', 'PieceDraw3D.tsx'),
   path.join('components', 'InkSplashOverlay.tsx'),
   path.join('components', 'PieceEntryFlyIn.tsx'),
-  path.join('components', 'CustomCategoriesSection.tsx'),
   path.join('components', 'icons', 'Icon.tsx'),
   path.join('components', 'icons', 'TrigramGlyph.tsx'),
 ]);

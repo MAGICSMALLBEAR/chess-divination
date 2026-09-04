@@ -94,3 +94,50 @@ describe('工具模組沒有孤兒匯出', () => {
     expect(Object.keys(TEST_ONLY_PENDING).filter(n => !all.includes(n))).toEqual([]);
   });
 });
+
+/**
+ * 同一個病、長在畫面層的那一半：**useState 的 setter 沒有呼叫端**。
+ *
+ * S52 的來源：收藏頁的資料夾分頁宣告了 `selectedFolderId`，也算好了
+ * `selectedFolder` 與 `folderRecords`，但 `setSelectedFolderId` 從來沒有
+ * 被呼叫過——於是資料夾點不開，卡片只列得下三筆，第四筆之後沒有任何
+ * 地方到得了。`removeFromFolder()` 同時是個沒有呼叫端的匯出，兩件事
+ * 其實是同一個功能只做了一半。
+ *
+ * 型別檢查對這種情況永遠沒有意見：setter 是被解構出來的區域變數，
+ * 用不用它都合法（`noUnusedLocals` 也管不到解構的元素）。
+ */
+describe('畫面沒有從未被呼叫的 setState', () => {
+  /** 掃 src 全部（不含 __tests__），回傳 [檔案, 值, setter] */
+  function stateDeclarations(): [string, string, string][] {
+    const out: [string, string, string][] = [];
+    for (const file of sourceFiles()) {
+      if (!file.startsWith(SRC)) continue;
+      const source = fs.readFileSync(file, 'utf-8');
+      for (const m of source.matchAll(/const \[(\w+), (set\w+)\][^=]*=\s*(?:React\.)?useState/g)) {
+        out.push([path.relative(SRC, file), m[1], m[2]]);
+      }
+    }
+    return out;
+  }
+
+  /** 這個名字在該檔案裡被提到幾次（宣告本身不算） */
+  function usesIn(relative: string, name: string): number {
+    const source = fs.readFileSync(path.join(SRC, relative), 'utf-8');
+    return Math.max(0, (source.match(new RegExp(String.raw`\b${name}\b`, 'g')) || []).length - 1);
+  }
+
+  test('掃得到 useState 宣告（守門自我檢查）', () => {
+    const decls = stateDeclarations();
+    expect(decls.length).toBeGreaterThan(20);
+    // 隨便挑一個真的有在用的：掃描壞掉時這一條會先紅
+    expect(usesIn(path.join('app', '(tabs)', 'collection.tsx'), 'setSelectedFolderId')).toBeGreaterThan(0);
+  });
+
+  test('每個 setter 都至少被呼叫一次', () => {
+    const orphans = stateDeclarations()
+      .filter(([file, , setter]) => usesIn(file, setter) === 0)
+      .map(([file, value, setter]) => `${file}  ${value}/${setter}`);
+    expect(orphans).toEqual([]);
+  });
+});

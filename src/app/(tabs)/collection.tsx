@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon, type IconName } from '@/components/icons';
 import type { DivinationMode, DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
-import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder, recordHasLevel } from '@/services/storage';
+import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder, removeFromFolder, recordHasLevel } from '@/services/storage';
 import { recordMatchesSearch, recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
 import { getLevelColor } from '@/data/poems';
@@ -169,9 +169,18 @@ export default function CollectionScreen() {
     }
   }
 
-  async function handleAddToFolder(recordId: string, folderId: string) {
+  /**
+   * 歸檔清單上點一個資料夾：不在其中就加入，已在其中就移出。
+   *
+   * 原本只有加入這一半——`removeFromFolder()` 早就寫好了（含墓碑與佇列），
+   * 卻沒有任何呼叫端。使用者點錯資料夾之後唯一的退路是連整個資料夾一起刪，
+   * 而那會把其他記錄的歸檔一併弄丟。
+   */
+  async function handleToggleFolder(recordId: string, folder: Folder) {
+    const filed = folder.recordIds.includes(recordId);
     try {
-      await addToFolder(folderId, recordId);
+      if (filed) await removeFromFolder(folder.id, recordId);
+      else await addToFolder(folder.id, recordId);
       setPickingFolderFor(null);
       await loadData();
     } catch (e) {
@@ -180,10 +189,30 @@ export default function CollectionScreen() {
     }
   }
 
+  /**
+   * 所有還存在的記錄，以 id 索引。
+   *
+   * 歷史與收藏都要算：收藏頁的卡片也能歸檔，而收藏是另一份清單——
+   * 只查 history 的話，歷史被清掉但仍在收藏裡的記錄會在資料夾中憑空消失。
+   */
+  const recordsById = new Map([...history, ...favorites].map(r => [r.id, r]));
+
+  /**
+   * 資料夾裡「還指得到東西」的記錄。
+   *
+   * 筆數也走這裡而不是 `recordIds.length`：`removeHistory` 一直沒有把
+   * 被刪的 id 從資料夾裡拿掉（已於同一輪修掉），既有使用者的資料夾裡
+   * 仍留著一串指不到記錄的 id。照 `recordIds.length` 印，卡片會說「5 筆」
+   * 而打開只有 1 筆——修了來源仍治不了已經存下的那些。
+   */
+  function recordsInFolder(folder: Folder): DivinationRecord[] {
+    return folder.recordIds
+      .map(id => recordsById.get(id))
+      .filter((r): r is DivinationRecord => r !== undefined);
+  }
+
   const selectedFolder = folders.find(f => f.id === selectedFolderId);
-  const folderRecords = selectedFolder
-    ? history.filter(r => selectedFolder.recordIds.includes(r.id))
-    : [];
+  const folderRecords = selectedFolder ? recordsInFolder(selectedFolder) : [];
 
   const levelRank: Record<string, number> = { '大吉': 5, '上吉': 4, '中吉': 3, '中平': 2, '下下': 1 };
   function sortAndFilter(list: DivinationRecord[]): DivinationRecord[] {
@@ -199,6 +228,9 @@ export default function CollectionScreen() {
   }
   const historyData = sortAndFilter(history);
   const favoritesData = sortAndFilter(favorites);
+  // 資料夾內容也走同一套排序與搜尋：搜尋框在三個分頁都看得到，
+  // 打了字卻只有前兩頁會篩，等於搜尋在這一頁壞掉
+  const folderRecordsData = sortAndFilter(folderRecords);
   // 給排序/搜索欄用的 data（跟隨目前選中 tab）
   const data = tab === 'history' ? historyData : favoritesData;
 
@@ -276,13 +308,17 @@ export default function CollectionScreen() {
             {selectedIds.has(record.id) && <Text style={{ color: PaperSurface.onLevel, fontSize: 12 }}>✓</Text>}
           </View>
         )}
-        <View style={styles.cardLeft}>
-          <View style={styles.piecesMini}>
-            <Text style={styles.piecesText}>
-              {record.drawnPieceChars.join(' ')}
-            </Text>
+        {/* 靈棋記錄沒有棋子（十二子擲出的是卦目，不落子），整格省略——
+            留著就是一個沒有字的圓角色塊，與 S44 的空等級標籤同一個毛病 */}
+        {record.drawnPieceChars.length > 0 && (
+          <View style={styles.cardLeft}>
+            <View testID="record-pieces" style={styles.piecesMini}>
+              <Text style={styles.piecesText}>
+                {record.drawnPieceChars.join(' ')}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
         <View style={styles.cardCenter}>
           <View style={styles.cardHeader}>
             {/* 靈棋記錄沒有吉凶等級（《靈棋經》原典未載，我們也不代為補寫），
@@ -332,10 +368,16 @@ export default function CollectionScreen() {
           <TouchableOpacity
             testID={`record-folder-${record.id}`}
             accessibilityRole="button"
-            accessibilityLabel={t('a11y.addToFolder')}
+            accessibilityLabel={t('a11y.manageFolders')}
             hitSlop={ICON_HIT_SLOP}
             onPress={() => setPickingFolderFor(pickingFolderFor === record.id ? null : record.id)}>
-            <Icon name="folder" size={18} color={theme.textMuted} />
+            {/* 已歸檔的記錄用金色標出來：否則使用者無從得知這筆進過哪裡，
+                也就不會想到可以再點開來移出 */}
+            <Icon
+              name="folder"
+              size={18}
+              color={folders.some(f => f.recordIds.includes(record.id)) ? theme.gold : theme.textMuted}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             testID={`record-fav-${record.id}`}
@@ -356,14 +398,23 @@ export default function CollectionScreen() {
         </View>
         {pickingFolderFor === record.id && (
           <View style={styles.folderPicker}>
-            <Text style={[styles.folderPickTitle, { color: theme.textSecondary }]}>{t('collection.addToFolder')}</Text>
-            {folders.map(f => (
-              <TouchableOpacity key={f.id} style={styles.folderPickItem}
-                onPress={() => handleAddToFolder(record.id, f.id)}>
-                <View style={[styles.folderPickDot, { backgroundColor: f.color }]} />
-                <Text style={{ color: theme.textPrimary, fontSize: 13 }}>{f.name}</Text>
-              </TouchableOpacity>
-            ))}
+            <Text style={[styles.folderPickTitle, { color: theme.textSecondary }]}>{t('collection.folderPick')}</Text>
+            {folders.map(f => {
+              const filed = f.recordIds.includes(record.id);
+              return (
+                <TouchableOpacity
+                  key={f.id}
+                  testID={`folder-pick-${f.id}-${record.id}`}
+                  style={styles.folderPickItem}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: filed }}
+                  onPress={() => handleToggleFolder(record.id, f)}>
+                  <View style={[styles.folderPickDot, { backgroundColor: f.color }]} />
+                  <Text style={{ color: filed ? theme.textGold : theme.textPrimary, fontSize: 13 }}>{f.name}</Text>
+                  {filed && <Icon name="check" size={12} color={theme.gold} />}
+                </TouchableOpacity>
+              );
+            })}
             {folders.length === 0 && (
               <Text style={{ color: theme.textMuted, fontSize: 12 }}>{t('collection.noFolderYet')}</Text>
             )}
@@ -498,8 +549,34 @@ export default function CollectionScreen() {
           </ScrollView>
         </View>
 
-        {/* 第 3 頁：資料夾 */}
+        {/* 第 3 頁：資料夾。選中一個資料夾時整頁換成該資料夾的記錄清單 */}
         <View style={[styles.page, { width: windowWidth - Spacing.md * 2 }]}>
+          {selectedFolder ? (
+          <ScrollView contentContainerStyle={styles.pageScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.folderDetailHeader}>
+              <TouchableOpacity
+                testID="folder-back"
+                accessibilityRole="button"
+                hitSlop={ICON_HIT_SLOP}
+                onPress={() => setSelectedFolderId(null)}>
+                <Text style={[styles.folderBackText, { color: theme.textGold }]}>← {t('collection.backToFolders')}</Text>
+              </TouchableOpacity>
+              <View style={[styles.folderDot, { backgroundColor: selectedFolder.color }]} />
+              <Text style={[styles.folderName, { color: theme.textPrimary }]} numberOfLines={1}>{selectedFolder.name}</Text>
+              <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: folderRecords.length })}</Text>
+            </View>
+            {folderRecordsData.length === 0 && (
+              <View style={styles.empty}>
+                <Icon name="folder" size={40} color={theme.textMuted} />
+                <Text style={styles.emptyText}>{t('collection.folderEmpty')}</Text>
+                <Text style={styles.emptyHint}>{t('collection.folderEmptyDesc')}</Text>
+              </View>
+            )}
+            <View testID="folder-grid" style={styles.grid} onLayout={onGridLayout}>
+              {folderRecordsData.map((record) => renderRecordCard(record))}
+            </View>
+          </ScrollView>
+          ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             {showAddFolder ? (
               <View style={styles.addFolderRow}>
@@ -542,10 +619,19 @@ export default function CollectionScreen() {
             )}
             {folders.map(folder => (
               <View key={folder.id} style={[styles.folderCard, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
+                {/* 標題列整條可按：卡片上只列得下三筆，第四筆之後原本沒有
+                    任何地方到得了——資料夾看得到數字卻打不開 */}
                 <View style={styles.folderHeader}>
-                  <View style={[styles.folderDot, { backgroundColor: folder.color }]} />
-                  <Text style={[styles.folderName, { color: theme.textPrimary }]}>{folder.name}</Text>
-                  <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: folder.recordIds.length })}</Text>
+                  <TouchableOpacity
+                    testID={`folder-open-${folder.id}`}
+                    style={styles.folderOpen}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('a11y.openFolder')}
+                    onPress={() => setSelectedFolderId(folder.id)}>
+                    <View style={[styles.folderDot, { backgroundColor: folder.color }]} />
+                    <Text style={[styles.folderName, { color: theme.textPrimary }]} numberOfLines={1}>{folder.name}</Text>
+                    <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: recordsInFolder(folder).length })}</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     accessibilityRole="button"
                     accessibilityLabel={t('a11y.deleteFolder')}
@@ -554,21 +640,29 @@ export default function CollectionScreen() {
                     <Icon name="trash" size={14} color={theme.textRed} />
                   </TouchableOpacity>
                 </View>
-                {folder.recordIds.slice(0, 3).map(rid => {
-                  const rec = history.find(r => r.id === rid);
-                  if (!rec) return null;
+                {recordsInFolder(folder).slice(0, 3).map(rec => {
+                  const rid = rec.id;
                   return (
                     <TouchableOpacity key={rid} style={styles.folderRecord}
                       onPress={() => router.push(recordLink(rec))}>
                       <Text style={[styles.folderRecText, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {rec.drawnPieceChars.join(' ')} · {recordTitle(rec)}
+                        {/* 靈棋沒有棋子，照原樣串會印成「 · 大通卦」的前導分隔點 */}
+                        {[rec.drawnPieceChars.join(' '), recordTitle(rec)].filter(Boolean).join(' · ')}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
+                {recordsInFolder(folder).length > 3 && (
+                  <TouchableOpacity style={styles.folderRecord} onPress={() => setSelectedFolderId(folder.id)}>
+                    <Text style={[styles.folderRecText, { color: theme.textMuted }]}>
+                      {t('collection.moreRecords', { n: recordsInFolder(folder).length - 3 })}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </ScrollView>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -705,6 +799,15 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   folderDot: { width: 10, height: 10, borderRadius: 5 },
   folderName: { fontSize: FontSize.body, fontWeight: '600', flex: 1 },
   folderCount: { fontSize: FontSize.caption },
+  // 資料夾詳細頁的頁首：返回 + 色點 + 名稱 + 筆數
+  folderDetailHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  folderBackText: { fontSize: FontSize.small },
+  // 標題列的可按區塊：吃掉刪除鈕以外的全部寬度
+  folderOpen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   folderRecord: {
     marginTop: 6, paddingLeft: 18, paddingVertical: 4,
   },

@@ -114,6 +114,228 @@ test.describe('記錄與收藏', () => {
   });
 });
 
+test.describe('分享去處選單', () => {
+  /**
+   * 迴歸背景（S55）：原本的降級是一個二選一確認框（確認＝LINE、取消＝複製），
+   * 於是 `shareToFacebook()` 寫好了卻永遠沒有入口，而「取消」實際上是一個
+   * 動作而不是取消——按下去會偷偷覆寫剪貼簿。單元測試驗得了 shareToTarget
+   * 分得對，驗不了「使用者按分享真的看得到這三個去處」，故走真瀏覽器。
+   */
+  /**
+   * 攔下剪貼簿寫入而不是讀真的剪貼簿：`navigator.clipboard.writeText` 需要
+   * 使用者手勢，測試沒辦法先塞一筆進去當對照；攔下來還能直接數「寫了幾次」，
+   * 那正是「取消不該寫」要問的問題。
+   */
+  async function stubClipboard(page: Page) {
+    await page.addInitScript(() => {
+      const copies: string[] = [];
+      (window as unknown as { __copies: string[] }).__copies = copies;
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: (text: string) => { copies.push(text); return Promise.resolve(); },
+          readText: () => Promise.resolve(copies[copies.length - 1] ?? ''),
+        },
+      });
+    });
+  }
+
+  const copies = (page: Page) =>
+    page.evaluate(() => (window as unknown as { __copies: string[] }).__copies);
+
+  async function openShareSheet(page: Page) {
+    await drawPieces(page, 2);
+    await page.getByText('揭露籤詩').click({ timeout: 30_000 });
+    await expect(page).toHaveURL(/\/reveal/, { timeout: 30_000 });
+    await page.getByTestId('poem-share').click({ timeout: 30_000 });
+  }
+
+  test('按分享後三個去處都在，Facebook 也在', async ({ page }) => {
+    await openShareSheet(page);
+
+    await expect(page.getByTestId('share-target-line')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('share-target-facebook')).toBeVisible();
+    await expect(page.getByTestId('share-target-copy')).toBeVisible();
+  });
+
+  /**
+   * 取消要真的是取消。舊的確認框沒有這個狀態——兩顆按鈕都是動作，
+   * 想「算了」的人只能按取消，然後剪貼簿就被覆寫了。
+   */
+  test('取消就是什麼都不做，不會偷偷覆寫剪貼簿', async ({ page }) => {
+    await stubClipboard(page);
+    await openShareSheet(page);
+
+    await page.getByTestId('share-target-cancel').click();
+    await expect(page.getByTestId('share-target-copy')).toBeHidden({ timeout: 15_000 });
+    expect(await copies(page)).toEqual([]);
+  });
+
+  test('選複製文字才寫進剪貼簿', async ({ page }) => {
+    await stubClipboard(page);
+    page.on('dialog', d => d.accept());
+    await openShareSheet(page);
+
+    await page.getByTestId('share-target-copy').click();
+    await expect.poll(() => copies(page), { timeout: 15_000 }).toHaveLength(1);
+    expect((await copies(page))[0]).toContain('籤');
+  });
+});
+
+test.describe('記錄搜尋與卡片留白', () => {
+  /**
+   * 種三筆記錄：一筆寫了自由筆記、一筆回填了占驗自述、一筆是靈棋。
+   * 用 localStorage 直接種而非跑完整流程——要驗的是收藏頁怎麼呈現與比對
+   * 這些欄位，不是它們怎麼被寫進去的。
+   */
+  async function seedRecords(page: Page) {
+    const base = {
+      poemId: 1, poemTitle: '龍騰九霄', poemContent: '一二三四', poemLevel: '大吉',
+      drawnPieceTypes: ['general', 'chariot'], drawnPieceColors: ['red', 'black'],
+      drawnPieceChars: ['帥', '車'], isFavorited: false, engineVersion: 4,
+    };
+    const at = Date.now() - 86_400_000;
+    const records = [
+      { ...base, id: 'n1', mode: 'draw', timestamp: at, note: '主管換人，整件事重來' },
+      {
+        ...base, id: 'n2', mode: 'draw', timestamp: at - 1000,
+        outcome: { status: 'accurate', note: '三週後真的錄取了', verifiedAt: at },
+      },
+      {
+        ...base, id: 'n3', mode: 'lingqi', poemId: 0, poemLevel: '', poemTitle: '大通卦',
+        drawnPieceTypes: [], drawnPieceColors: [], drawnPieceChars: [],
+        lingqiKey: '1-1-1', timestamp: at - 2000,
+      },
+    ];
+    await page.addInitScript(
+      ([key, recs]) => window.localStorage.setItem(key as string, JSON.stringify(recs)),
+      [HISTORY_KEY, records] as const,
+    );
+    await page.goto('/collection');
+  }
+
+  /**
+   * 迴歸背景（S54）：`recordMatchesSearch` 比對了問題本文，卻沒有比對
+   * 使用者自己寫的兩則筆記——`note` 與 `outcome.note` 都是後來才加的欄位，
+   * 加的時候沒有回頭看誰在比對記錄。使用者最記得的常常正是自己寫的那句話。
+   */
+  test('搜尋得到自己寫下的自由筆記', async ({ page }) => {
+    await seedRecords(page);
+    const search = page.getByPlaceholder('搜尋籤詩內容');
+    await expect(search).toBeVisible({ timeout: 30_000 });
+    await search.fill('主管換人');
+    await expect(page.getByTestId('card-grid').first().getByTestId('record-pieces')).toHaveCount(1);
+  });
+
+  test('搜尋得到占驗回填時寫的自述', async ({ page }) => {
+    await seedRecords(page);
+    const search = page.getByPlaceholder('搜尋籤詩內容');
+    await expect(search).toBeVisible({ timeout: 30_000 });
+    await search.fill('錄取');
+    await expect(page.getByTestId('card-grid').first().getByTestId('record-pieces')).toHaveCount(1);
+  });
+
+  /**
+   * 靈棋擲的是卦目、不落子，`drawnPieceChars` 是空的。原本仍照畫一個
+   * 圓角色塊，於是每一筆靈棋記錄的左側都掛著一格沒有字的方塊——
+   * 與 S44 的空等級標籤是同一個毛病。三筆記錄只該有兩個棋子格。
+   */
+  test('靈棋記錄不留一格沒有字的棋子方塊', async ({ page }) => {
+    await seedRecords(page);
+    const grid = page.getByTestId('card-grid').first();
+    await expect(grid).toContainText('大通卦', { timeout: 30_000 });
+    await expect(grid.getByTestId('record-pieces')).toHaveCount(2);
+  });
+});
+
+test.describe('資料夾歸檔', () => {
+  /**
+   * 迴歸背景（S52）：資料夾原本只做了一半——`setSelectedFolderId` 從來沒被
+   * 呼叫過（資料夾點不開，卡片只列得下三筆），`removeFromFolder()` 也沒有
+   * 任何呼叫端（歸錯了只能連整個資料夾一起刪）。這條走完「建立 → 歸檔 →
+   * 打開 → 移出」，四步缺一就紅。
+   */
+  test('建立資料夾、歸檔一筆記錄、打開它、再移出', async ({ page }) => {
+    // 先產生一筆記錄
+    await drawPieces(page, 2);
+    await page.getByText('揭露籤詩').click({ timeout: 30_000 });
+    await expect(page).toHaveURL(/\/reveal/, { timeout: 30_000 });
+
+    await page.goto('/collection');
+
+    // 切到資料夾分頁並建立一個資料夾
+    await page.getByText(/^資料夾 \(\d+\)$/).click({ timeout: 15_000 });
+    await page.getByText('＋ 新增資料夾').click();
+    await page.getByPlaceholder('資料夾名稱').fill('測試夾');
+    await page.getByText('新增', { exact: true }).click();
+    await expect(page.getByText('測試夾')).toBeVisible({ timeout: 15_000 });
+
+    // 回到歷史分頁，把那筆記錄歸檔進去
+    await page.getByText(/^歷史記錄 \(\d+\)$/).click();
+    await page.locator('[data-testid^="record-folder-"]').first().click();
+    const pick = page.locator('[data-testid^="folder-pick-"]').first();
+    await expect(pick).toBeVisible({ timeout: 15_000 });
+    await pick.click();
+
+    // 資料夾分頁：計數變 1，而且點得開
+    await page.getByText(/^資料夾 \(\d+\)$/).click();
+    const openFolder = page.locator('[data-testid^="folder-open-"]').first();
+    await expect(openFolder).toBeVisible({ timeout: 15_000 });
+    await openFolder.click();
+
+    // 打開後看得到那筆記錄本身（不是只有三筆預覽的縮寫）
+    const folderGrid = page.getByTestId('folder-grid');
+    await expect(folderGrid.locator('[data-testid^="record-folder-"]')).toHaveCount(1, { timeout: 15_000 });
+
+    // 在資料夾內再點一次同一個資料夾＝移出
+    await folderGrid.locator('[data-testid^="record-folder-"]').first().click();
+    await page.locator('[data-testid^="folder-pick-"]').first().click();
+    await expect(page.getByText('這個資料夾還沒有記錄')).toBeVisible({ timeout: 15_000 });
+
+    // 返回鍵回到資料夾清單
+    await page.getByTestId('folder-back').click();
+    await expect(page.getByText('＋ 新增資料夾')).toBeVisible({ timeout: 15_000 });
+  });
+
+  /**
+   * 既有使用者的資料夾裡可能留著指不到記錄的 id：`removeHistory` 一直沒有
+   * 把被刪的記錄從資料夾拿掉（S54 修掉來源），但已經存下的那些治不了。
+   * 卡片的筆數因此要數「還指得到東西的」，否則會說「2 筆」而打開只有 1 筆。
+   */
+  test('資料夾的筆數不把已刪除的記錄算進去', async ({ page }) => {
+    const at = Date.now() - 86_400_000;
+    const record = {
+      poemId: 1, poemTitle: '龍騰九霄', poemContent: '一二三四', poemLevel: '大吉',
+      drawnPieceTypes: ['general'], drawnPieceColors: ['red'], drawnPieceChars: ['帥'],
+      isFavorited: false, engineVersion: 4, id: 'f1', mode: 'draw', timestamp: at,
+    };
+    await page.addInitScript(
+      ([hKey, sKey, recs, settings]) => {
+        window.localStorage.setItem(hKey as string, JSON.stringify(recs));
+        window.localStorage.setItem(sKey as string, JSON.stringify(settings));
+      },
+      [
+        HISTORY_KEY, SETTINGS_KEY, [record],
+        {
+          ...DEFAULT_SETTINGS,
+          folders: [{ id: 'folder-1', name: '舊夾', color: '#C9A96E', recordIds: ['f1', 'deleted-long-ago'] }],
+        },
+      ] as const,
+    );
+    await page.goto('/collection');
+
+    await page.getByText(/^資料夾 \(\d+\)$/).click({ timeout: 30_000 });
+    const card = page.getByTestId('folder-open-folder-1');
+    await expect(card).toBeVisible({ timeout: 15_000 });
+    // 「1 筆」而不是「2 筆」——多出來的那個 id 指不到任何記錄
+    await expect(card).toContainText('1 筆');
+
+    // 打開之後也真的只有一筆，兩處講的是同一個數字
+    await card.click();
+    await expect(page.getByTestId('folder-grid').getByTestId('record-pieces')).toHaveCount(1);
+  });
+});
+
 test.describe('籤詩頁轉場', () => {
   /**
    * 迴歸：墨滴擴散遮罩的完成回呼原本掛在 withTiming 的第三參數上。
@@ -408,6 +630,24 @@ test.describe('問事類別記憶', () => {
       SETTINGS_KEY,
     );
 
+  /**
+   * 點下去，直到設定裡真的出現那個值。
+   *
+   * 為什麼要重點而不是點一次就 poll：測的是 `expo export` 出來的靜態站台，
+   * 按鈕先由預渲染的 HTML 畫出來，React 掛上 onPress 是之後的事。落在
+   * 這兩者之間的那一次點擊什麼都不會發生，於是後面的 poll 等到逾時——
+   * Playwright 的可操作性檢查（可見、穩定、可接收事件）看不出「處理器
+   * 還沒掛上」，只有重點才跨得過去。選同一個類別是冪等的，多點幾次無害。
+   */
+  async function pickUntilStored(
+    page: Parameters<typeof drawPieces>[0], label: string, expected: string,
+  ) {
+    await expect.poll(async () => {
+      await page.getByRole('button', { name: label }).click();
+      return storedCategory(page);
+    }, { timeout: 15_000 }).toBe(expected);
+  }
+
   for (const [name, path, marker] of [
     ['抽棋頁', '/draw', '抽棋占卜'],
     ['棋盤頁', '/board', '棋盤佈局'],
@@ -417,13 +657,11 @@ test.describe('問事類別記憶', () => {
       await page.goto(path);
       await expect(page.getByText(marker).first()).toBeVisible({ timeout: 15_000 });
 
-      await page.getByRole('button', { name: '事業' }).click();
-      await expect.poll(() => storedCategory(page)).toBe('career');
+      await pickUntilStored(page, '事業', 'career');
 
       // 情境層選的是子領域，存的也該是子領域——存成主類別等於把使用者
       // 講清楚的那一層丟掉
-      await page.getByRole('button', { name: '求職' }).click();
-      await expect.poll(() => storedCategory(page)).toBe('jobSearch');
+      await pickUntilStored(page, '求職', 'jobSearch');
     });
   }
 });

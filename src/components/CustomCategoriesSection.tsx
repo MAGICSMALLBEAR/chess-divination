@@ -236,7 +236,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     padding: Spacing.sm, alignItems: 'center', marginTop: Spacing.sm,
   },
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    flex: 1, backgroundColor: t.scrim,
     alignItems: 'center', justifyContent: 'center',
     padding: Spacing.lg,
   },

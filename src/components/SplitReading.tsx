@@ -27,14 +27,6 @@ interface Props {
   main: ReactNode;
   /** 側欄：查證用的憑據（六爻盤、卦名、問題、棋盤位置） */
   rail: ReactNode;
-  /**
-   * 單欄時的內容寬度上限，預設為一般閱讀寬度（`Layout.maxContent`）。
-   *
-   * 棋盤頁需要覆寫成 720：棋盤與七個問事類別在 560 下會侷促、類別列還會
-   * 被截斷。這個上限只影響單欄，雙欄的寬度一律由 `split` 決定——
-   * 否則同一頁在兩種模式下會用兩套互相矛盾的寬度規則。
-   */
-  singleMaxWidth?: number;
 }
 
 /**
@@ -58,17 +50,12 @@ const stickyRail: ViewStyle | null = Platform.OS === 'web'
     } as unknown as ViewStyle)
   : null;
 
-export function SplitReading({ head, main, rail, singleMaxWidth }: Props) {
-  const { width, contentWidth, height, split } = useLayout();
+export function SplitReading({ head, main, rail }: Props) {
+  const { contentWidth, height, split } = useLayout();
 
   if (!split) {
-    // 覆寫上限時要重算而非直接取 contentWidth——後者已經套過 maxContent，
-    // 拿它跟更大的上限取 min 只會永遠得到 560。
-    const singleWidth = singleMaxWidth === undefined
-      ? contentWidth
-      : Math.min(width - Spacing.xl * 2, singleMaxWidth);
     return (
-      <View style={[styles.single, { width: singleWidth }]} testID="reading-single">
+      <View style={[styles.single, { width: contentWidth }]} testID="reading-single">
         {head}
         {rail}
         {main}

@@ -223,6 +223,29 @@ async function addDeletedIds(ids: string[]): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.DELETED, JSON.stringify(next));
 }
 
+/**
+ * 把已刪除的記錄 id 從所有資料夾裡拿掉。
+ *
+ * 資料夾存的是 id 而不是記錄本身，刪記錄時若不清這一份，資料夾會永遠
+ * 抱著一串指不到任何東西的 id：卡片上的筆數把它們算進去（「5 筆」），
+ * 打開卻只列得出剩下的那幾筆——同一個資料夾的兩個地方講不同的數字。
+ * 那串 id 還會跟著備份與雲端同步一路複製下去，且只增不減。
+ *
+ * 沒有要刪的 id 時直接返回，不進佇列——刪一筆不在任何資料夾裡的記錄
+ * 是最常見的情況，不該為它多寫一次設定。
+ */
+async function pruneFromFolders(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const gone = new Set(ids);
+  await updateSettings(current => {
+    const folders = current.folders || [];
+    if (!folders.some(f => f.recordIds.some(id => gone.has(id)))) return {};
+    return {
+      folders: folders.map(f => ({ ...f, recordIds: f.recordIds.filter(id => !gone.has(id)) })),
+    };
+  });
+}
+
 export async function removeHistory(id: string): Promise<void> {
   const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
   const filtered = history.filter(r => r.id !== id);
@@ -234,19 +257,24 @@ export async function removeHistory(id: string): Promise<void> {
     AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(keptFavorites)),
   ]);
   await addDeletedIds([id]);
+  await pruneFromFolders([id]);
 }
 
 export async function clearHistory(): Promise<void> {
   const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
+  const gone = [...new Set([...history.map(r => r.id), ...favorites.map(r => r.id)])];
   // 墓碑取兩邊 id 的聯集。只記歷史的話，歷史已無、收藏還在的孤兒記錄
   // （舊版只刪歷史所留下的）會被清掉卻沒有墓碑，下次同步就從雲端復活。
-  await addDeletedIds([...new Set([...history.map(r => r.id), ...favorites.map(r => r.id)])]);
+  await addDeletedIds(gone);
   // 「清除所有歷史」是使用者確認過的破壞性操作——收藏若留著，
   // 收藏頁會繼續顯示整套記錄，與剛接受的確認互相矛盾。
   await Promise.all([
     AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify([])),
     AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify([])),
   ]);
+  // 資料夾本身保留（那是使用者建的分類，不在這次確認的範圍內），
+  // 但裡面的記錄 id 全都指不到東西了，一併清空
+  await pruneFromFolders(gone);
 }
 
 // ====== Favorites ======

@@ -30,8 +30,9 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
 import { getSpread, spreadBriefFromSummary, SPREAD_LABEL_KEYS } from '@/services/spreads';
-import { shareNative, shareToLine, copyToClipboard, formatDivinationShareText } from '@/services/socialShare';
-import { confirmAction, notify } from '@/services/dialog';
+import { shareNative, shareToTarget, formatDivinationShareText, type ShareTarget } from '@/services/socialShare';
+import ShareTargetSheet from '@/components/ShareTargetSheet';
+import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
 import { localizePoem } from '@/services/localize';
 import { recordUsage, syncAchievements } from '@/services/achievements';
@@ -70,6 +71,8 @@ export default function RevealScreen() {
   const [missing, setMissing] = useState(false);
   // 感情問事的用神取法取決於占者性別；設定讀不到就不出斷語
   const [divinerGender, setDivinerGender] = useState<DivinerGender | undefined>(undefined);
+  /** 待分享的文字。非 null 時分享去處選單就是開著的——選單本身沒有狀態 */
+  const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const shareRef = useRef<ShareCardHandle>(null);
 
   // AI 深度解讀。這是加值內容——取不到時保留下方的規則式解讀，
@@ -257,23 +260,21 @@ export default function RevealScreen() {
       const nativeOk = await shareNative({ title: t('reveal.shareTitle'), text: shareText });
       if (nativeOk) return;
 
-      // 降級：LINE / 複製。
-      // 原本這裡直接用 window.confirm／window.alert 繞開 react-native-web
-      // 的 Alert 空殼，但原生端沒有 window，等於整段降級在手機上是靜默的：
-      // 不問就複製、複製完也不說。改走 dialog 服務後兩個平台一致。
-      const confirmed = await confirmAction({
-        title: t('reveal.shareLine'),
-        message: t('reveal.shareLineDesc'),
-        confirmLabel: t('common.confirm'),
-        cancelLabel: t('common.cancel'),
-      });
-      if (confirmed) {
-        shareToLine({ title: t('reveal.shareTitle'), text: shareText });
-      } else {
-        const ok = await copyToClipboard(shareText);
-        notify(t(ok ? 'reveal.copied' : 'reveal.copyManual'));
-      }
+      // 降級：讓使用者自己挑去處。
+      // 原本這裡是一個二選一的確認框（確認＝LINE、取消＝複製），
+      // 於是 `shareToFacebook()` 寫好了卻永遠沒有入口，而「取消」實際上
+      // 是一個動作而不是取消——按下去會偷偷覆寫剪貼簿。
+      setPendingShareText(shareText);
     }
+  }
+
+  /** 使用者在分享選單挑了去處。訊息由服務層決定，這裡只負責說出來 */
+  async function handleShareTarget(target: ShareTarget) {
+    const text = pendingShareText;
+    setPendingShareText(null);
+    if (!text) return;
+    const messageKey = await shareToTarget(target, { title: t('reveal.shareTitle'), text });
+    if (messageKey) notify(t(messageKey));
   }
 
   function handleNewDraw() {
@@ -536,6 +537,12 @@ export default function RevealScreen() {
           bodyUseRelation={reading ? `${reading.bodyUse.relation} · ${reading.finalLevel}` : undefined}
         />
       </View>
+
+      <ShareTargetSheet
+        visible={pendingShareText !== null}
+        onSelect={handleShareTarget}
+        onDismiss={() => setPendingShareText(null)}
+      />
     </SafeAreaView>
   );
 }

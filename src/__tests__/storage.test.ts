@@ -428,6 +428,62 @@ describe('資料夾', () => {
     const folders = await getFolders();
     expect(folders[0].recordIds).toEqual(['record-B']);
   });
+
+  /**
+   * 資料夾存的是 id，不是記錄本身。刪記錄時若不順手清這一份，資料夾會
+   * 抱著一串指不到任何東西的 id：卡片上的筆數把它們算進去，打開卻只列得出
+   * 剩下的那幾筆，而且那串 id 會跟著備份與雲端同步一路複製下去、只增不減。
+   */
+  test('刪除記錄時一併從資料夾裡拿掉', async () => {
+    const kept = await addHistory(makeRecord({ poemTitle: '留著' }));
+    const doomed = await addHistory(makeRecord({ poemTitle: '要刪' }));
+    const folder = await addFolder('收藏夾');
+    await addToFolder(folder.id, kept.id);
+    await addToFolder(folder.id, doomed.id);
+
+    await removeHistory(doomed.id);
+
+    const folders = await getFolders();
+    expect(folders[0].recordIds).toEqual([kept.id]);
+  });
+
+  test('清空歷史後資料夾還在，但裡面不留指不到東西的 id', async () => {
+    const record = await addHistory(makeRecord());
+    const folder = await addFolder('收藏夾');
+    await addToFolder(folder.id, record.id);
+
+    await clearHistory();
+
+    const folders = await getFolders();
+    // 資料夾是使用者建的分類，不在「清除所有歷史」的確認範圍內，留著
+    expect(folders).toHaveLength(1);
+    expect(folders[0].name).toBe('收藏夾');
+    expect(folders[0].recordIds).toEqual([]);
+  });
+
+  test('刪除不在任何資料夾裡的記錄，不動到資料夾', async () => {
+    const inFolder = await addHistory(makeRecord({ poemTitle: '在夾裡' }));
+    const loose = await addHistory(makeRecord({ poemTitle: '沒歸檔' }));
+    const folder = await addFolder('收藏夾');
+    await addToFolder(folder.id, inFolder.id);
+
+    await removeHistory(loose.id);
+
+    const folders = await getFolders();
+    expect(folders[0].recordIds).toEqual([inFolder.id]);
+  });
+
+  test('收藏過的記錄被刪除時，資料夾同樣清得掉', async () => {
+    const record = await addHistory(makeRecord());
+    await toggleFavorite({ ...record });
+    const folder = await addFolder('收藏夾');
+    await addToFolder(folder.id, record.id);
+
+    await removeHistory(record.id);
+
+    expect(await getFavorites()).toEqual([]);
+    expect((await getFolders())[0].recordIds).toEqual([]);
+  });
 });
 
 describe('每日運勢', () => {

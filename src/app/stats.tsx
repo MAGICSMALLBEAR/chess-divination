@@ -73,8 +73,9 @@ export default function StatsScreen() {
 
   // 吉凶分佈。靈棋走《靈棋經》原典，原文未載吉凶等級，我們也不代為補寫——
   // 不濾掉的話會多出一條以空字串為名的長條。
+  const leveled = filtered.filter(recordHasLevel);
   const levelCounts: Record<string, number> = {};
-  filtered.filter(recordHasLevel).forEach(r => {
+  leveled.forEach(r => {
     levelCounts[r.poemLevel] = (levelCounts[r.poemLevel] || 0) + 1;
   });
 
@@ -261,8 +262,11 @@ export default function StatsScreen() {
           <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{t('stats.levelDist')}</Text>
           {POEM_LEVELS.map(level => {
             const count = levelCounts[level] || 0;
-            const pct = total > 0 ? (count / total * 100) : 0;
-            const barW = total > 0 ? (count / maxLevel * 100) : 0;
+            // 分母是「有吉凶等級的記錄」而不是 total——靈棋沒有等級，
+            // 拿全部記錄當分母會讓五個百分比加起來不到 100%，
+            // 而畫面上完全看不出少掉的是誰。
+            const pct = leveled.length > 0 ? Math.round(count / leveled.length * 100) : 0;
+            const barW = leveled.length > 0 ? (count / maxLevel * 100) : 0;
             return (
               <View key={level} style={styles.barRow}>
                 <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{level}</Text>
@@ -270,6 +274,9 @@ export default function StatsScreen() {
                   <View style={[styles.barFill, { width: `${barW}%`, backgroundColor: getLevelColor(level) }]} />
                 </View>
                 <Text style={[styles.barCount, { color: theme.textMuted }]}>{count}</Text>
+                {/* 長條的長度是相對「最多的那一級」，看不出佔全體幾成——
+                    那正是這一節該回答的問題，故另印百分比 */}
+                <Text style={[styles.barPct, { color: theme.textMuted }]}>{pct}%</Text>
               </View>
             );
           })}
@@ -444,6 +451,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   barTrack: { flex: 1, height: 14, backgroundColor: t.bgDark, borderRadius: 7, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 7, minWidth: 2 },
   barCount: { fontSize: FontSize.small, width: 30, textAlign: 'right' },
+  barPct: { fontSize: FontSize.caption, width: 38, textAlign: 'right' },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   rankNum: { fontSize: FontSize.small, fontWeight: '700', width: 24 },
   rankType: { fontSize: FontSize.body, flex: 1 },

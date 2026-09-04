@@ -105,7 +105,10 @@ export default function LiuYaoPanel({
         {columns.map(({ info, caption, hint, moving }) => (
           <View key={caption} style={styles.column}>
             <Text style={[styles.caption, { color: theme.textMuted }]}>{caption}</Text>
-            <HexagramLines lines={info.lines} movingLine={moving} width={52} />
+            {/* 印出爻名（初九／六二…）：動爻那一列在文字段落裡是以爻名稱呼的
+                （「九三爻動」），圖上沒有爻名的話讀者對不起來是哪一條。
+                寬度收到 44 讓三卦並列後仍容得下標籤 */}
+            <HexagramLines lines={info.lines} movingLine={moving} width={44} showLabels />
             <Text style={[styles.hexName, { color: theme.textPrimary }]}>{info.name}</Text>
             <Text style={[styles.hint, { color: theme.textMuted }]}>{hint}</Text>
           </View>

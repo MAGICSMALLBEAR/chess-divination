@@ -115,10 +115,10 @@ test.describe('兩軍對壘陣的分享', () => {
     await expect(page).toHaveURL(/reveal/);
     await expect(page.getByText('棋盤佈局解讀')).toBeVisible({ timeout: 30_000 });
 
-    // 先 confirm（LINE？取消則複製），複製完再 alert。常駐 handler 的理由
-    // 見 lingqi.spec.ts——只接第一個會讓時序變成看運氣
-    page.on('dialog', d => (d.type() === 'confirm' ? d.dismiss() : d.accept()));
+    // 分享降級已改成去處選單（S55），理由見 lingqi.spec.ts
+    page.on('dialog', d => d.accept());
     await page.getByTestId('poem-share').click();
+    await page.getByTestId('share-target-copy').click();
 
     const clipboard = () => page.evaluate(() => navigator.clipboard.readText());
     await expect.poll(clipboard).toContain('牌陣：兩軍對壘陣');

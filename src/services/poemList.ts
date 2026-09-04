@@ -91,6 +91,10 @@ export interface SearchableRecord {
   poemContent: string;
   drawnPieceChars: string[];
   questionText?: string;
+  /** 使用者為這次占卜寫下的自由筆記 */
+  note?: string;
+  /** 占驗回填時自述「實際發生了什麼」 */
+  outcome?: { note?: string };
   /** 靈棋記錄不查籤詩表，見 recordTitle 與 recordMatchesSearch */
   mode?: string;
 }
@@ -107,9 +111,15 @@ export interface SearchableRecord {
  * 記錄自己存的中文原題與原文內容一併保留：那是這筆記錄的真實快照，
  * 且籤詩資料日後若有增修，記錄上的字仍應搜得到。
  *
- * questionText 是唯一不顯示在卡片上卻納入比對的欄位——它是使用者
- * 回頭找某一次占卜時最好用的線索（「我那次問工作的是哪一卦？」），
- * 而且只會多命中、不會漏掉本來搜得到的東西。
+ * questionText、note 與 outcome.note 都不顯示在卡片上，仍納入比對——
+ * 它們是使用者回頭找某一次占卜時最好用的線索（「我那次問工作的是哪一卦？」
+ * 「後來寫了『主管換人』的是哪一筆？」），而且只會多命中、不會漏掉本來
+ * 搜得到的東西。
+ *
+ * 兩則筆記原本漏在外面：questionText 是起卦當下就有的欄位，寫這段比對時
+ * 就在；`note`（自由筆記）與 `outcome.note`（占驗自述）是後來才加的，
+ * 加欄位時沒有回頭看誰在比對記錄。使用者自己動手打下的字，比系統代填的
+ * 任何欄位都更該搜得到。
  */
 export function recordMatchesSearch(record: SearchableRecord, query: string, lang: Lang): boolean {
   const q = query.trim().toLowerCase();
@@ -123,6 +133,13 @@ export function recordMatchesSearch(record: SearchableRecord, query: string, lan
   // 其卦名與詩句改由下方的 poemTitle／poemContent 快照涵蓋。
   if (record.mode !== 'lingqi' && poemMatchesSearch(getPoemById(record.poemId), query, lang)) return true;
 
-  const own = [record.poemTitle, record.poemContent, record.drawnPieceChars.join(''), record.questionText ?? ''];
+  const own = [
+    record.poemTitle,
+    record.poemContent,
+    record.drawnPieceChars.join(''),
+    record.questionText ?? '',
+    record.note ?? '',
+    record.outcome?.note ?? '',
+  ];
   return own.some(text => text.toLowerCase().includes(q));
 }

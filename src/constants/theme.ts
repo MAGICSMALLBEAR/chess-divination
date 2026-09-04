@@ -8,6 +8,15 @@ export interface ThemeColors {
   bgMedium: string;     // 中色背景（棋盤木色）
   bgRice: string;       // 宣紙白背景
   bgCard: string;       // 卡片背景
+  /**
+   * Modal 背後的遮罩。半透明黑，兩個主題各給一個濃度——淺色主題壓 0.6
+   * 會讓整頁看起來像關燈，0.45 已足夠把焦點交給對話框。
+   *
+   * 之所以進主題而不是各元件自己寫死：這是唯一一個「畫面上看得到、
+   * 卻沒有 token」的顏色，兩個用到它的元件因此各自躺在 theming 守門的
+   * 白名單裡。有了 token，那份白名單就能短兩條。
+   */
+  scrim: string;        // Modal 遮罩
 
   // 主色系
   ink: string;          // 墨色（主文字/邊框）
@@ -53,6 +62,7 @@ export const DarkTheme: ThemeColors = {
   bgMedium: '#2A1F18',
   bgRice: '#F5EDE0',
   bgCard: '#231A14',
+  scrim: 'rgba(0,0,0,0.6)',
 
   ink: '#1A1210',
   cinnabar: '#C0392B',
@@ -96,6 +106,7 @@ export const LightTheme: ThemeColors = {
   bgMedium: '#D4C4A8',
   bgRice: '#FFFDF7',
   bgCard: '#FFFFFF',
+  scrim: 'rgba(0,0,0,0.45)',
 
   ink: '#1A1210',
   cinnabar: '#C0392B',

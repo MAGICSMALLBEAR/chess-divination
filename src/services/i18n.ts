@@ -203,11 +203,12 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 純圖示按鈕在讀屏下只會被念成「按鈕」——沒有標籤，使用者無從得知
   // 按下去會發生什麼。這些字串不會顯示在畫面上，只走 accessibilityLabel。
   'a11y.shareDailyFortune': { 'zh-TW': '分享每日運勢', en: 'Share daily fortune', ja: '今日の運勢を共有' },
-  'a11y.addToFolder': { 'zh-TW': '加入資料夾', en: 'Add to folder', ja: 'フォルダに追加' },
+  'a11y.manageFolders': { 'zh-TW': '管理資料夾歸檔', en: 'Manage folders', ja: 'フォルダを管理' },
   'a11y.favoriteRecord': { 'zh-TW': '收藏這筆記錄', en: 'Favorite this record', ja: 'この記録をお気に入りに追加' },
   'a11y.unfavoriteRecord': { 'zh-TW': '取消收藏這筆記錄', en: 'Unfavorite this record', ja: 'この記録のお気に入りを解除' },
   'a11y.deleteRecord': { 'zh-TW': '刪除這筆記錄', en: 'Delete this record', ja: 'この記録を削除' },
   'a11y.deleteFolder': { 'zh-TW': '刪除資料夾', en: 'Delete folder', ja: 'フォルダを削除' },
+  'a11y.openFolder': { 'zh-TW': '開啟資料夾', en: 'Open folder', ja: 'フォルダを開く' },
   'a11y.randomPoem': { 'zh-TW': '隨機翻閱一首籤詩', en: 'Open a random poem', ja: 'ランダムに籤詩を開く' },
   'a11y.enterFullscreen': { 'zh-TW': '進入全螢幕棋盤', en: 'Enter fullscreen board', ja: '全画面の盤に切り替え' },
   'a11y.exitFullscreen': { 'zh-TW': '離開全螢幕棋盤', en: 'Exit fullscreen board', ja: '全画面の盤を終了' },
@@ -293,8 +294,11 @@ export const translations: Record<string, Record<Lang, string>> = {
     ja: 'ⓘ この記録の動爻は旧版の算法によるものです（卦数に 0 起点の索引を用いたため、梅花易数より 2 少ない）。卦序と詩は正しく、動爻とそこから導かれる変卦・体用のみが古法と異なります。元の占い結果を保つため記録はそのまま残しています。新しい占いは古法を使用します。',
   },
   'reveal.shareTitle': { 'zh-TW': '象棋占卜結果', en: 'Chess Divination Result', ja: '象棋占いの結果' },
-  'reveal.shareLine': { 'zh-TW': '分享到 LINE？', en: 'Share to LINE?', ja: 'LINE に共有しますか？' },
-  'reveal.shareLineDesc': { 'zh-TW': '取消則複製到剪貼簿', en: 'Cancel to copy to clipboard instead', ja: 'キャンセルするとクリップボードにコピーします' },
+  // 分享去處選單（ShareTargetSheet）。LINE 與 Facebook 是品牌名不翻，
+  // 直接寫在元件裡；只有「複製文字」與 Facebook 的補充說明需要三語。
+  'share.pickTitle': { 'zh-TW': '分享到', en: 'Share to', ja: '共有先' },
+  'share.viaCopy': { 'zh-TW': '複製文字', en: 'Copy text', ja: 'テキストをコピー' },
+  'share.fbCopied': { 'zh-TW': '籤詩內容已複製，貼進貼文即可', en: 'Reading copied — paste it into your post', ja: '内容をコピーしました。投稿に貼り付けてください' },
   'reveal.copied': { 'zh-TW': '已複製到剪貼簿', en: 'Copied to clipboard', ja: 'クリップボードにコピーしました' },
   'reveal.copyManual': { 'zh-TW': '複製失敗，請手動選取文字複製', en: 'Copy failed — please select and copy the text manually', ja: 'コピーに失敗しました。テキストを手動で選択してコピーしてください' },
 
@@ -398,7 +402,12 @@ export const translations: Record<string, Record<Lang, string>> = {
   'collection.confirmOneDesc': { 'zh-TW': '確定要刪除此記錄嗎？', en: 'Delete this record?', ja: 'この記録を削除しますか？' },
   'collection.deleteFolder': { 'zh-TW': '刪除資料夾', en: 'Delete Folder', ja: 'フォルダを削除' },
   'collection.deleteFolderDesc': { 'zh-TW': '確定要刪除嗎？記錄不會被刪除。', en: 'Delete this folder? The records themselves are kept.', ja: 'フォルダを削除しますか？記録自体は残ります。' },
-  'collection.addToFolder': { 'zh-TW': '加到資料夾：', en: 'Add to folder:', ja: 'フォルダに追加：' },
+  // 歸檔清單是「切換」而非「只進不出」：已歸檔的資料夾右側打勾，再點一次移出。
+  'collection.folderPick': { 'zh-TW': '歸檔至資料夾（再點一次移出）：', en: 'File in folders (tap again to remove):', ja: 'フォルダに整理（もう一度タップで解除）：' },
+  'collection.backToFolders': { 'zh-TW': '所有資料夾', en: 'All folders', ja: 'すべてのフォルダ' },
+  'collection.folderEmpty': { 'zh-TW': '這個資料夾還沒有記錄', en: 'This folder is empty', ja: 'このフォルダは空です' },
+  'collection.folderEmptyDesc': { 'zh-TW': '在歷史或收藏的記錄上點資料夾圖示即可歸檔', en: 'Tap the folder icon on any record to file it here', ja: '記録のフォルダアイコンからここに整理できます' },
+  'collection.moreRecords': { 'zh-TW': '還有 {n} 筆…', en: '{n} more…', ja: '他 {n} 件…' },
   'collection.noFolderYet': { 'zh-TW': '尚無資料夾，請先建立', en: 'No folders yet — create one first', ja: 'フォルダがありません。まず作成してください' },
   'collection.newFolder': { 'zh-TW': '新增資料夾', en: 'New Folder', ja: 'フォルダを追加' },
   'collection.folderName': { 'zh-TW': '資料夾名稱', en: 'Folder name', ja: 'フォルダ名' },

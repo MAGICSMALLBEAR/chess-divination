@@ -12,6 +12,18 @@ export interface ShareContent {
   url?: string;
 }
 
+/**
+ * 分享去處。原生分享選單拿不到時（桌面瀏覽器、拒絕授權），
+ * 由 ShareTargetSheet 讓使用者自己挑一個。
+ */
+export type ShareTarget = 'line' | 'facebook' | 'copy';
+
+/**
+ * 分享出去的落點。Facebook 的 sharer 只認 `u` 參數，`quote` 早已被
+ * 忽略——沒有這個網址，分享出去會是一則完全空白的貼文。
+ */
+export const SHARE_URL = 'https://chess-divination-app.vercel.app';
+
 /** 嘗試使用 Web Share API（行動裝置原生分享選單） */
 export async function shareNative(content: ShareContent): Promise<boolean> {
   try {
@@ -61,6 +73,31 @@ export function shareToFacebook(content: ShareContent): boolean {
   // 原生端降級為通用分享
   shareNative(content);
   return true;
+}
+
+/**
+ * 把內容送到使用者選的去處，回傳要說給使用者聽的訊息鍵（null＝不必說話）。
+ *
+ * 集中在服務層而不是各頁自己寫：揭曉頁與靈棋頁的分享降級路徑一字不差，
+ * 分開寫遲早會有一邊漏掉 Facebook 那段的剪貼簿處理。
+ *
+ * 為什麼 Facebook 要先複製一份：`sharer.php` 只帶得走網址，籤詩內容
+ * 到不了貼文裡。不複製的話，使用者選了 Facebook 只會得到一個光禿禿的
+ * 連結，而他要分享的那首籤詩不見了。
+ */
+export async function shareToTarget(target: ShareTarget, content: ShareContent): Promise<string | null> {
+  if (target === 'line') {
+    shareToLine(content);
+    return null;
+  }
+
+  if (target === 'facebook') {
+    const copied = await copyToClipboard(content.text);
+    shareToFacebook({ ...content, url: content.url ?? SHARE_URL });
+    return copied ? 'share.fbCopied' : null;
+  }
+
+  return (await copyToClipboard(content.text)) ? 'reveal.copied' : 'reveal.copyManual';
 }
 
 /** 複製到剪貼簿 */

@@ -102,11 +102,11 @@ test.describe('靈棋十二子', () => {
       HISTORY_KEY,
     ) as string;
 
-    // 會連跳兩個原生對話框：先 confirm（LINE？取消則複製），複製完再 alert 告知。
-    // 用常駐 handler 而非 page.once——只接第一個的話，第二個會落到 Playwright
-    // 的自動關閉上，而複製與通知之間的時序就此變成看運氣（這條原本就是這樣 flaky 的）。
-    page.on('dialog', d => (d.type() === 'confirm' ? d.dismiss() : d.accept()));
+    // 分享降級已改成去處選單（S55）：點分享 → 選單 → 複製文字。
+    // 剩下的原生對話框只有複製完的 alert，常駐 handler 接掉即可。
+    page.on('dialog', d => d.accept());
     await page.getByTestId('lingqi-share').click();
+    await page.getByTestId('share-target-copy').click();
 
     // 剪貼簿是在對話框關掉之後才寫入的，點擊 resolve 不代表已經寫完
     const clipboard = () => page.evaluate(() => navigator.clipboard.readText());

@@ -150,6 +150,30 @@ describe('recordMatchesSearch：收藏頁的記錄搜尋', () => {
     expect(recordMatchesSearch(noQuestion, 'zzzz', 'zh-TW')).toBe(false);
   });
 
+  /**
+   * 兩則筆記都是使用者自己動手打下的字，卻曾經搜不到——`note`（自由筆記）
+   * 與 `outcome.note`（占驗自述）是比 questionText 更晚才加的欄位，加的時候
+   * 沒有回頭看誰在比對記錄。使用者最記得的往往正是自己寫的那句話。
+   */
+  test('以自由筆記命中', () => {
+    const withNote = { ...record, note: '主管換人，整件事重來' };
+    expect(recordMatchesSearch(withNote, '主管換人', 'zh-TW')).toBe(true);
+    // 沒寫筆記的同一筆記錄不會因此誤命中
+    expect(recordMatchesSearch(record, '主管換人', 'zh-TW')).toBe(false);
+  });
+
+  test('以占驗自述命中', () => {
+    const verified = { ...record, outcome: { note: '三週後真的錄取了' } };
+    expect(recordMatchesSearch(verified, '錄取', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(record, '錄取', 'zh-TW')).toBe(false);
+  });
+
+  test('占驗已回填但沒寫自述時不出錯', () => {
+    const verified = { ...record, outcome: {} };
+    expect(recordMatchesSearch(verified, '乾為天', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(verified, 'zzzz', 'zh-TW')).toBe(false);
+  });
+
   test('空字串視為不過濾', () => {
     expect(recordMatchesSearch(record, '', 'zh-TW')).toBe(true);
     expect(recordMatchesSearch(record, '   ', 'zh-TW')).toBe(true);

@@ -19,8 +19,9 @@ import {
 } from '@/services/storage';
 import { cancelVerificationReminder, scheduleVerificationReminder } from '@/services/notifications';
 import { recordUsage, syncAchievements } from '@/services/achievements';
-import { confirmAction, notify } from '@/services/dialog';
-import { copyToClipboard, formatLingqiShareText, shareNative, shareToLine } from '@/services/socialShare';
+import { notify } from '@/services/dialog';
+import { formatLingqiShareText, shareNative, shareToTarget, type ShareTarget } from '@/services/socialShare';
+import ShareTargetSheet from '@/components/ShareTargetSheet';
 import { hapticMedium, hapticSuccess } from '@/services/haptics';
 import { playFavoriteSound, playShakeSound } from '@/services/sound';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -44,6 +45,8 @@ export default function LingqiScreen() {
   const [isFav, setIsFav] = useState(false);
   const shareRef = useRef<ShareCardHandle>(null);
   const [selectedCategory, setSelectedCategory] = useState('general');
+  /** 待分享的文字。非 null 時分享去處選單就是開著的（同 reveal.tsx） */
+  const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState('');
 
   // 規則式深度解讀。在 render 時取語言（localizeProse 讀 getLang），
@@ -173,19 +176,17 @@ export default function LingqiScreen() {
 
     if (await shareNative({ title: t('reveal.shareTitle'), text })) return;
 
-    const confirmed = await confirmAction({
-      title: t('reveal.shareLine'),
-      message: t('reveal.shareLineDesc'),
-      confirmLabel: t('common.confirm'),
-      cancelLabel: t('common.cancel'),
-    });
-    if (confirmed) {
-      shareToLine({ title: t('reveal.shareTitle'), text });
-    } else {
-      // 複製成功與否都要說一聲，否則使用者按了像是沒反應（同 reveal.tsx）
-      const ok = await copyToClipboard(text);
-      notify(t(ok ? 'reveal.copied' : 'reveal.copyManual'));
-    }
+    // 降級：讓使用者自己挑去處（與 reveal.tsx 同一套，見那裡的說明）
+    setPendingShareText(text);
+  }
+
+  /** 使用者在分享選單挑了去處。複製成功與否都要說一聲，否則按了像是沒反應 */
+  async function handleShareTarget(target: ShareTarget) {
+    const text = pendingShareText;
+    setPendingShareText(null);
+    if (!text) return;
+    const messageKey = await shareToTarget(target, { title: t('reveal.shareTitle'), text });
+    if (messageKey) notify(t(messageKey));
   }
 
   const refreshRecord = useCallback(async (id: string) => {
@@ -386,6 +387,12 @@ export default function LingqiScreen() {
           />
         </View>
       )}
+
+      <ShareTargetSheet
+        visible={pendingShareText !== null}
+        onSelect={handleShareTarget}
+        onDismiss={() => setPendingShareText(null)}
+      />
     </SafeAreaView>
   );
 }

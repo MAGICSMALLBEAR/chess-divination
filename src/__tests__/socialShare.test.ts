@@ -4,9 +4,11 @@ import {
   shareNative,
   shareToLine,
   shareToFacebook,
+  shareToTarget,
   copyToClipboard,
   formatDivinationShareText,
   formatLingqiShareText,
+  SHARE_URL,
 } from '../services/socialShare';
 
 const originalOS = Platform.OS;
@@ -379,5 +381,79 @@ describe('formatDivinationShareText 的牌陣', () => {
   test('抽棋與自由佈局同樣不帶——呼叫端傳 undefined', () => {
     const text = formatDivinationShareText({ ...base, spreadName: undefined });
     expect(text).not.toContain('牌陣');
+  });
+});
+
+/**
+ * shareToTarget：分享去處選單挑完之後走的那一段。
+ *
+ * 為什麼要有這一層：揭曉頁與靈棋頁的降級路徑一字不差，分開寫遲早會有一邊
+ * 漏掉 Facebook 那段的剪貼簿處理。回傳的是訊息鍵而非直接 notify——服務層
+ * 不碰 i18n 與對話框，畫面才決定得了要不要說、怎麼說。
+ */
+describe('shareToTarget', () => {
+  function stubWeb(clipboardOk = true) {
+    setPlatform('web');
+    const open = jest.fn();
+    (globalThis as { window?: unknown }).window = { open };
+    const writeText = clipboardOk
+      ? jest.fn().mockResolvedValue(undefined)
+      : jest.fn().mockRejectedValue(new Error('denied'));
+    (globalThis as { navigator?: unknown }).navigator = { clipboard: { writeText } };
+    return { open, writeText };
+  }
+
+  test('LINE：開 LINE，不動剪貼簿，也不必說話', async () => {
+    const { open, writeText } = stubWeb();
+
+    await expect(shareToTarget('line', { title: 't', text: '內容' })).resolves.toBeNull();
+    expect(open.mock.calls[0][0]).toContain('line.me');
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 這一條是 Facebook 這個去處存在的理由本身：`sharer.php` 只帶得走網址，
+   * quote 早被 Meta 忽略。不先複製一份，使用者選了 Facebook 只會得到一個
+   * 光禿禿的連結，而他要分享的那首籤詩不見了。
+   */
+  test('Facebook：先把內容複製起來，再開 sharer，並告知已複製', async () => {
+    const { open, writeText } = stubWeb();
+
+    await expect(shareToTarget('facebook', { title: 't', text: '內容' }))
+      .resolves.toBe('share.fbCopied');
+    expect(writeText).toHaveBeenCalledWith('內容');
+    expect(open.mock.calls[0][0]).toContain('facebook.com/sharer/sharer.php');
+  });
+
+  test('Facebook：沒帶 url 時補上 App 網址，否則會是一則空貼文', async () => {
+    const { open } = stubWeb();
+
+    await shareToTarget('facebook', { title: 't', text: '內容' });
+    expect(open.mock.calls[0][0]).toContain(encodeURIComponent(SHARE_URL));
+  });
+
+  test('Facebook：呼叫端自己帶了 url 就用它的，不覆寫', async () => {
+    const { open } = stubWeb();
+
+    await shareToTarget('facebook', { title: 't', text: '內容', url: 'https://example.com/x' });
+    expect(open.mock.calls[0][0]).toContain(encodeURIComponent('https://example.com/x'));
+  });
+
+  /** 複製失敗仍然要開 sharer——分享得出去總比什麼都沒發生好，只是不謊稱已複製 */
+  test('Facebook：剪貼簿被拒時照樣開 sharer，但不說「已複製」', async () => {
+    const { open } = stubWeb(false);
+
+    await expect(shareToTarget('facebook', { title: 't', text: '內容' })).resolves.toBeNull();
+    expect(open.mock.calls[0][0]).toContain('facebook.com/sharer/sharer.php');
+  });
+
+  test('複製：成功與失敗各回一個訊息鍵，兩種都要說一聲', async () => {
+    stubWeb();
+    await expect(shareToTarget('copy', { title: 't', text: '內容' }))
+      .resolves.toBe('reveal.copied');
+
+    stubWeb(false);
+    await expect(shareToTarget('copy', { title: 't', text: '內容' }))
+      .resolves.toBe('reveal.copyManual');
   });
 });
