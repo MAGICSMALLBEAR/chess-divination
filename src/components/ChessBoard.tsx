@@ -115,11 +115,6 @@ export default function ChessBoard({
     return placedPieces.find(pp => pp.col === col && pp.row === row);
   };
 
-  // 判斷是否為可用位置
-  const isAvailable = (col: number, row: number): boolean => {
-    return !placedPieces.some(pp => pp.col === col && pp.row === row);
-  };
-
   // 兩軍對壘陣：某半場是否已滿三子。滿了之後該半場不再出現落子點，
   // 讓「各半場三子」在點擊與拖曳兩條路徑上都由棋盤自己守住。
   const formationHalfFull = (row: number): boolean => {
@@ -177,7 +172,6 @@ export default function ChessBoard({
           Array.from({ length: cols }).map((_, col) => {
             const isLastRow = row === rows - 1;
             const isLastCol = col === cols - 1;
-            const hasPiece = !!getPieceAt(col, row);
 
             return (
               <React.Fragment key={`${row}-${col}`}>

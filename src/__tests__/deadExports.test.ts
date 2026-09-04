@@ -141,3 +141,48 @@ describe('畫面沒有從未被呼叫的 setState', () => {
     expect(orphans).toEqual([]);
   });
 });
+
+/**
+ * 同一家族的第三個：**算出來卻沒人用的區域變數**。
+ *
+ * S54 掃出三個：`stats.tsx` 的 `pct`（吉凶分佈算好了百分比只印次數——
+ * 是想印而沒印完，S55 接上去了）、`ChessBoard.tsx` 的 `isAvailable` 與
+ * `hasPiece`（純粹的死碼，S55 刪掉）。三個都不會壞畫面、不會紅測試，
+ * 而第一個其實是「功能沒做完」留下的半截線索。
+ *
+ * 只看 `const x =` 形式，不看解構——解構出一半不用是常見且無害的寫法
+ * （`const { a } = obj` 取一個欄位）。實測全專案只中那三個，沒有雜訊。
+ */
+describe('沒有算出來卻沒人用的區域變數', () => {
+  /** 回傳 [檔案, 變數名]。縮排兩格以上＝函式或元件內部 */
+  function locals(): [string, string][] {
+    const out: [string, string][] = [];
+    for (const file of sourceFiles()) {
+      if (!file.startsWith(SRC)) continue;
+      const source = fs.readFileSync(file, 'utf-8');
+      for (const m of source.matchAll(/^\s{2,}const (\w+)\s*[:=][^=]/gm)) {
+        out.push([path.relative(SRC, file), m[1]]);
+      }
+    }
+    return out;
+  }
+
+  function mentions(relative: string, name: string): number {
+    const source = fs.readFileSync(path.join(SRC, relative), 'utf-8');
+    return (source.match(new RegExp(String.raw`\b${name}\b`, 'g')) || []).length;
+  }
+
+  test('掃得到區域變數，也數得到用它的地方（守門自我檢查）', () => {
+    const found = locals();
+    expect(found.length).toBeGreaterThan(50);
+    // 挑一個確定有在用的：宣告 1 次 + 至少一處使用
+    expect(mentions(path.join('components', 'ChessBoard.tsx'), 'getPieceAt')).toBeGreaterThan(1);
+  });
+
+  test('每個區域變數都至少被用過一次', () => {
+    const orphans = locals()
+      .filter(([file, name]) => mentions(file, name) <= 1)
+      .map(([file, name]) => `${file}  ${name}`);
+    expect(orphans).toEqual([]);
+  });
+});
