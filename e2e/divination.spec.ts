@@ -22,7 +22,9 @@ test.describe('抽棋流程', () => {
   test('抽棋頁顯示類別與數量選項', async ({ page }) => {
     await page.goto('/draw');
 
-    await expect(page.getByText('抽棋占卜')).toBeVisible();
+    // 迴歸：首頁模式卡也印「抽棋占卜」，疊棧背景頁留在 DOM 裡但不可見
+    // （S37／S46／S49 同一類問題）——filter 限定可見元素，才不會 strict 誤中
+    await expect(page.getByText('抽棋占卜').filter({ visible: true })).toBeVisible();
     await expect(page.getByText('選擇抽取棋子數量')).toBeVisible();
 
     // 三種數量都在
@@ -533,7 +535,8 @@ test.describe('頁面可達性', () => {
       page.on('pageerror', (e) => errors.push(e.message));
 
       await page.goto(path);
-      await expect(page.getByText(marker).first()).toBeVisible({ timeout: 15_000 });
+      // 疊棧背景頁的同名文字留在 DOM 裡但不可見（S37／S46／S49）
+      await expect(page.getByText(marker).filter({ visible: true })).toBeVisible({ timeout: 15_000 });
 
       expect(errors, `${path} 出現 JS 例外`).toEqual([]);
     });
@@ -690,7 +693,8 @@ test.describe('問事類別記憶', () => {
   ] as const) {
     test(`${name}選了面向就記下來`, async ({ page }) => {
       await page.goto(path);
-      await expect(page.getByText(marker).first()).toBeVisible({ timeout: 15_000 });
+      // marker 與首頁模式卡同名，疊棧背景頁會誤中（S37／S46／S49）
+      await expect(page.getByText(marker).filter({ visible: true })).toBeVisible({ timeout: 15_000 });
 
       await pickUntilStored(page, '事業', 'career');
 

@@ -80,7 +80,8 @@ test.describe('內容可見性', () => {
   for (const { path, marker } of PAGES) {
     test(`${path} 的主要內容沒有被遮蓋`, async ({ page }) => {
       await page.goto(path);
-      await expect(page.getByText(marker).first()).toBeVisible({ timeout: 15_000 });
+      // 疊棧背景頁的同名文字留在 DOM 裡但不可見（S37／S46／S49）
+      await expect(page.getByText(marker).filter({ visible: true })).toBeVisible({ timeout: 15_000 });
 
       // 版面由 onLayout 非同步量測，需輪詢等它收斂再判斷可見性
       await expect
@@ -132,7 +133,7 @@ test.describe('互動元件尺寸', () => {
   test('棋盤頁問事面向按鈕有可點擊的高度', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/board');
-    await expect(page.getByText('棋盤佈局')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('棋盤佈局').filter({ visible: true })).toBeVisible({ timeout: 15_000 });
 
     // 類別列已併入 QuestionPrompts 的面向格（flex-wrap），不再有水平
     // ScrollView；守的對象從 chip 換成新的面向按鈕。量按鈕本身而非內層
@@ -147,7 +148,7 @@ test.describe('互動元件尺寸', () => {
   test('桌面寬度下棋盤不應停在最小尺寸', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/board');
-    await expect(page.getByText('棋盤佈局')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('棋盤佈局').filter({ visible: true })).toBeVisible({ timeout: 15_000 });
 
     // 棋盤尺寸來自 onLayout 量測，需輪詢等版面收斂
     // 9 條縱線 × 最小格 32px = 288；桌面上應明顯大於此
