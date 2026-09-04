@@ -174,7 +174,8 @@ export default function LingqiScreen() {
       question: record?.questionText,
     });
 
-    if (await shareNative({ title: t('reveal.shareTitle'), text })) return;
+    // 只有「沒有分享功能」才降級，取消不算（與 reveal.tsx 同一套）
+    if (await shareNative({ title: t('reveal.shareTitle'), text }) !== 'unavailable') return;
 
     // 降級：讓使用者自己挑去處（與 reveal.tsx 同一套，見那裡的說明）
     setPendingShareText(text);

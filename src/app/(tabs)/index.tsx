@@ -105,8 +105,10 @@ export default function HomeScreen() {
                 // 之前直接取 navigator.share/clipboard，原生端兩者皆無，
                 // 且未 await 的 share 被取消時 rejection 無人接
                 void (async () => {
-                  const ok = await shareNative({ title: `${t('home.title')} - ${t('home.todayFortune')}`, text });
-                  if (!ok) await copyToClipboard(text);
+                  const outcome = await shareNative({ title: `${t('home.title')} - ${t('home.todayFortune')}`, text });
+                  // 只在沒有分享功能時才複製。原本是「分享沒成功就複製」，
+                  // 於是使用者按取消，剪貼簿就被靜靜覆寫了——他沒有要求過那件事。
+                  if (outcome === 'unavailable') await copyToClipboard(text);
                 })();
               }}>
                 <Icon name="share" size={18} color={theme.textSecondary} />

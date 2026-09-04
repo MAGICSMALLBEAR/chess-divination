@@ -171,6 +171,41 @@ test.describe('分享去處選單', () => {
     expect(await copies(page)).toEqual([]);
   });
 
+  /**
+   * 迴歸（S56）：`shareNative` 原本用一個布林同時代表「使用者按了取消」與
+   * 「這台裝置沒有分享功能」。桌面瀏覽器沒有 `navigator.share`，所以降級
+   * 選單一直是對的；但**手機瀏覽器有**，於是使用者叫出系統分享選單、
+   * 按了取消，馬上就被塞第二張選單——他剛剛才說不要。
+   *
+   * 這裡把 `navigator.share` 裝成「使用者取消」（reject AbortError），
+   * 斷言我們的選單不該出現。
+   */
+  test('使用者取消系統分享選單後，不該再跳出去處選單', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: () => Promise.reject(Object.assign(new Error('Abort'), { name: 'AbortError' })),
+      });
+    });
+    await openShareSheet(page);
+
+    // 給它足夠時間出現才算數——馬上斷言不存在，任何延遲都會讓測試假綠
+    await page.waitForTimeout(1500);
+    await expect(page.getByTestId('share-target-copy')).toBeHidden();
+  });
+
+  /** 反過來：真的沒有分享功能時，選單一定要出現，否則使用者無路可走 */
+  test('沒有系統分享功能時，去處選單要出現', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: () => Promise.reject(new Error('Share is not supported in this browser')),
+      });
+    });
+    await openShareSheet(page);
+
+    await expect(page.getByTestId('share-target-copy')).toBeVisible({ timeout: 15_000 });
+  });
   test('選複製文字才寫進剪貼簿', async ({ page }) => {
     await stubClipboard(page);
     page.on('dialog', d => d.accept());

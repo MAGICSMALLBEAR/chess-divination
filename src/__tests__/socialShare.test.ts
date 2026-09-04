@@ -131,10 +131,18 @@ describe('formatDivinationShareText', () => {
   });
 });
 
+/**
+ * shareNative 回傳三態而非布林。
+ *
+ * 布林的 `false` 同時代表「使用者按了取消」與「這台裝置沒有分享功能」，
+ * 而這兩件事該做的相反：前者什麼都別做，後者才該端出降級的去處選單。
+ * 混在一起的後果是使用者按取消卻立刻被塞第二張選單，首頁更糟——
+ * 取消之後剪貼簿被靜靜覆寫。
+ */
 describe('shareNative', () => {
-  test('使用者完成分享時回傳 true', async () => {
+  test('使用者完成分享時回傳 shared', async () => {
     jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction } as never);
-    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(true);
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe('shared');
   });
 
   /**
@@ -148,26 +156,41 @@ describe('shareNative', () => {
    */
   test('Web 端 navigator.share 成功（resolve undefined）視為分享成功', async () => {
     jest.spyOn(Share, 'share').mockResolvedValue(undefined as never);
-    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(true);
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe('shared');
   });
 
-  test('使用者取消分享時回傳 false', async () => {
+  /** 原生（iOS）取消是 resolve 出 dismissedAction，不是拋錯 */
+  test('原生端使用者取消回傳 dismissed，不是 unavailable', async () => {
     jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.dismissedAction } as never);
-    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(false);
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe('dismissed');
   });
 
-  /** web 端使用者取消 navigator.share 是 reject（AbortError），仍須回 false */
-  test('Web 端使用者取消（reject AbortError）回傳 false', async () => {
+  /**
+   * Web 端取消 navigator.share 是 reject 一個 AbortError。這一條與下一條
+   * 是同一個 catch 的兩種輸入，卻必須分出兩個結果——分不開的話，
+   * 「使用者改變主意」會得到跟「桌面瀏覽器沒有分享功能」一樣的待遇。
+   */
+  test('Web 端使用者取消（reject AbortError）回傳 dismissed', async () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     const abort = Object.assign(new Error('Share canceled'), { name: 'AbortError' });
     jest.spyOn(Share, 'share').mockRejectedValue(abort);
-    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(false);
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe('dismissed');
+  });
+
+  /**
+   * 桌面瀏覽器沒有 navigator.share 時，react-native-web 是 reject 一個
+   * 普通的 Error（'Share is not supported in this browser'）——這才是
+   * 該端出降級選單的情況。
+   */
+  test('沒有分享功能時回傳 unavailable', async () => {
+    jest.spyOn(Share, 'share').mockRejectedValue(new Error('Share is not supported in this browser'));
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe('unavailable');
   });
 
   /** 分享失敗不得讓籤詩頁崩潰——這是加值動作，不是主線流程 */
-  test('底層拋錯時回傳 false 而非往上拋', async () => {
+  test('底層拋錯時回傳 unavailable 而非往上拋', async () => {
     jest.spyOn(Share, 'share').mockRejectedValue(new Error('no share sheet'));
-    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe(false);
+    await expect(shareNative({ title: 't', text: 'x' })).resolves.toBe('unavailable');
   });
 
   test('把 title / text / url 轉交給原生分享', async () => {
@@ -218,14 +241,34 @@ describe('shareToLine', () => {
     expect(openURL).toHaveBeenCalledWith('line://msg/text/hi-A');
   });
 
-  test('原生端未安裝 LINE 時不開啟連結，也不拋錯', async () => {
+  /**
+   * 這一條原本寫成「未安裝 LINE 時**不開啟連結**」，斷言 `openURL` 沒被呼叫
+   * ——又是一次把缺陷本身當成規格記下來（`copyToClipboard` 那兩條的前科）。
+   *
+   * 使用者的視角是：按下「LINE」，選單關掉，然後什麼都沒有。沒有 LINE、
+   * 沒有訊息、沒有任何跡象，看起來就是按鈕壞了。退到網頁版網址至少讓
+   * 「按了有反應」成立，能不能完成分享則交給 LINE 決定。
+   */
+  test('原生端未安裝 LINE 時退到網頁版網址，而不是什麼都不做', async () => {
     setPlatform('ios');
     jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(false);
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
 
     expect(() => shareToLine({ title: 't', text: 'hi-B' })).not.toThrow();
     await flushMicrotasks();
-    expect(openURL).not.toHaveBeenCalled();
+    expect(openURL).toHaveBeenCalledWith('https://line.me/R/msg/text/?hi-B');
+  });
+
+  /** canOpenURL 本身拋錯（權限、平台差異）時同樣要有反應，且不得往上拋 */
+  test('原生端 canOpenURL 拋錯時仍退到網頁版網址', async () => {
+    setPlatform('ios');
+    jest.spyOn(Linking, 'canOpenURL').mockRejectedValue(new Error('not allowed'));
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+
+    expect(() => shareToLine({ title: 't', text: 'hi-C' })).not.toThrow();
+    await flushMicrotasks();
+    await flushMicrotasks();
+    expect(openURL).toHaveBeenCalledWith('https://line.me/R/msg/text/?hi-C');
   });
 });
 

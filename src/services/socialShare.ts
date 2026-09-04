@@ -24,8 +24,21 @@ export type ShareTarget = 'line' | 'facebook' | 'copy';
  */
 export const SHARE_URL = 'https://chess-divination-app.vercel.app';
 
+/**
+ * 原生分享選單的三種結果。
+ *
+ * 為什麼不是布林：`false` 原本同時代表「使用者按了取消」與「這台裝置根本
+ * 沒有分享功能」，而這兩件事該做的相反——前者要什麼都別做，後者才該把
+ * 降級的去處選單端出來。混在一起的後果是**使用者按了取消，卻立刻被塞了
+ * 第二張選單**；首頁的每日運勢更糟，取消之後剪貼簿會被靜靜覆寫。
+ *
+ * 這與 `copyToClipboard` 曾經「在分享失敗後再開一次分享選單」是同一個病，
+ * 只是那次長在服務裡，這次長在呼叫端與回傳值的語意之間。
+ */
+export type ShareNativeOutcome = 'shared' | 'dismissed' | 'unavailable';
+
 /** 嘗試使用 Web Share API（行動裝置原生分享選單） */
-export async function shareNative(content: ShareContent): Promise<boolean> {
+export async function shareNative(content: ShareContent): Promise<ShareNativeOutcome> {
   try {
     const result = await Share.share({
       message: content.text,
@@ -34,30 +47,44 @@ export async function shareNative(content: ShareContent): Promise<boolean> {
     });
     // react-native-web 的 Share.share 直接回傳 navigator.share() 的結果，
     // 成功時 resolve 的是 undefined——讀 result.action 會拋 TypeError，
-    // 被下面的 catch 接走，於是「分享成功」被回報成失敗，呼叫端接著跳出
-    // 多餘的「分享到 LINE？」或偷偷覆寫剪貼簿。使用者取消時 navigator.share
-    // 是 reject（AbortError），仍會走 catch 回 false，語意正確。
-    if (!result || result.action !== Share.dismissedAction) {
-      return true;
-    }
-  } catch { console.warn('原生分享失敗'); }
-  return false;
+    // 被下面的 catch 接走，於是「分享成功」被回報成失敗。
+    if (!result || result.action !== Share.dismissedAction) return 'shared';
+    // 原生端（iOS）取消是 resolve 出 dismissedAction，不是拋錯
+    return 'dismissed';
+  } catch (e) {
+    // Web 端取消 navigator.share 是 reject 一個 AbortError；
+    // 沒有 navigator.share 時 react-native-web 則 reject 一般的 Error
+    //（'Share is not supported in this browser'）。兩者都走到這裡，
+    // 靠 name 分開——分不開的話，桌面瀏覽器與「使用者改變主意」會得到
+    // 同一種待遇。
+    if (e instanceof Error && e.name === 'AbortError') return 'dismissed';
+    console.warn('原生分享失敗');
+    return 'unavailable';
+  }
 }
 
 /** 分享到 LINE */
 export function shareToLine(content: ShareContent): boolean {
+  const encoded = encodeURIComponent(content.text);
+  // 網頁版的分享網址。LINE 已安裝時它會被 universal link 接走直接開 App，
+  // 沒安裝則落到 LINE 的網頁，兩種情況使用者都看得到東西發生。
+  const webUrl = `https://line.me/R/msg/text/?${encoded}`;
+
   if (Platform.OS === 'web') {
-    const encoded = encodeURIComponent(content.text);
-    const url = `https://line.me/R/msg/text/?${encoded}`;
-    window.open(url, '_blank');
+    window.open(webUrl, '_blank');
     return true;
   }
-  // 原生端使用 LINE URL scheme
-  const encoded = encodeURIComponent(content.text);
-  const url = `line://msg/text/${encoded}`;
-  Linking.canOpenURL(url).then(can => {
-    if (can) Linking.openURL(url);
-  }).catch(() => {});
+
+  // 原生端優先用 LINE 的 URL scheme（直接跳進 App 的對話選擇畫面）。
+  //
+  // `canOpenURL` 為否時原本什麼都不做——沒裝 LINE 的人按下「LINE」，
+  // 選單關掉、沒有 LINE、沒有訊息、沒有任何跡象，看起來就是按鈕壞了。
+  // 改為退到網頁版網址：能不能完成分享交給 LINE 決定，但「按了有反應」
+  // 這件事必須成立。
+  const schemeUrl = `line://msg/text/${encoded}`;
+  Linking.canOpenURL(schemeUrl)
+    .then(can => Linking.openURL(can ? schemeUrl : webUrl))
+    .catch(() => { void Linking.openURL(webUrl).catch(() => {}); });
   return true;
 }
 
@@ -70,8 +97,9 @@ export function shareToFacebook(content: ShareContent): boolean {
     window.open(shareUrl, '_blank', 'width=600,height=400');
     return true;
   }
-  // 原生端降級為通用分享
-  shareNative(content);
+  // 原生端降級為通用分享。結果不影響回傳值——這條路徑只在原生的
+  // 分享選單已經失敗過之後才走得到，能做的就只剩再試一次。
+  void shareNative(content);
   return true;
 }
 

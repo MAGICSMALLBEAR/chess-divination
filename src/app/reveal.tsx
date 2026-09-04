@@ -256,9 +256,10 @@ export default function RevealScreen() {
         } : undefined,
       });
 
-      // 優先使用原生分享選單
-      const nativeOk = await shareNative({ title: t('reveal.shareTitle'), text: shareText });
-      if (nativeOk) return;
+      // 優先使用原生分享選單。只有「這台裝置沒有分享功能」才降級——
+      // 使用者按了取消是改變主意，不該立刻再被塞第二張選單。
+      const outcome = await shareNative({ title: t('reveal.shareTitle'), text: shareText });
+      if (outcome !== 'unavailable') return;
 
       // 降級：讓使用者自己挑去處。
       // 原本這裡是一個二選一的確認框（確認＝LINE、取消＝複製），
