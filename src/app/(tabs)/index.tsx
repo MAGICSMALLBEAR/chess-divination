@@ -13,7 +13,9 @@ import { getStreak } from '@/services/achievements';
 import { recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
 import { getLevelColor } from '@/data/poems';
-import { shareNative, copyToClipboard } from '@/services/socialShare';
+import { shareNative, shareToTarget, type ShareTarget } from '@/services/socialShare';
+import ShareTargetSheet from '@/components/ShareTargetSheet';
+import { notify } from '@/services/dialog';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -30,6 +32,7 @@ export default function HomeScreen() {
   const [dailyFortune, setDailyFortune] = useState<DailyFortune | null>(null);
   const [recentRecords, setRecentRecords] = useState<DivinationRecord[]>([]);
   const [streak, setStreak] = useState(0);
+  const [pendingShareText, setPendingShareText] = useState<string | null>(null);
 
   useEffect(() => {
     loadDaily();
@@ -38,6 +41,18 @@ export default function HomeScreen() {
   }, []);
 
   async function loadStreak() { setStreak(await getStreak()); }
+
+  /** 使用者在分享選單挑了去處。訊息由服務層決定，這裡只負責說出來 */
+  async function handleShareTarget(target: ShareTarget) {
+    const text = pendingShareText;
+    setPendingShareText(null);
+    if (!text) return;
+    const messageKey = await shareToTarget(target, {
+      title: `${t('home.title')} - ${t('home.todayFortune')}`,
+      text,
+    });
+    if (messageKey) notify(t(messageKey));
+  }
 
   async function loadDaily() {
     let fortune = await getDailyFortune();
@@ -106,9 +121,13 @@ export default function HomeScreen() {
                 // 且未 await 的 share 被取消時 rejection 無人接
                 void (async () => {
                   const outcome = await shareNative({ title: `${t('home.title')} - ${t('home.todayFortune')}`, text });
-                  // 只在沒有分享功能時才複製。原本是「分享沒成功就複製」，
-                  // 於是使用者按取消，剪貼簿就被靜靜覆寫了——他沒有要求過那件事。
-                  if (outcome === 'unavailable') await copyToClipboard(text);
+                  // 只有「沒有分享功能」才降級，取消不算（與 reveal.tsx／lingqi.tsx 同一套）。
+                  //
+                  // 降級原本是直接複製到剪貼簿，而且一句話都不說：桌面瀏覽器沒有
+                  // navigator.share，於是按下分享 = 畫面上什麼都沒發生。S56 修掉了
+                  // 「取消也被覆寫」那一半，剩下的這一半是「按了沒反應」——同一個
+                  // 分享鏈的第三個入口，S55 的去處選單當時只接了揭曉頁與靈棋頁。
+                  if (outcome === 'unavailable') setPendingShareText(text);
                 })();
               }}>
                 <Icon name="share" size={18} color={theme.textSecondary} />
@@ -197,6 +216,12 @@ export default function HomeScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      <ShareTargetSheet
+        visible={pendingShareText !== null}
+        onSelect={handleShareTarget}
+        onDismiss={() => setPendingShareText(null)}
+      />
     </SafeAreaView>
   );
 }

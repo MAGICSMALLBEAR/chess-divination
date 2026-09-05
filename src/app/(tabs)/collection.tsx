@@ -226,6 +226,28 @@ export default function CollectionScreen() {
     // 只比對記錄裡的中文原題會讓 en/ja 使用者搜什麼都沒有
     return sorted.filter(r => recordMatchesSearch(r, search, lang));
   }
+  /**
+   * 空狀態要說對「為什麼是空的」。
+   *
+   * 三個分頁原本一律說「你還沒有任何記錄」，但搜尋框在三個分頁都看得到：
+   * 打了字而沒有命中，畫面就會告訴一個存了兩百筆的人他什麼都沒有，還附上
+   * 「開始占卜後記錄將顯示於此」這種對他毫無用處的指示。資料夾詳細頁最明顯
+   * ——標題那行還印著「5 筆」，下面同時寫著「這個資料夾還沒有記錄」。
+   *
+   * 圖鑑早就分得清楚（`library.notFound`），收藏頁沒有跟上：又一次
+   * 「同一件事只做到一半的頁面」。
+   */
+  function renderEmpty(icon: IconName, titleKey: string, hintKey: string) {
+    const searching = search.trim().length > 0;
+    return (
+      <View style={styles.empty} testID={searching ? 'collection-no-match' : 'collection-empty'}>
+        <Icon name={icon} size={40} color={theme.textMuted} />
+        <Text style={styles.emptyText}>{t(searching ? 'collection.noMatch' : titleKey)}</Text>
+        <Text style={styles.emptyHint}>{t(searching ? 'collection.noMatchDesc' : hintKey)}</Text>
+      </View>
+    );
+  }
+
   const historyData = sortAndFilter(history);
   const favoritesData = sortAndFilter(favorites);
   // 資料夾內容也走同一套排序與搜尋：搜尋框在三個分頁都看得到，
@@ -516,13 +538,7 @@ export default function CollectionScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}
           >
-            {historyData.length === 0 && (
-              <View style={styles.empty}>
-                <Icon name="scroll" size={40} color={theme.textMuted} />
-                <Text style={styles.emptyText}>{t('collection.noHistory')}</Text>
-                <Text style={styles.emptyHint}>{t('collection.noHistoryDesc')}</Text>
-              </View>
-            )}
+            {historyData.length === 0 && renderEmpty('scroll', 'collection.noHistory', 'collection.noHistoryDesc')}
             <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
               {historyData.map((record) => renderRecordCard(record))}
             </View>
@@ -536,13 +552,7 @@ export default function CollectionScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}
           >
-            {favoritesData.length === 0 && (
-              <View style={styles.empty}>
-                <Icon name="scroll" size={40} color={theme.textMuted} />
-                <Text style={styles.emptyText}>{t('collection.noFav')}</Text>
-                <Text style={styles.emptyHint}>{t('collection.noFavDesc')}</Text>
-              </View>
-            )}
+            {favoritesData.length === 0 && renderEmpty('scroll', 'collection.noFav', 'collection.noFavDesc')}
             <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
               {favoritesData.map((record) => renderRecordCard(record))}
             </View>
@@ -565,13 +575,7 @@ export default function CollectionScreen() {
               <Text style={[styles.folderName, { color: theme.textPrimary }]} numberOfLines={1}>{selectedFolder.name}</Text>
               <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: folderRecords.length })}</Text>
             </View>
-            {folderRecordsData.length === 0 && (
-              <View style={styles.empty}>
-                <Icon name="folder" size={40} color={theme.textMuted} />
-                <Text style={styles.emptyText}>{t('collection.folderEmpty')}</Text>
-                <Text style={styles.emptyHint}>{t('collection.folderEmptyDesc')}</Text>
-              </View>
-            )}
+            {folderRecordsData.length === 0 && renderEmpty('folder', 'collection.folderEmpty', 'collection.folderEmptyDesc')}
             <View testID="folder-grid" style={styles.grid} onLayout={onGridLayout}>
               {folderRecordsData.map((record) => renderRecordCard(record))}
             </View>

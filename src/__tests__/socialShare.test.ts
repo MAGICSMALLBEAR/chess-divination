@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { Platform, Linking, Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import {
@@ -499,4 +501,66 @@ describe('shareToTarget', () => {
     await expect(shareToTarget('copy', { title: 't', text: '內容' }))
       .resolves.toBe('reveal.copyManual');
   });
+});
+
+/**
+ * 守門：每個分享入口都要走完整條分享鏈。
+ *
+ * 來自一個做了三次都只做兩處的缺陷。S55 把降級改成去處選單時接了揭曉頁
+ * 與靈棋頁，首頁的每日運勢沒接；S56 修 `shareNative` 的三態時，首頁只改到
+ * 「取消不再覆寫剪貼簿」那一半，於是桌面瀏覽器按下分享 = 靜靜複製一份、
+ * 一句話都不說，看起來就是按鈕壞了。
+ *
+ * 型別檢查對這件事永遠沒有意見：`if (outcome === 'unavailable')` 之後要做
+ * 什麼是呼叫端自己的事，少做一段編譯得過。單元測試也測不到——服務層三支
+ * 函式各自都對。缺的是「畫面有沒有把它們接起來」，所以掃來源。
+ */
+describe('分享入口的接線', () => {
+  const APP = path.join(__dirname, '..', 'app');
+
+  function collect(dir: string, acc: string[] = []): string[] {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) collect(full, acc);
+      else if (entry.name.endsWith('.tsx')) acc.push(full);
+    }
+    return acc;
+  }
+
+  /** 去掉註解：這一段的關鍵字在說明文字裡也會出現 */
+  function stripComments(source: string): string {
+    return source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split(/\r?\n/)
+      .map(line => line.replace(/\/\/.*$/, ''))
+      .join('\n');
+  }
+
+  const entries = collect(APP)
+    .map(file => ({ file: path.basename(file), src: stripComments(fs.readFileSync(file, 'utf-8')) }))
+    .filter(({ src }) => src.includes('shareNative('));
+
+  /** 反空轉：掃描範圍壞掉時要紅，而不是靜靜地零個檔案全過 */
+  test('掃得到分享入口（首頁、揭曉頁、靈棋頁）', () => {
+    expect(entries.map(e => e.file).sort()).toEqual(['index.tsx', 'lingqi.tsx', 'reveal.tsx']);
+  });
+
+  test.each(entries.map(e => [e.file, e.src] as const))(
+    '%s：沒有分享功能時端得出去處選單',
+    (_file, src) => {
+      // 比對 'unavailable' 而非某個寫法：揭曉頁與靈棋頁寫成 `!== 'unavailable' return`，
+      // 首頁寫成 `=== 'unavailable'` 才開選單，兩種都分得出「取消」與「沒有分享功能」
+      expect(src).toContain("'unavailable'");
+      expect(src).toContain('ShareTargetSheet');
+    },
+  );
+
+  test.each(entries.map(e => [e.file, e.src] as const))(
+    '%s：挑完去處要把結果說給使用者聽',
+    (_file, src) => {
+      // shareToTarget 回的是訊息鍵，沒有人 notify 就等於「按了沒反應」
+      expect(src).toContain('shareToTarget(');
+      expect(src).toMatch(/notify\(t\(messageKey\)\)/);
+    },
+  );
 });

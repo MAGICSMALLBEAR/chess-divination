@@ -413,6 +413,10 @@ export const translations: Record<string, Record<Lang, string>> = {
   'collection.folderName': { 'zh-TW': '資料夾名稱', en: 'Folder name', ja: 'フォルダ名' },
   'collection.noFolders': { 'zh-TW': '尚無資料夾', en: 'No folders yet', ja: 'フォルダがありません' },
   'collection.noFoldersDesc': { 'zh-TW': '建立資料夾來分類整理收藏', en: 'Create folders to organise your favorites', ja: 'フォルダを作ってお気に入りを整理しましょう' },
+  // 搜尋沒有命中，與「你還沒有任何記錄」是兩件事：三個分頁共用這一組，
+  // 說的是這次搜尋的結果，不是這個人的收藏總量（圖鑑的 library.notFound 同理）
+  'collection.noMatch': { 'zh-TW': '找不到符合的記錄', en: 'No matching records', ja: '該当する記録がありません' },
+  'collection.noMatchDesc': { 'zh-TW': '換個關鍵字，或清空搜尋看全部', en: 'Try another keyword, or clear the search', ja: 'キーワードを変えるか、検索をクリアしてください' },
   'collection.noHistoryDesc': { 'zh-TW': '開始占卜後記錄將顯示於此', en: 'Your readings will appear here', ja: '占いを始めると記録がここに表示されます' },
   'collection.noFavDesc': { 'zh-TW': '在占卜結果中點擊收藏即可加入', en: 'Tap the heart on any reading to save it here', ja: '占い結果でハートをタップすると保存されます' },
   'collection.records': { 'zh-TW': '{n} 筆', en: '{n}', ja: '{n} 件' },

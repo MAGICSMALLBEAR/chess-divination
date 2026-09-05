@@ -196,6 +196,47 @@ test.describe('分享去處選單', () => {
     await expect(page.getByTestId('share-target-copy')).toBeHidden();
   });
 
+  /**
+   * 首頁的每日運勢是第三個分享入口，S55 加去處選單時只接了揭曉頁與靈棋頁。
+   * S56 又只修到「取消不再偷偷覆寫剪貼簿」那一半，於是桌面瀏覽器按下分享
+   * 變成：靜靜複製一份、一句話都不說，看起來就是按鈕壞了。
+   *
+   * 這條走的是首頁，不是揭曉頁——同一個缺陷連續兩輪都因為「只看揭曉頁」
+   * 而留在原地。
+   */
+  test('首頁每日運勢：沒有系統分享功能時也端得出去處選單', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: () => Promise.reject(new Error('Share is not supported in this browser')),
+      });
+    });
+    await page.goto('/');
+    await page.getByLabel('分享每日運勢').click({ timeout: 30_000 });
+
+    await expect(page.getByTestId('share-target-line')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('share-target-facebook')).toBeVisible();
+    await expect(page.getByTestId('share-target-copy')).toBeVisible();
+  });
+
+  /** 首頁的取消也要是取消：S56 修的正是「取消之後剪貼簿被靜靜覆寫」 */
+  test('首頁每日運勢：取消去處選單不會寫剪貼簿', async ({ page }) => {
+    await stubClipboard(page);
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: () => Promise.reject(new Error('Share is not supported in this browser')),
+      });
+    });
+    await page.goto('/');
+    await page.getByLabel('分享每日運勢').click({ timeout: 30_000 });
+    await expect(page.getByTestId('share-target-cancel')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByTestId('share-target-cancel').click();
+    await expect(page.getByTestId('share-target-copy')).toBeHidden({ timeout: 15_000 });
+    expect(await copies(page)).toEqual([]);
+  });
+
   /** 反過來：真的沒有分享功能時，選單一定要出現，否則使用者無路可走 */
   test('沒有系統分享功能時，去處選單要出現', async ({ page }) => {
     await page.addInitScript(() => {
@@ -282,6 +323,38 @@ test.describe('記錄搜尋與卡片留白', () => {
     const grid = page.getByTestId('card-grid').first();
     await expect(grid).toContainText('大通卦', { timeout: 30_000 });
     await expect(grid.getByTestId('record-pieces')).toHaveCount(2);
+  });
+
+  /**
+   * 搜尋沒有命中，不等於這個人沒有記錄。
+   *
+   * 三個分頁共用同一個搜尋框，空狀態卻一律說「尚無占卜記錄／開始占卜後
+   * 記錄將顯示於此」——對一個存了三筆、只是打錯關鍵字的人，這句話既不是
+   * 事實，給的指示也沒有用（他該做的是換個字，不是去占卜）。
+   * 圖鑑早就分得清楚（`library.notFound`），收藏頁沒有跟上。
+   */
+  test('搜尋沒有命中時說的是找不到，不是「你還沒有記錄」', async ({ page }) => {
+    await seedRecords(page);
+    const search = page.getByPlaceholder('搜尋籤詩內容');
+    await expect(search).toBeVisible({ timeout: 30_000 });
+    await search.fill('這串字不可能命中任何記錄');
+
+    await expect(page.getByTestId('collection-no-match').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('找不到符合的記錄').first()).toBeVisible();
+    await expect(page.getByText('尚無占卜記錄')).toBeHidden();
+  });
+
+  /** 清空搜尋要回到記錄本身，而不是停在「找不到」 */
+  test('清空搜尋後記錄回來，空狀態也跟著消失', async ({ page }) => {
+    await seedRecords(page);
+    const search = page.getByPlaceholder('搜尋籤詩內容');
+    await expect(search).toBeVisible({ timeout: 30_000 });
+    await search.fill('這串字不可能命中任何記錄');
+    await expect(page.getByTestId('collection-no-match').first()).toBeVisible({ timeout: 15_000 });
+
+    await search.fill('');
+    await expect(page.getByTestId('collection-no-match')).toBeHidden({ timeout: 15_000 });
+    await expect(page.getByTestId('card-grid').first().getByTestId('record-pieces')).toHaveCount(2);
   });
 });
 
@@ -370,6 +443,46 @@ test.describe('資料夾歸檔', () => {
     // 打開之後也真的只有一筆，兩處講的是同一個數字
     await card.click();
     await expect(page.getByTestId('folder-grid').getByTestId('record-pieces')).toHaveCount(1);
+  });
+
+  /**
+   * 資料夾詳細頁的搜尋沒有命中時，最露餡的一頁：標題那行印著「1 筆」，
+   * 下面同時寫「這個資料夾還沒有記錄」——兩句話在同一個畫面上互相打臉，
+   * 而且後者附的指示（去記錄上點資料夾圖示）解決不了他遇到的事。
+   *
+   * 與 S54 修資料夾死 id 是同一個判準：筆數與內容必須對得起來。
+   * 那次修的是資料，這次修的是說詞。
+   */
+  test('資料夾裡搜尋沒命中時，不會一邊說「1 筆」一邊說「還沒有記錄」', async ({ page }) => {
+    const at = Date.now() - 86_400_000;
+    const record = {
+      poemId: 1, poemTitle: '龍騰九霄', poemContent: '一二三四', poemLevel: '大吉',
+      drawnPieceTypes: ['general'], drawnPieceColors: ['red'], drawnPieceChars: ['帥'],
+      isFavorited: false, engineVersion: 4, id: 'f1', mode: 'draw', timestamp: at,
+    };
+    await page.addInitScript(
+      ([hKey, sKey, recs, settings]) => {
+        window.localStorage.setItem(hKey as string, JSON.stringify(recs));
+        window.localStorage.setItem(sKey as string, JSON.stringify(settings));
+      },
+      [
+        HISTORY_KEY, SETTINGS_KEY, [record],
+        {
+          ...DEFAULT_SETTINGS,
+          folders: [{ id: 'folder-1', name: '舊夾', color: '#C9A96E', recordIds: ['f1'] }],
+        },
+      ] as const,
+    );
+    await page.goto('/collection');
+
+    await page.getByText(/^資料夾 \(\d+\)$/).click({ timeout: 30_000 });
+    await page.getByTestId('folder-open-folder-1').click({ timeout: 15_000 });
+    await expect(page.getByTestId('folder-grid').getByTestId('record-pieces')).toHaveCount(1);
+
+    await page.getByPlaceholder('搜尋籤詩內容').fill('這串字不可能命中任何記錄');
+
+    await expect(page.getByText('找不到符合的記錄').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('這個資料夾還沒有記錄')).toBeHidden();
   });
 });
 
