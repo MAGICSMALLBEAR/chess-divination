@@ -61,6 +61,35 @@ test.describe('抽棋流程', () => {
     await page.getByText('重新抽取').click({ timeout: 30_000 });
     await expect(page.getByText('選擇抽取棋子數量')).toBeVisible();
   });
+
+  /**
+   * 迴歸：首頁「快速抽一籤」的副標曾寫死「直接抽取 2 顆棋子獲得指引」。
+   *
+   * 兩件事都不成立：那顆按鈕只是進到抽棋頁（面向與棋數都還要自己選），
+   * 而顆數是使用者在設定裡選的——把預設設成 3 的人，抽棋頁把 3 標成
+   * 「建議」，首頁卻告訴他會抽 2 顆。這條把兩個畫面綁在一起，
+   * 因為缺陷正是「兩處對不上」，只看其中一頁都是通順的。
+   */
+  test('首頁副標不會跟抽棋頁的建議顆數互相矛盾', async ({ page }) => {
+    await page.addInitScript(
+      ([key, settings]) => {
+        window.localStorage.setItem(key as string, JSON.stringify(settings));
+      },
+      [SETTINGS_KEY, { ...DEFAULT_SETTINGS, pieceCountPreset: 3 }] as const,
+    );
+
+    await page.goto('/');
+    const quickDraw = page.getByTestId('quick-draw').filter({ visible: true });
+    await expect(quickDraw).toContainText('選好面向與棋數', { timeout: 30_000 });
+    // 限定在這顆按鈕內：模式卡的「從 32 顆棋子中隨機抽取」講的是棋子池，
+    // 那句是對的，不該被一起掃進來（與 copyNumbers 守門同一個區分）
+    await expect(quickDraw).not.toContainText(/\d+\s*顆/);
+
+    // 抽棋頁把使用者設的那一顆標成「建議」——首頁不寫死數字，兩處才對得上
+    await page.goto('/draw');
+    await expect(page.getByTestId('draw-count-suggested-3')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('draw-count-suggested-2')).toHaveCount(0);
+  });
 });
 
 test.describe('固定牌陣流程', () => {

@@ -7,6 +7,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { t } from './i18n';
 import { recordTitle } from './poemList';
+import { VERIFY_REMINDER_DAYS } from './verification';
 import type { DivinationRecord } from './storage';
 
 const REMINDER_ID = 'daily-divination-reminder';
@@ -115,7 +116,11 @@ export function verificationReminderId(recordId: string): string {
 }
 
 /**
- * 在占卜滿 14 天時提醒一次。
+ * 在占卜滿 `VERIFY_REMINDER_DAYS` 天時提醒一次。
+ *
+ * 天數取自 `verification.ts` 的常數而非再寫一次 14：那支常數本來就自稱是
+ * 「建議回填的等待天數」的真相來源，卻只有統計那一側在用，真正決定何時
+ * 發提醒的這裡是自己寫死的——兩邊哪天分岔，畫面上不會有任何跡象。
  *
  * 標題走 recordTitle() 而非 record.poemTitle：記錄存的是起卦當下的中文
  * 原題，en/ja 介面下直接印它，通知裡是中文、點進去的畫面卻是譯文——
@@ -124,7 +129,7 @@ export function verificationReminderId(recordId: string): string {
  */
 export async function scheduleVerificationReminder(record: DivinationRecord): Promise<boolean> {
   if (Platform.OS === 'web' || record.outcome || !(await hasNotificationPermission())) return false;
-  const trigger = new Date(record.timestamp + 14 * 86_400_000);
+  const trigger = new Date(record.timestamp + VERIFY_REMINDER_DAYS * 86_400_000);
   if (trigger.getTime() <= Date.now()) return false;
   try {
     await Notifications.scheduleNotificationAsync({

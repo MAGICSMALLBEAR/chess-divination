@@ -224,7 +224,10 @@ export const translations: Record<string, Record<Lang, string>> = {
   'home.luckyColor': { 'zh-TW': '幸運色', en: 'Lucky Color', ja: 'ラッキーカラー' },
   'home.recent': { 'zh-TW': '最近占卜', en: 'Recent Divinations', ja: '最近の占い' },
   'home.quickDraw': { 'zh-TW': '快速抽一籤', en: 'Quick Draw', ja: 'クイック占い' },
-  'home.quickDrawDesc': { 'zh-TW': '直接抽取 2 顆棋子獲得指引', en: 'Draw 2 pieces for instant guidance', ja: '2つの駒を引いて導きを得る' },
+  // 這顆按鈕只是進到抽棋頁（選面向、選棋數，按下去才抽），所以不寫「直接抽取」。
+  // 也不寫死顆數：預設抽棋數量是使用者設定的，抽棋頁會把他設的那顆標成「建議」，
+  // 文案寫死一個數字就會跟那個標記對不上（設 3 顆的人在首頁讀到「2 顆棋子」）。
+  'home.quickDrawDesc': { 'zh-TW': '選好面向與棋數，立刻起卦', en: 'Pick an area and a count, then draw', ja: '分野と枚数を選んで、すぐ占う' },
   'home.streak': { 'zh-TW': '連續 {n} 天', en: '{n}-day streak', ja: '{n}日連続' },
   'home.motto1': { 'zh-TW': '棋局如人生，落子無悔。', en: 'The board is life; every move is final.', ja: '棋局は人生の如し、着手に悔いなし。' },
   'home.motto2': { 'zh-TW': '觀棋不語真君子，起手無回大丈夫。', en: 'Watch in silence; commit without retreat.', ja: '観棋不語こそ君子、起手無回こそ大丈夫。' },

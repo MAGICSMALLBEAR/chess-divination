@@ -187,6 +187,7 @@ export default function HomeScreen() {
 
         {/* 快速抽棋 */}
         <TouchableOpacity
+          testID="quick-draw"
           style={[styles.quickDraw, { backgroundColor: theme.gold, borderColor: theme.gold }]}
           onPress={() => router.push('/draw')}
           activeOpacity={0.8}
