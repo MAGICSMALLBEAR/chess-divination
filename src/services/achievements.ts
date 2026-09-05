@@ -13,6 +13,25 @@ export interface Achievement {
 }
 
 /**
+ * 解鎖門檻。
+ *
+ * 抽成常數的理由與 S58 的 `VERIFY_REMINDER_DAYS` 完全相同：這四個數字
+ * 各自被寫了三遍——中文說明在下面那份清單、en 與 ja 在
+ * `data/translations/achievements.ts`——而**門檻本身只是條件式裡的
+ * 字面量**，沒有任何一份是真相來源。改門檻卻漏改說明，畫面會安靜地
+ * 說錯話：使用者照著「累積 10 次」去做，第 10 次卻沒有解開。
+ *
+ * 只收錄「說明裡真的寫了數字」的那幾個。`all_levels` 不在此列——
+ * 它的 5 來自 `POEM_LEVELS.length`，那本來就是真相來源了。
+ */
+export const ACHIEVEMENT_THRESHOLDS = {
+  ten_draws: 10,
+  fifty_draws: 50,
+  week_streak: 7,
+  ten_verify: 10,
+} as const;
+
+/**
  * 成就清單。匯出是為了讓翻譯守門測試直接數這份清單，
  * 而不是自己抄一份 id 陣列——抄的那份不會跟著新成就長大，
  * 於是新成就漏翻譯時測試照樣全綠（first_verify／ten_verify 就漏在
@@ -69,8 +88,8 @@ export async function checkAchievements(stats: {
   const totalReadings = stats.totalDraws + stats.totalBoard + (stats.totalLingqi ?? 0);
 
   tryUnlock('first_draw', stats.hasDraw);
-  tryUnlock('ten_draws', totalReadings >= 10);
-  tryUnlock('fifty_draws', totalReadings >= 50);
+  tryUnlock('ten_draws', totalReadings >= ACHIEVEMENT_THRESHOLDS.ten_draws);
+  tryUnlock('fifty_draws', totalReadings >= ACHIEVEMENT_THRESHOLDS.fifty_draws);
   tryUnlock('first_board', stats.hasBoard);
   tryUnlock('first_lingqi', stats.hasLingqi === true);
   tryUnlock('first_favorite', stats.totalFav >= 1);
@@ -83,7 +102,7 @@ export async function checkAchievements(stats: {
   // 日後新增的等級）就會解鎖「五種等級都抽過」，但使用者其實沒抽齊。
   tryUnlock('all_levels', POEM_LEVELS.every(level => stats.levels.includes(level)));
   tryUnlock('first_verify', (stats.totalVerified ?? 0) >= 1);
-  tryUnlock('ten_verify', (stats.totalVerified ?? 0) >= 10);
+  tryUnlock('ten_verify', (stats.totalVerified ?? 0) >= ACHIEVEMENT_THRESHOLDS.ten_verify);
 
   let newUnlocks: string[] = [];
   await updateSettings(current => {
@@ -167,7 +186,7 @@ export async function recordUsage(): Promise<number> {
 
     // 七日連續成就與上面的天數更新是同一件事，放同一次寫入才不會分岔
     const unlocked = current.unlockedAchievements || [];
-    if (streak >= 7 && !unlocked.includes('week_streak')) {
+    if (streak >= ACHIEVEMENT_THRESHOLDS.week_streak && !unlocked.includes('week_streak')) {
       patch.unlockedAchievements = [...unlocked, 'week_streak'];
     }
     return patch;

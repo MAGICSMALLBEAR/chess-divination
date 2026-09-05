@@ -14,7 +14,9 @@
 // 「建議」，首頁卻告訴他會抽 2 顆。
 
 import { translations, type Lang } from '../services/i18n';
-import { ALL_POEMS } from '../data/poems';
+import { ACHIEVEMENTS, ACHIEVEMENT_THRESHOLDS } from '../services/achievements';
+import { achievementTranslations } from '../data/translations/achievements';
+import { ALL_POEMS, POEM_LEVELS } from '../data/poems';
 import { ALL_PIECES } from '../data/pieces';
 import { LINGQI_ORACLES } from '../data/lingqiOracles';
 import { VERIFY_REMINDER_DAYS } from '../services/verification';
@@ -106,6 +108,62 @@ describe('文案裡的數字對得上真相來源', () => {
   test.each(RULES.map(r => [r.what, r] as const))('%s：三種語言都掃得到', (_what, rule) => {
     const langs = new Set(scan(rule).map(h => h.lang));
     expect([...langs].sort()).toEqual(['en', 'ja', 'zh-TW']);
+  });
+});
+
+/**
+ * 成就說明裡的數字，要等於它真正的解鎖門檻。
+ *
+ * 這是同一個問題最密集的地方：四個門檻各被寫了三遍——中文說明在
+ * `achievements.ts` 的清單裡，en 與 ja 在 `data/translations/achievements.ts`
+ * ——十二份拷貝，而門檻在此之前只是條件式裡的字面量，沒有一份是真相來源。
+ *
+ * 這種漂移的後果特別難查：說明寫「累積 10 次占卜」，門檻卻被改成 12，
+ * 使用者做到第 10 次沒解開，只會覺得成就系統壞了——**而且他是對的**，
+ * 只是壞的不是解鎖邏輯，是那句話。
+ */
+describe('成就說明的數字等於解鎖門檻', () => {
+  const zhDesc = (id: string) => ACHIEVEMENTS.find(a => a.id === id)?.desc ?? '';
+
+  const ids = Object.keys(ACHIEVEMENT_THRESHOLDS) as (keyof typeof ACHIEVEMENT_THRESHOLDS)[];
+
+  /** 反空轉：門檻表被清空或改名時要紅，而不是零圈迴圈全過 */
+  test('門檻表涵蓋所有說明裡寫了數字的成就', () => {
+    expect(ids.length).toBeGreaterThan(0);
+    // 反過來查：清單裡任何「說明帶數字」的成就都必須在門檻表裡，
+    // 否則新增一個「累積 100 次」的成就時，這份守門不會跟著長大
+    const withNumber = ACHIEVEMENTS
+      .filter(a => /\d/.test(a.desc))
+      .map(a => a.id)
+      // all_levels 的 5 來自 POEM_LEVELS.length，由下面那條單獨守
+      .filter(id => id !== 'all_levels');
+    expect(withNumber.sort()).toEqual([...ids].sort());
+  });
+
+  test.each(ids)('%s', id => {
+    const n = ACHIEVEMENT_THRESHOLDS[id];
+    const wrong: string[] = [];
+
+    if (!new RegExp(`\\b${n}\\b`).test(zhDesc(id))) {
+      wrong.push(`zh-TW 說明「${zhDesc(id)}」沒有寫著門檻 ${n}`);
+    }
+    for (const lang of ['en', 'ja'] as const) {
+      const desc = achievementTranslations[id]?.[lang]?.desc ?? '';
+      expect(desc).not.toBe('');   // 漏翻譯是另一支守門的事，這裡只是不要靜靜跳過
+      if (!new RegExp(`${n}`).test(desc)) {
+        wrong.push(`${lang} 說明「${desc}」沒有寫著門檻 ${n}`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  /** `all_levels` 的 5 有現成的真相來源，直接對它 */
+  test('all_levels 的等級數等於 POEM_LEVELS', () => {
+    const n = POEM_LEVELS.length;
+    expect(zhDesc('all_levels')).toContain(String(n));
+    for (const lang of ['en', 'ja'] as const) {
+      expect(achievementTranslations['all_levels']?.[lang]?.desc).toContain(String(n));
+    }
   });
 });
 
