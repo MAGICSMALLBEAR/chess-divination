@@ -8,7 +8,7 @@ import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
 import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
 import { generateDailyFortune } from '@/services/divination';
-import { getDailyFortune, saveDailyFortune, getHistory, type DailyFortune, type DivinationRecord } from '@/services/storage';
+import { getDailyFortune, saveDailyFortune, getHistory, recordHasLevel, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
 import { recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
@@ -173,13 +173,25 @@ export default function HomeScreen() {
             {recentRecords.map(r => (
               <TouchableOpacity key={r.id} style={styles.recentRow}
                 onPress={() => router.push(recordLink(r))}>
-                <Text style={[styles.recentPieces, { color: theme.textPrimary }]}>{r.drawnPieceChars.join(' ')}</Text>
+                {/* 靈棋擲的是卦目、不落子，`drawnPieceChars` 是空的——照畫就是
+                    一格寬 60 的空白欄位占在卦名前面。與 S44 的空等級標籤、
+                    S54 收藏卡的空棋子格是同一個毛病的第四個位置：
+                    **沒有那個欄位的記錄，不該照著有那個欄位的路走。**
+                    收藏卡與資料夾預覽早就這樣判了（`length > 0`／`filter(Boolean)`），
+                    只有首頁沒跟上。 */}
+                {r.drawnPieceChars.length > 0 && (
+                  <Text testID="recent-pieces" style={[styles.recentPieces, { color: theme.textPrimary }]}>{r.drawnPieceChars.join(' ')}</Text>
+                )}
                 {/* 記錄存的是中文原題；與 reveal 頁一致，顯示時依目前語言翻譯 */}
                 <Text style={[styles.recentPoem, { color: theme.textSecondary }]} numberOfLines={1}>{recordTitle(r)}</Text>
                 {/* 等級色走 getLevelColor 這份語意色盤。原本是手寫的三元式，
                     而且兩個分支都回 theme.textMuted——中平與下下看起來
                     一模一樣，五個等級只剩兩種顏色。 */}
-                <Text style={[styles.recentLevel, { color: getLevelColor(r.poemLevel) }]}>{r.poemLevel}</Text>
+                {/* 靈棋沒有吉凶等級（原典未載，故也不計入吉凶統計）——
+                    空字串照印就是一個沒有字卻占著位的等級欄 */}
+                {recordHasLevel(r) && (
+                  <Text testID="recent-level" style={[styles.recentLevel, { color: getLevelColor(r.poemLevel) }]}>{r.poemLevel}</Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>

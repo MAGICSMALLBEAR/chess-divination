@@ -355,6 +355,28 @@ test.describe('記錄搜尋與卡片留白', () => {
   });
 
   /**
+   * 同一個毛病的第四個位置（S58）：首頁「最近占卜」的每一列都畫一格棋子欄
+   * （樣式寫死 `width: 60`）與一格等級欄，而靈棋記錄兩者皆空——於是卦名
+   * 前面空著一格，後面再空一格。S44 空等級標籤、S45 空模式標籤、
+   * S54 收藏卡的空棋子格，成因完全相同：**新模式沒有的欄位，
+   * 走的是舊模式那條渲染路徑。**
+   *
+   * 種三筆（兩筆抽棋、一筆靈棋），所以「兩個欄位各只該出現兩次」。
+   */
+  test('首頁最近占卜不替靈棋記錄留空的棋子欄與等級欄', async ({ page }) => {
+    await seedRecords(page);
+    await page.goto('/');
+
+    const recent = page.getByTestId('recent-pieces');
+    await expect(recent.first()).toBeVisible({ timeout: 30_000 });
+    // 三筆記錄、只有兩筆有棋子與等級
+    await expect(recent).toHaveCount(2);
+    await expect(page.getByTestId('recent-level')).toHaveCount(2);
+    // 靈棋那一列仍要看得到卦名，不是整列被藏起來
+    await expect(page.getByText('大通卦').filter({ visible: true })).toBeVisible();
+  });
+
+  /**
    * 搜尋沒有命中，不等於這個人沒有記錄。
    *
    * 三個分頁共用同一個搜尋框，空狀態卻一律說「尚無占卜記錄／開始占卜後

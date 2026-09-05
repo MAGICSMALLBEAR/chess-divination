@@ -838,7 +838,7 @@ Session 35 把這條估成「需另立術語表」而擱置，實際清點發現
 
 - ~~Vercel 加 `DEEPSEEK_API_KEY`~~ ✅ Session 48（9/1）已設好並重新部署，
   `api/interpret` 回 200——卡的不是金鑰，是「環境變數不會套用到既有部署」
-- iOS/Android 實機測試（Expo Go，25 項清單）→ EAS Build → 上架
+- iOS/Android 實機測試（Expo Go，26 項清單）→ EAS Build → 上架
   （App Store $99/年、Google Play $25）→ 自訂域名。實機時一併確認
   分享圖片有內容（A25 防線的現場驗證）
 - ~~**待產品決策**：LiuYaoPanel 的六類命理散文~~ ✅ Session 38 結案。
