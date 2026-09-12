@@ -378,7 +378,12 @@ export const translations: Record<string, Record<Lang, string>> = {
   'stats.medianDelay': { 'zh-TW': ' · 平均占後 {n} 天回填', en: ' · typically logged {n} days later', ja: ' · 平均 {n} 日後に記録' },
   'stats.rateNote': { 'zh-TW': '應驗計 1 分、部分應驗計 0.5 分、未應驗計 0 分，除以已驗則數。', en: 'Accurate scores 1, partly accurate 0.5, missed 0 — divided by the number verified.', ja: '的中は1点、一部的中は0.5点、不的中は0点として、検証済件数で割った値です。' },
   'stats.insight': { 'zh-TW': '你問「{label}」最準——{n} 則已驗，應驗率 {rate}%。', en: 'You read "{label}" best — {n} verified, {rate}% accurate.', ja: '「{label}」が最も的中——検証済 {n} 件、的中率 {rate}%。' },
-  'stats.pending': { 'zh-TW': '有 {n} 則兩週前的占卜還沒回填結果。', en: '{n} readings from over two weeks ago are still unverified.', ja: '2週間以上前の占いが {n} 件、未記録です。' },
+  // 樣本不足的分項：畫面上要看得出「這一列還不能拿來下結論」。
+  // 門檻數字走 {n} 佔位而不是寫死 5——真相來源是 MIN_INSIGHT_SAMPLES，
+  // 寫死就會變成 S60 那種「改了常數、文案沒跟上」的重複。
+  'stats.lowSample': { 'zh-TW': '樣本不足', en: 'Low sample', ja: 'サンプル不足' },
+  'stats.sampleNote': { 'zh-TW': '少於 {n} 筆的分組僅供參考，不列入「最準」的判斷。', en: 'Groups with fewer than {n} verified readings are shown for reference only and are not used to pick your strongest area.', ja: '{n} 件未満のグループは参考表示で、「最も当たる」判定には使いません。' },
+  'stats.pending':{ 'zh-TW': '有 {n} 則兩週前的占卜還沒回填結果。', en: '{n} readings from over two weeks ago are still unverified.', ja: '2週間以上前の占いが {n} 件、未記録です。' },
   'stats.byCategory': { 'zh-TW': '各類問事的應驗率', en: 'Accuracy by Question Type', ja: '問い別の的中率' },
   'stats.bySpread': { 'zh-TW': '各牌陣的應驗率', en: 'Accuracy by Spread', ja: '配置別の的中率' },
   'stats.byMode': { 'zh-TW': '各占卜模式的應驗率', en: 'Accuracy by Divination Mode', ja: '占い方法別の的中率' },

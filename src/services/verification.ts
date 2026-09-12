@@ -65,11 +65,32 @@ export interface AccuracyStats {
   rate: number | null;
 }
 
+/**
+ * 一組分項統計要有幾筆已回填，才值得拿來下結論。
+ *
+ * 這個數字原本只存在於 `bestCategory()` 的預設參數裡——**同一個 App 因此
+ * 一邊說「少於 5 筆不算數」（個人洞察算不出來就不顯示），一邊把一筆 100%
+ * 的分組排在二十筆 85% 的上面**（分項列表只依應驗率排序）。判準是對的，
+ * 只是沒有套到所有用得上它的地方。
+ *
+ * 五筆不是統計學上的門檻，是這個 App 的保守下限：低於它，一次回填就能
+ * 把比率推移 20 個百分點以上，那個數字講的是巧合而不是傾向。
+ */
+export const MIN_INSIGHT_SAMPLES = 5;
+
 /** 依某個維度分組的應驗統計 */
 export interface AccuracyBreakdown {
   key: string;
   label: string;
   stats: AccuracyStats;
+  /**
+   * 樣本是否足以下結論（`stats.verified >= MIN_INSIGHT_SAMPLES`）。
+   *
+   * 由服務層算好而不是讓畫面自己比：畫面自己比就等於把同一條規則再抄一份，
+   * 日後改門檻會有一邊沒跟上——這正是 S60 那個「十二份重複、零個真相來源」
+   * 的病。
+   */
+  enoughSamples: boolean;
 }
 
 // ====== 基本判定 ======
@@ -149,11 +170,25 @@ export function breakdownBy(
   }
 
   return [...groups.entries()]
-    .map(([key, rs]) => ({ key, label: labelOf(key), stats: computeAccuracy(rs) }))
-    // 只列出有回填資料的組，並以應驗率高者在前；同率則以樣本多者在前
+    .map(([key, rs]) => {
+      const stats = computeAccuracy(rs);
+      return {
+        key, label: labelOf(key), stats,
+        enoughSamples: stats.verified >= MIN_INSIGHT_SAMPLES,
+      };
+    })
+    // 只列出有回填資料的組
     .filter(b => b.stats.verified > 0)
+    // 樣本足夠的先排，其次才是樣本不足的；各自再以應驗率高者在前、
+    // 同率則樣本多者在前。
+    //
+    // 為什麼排序要認門檻：排序本身就是一種宣稱。只依應驗率排，
+    // 一筆全中的分組會坐在第一列，而畫面上「第一列」的意思就是
+    // 「你在這方面最準」——那句話不該由一次巧合說出口。
     .sort((a, b) =>
-      (b.stats.rate ?? 0) - (a.stats.rate ?? 0) || b.stats.verified - a.stats.verified,
+      Number(b.enoughSamples) - Number(a.enoughSamples)
+      || (b.stats.rate ?? 0) - (a.stats.rate ?? 0)
+      || b.stats.verified - a.stats.verified,
     );
 }
 
@@ -277,7 +312,7 @@ export function accuracyBySeason(
  */
 export function bestCategory(
   records: DivinationRecord[],
-  minSamples: number = 5,
+  minSamples: number = MIN_INSIGHT_SAMPLES,
   labelOf?: (key: string) => string,
 ): AccuracyBreakdown | null {
   const eligible = accuracyByCategory(records, labelOf).filter(b => b.stats.verified >= minSamples);

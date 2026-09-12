@@ -16,7 +16,7 @@ import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason, accuracyByMode,
   accuracyBySpread,
-  bestCategory, medianVerifyDelay, pendingVerification,
+  bestCategory, medianVerifyDelay, pendingVerification, MIN_INSIGHT_SAMPLES,
   type AccuracyBreakdown,
 } from '@/services/verification';
 import { POEM_LEVELS, getLevelColor } from '@/data/poems';
@@ -317,6 +317,7 @@ export default function StatsScreen() {
             rows={byCategory}
             theme={theme}
             styles={styles}
+            t={t}
             // 依應驗率上色，凸顯自己在哪類問題上判得準
             colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
@@ -328,6 +329,7 @@ export default function StatsScreen() {
             rows={byLevel}
             theme={theme}
             styles={styles}
+            t={t}
             // 依籤詩等級本身的色系上色，與吉凶分佈圖對得起來
             colorOf={row => getLevelColor(row.key)}
           />
@@ -339,6 +341,7 @@ export default function StatsScreen() {
             rows={byMode}
             theme={theme}
             styles={styles}
+            t={t}
             colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
         )}
@@ -349,6 +352,7 @@ export default function StatsScreen() {
             rows={bySpread}
             theme={theme}
             styles={styles}
+            t={t}
             colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
         )}
@@ -359,6 +363,7 @@ export default function StatsScreen() {
             rows={byBodyUse}
             theme={theme}
             styles={styles}
+            t={t}
             colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
         )}
@@ -369,6 +374,7 @@ export default function StatsScreen() {
             rows={byMovingLine}
             theme={theme}
             styles={styles}
+            t={t}
             colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
         )}
@@ -378,6 +384,7 @@ export default function StatsScreen() {
             rows={bySeason}
             theme={theme}
             styles={styles}
+            t={t}
             colorOf={row => rateColor(row.stats.rate ?? 0)}
           />
         )}
@@ -392,12 +399,14 @@ export default function StatsScreen() {
  * 每列一個分組，長條寬度即為應驗率，右側標註已驗則數——
  * 只給百分比會讓「1 則全中 = 100%」和「20 則 100%」看起來一樣可信。
  */
-function AccuracySection({ title, rows, theme, styles, colorOf, testID }: {
+function AccuracySection({ title, rows, theme, styles, colorOf, t, testID }: {
   title: string;
   rows: AccuracyBreakdown[];
   theme: ThemeColors;
   styles: ReturnType<typeof makeStyles>;
   colorOf: (row: AccuracyBreakdown) => string;
+  /** 由呼叫端傳入，維持與其他子元件一致（本檔的子元件都不自己呼叫 useI18n） */
+  t: (key: string, params?: Record<string, string | number>) => string;
   /** 給 e2e 定位整節用；沒有它就只能靠 DOM 形狀猜，而那會隨排版改動而碎 */
   testID?: string;
 }) {
@@ -405,7 +414,11 @@ function AccuracySection({ title, rows, theme, styles, colorOf, testID }: {
     <View testID={testID} style={[styles.section, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
       <Text style={[styles.sectionTitle, { color: theme.textGold }]}>{title}</Text>
       {rows.map(row => (
-        <View key={row.key} style={styles.barRow}>
+        <View
+          key={row.key}
+          testID={row.enoughSamples ? undefined : 'low-sample-row'}
+          style={[styles.barRow, !row.enoughSamples && styles.lowSampleRow]}
+        >
           <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{row.label}</Text>
           <View style={styles.barTrack}>
             <View style={[styles.barFill, {
@@ -419,8 +432,22 @@ function AccuracySection({ title, rows, theme, styles, colorOf, testID }: {
           <Text style={[styles.rateSample, { color: theme.textMuted }]}>
             /{row.stats.verified}
           </Text>
+          {/* 淡化只表示「這一列比較不重要」，說不出為什麼。加一個字樣，
+              使用者才知道那不是他在這方面比較差，是筆數還不夠。 */}
+          {!row.enoughSamples && (
+            <Text style={[styles.lowSampleTag, { color: theme.textMuted }]}>
+              {t('stats.lowSample')}
+            </Text>
+          )}
         </View>
       ))}
+      {/* 只在真的有樣本不足的列時才說明——沒有的時候多這一句只是雜訊。
+          門檻數字來自 MIN_INSIGHT_SAMPLES，不在文案裡寫死。 */}
+      {rows.some(row => !row.enoughSamples) && (
+        <Text testID="sample-note" style={[styles.sampleNote, { color: theme.textMuted }]}>
+          {t('stats.sampleNote', { n: MIN_INSIGHT_SAMPLES })}
+        </Text>
+      )}
     </View>
   );
 }
@@ -501,6 +528,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     borderWidth: 1, borderRadius: 10, padding: Spacing.sm, marginTop: Spacing.md,
   },
   insightText: { fontSize: FontSize.small, lineHeight: 20 },
+  lowSampleRow: { opacity: 0.55 },
+  lowSampleTag: { fontSize: FontSize.caption, marginLeft: 4 },
+  sampleNote: { fontSize: FontSize.caption, marginTop: Spacing.sm, lineHeight: 17 },
   pendingText: { fontSize: FontSize.caption, marginTop: Spacing.md, lineHeight: 18 },
   // 應驗率列比吉凶分佈多兩欄（百分比 + 樣本數），沿用同一組 barRow/barTrack
   ratePill: { fontSize: FontSize.small, fontWeight: '700', width: 38, textAlign: 'right' },

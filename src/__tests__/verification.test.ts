@@ -5,7 +5,7 @@ import {
   computeAccuracy, breakdownBy, accuracyByLevel, accuracyByCategory, accuracyByMode, accuracyBySpread,
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
   bestCategory, medianVerifyDelay,
-  OUTCOME_LABELS, OUTCOME_STATUSES, VERIFY_REMINDER_DAYS,
+  OUTCOME_LABELS, OUTCOME_STATUSES, VERIFY_REMINDER_DAYS, MIN_INSIGHT_SAMPLES,
 } from '../services/verification';
 import type {
   DivinationRecord, OutcomeStatus, DivinationOutcome,
@@ -492,5 +492,50 @@ describe('待回填在畫面上要有出口', () => {
 
   test('沒有待回填時不顯示提示', () => {
     expect(homeSrc).toMatch(/pending\.length > 0 &&/);
+  });
+});
+
+/**
+ * 樣本不足的分組不該坐在第一列。
+ *
+ * `bestCategory()` 從一開始就規定「少於 5 筆不算數」（樣本不夠就回 null，
+ * 個人洞察整段不顯示）。但分項列表只依應驗率排序——於是**同一個 App
+ * 一邊說一筆不算數，一邊把一筆 100% 的分組排在二十筆 85% 的上面**。
+ *
+ * 排序本身就是一種宣稱：畫面上「第一列」的意思就是「你在這方面最準」，
+ * 那句話不該由一次巧合說出口。
+ */
+describe('樣本門檻', () => {
+  /** 造 n 筆同組、全部應驗的記錄 */
+  function group(level: string, n: number, status: OutcomeStatus = 'accurate') {
+    return Array.from({ length: n }, () => verified(status, { poemLevel: level }));
+  }
+
+  test('門檻是 bestCategory 用的那一個，不是另外寫死的數字', () => {
+    expect(MIN_INSIGHT_SAMPLES).toBe(5);
+    // 恰好等於門檻要算足夠，差一筆則不足——邊界寫死在測試裡，
+    // 日後改門檻時這兩條會一起提醒你哪些地方跟著動
+    expect(accuracyByLevel(group('大吉', MIN_INSIGHT_SAMPLES))[0].enoughSamples).toBe(true);
+    expect(accuracyByLevel(group('大吉', MIN_INSIGHT_SAMPLES - 1))[0].enoughSamples).toBe(false);
+  });
+
+  test('樣本足夠的排在樣本不足的前面，即使應驗率較低', () => {
+    const rows = accuracyByLevel([
+      ...group('中吉', 1),                      // 100%，但只有一筆
+      ...group('大吉', 5, 'accurate').slice(0, 4),
+      ...group('大吉', 1, 'inaccurate'),        // 大吉共 5 筆、80%
+    ]);
+    // 80%/5 在前，100%/1 在後——樣本夠的才有資格排第一
+    expect(rows.map(r => [r.key, r.stats.rate, r.enoughSamples]))
+      .toEqual([['大吉', 80, true], ['中吉', 100, false]]);
+  });
+
+  test('同樣樣本不足時，彼此仍依應驗率排序', () => {
+    const rows = accuracyByLevel([
+      ...group('下下', 1, 'inaccurate'),
+      ...group('中吉', 1, 'accurate'),
+    ]);
+    expect(rows.map(r => r.key)).toEqual(['中吉', '下下']);
+    expect(rows.every(r => !r.enoughSamples)).toBe(true);
   });
 });

@@ -410,6 +410,55 @@ test.describe('記錄搜尋與卡片留白', () => {
     await expect(page).toHaveURL(/recordId=pending-1/, { timeout: 30_000 });
   });
 
+  /**
+   * 樣本不足的分組不該坐在第一列（S64）。
+   *
+   * `bestCategory()` 一直規定「少於 5 筆不算數」，但分項列表只依應驗率排序
+   * ——於是同一個 App 一邊說一筆不算數，一邊把一筆 100% 的分組排在
+   * 五筆 80% 的上面。**排序本身就是一種宣稱**：畫面上第一列的意思就是
+   * 「你在這方面最準」。
+   *
+   * 這條看的是畫面而不是服務層：單元測試驗得了排序，驗不了使用者
+   * 「看到第一列是誰、以及有沒有被告知那一列還不算數」。
+   */
+  test('統計頁把樣本不足的分組排在後面並標示出來', async ({ page }) => {
+    const at = Date.now() - 3 * 86_400_000;
+    const base = {
+      poemId: 1, poemContent: '一二三四', poemTitle: '龍騰九霄',
+      drawnPieceTypes: ['general'], drawnPieceColors: ['red'], drawnPieceChars: ['帥'],
+      isFavorited: false, engineVersion: 4, mode: 'draw',
+    };
+    const verified = (i: number, level: string, status: string) => ({
+      ...base, id: `v${i}`, poemLevel: level, timestamp: at - i * 1000,
+      outcome: { status, verifiedAt: at },
+    });
+    const records = [
+      // 大吉：5 筆、4 應驗 1 未應驗 = 80%，樣本足夠
+      verified(1, '大吉', 'accurate'), verified(2, '大吉', 'accurate'),
+      verified(3, '大吉', 'accurate'), verified(4, '大吉', 'accurate'),
+      verified(5, '大吉', 'inaccurate'),
+      // 中吉：1 筆全中 = 100%，但樣本不足
+      verified(6, '中吉', 'accurate'),
+    ];
+    await page.addInitScript(
+      ([key, recs]) => window.localStorage.setItem(key as string, JSON.stringify(recs)),
+      [HISTORY_KEY, records] as const,
+    );
+
+    await page.goto('/stats');
+    const section = page.getByTestId('accuracy-by-level');
+    await expect(section).toBeVisible({ timeout: 30_000 });
+
+    // 80%/5 要排在 100%/1 之前——樣本夠的才有資格排第一
+    const labels = await section.locator('text=/^(大吉|中吉)$/').allTextContents();
+    expect(labels).toEqual(['大吉', '中吉']);
+
+    // 而且那一列要說得出「為什麼被排到後面」，不能只是變淡
+    await expect(section.getByTestId('low-sample-row')).toHaveCount(1);
+    await expect(section.getByText('樣本不足')).toBeVisible();
+    await expect(section.getByTestId('sample-note')).toBeVisible();
+  });
+
   /** 反過來：剛占完的記錄還沒到回填時機，不該催他 */
   test('未滿期的記錄不會出現待回填提示', async ({ page }) => {
     const record = {
