@@ -168,6 +168,41 @@ describe('成就說明的數字等於解鎖門檻', () => {
 });
 
 /**
+ * 錯誤訊息不該把使用者指向他動不了、而且與病因無關的東西。
+ *
+ * `settings.syncUnset` 是 501 的說明（伺服器端沒接上資料庫），舊文案卻叫
+ * 使用者去設 `EXPO_PUBLIC_CLOUD_SYNC_URL`——那是另一個旋鈕，而且是選用的
+ * （web 走同源相對路徑、原生有絕對網址預設）。照著做不會好，而且使用者
+ * 根本設不了環境變數。
+ *
+ * 這條守的是那個判準：**使用者看得到的錯誤訊息裡不出現環境變數名稱。**
+ */
+describe('錯誤訊息不指向使用者動不了的旋鈕', () => {
+  const userFacing = Object.entries(translations)
+    .filter(([key]) => !key.startsWith('dev.'));
+
+  test('沒有任何訊息把環境變數名稱寫給使用者看', () => {
+    const offenders: string[] = [];
+    for (const [key, entry] of userFacing) {
+      for (const lang of LANGS) {
+        const text = entry[lang] ?? '';
+        // 環境變數的慣用長相：連續大寫底線字，且至少兩段
+        if (/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+){2,}\b/.test(text)) {
+          offenders.push(`${key}（${lang}）：${text}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  /** 反空轉：正則要真的抓得到這種字，否則上面那條永遠是綠的 */
+  test('這條規則抓得到環境變數的長相', () => {
+    expect(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+){2,}\b/.test('請設定 EXPO_PUBLIC_CLOUD_SYNC_URL 環境變數')).toBe(true);
+    expect(/\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+){2,}\b/.test('雲端同步尚未啟用')).toBe(false);
+  });
+});
+
+/**
  * 迴歸：首頁「快速抽一籤」的副標曾寫死顆數（「直接抽取 2 顆棋子獲得指引」）。
  *
  * 這個數字不像上面那些有真相來源可對——它**根本不該存在**：預設抽棋數量

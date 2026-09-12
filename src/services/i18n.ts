@@ -498,7 +498,17 @@ export const translations: Record<string, Record<Lang, string>> = {
   'settings.restoreFailDesc': { 'zh-TW': '請選擇正確的備份檔案', en: 'Please choose a valid backup file', ja: '正しいバックアップファイルを選んでください' },
   'settings.restoreFailRead': { 'zh-TW': '無法讀取備份檔，請確認檔案完整後再試。', en: 'Could not read the backup file. Check that it is intact and try again.', ja: 'バックアップファイルを読み取れませんでした。ファイルが壊れていないか確認してください。' },
   // 變數名須與 services/cloudSync.ts 讀取的相同，否則使用者照著設了也不會生效
-  'settings.syncUnset': { 'zh-TW': '尚未設定雲端同步伺服器。請設定 EXPO_PUBLIC_CLOUD_SYNC_URL 環境變數。', en: 'No sync server configured. Set the EXPO_PUBLIC_CLOUD_SYNC_URL environment variable.', ja: '同期サーバーが未設定です。EXPO_PUBLIC_CLOUD_SYNC_URL 環境変数を設定してください。' },
+  // 501 的意思是「伺服器端沒有接上資料庫」（見 api/sync.ts 的 kv()：
+  // 缺 UPSTASH_REDIS_REST_URL／TOKEN 時直接回 501）。
+  //
+  // 舊文案叫使用者去設 `EXPO_PUBLIC_CLOUD_SYNC_URL`，那是**另一個旋鈕**
+  // ——它是選用的（web 走同源相對路徑、原生有絕對網址預設），而且端點
+  // 明明回應了才會有 501。照著設一輩子也不會好。這是 S48 那個教訓的重演：
+  // **把「設了沒生效」歸咎到錯的那個變數上**。
+  //
+  // 另外它是寫給開發者看的字，卻出現在使用者的對話框裡——使用者設不了任何
+  // 環境變數。現在改成告訴他「這不是你那邊的問題」，然後停在那裡。
+  'settings.syncUnset': { 'zh-TW': '雲端同步尚未啟用：伺服器端還沒接上資料庫。這不是你的裝置或配對碼的問題。', en: 'Cloud sync is not enabled yet — the server has no database connected. This is not a problem with your device or pairing code.', ja: 'クラウド同期はまだ有効になっていません（サーバーにデータベースが接続されていません）。端末やペアリングコードの問題ではありません。' },
   'settings.syncOffline': { 'zh-TW': '連不上同步伺服器，請確認網路後再試。', en: 'Could not reach the sync server. Check your connection and try again.', ja: '同期サーバーに接続できません。通信状況を確認してください。' },
   'settings.syncTooLarge': { 'zh-TW': '資料量超過伺服器上限，未能上傳。可先刪除部分舊記錄再同步。', en: 'The data exceeds the server limit and was not uploaded. Delete some old records and sync again.', ja: 'データがサーバーの上限を超えたためアップロードできません。古い記録を削除してから再試行してください。' },
   'settings.syncRateLimited': { 'zh-TW': '同步太過頻繁，請稍候一分鐘再試。', en: 'Too many sync requests. Please wait a minute and try again.', ja: '同期の回数が多すぎます。1分ほど待って再試行してください。' },
