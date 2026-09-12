@@ -56,12 +56,54 @@ export function screenFromNotificationData(data: unknown): NotificationScreen | 
     : null;
 }
 
+/** 記錄 id 的長度上限。我們自己產的 id 遠短於此，這個上限只為擋掉異常長的輸入 */
+const MAX_RECORD_ID = 64;
+
 /**
- * 訂閱「使用者點了通知」，把 data.screen 交給呼叫端導頁。
+ * 從通知的 data 取出「它在講哪一筆記錄」；沒有指名時回 null。
+ *
+ * 為什麼只取 id 而不取路徑：占驗提醒要帶使用者去的是那一筆占卜本身，
+ * 而那筆該用哪個畫面開（`/reveal` 或 `/lingqi`）取決於它的 mode——
+ * 那是 `recordLink()` 依**我們自己存的記錄**決定的。通知只說「哪一筆」，
+ * 路由仍然完全由程式決定，上面那份白名單的用意因此沒有被繞過。
+ */
+export function recordIdFromNotificationData(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const id = (data as { recordId?: unknown }).recordId;
+  if (typeof id !== 'string') return null;
+  const trimmed = id.trim();
+  return trimmed.length > 0 && trimmed.length <= MAX_RECORD_ID ? trimmed : null;
+}
+
+/**
+ * 使用者點了通知之後該去哪。
+ *
+ * `screen` 是保底目的地（白名單內），`recordId` 是「有指名的話是哪一筆」。
+ * 兩者同時帶出去而不是二選一：記錄可能已經被刪掉了，那時仍然要有地方可去。
+ */
+export interface NotificationTarget {
+  screen: NotificationScreen;
+  recordId: string | null;
+}
+
+/** 組出點擊通知後的目的地；連保底畫面都認不得時回 null（不導頁） */
+export function targetFromNotificationData(data: unknown): NotificationTarget | null {
+  const screen = screenFromNotificationData(data);
+  if (!screen) return null;
+  return { screen, recordId: recordIdFromNotificationData(data) };
+}
+
+/**
+ * 訂閱「使用者點了通知」，把目的地交給呼叫端導頁。
  *
  * 先前完全沒有這個監聽器，通知裡的 `data: { screen: '/stats' }` 是死資料
  * ——點了占驗提醒只會打開 App 的首頁，使用者還得自己找到統計頁，
  * 而提醒的用意正是「現在就去回填那一筆」。
+ *
+ * 補上監聽器之後，那句話仍然只做到一半：`recordId` 一直都寫在通知的 data
+ * 裡，卻在這裡被丟掉，於是點下去只到得了一個通用的統計頁，**要回填哪一筆
+ * 還是得自己找**——而那正是提醒存在的理由。現在連 id 一起交出去，
+ * 由呼叫端查出那筆記錄、用 `recordLink()` 決定它該用哪個畫面開。
  *
  * 另外要處理冷啟動：App 被系統殺掉後點通知啟動，事件在監聽器掛上之前
  * 就發生了，只靠 addNotificationResponseReceivedListener 會漏掉。
@@ -70,7 +112,7 @@ export function screenFromNotificationData(data: unknown): NotificationScreen | 
  * @returns 取消訂閱的函式
  */
 export function subscribeToNotificationTaps(
-  onNavigate: (screen: NotificationScreen) => void,
+  onNavigate: (target: NotificationTarget) => void,
 ): () => void {
   if (Platform.OS === 'web') return () => {};
 
@@ -80,14 +122,14 @@ export function subscribeToNotificationTaps(
   Notifications.getLastNotificationResponseAsync()
     .then(response => {
       if (cancelled || !response) return;
-      const screen = screenFromNotificationData(response.notification.request.content.data);
-      if (screen) onNavigate(screen);
+      const target = targetFromNotificationData(response.notification.request.content.data);
+      if (target) onNavigate(target);
     })
     .catch(e => console.warn('讀取啟動通知失敗:', e));
 
   const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-    const screen = screenFromNotificationData(response.notification.request.content.data);
-    if (screen) onNavigate(screen);
+    const target = targetFromNotificationData(response.notification.request.content.data);
+    if (target) onNavigate(target);
   });
 
   return () => {

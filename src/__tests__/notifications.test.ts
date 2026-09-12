@@ -5,6 +5,8 @@ import * as Notifications from 'expo-notifications';
 import {
   setupNotificationHandler,
   screenFromNotificationData,
+  recordIdFromNotificationData,
+  targetFromNotificationData,
   subscribeToNotificationTaps,
   requestNotificationPermission,
   hasNotificationPermission,
@@ -104,7 +106,25 @@ describe('通知處理器與導頁的接線（靜態守門）', () => {
 
   test('root layout 會訂閱通知點擊並導頁（非註解）', () => {
     expect(layoutSrc).toMatch(/^\s*return subscribeToNotificationTaps\(/m);
-    expect(layoutSrc).toMatch(/router\.push\(screen\)/);
+    // 重錨（S62）：回呼收到的從畫面字串換成目的地物件，導頁因此不再是
+    // `router.push(screen)` 一種寫法。守的性質沒變——**點了通知一定會導頁**
+    // ——所以改為要求保底畫面那條路徑仍在。
+    expect(layoutSrc).toMatch(/router\.push\(target\.screen\)/);
+  });
+
+  /**
+   * 占驗提醒講的是**某一筆**占卜。`recordId` 一直都寫在通知的 data 裡
+   * （見下方排程測試），卻在點擊時被丟掉，於是點下去只到得了通用的統計頁
+   * ——要回填哪一筆還是得自己找，而那正是提醒存在的理由。
+   *
+   * 這條守的是那段接線：畫面層必須拿 `recordId` 去查記錄，並用
+   * `recordLink()` 決定它該用哪個畫面開。少了任何一半，提醒就又只是
+   * 「把 App 打開」而已。
+   */
+  test('root layout 會把通知指名的那一筆記錄打開', () => {
+    expect(layoutSrc).toContain('target.recordId');
+    expect(layoutSrc).toMatch(/getHistory\(\)/);
+    expect(layoutSrc).toMatch(/router\.push\(recordLink\(record\)\)/);
   });
 });
 
@@ -133,11 +153,72 @@ describe('screenFromNotificationData', () => {
   });
 });
 
+describe('recordIdFromNotificationData', () => {
+  test('取出通知指名的那一筆記錄', () => {
+    expect(recordIdFromNotificationData({ screen: '/stats', recordId: 'rec-1' })).toBe('rec-1');
+  });
+
+  test('前後空白修掉，只有空白視為沒有指名', () => {
+    expect(recordIdFromNotificationData({ recordId: '  rec-2  ' })).toBe('rec-2');
+    expect(recordIdFromNotificationData({ recordId: '   ' })).toBeNull();
+    expect(recordIdFromNotificationData({ recordId: '' })).toBeNull();
+  });
+
+  /**
+   * id 會經過作業系統來回一趟。它只被拿去比對我們自己存的記錄、永遠不會
+   * 變成路徑的一部分，但仍然擋掉非字串與異常長度——**能擋的就擋**，
+   * 而不是靠「它只被當成查詢鍵」這個目前為真的性質。
+   */
+  test('非字串、過長的值一律不認', () => {
+    expect(recordIdFromNotificationData({ recordId: 42 })).toBeNull();
+    expect(recordIdFromNotificationData({ recordId: { id: 'x' } })).toBeNull();
+    expect(recordIdFromNotificationData({ recordId: 'a'.repeat(65) })).toBeNull();
+    expect(recordIdFromNotificationData({ recordId: 'a'.repeat(64) })).toBe('a'.repeat(64));
+  });
+
+  test('沒有 recordId 或 data 不是物件時回 null', () => {
+    expect(recordIdFromNotificationData({ screen: '/stats' })).toBeNull();
+    expect(recordIdFromNotificationData(null)).toBeNull();
+    expect(recordIdFromNotificationData('字串')).toBeNull();
+  });
+});
+
+describe('targetFromNotificationData', () => {
+  test('占驗提醒帶得出「哪一筆」', () => {
+    expect(targetFromNotificationData({ screen: '/stats', recordId: 'rec-1' }))
+      .toEqual({ screen: '/stats', recordId: 'rec-1' });
+  });
+
+  test('每日提醒沒有指名記錄，仍給得出保底畫面', () => {
+    expect(targetFromNotificationData({ screen: '/(tabs)' }))
+      .toEqual({ screen: '/(tabs)', recordId: null });
+  });
+
+  /**
+   * 畫面白名單仍然說了算：帶了 recordId 也救不回一個不在白名單的畫面。
+   * 通知能決定的只有「哪一筆」，不能決定「去哪裡」。
+   */
+  test('畫面不在白名單時整個不導頁，即使帶了 recordId', () => {
+    expect(targetFromNotificationData({ screen: '/settings', recordId: 'rec-1' })).toBeNull();
+    expect(targetFromNotificationData({ screen: '../../etc', recordId: 'rec-1' })).toBeNull();
+  });
+});
+
 describe('subscribeToNotificationTaps', () => {
   /** 造一個 expo-notifications 的點擊回應物件 */
-  function response(screen: unknown) {
-    return { notification: { request: { content: { data: { screen } } } } };
+  function response(screen: unknown, recordId?: string) {
+    return { notification: { request: { content: { data: { screen, recordId } } } } };
   }
+
+  test('點擊占驗提醒時，把它指名的那一筆一起交出去', () => {
+    const onNavigate = jest.fn();
+    subscribeToNotificationTaps(onNavigate);
+
+    const handler = mocked.addNotificationResponseReceivedListener.mock.calls[0][0];
+    handler(response('/stats', 'rec-7') as never);
+
+    expect(onNavigate).toHaveBeenCalledWith({ screen: '/stats', recordId: 'rec-7' });
+  });
 
   test('點擊通知時以通知指定的畫面呼叫導頁', () => {
     const onNavigate = jest.fn();
@@ -146,7 +227,7 @@ describe('subscribeToNotificationTaps', () => {
     const handler = mocked.addNotificationResponseReceivedListener.mock.calls[0][0];
     handler(response('/stats') as never);
 
-    expect(onNavigate).toHaveBeenCalledWith('/stats');
+    expect(onNavigate).toHaveBeenCalledWith({ screen: '/stats', recordId: null });
   });
 
   test('通知未指定可辨識的畫面時不導頁', () => {
@@ -172,7 +253,7 @@ describe('subscribeToNotificationTaps', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(onNavigate).toHaveBeenCalledWith('/stats');
+    expect(onNavigate).toHaveBeenCalledWith({ screen: '/stats', recordId: null });
   });
 
   test('取消訂閱後，冷啟動的結果不再導頁', async () => {
