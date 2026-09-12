@@ -223,6 +223,11 @@ export const translations: Record<string, Record<Lang, string>> = {
   'home.luckyNum': { 'zh-TW': '幸運數字', en: 'Lucky Number', ja: 'ラッキーナンバー' },
   'home.luckyColor': { 'zh-TW': '幸運色', en: 'Lucky Color', ja: 'ラッキーカラー' },
   'home.recent': { 'zh-TW': '最近占卜', en: 'Recent Divinations', ja: '最近の占い' },
+  // 首頁的待回填提示。標題講「有幾筆」，副標指名最近滿期的那一筆——
+  // 只說數字的話，使用者還是得自己去找是哪些（統計頁原本就只說數字）。
+  // 天數走 {days} 佔位而不是寫死：它每天都在變。
+  'home.pending': { 'zh-TW': '{n} 筆占卜可以回填結果了', en: '{n} readings are ready to verify', ja: '{n} 件の占いが結果待ちです' },
+  'home.pendingLatest': { 'zh-TW': '最近的是「{title}」，已過 {days} 天', en: 'Most recent: “{title}”, {days} days ago', ja: '直近は「{title}」（{days} 日前）' },
   'home.quickDraw': { 'zh-TW': '快速抽一籤', en: 'Quick Draw', ja: 'クイック占い' },
   // 這顆按鈕只是進到抽棋頁（選面向、選棋數，按下去才抽），所以不寫「直接抽取」。
   // 也不寫死顆數：預設抽棋數量是使用者設定的，抽棋頁會把他設的那顆標成「建議」，

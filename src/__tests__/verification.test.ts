@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   isVerified, daysSince, pendingVerification,
   computeAccuracy, breakdownBy, accuracyByLevel, accuracyByCategory, accuracyByMode, accuracyBySpread,
@@ -448,5 +450,47 @@ describe('回填延遲中位數', () => {
     const allBackwards = [1, 2, 3].map(d =>
       verified('accurate', { timestamp: NOW }, { verifiedAt: NOW - d * DAY }));
     expect(medianVerifyDelay(allBackwards)).toBeGreaterThanOrEqual(0);
+  });
+});
+
+/**
+ * 守門：算得出「哪些該回填」，就要有地方讓使用者按下去。
+ *
+ * `pendingVerification()` 從很早就存在，但在 Session 62 之前只有統計頁用它，
+ * 而且只印成一個數字（`stats.pending`）——使用者被告知有 N 筆待回填，
+ * 然後自己去歷史裡找是哪幾筆。占驗提醒那則通知也只送到統計頁（S62 修掉）。
+ *
+ * 這與 S53「`setSelectedFolderId` 從來沒有被呼叫過」是同一族：**資料備妥，
+ * 只差最後有人用它**。型別攔不住（算出來不用完全合法），單元測試也測不到
+ * （上面那些 `pendingVerification` 的測試全都是綠的，斷的是畫面那一側）。
+ */
+describe('待回填在畫面上要有出口', () => {
+  const HOME = path.join(__dirname, '..', 'app', '(tabs)', 'index.tsx');
+
+  /** 去掉註解：這一段的關鍵字在說明文字裡也會出現（本檔開頭就是例子） */
+  function stripComments(source: string): string {
+    return source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split(/\r?\n/)
+      .map(line => line.replace(/\/\/.*$/, ''))
+      .join('\n');
+  }
+
+  const homeSrc = stripComments(fs.readFileSync(HOME, 'utf-8'));
+
+  test('首頁真的算了待回填，而不是只算最近三筆', () => {
+    expect(homeSrc).toContain('pendingVerification(');
+  });
+
+  /**
+   * 關鍵的一半：點下去要到**那一筆**。只顯示數字等於把「現在就去回填」
+   * 變成「自己去歷史裡找」——那正是統計頁原本的樣子。
+   */
+  test('提示可按，且開的是最近滿期的那一筆', () => {
+    expect(homeSrc).toMatch(/router\.push\(recordLink\(pending\[0\]\)\)/);
+  });
+
+  test('沒有待回填時不顯示提示', () => {
+    expect(homeSrc).toMatch(/pending\.length > 0 &&/);
   });
 });

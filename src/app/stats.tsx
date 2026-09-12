@@ -4,6 +4,7 @@ import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { recordLink } from '@/services/recordLink';
 import InkBackground from '@/components/InkBackground';
 import { PIECE_CHINESE_NAMES } from '@/components/icons';
 import TrendChart from '@/components/TrendChart';
@@ -246,10 +247,19 @@ export default function StatsScreen() {
             </>
           )}
 
+          {/* 這一行原本只是個數字：告訴使用者有 N 筆待回填，然後要他自己
+              去歷史裡找是哪幾筆。與首頁的提示同一個修法——點下去就是
+              最近滿期的那一筆，回填介面就在那一頁上。 */}
           {pending.length > 0 && (
-            <Text style={[styles.pendingText, { color: theme.textMuted }]}>
-              {t('stats.pending', { n: pending.length })}
-            </Text>
+            <TouchableOpacity
+              testID="stats-pending"
+              accessibilityRole="button"
+              onPress={() => router.push(recordLink(pending[0]))}
+            >
+              <Text style={[styles.pendingText, { color: theme.textGold }]}>
+                {t('stats.pending', { n: pending.length })}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
 

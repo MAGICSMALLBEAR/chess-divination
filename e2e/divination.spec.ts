@@ -377,6 +377,59 @@ test.describe('記錄搜尋與卡片留白', () => {
   });
 
   /**
+   * 待回填要有出口（S62）。
+   *
+   * `pendingVerification()` 很早就算得出「哪些滿了 14 天還沒回填」，但在此
+   * 之前只有統計頁用它、而且只印成一個數字：使用者被告知有 N 筆，然後自己
+   * 去歷史裡找是哪幾筆。占驗提醒那則通知也只送到統計頁。
+   *
+   * 這條走完整條路——首頁看得到、指名是哪一筆、按下去真的到那一筆——
+   * 因為缺陷從來不是「算錯」，是**算對了卻沒有地方按**。
+   */
+  test('首頁提示待回填，按下去直接開那一筆', async ({ page }) => {
+    const fifteenDaysAgo = Date.now() - 15 * 86_400_000;
+    const record = {
+      poemId: 1, poemTitle: '龍騰九霄', poemContent: '一二三四', poemLevel: '大吉',
+      drawnPieceTypes: ['general'], drawnPieceColors: ['red'], drawnPieceChars: ['帥'],
+      isFavorited: false, engineVersion: 4,
+      id: 'pending-1', mode: 'draw', timestamp: fifteenDaysAgo,
+    };
+    await page.addInitScript(
+      ([key, recs]) => window.localStorage.setItem(key as string, JSON.stringify(recs)),
+      [HISTORY_KEY, [record]] as const,
+    );
+
+    await page.goto('/');
+    const prompt = page.getByTestId('pending-verify').filter({ visible: true });
+    await expect(prompt).toBeVisible({ timeout: 30_000 });
+    // 指名是哪一筆，而不是只說「有 1 筆」
+    await expect(prompt).toContainText('龍騰九霄');
+
+    await prompt.click();
+    // 到的是那一筆本身（回填介面就在這一頁上），不是統計頁
+    await expect(page).toHaveURL(/recordId=pending-1/, { timeout: 30_000 });
+  });
+
+  /** 反過來：剛占完的記錄還沒到回填時機，不該催他 */
+  test('未滿期的記錄不會出現待回填提示', async ({ page }) => {
+    const record = {
+      poemId: 1, poemTitle: '龍騰九霄', poemContent: '一二三四', poemLevel: '大吉',
+      drawnPieceTypes: ['general'], drawnPieceColors: ['red'], drawnPieceChars: ['帥'],
+      isFavorited: false, engineVersion: 4,
+      id: 'fresh-1', mode: 'draw', timestamp: Date.now() - 86_400_000,
+    };
+    await page.addInitScript(
+      ([key, recs]) => window.localStorage.setItem(key as string, JSON.stringify(recs)),
+      [HISTORY_KEY, [record]] as const,
+    );
+
+    await page.goto('/');
+    // 等首頁真的畫完再斷言不存在，否則任何延遲都會讓這條假綠
+    await expect(page.getByText('龍騰九霄').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('pending-verify')).toHaveCount(0);
+  });
+
+  /**
    * 搜尋沒有命中，不等於這個人沒有記錄。
    *
    * 三個分頁共用同一個搜尋框，空狀態卻一律說「尚無占卜記錄／開始占卜後

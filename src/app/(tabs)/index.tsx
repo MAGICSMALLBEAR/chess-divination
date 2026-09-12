@@ -12,6 +12,7 @@ import { getDailyFortune, saveDailyFortune, getHistory, recordHasLevel, type Dai
 import { getStreak } from '@/services/achievements';
 import { recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
+import { pendingVerification, daysSince } from '@/services/verification';
 import { getLevelColor } from '@/data/poems';
 import { shareNative, shareToTarget, type ShareTarget } from '@/services/socialShare';
 import ShareTargetSheet from '@/components/ShareTargetSheet';
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const [recentRecords, setRecentRecords] = useState<DivinationRecord[]>([]);
   const [streak, setStreak] = useState(0);
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
+  const [pending, setPending] = useState<DivinationRecord[]>([]);
 
   useEffect(() => {
     loadDaily();
@@ -65,6 +67,8 @@ export default function HomeScreen() {
   async function loadRecent() {
     const h = await getHistory();
     setRecentRecords(h.slice(0, 3));
+    // 與最近記錄共用同一次讀取：待回填要看的是完整歷史，不是前三筆
+    setPending(pendingVerification(h));
   }
 
   function handleSelectMode(mode: 'draw' | 'board') {
@@ -160,6 +164,37 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
+          </TouchableOpacity>
+        )}
+
+        {/* 待回填提示。
+            占驗提醒排在占卜後 14 天，但那是一則通知——關掉、沒看到、或當下
+            不方便回填就沒有第二次機會了。`pendingVerification()` 早就算得出
+            「哪些已經滿期還沒回填」，在此之前卻只有統計頁用它，而且只印成
+            一個數字：使用者被告知有 N 筆，然後自己去歷史裡找是哪幾筆。
+            這裡直接指名最近滿期的那一筆，點下去就是它的回填介面。 */}
+        {pending.length > 0 && (
+          <TouchableOpacity
+            testID="pending-verify"
+            style={[styles.pendingCard, { backgroundColor: theme.bgDark, borderColor: theme.gold }]}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('home.pending', { n: pending.length })}。${t('home.pendingLatest', {
+              title: recordTitle(pending[0]), days: daysSince(pending[0].timestamp),
+            })}`}
+            onPress={() => router.push(recordLink(pending[0]))}
+            activeOpacity={0.8}
+          >
+            <View style={styles.iconRow}>
+              <Icon name="check" size={16} color={theme.gold} />
+              <Text style={[styles.pendingTitle, { color: theme.textGold }]}>
+                {' '}{t('home.pending', { n: pending.length })}
+              </Text>
+            </View>
+            <Text style={[styles.pendingHint, { color: theme.textSecondary }]} numberOfLines={1}>
+              {t('home.pendingLatest', {
+                title: recordTitle(pending[0]), days: daysSince(pending[0].timestamp),
+              })}
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -311,6 +346,12 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     // 改用與主文字同一組的反白色，再以 opacity 拉出層次。
     fontSize: FontSize.caption, color: t.textInverse, opacity: 0.75, marginTop: 2,
   },
+  pendingCard: {
+    marginHorizontal: Spacing.md, marginBottom: Spacing.md,
+    borderRadius: 12, borderWidth: 1, padding: Spacing.md,
+  },
+  pendingTitle: { fontSize: FontSize.small, fontWeight: '600' },
+  pendingHint: { fontSize: FontSize.caption, marginTop: 4 },
   recentSection: {
     marginHorizontal: Spacing.md, marginBottom: Spacing.md,
     borderRadius: 12, borderWidth: 1, padding: Spacing.md,
