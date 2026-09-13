@@ -5,7 +5,8 @@
 
 import { POSITION_DEEP_HEADING } from './position';
 
-export type SpreadId = 'free' | 'timeline' | 'choice' | 'relationship' | 'strategy' | 'formation';
+export type SpreadId = 'free' | 'timeline' | 'choice' | 'relationship' | 'strategy' | 'formation'
+  | 'wealth' | 'health' | 'study' | 'travel';
 
 /** 牌陣名稱的 i18n 鍵，供棋盤、收藏與日後統計共用。 */
 export const SPREAD_LABEL_KEYS: Record<SpreadId, string> = {
@@ -15,6 +16,10 @@ export const SPREAD_LABEL_KEYS: Record<SpreadId, string> = {
   relationship: 'board.spreadRelationship',
   strategy: 'board.spreadStrategy',
   formation: 'board.spreadFormation',
+  wealth: 'board.spreadWealth',
+  health: 'board.spreadHealth',
+  study: 'board.spreadStudy',
+  travel: 'board.spreadTravel',
 };
 
 /** 牌陣說明文字的 i18n 鍵。與 LABEL／HINT 同放一處，避免同類對照表散落各頁。 */
@@ -25,6 +30,10 @@ export const SPREAD_DESC_KEYS: Record<SpreadId, string> = {
   relationship: 'board.spreadRelationshipDesc',
   strategy: 'board.spreadStrategyDesc',
   formation: 'board.spreadFormationDesc',
+  wealth: 'board.spreadWealthDesc',
+  health: 'board.spreadHealthDesc',
+  study: 'board.spreadStudyDesc',
+  travel: 'board.spreadTravelDesc',
 };
 
 /** 牌陣適用問題的 i18n 鍵，讓引導文字不和目前介面語言混用。 */
@@ -35,6 +44,10 @@ export const SPREAD_HINT_KEYS: Record<SpreadId, string> = {
   relationship: 'board.spreadRelationshipHint',
   strategy: 'board.spreadStrategyHint',
   formation: 'board.spreadFormationHint',
+  wealth: 'board.spreadWealthHint',
+  health: 'board.spreadHealthHint',
+  study: 'board.spreadStudyHint',
+  travel: 'board.spreadTravelHint',
 };
 
 export interface SpreadSlot {
@@ -130,6 +143,54 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
     questionHint: '適合對立、競爭、比較兩造的處境。',
     slots: [],
     maxPieces: 6,
+  },
+  /** 三角形佈局：財源在上方頂點，守成與耗損分列下方兩側，對應收支兩面。 */
+  wealth: {
+    id: 'wealth',
+    name: '財運陣',
+    description: '從財源、守成與耗損三方觀察財務全局。',
+    questionHint: '適合詢問收入、理財與消費決策。',
+    slots: [
+      { id: 'source', label: '財源', labelKey: 'board.slotWealthSource', description: '目前主要的收入或機會來源。', col: 4, row: 1 },
+      { id: 'keep', label: '守成', labelKey: 'board.slotWealthKeep', description: '已經穩固、值得續抱的資產或根基。', col: 2, row: 7 },
+      { id: 'drain', label: '耗損', labelKey: 'board.slotWealthDrain', description: '容易流失或需要提防的支出與風險。', col: 6, row: 7 },
+    ],
+  },
+  /** 中軸對稱佈局：現狀居中，成因與調養左右對稱，不做醫療診斷。 */
+  health: {
+    id: 'health',
+    name: '健康陣',
+    description: '從成因、現狀與調養之道三方觀察身心狀態。',
+    questionHint: '提供身心步調的參考，非醫療診斷或治療建議。',
+    slots: [
+      { id: 'cause', label: '成因', labelKey: 'board.slotHealthCause', description: '影響身心狀態的主要因素或習慣。', col: 2, row: 4 },
+      { id: 'state', label: '現狀', labelKey: 'board.slotHealthState', description: '此刻身心最需要留意之處。', col: 4, row: 4 },
+      { id: 'care', label: '調養之道', labelKey: 'board.slotHealthCare', description: '有助恢復或維持平衡的方向。', col: 6, row: 4 },
+    ],
+  },
+  /** 下行對角佈局（strategy 的鏡像方向）：根基已穩，愈往下愈接近臨場關頭。 */
+  study: {
+    id: 'study',
+    name: '學業陣',
+    description: '從根基、卡關之處與臨場發揮三方觀察學習歷程。',
+    questionHint: '適合詢問考試、進修與學習規劃。',
+    slots: [
+      { id: 'foundation', label: '根基', labelKey: 'board.slotStudyFoundation', description: '目前已經打穩、熟悉的基礎。', col: 2, row: 1 },
+      { id: 'bottleneck', label: '卡關之處', labelKey: 'board.slotStudyBottleneck', description: '尚未弄懂、容易失分的關卡。', col: 4, row: 5 },
+      { id: 'performance', label: '臨場發揮', labelKey: 'board.slotStudyPerformance', description: '考場當下能否穩住的關鍵。', col: 6, row: 8 },
+    ],
+  },
+  /** 之字形佈局：啟程與落腳同側、途中偏向另一側，呈現行程的轉折。 */
+  travel: {
+    id: 'travel',
+    name: '出行陣',
+    description: '從啟程、途中與落腳之地三方觀察行程走向。',
+    questionHint: '適合詢問旅行、搬遷與異地發展。',
+    slots: [
+      { id: 'depart', label: '啟程', labelKey: 'board.slotTravelDepart', description: '出發前的準備與心態。', col: 2, row: 2 },
+      { id: 'transit', label: '途中', labelKey: 'board.slotTravelTransit', description: '旅途中可能遇到的變數。', col: 6, row: 5 },
+      { id: 'destination', label: '落腳之地', labelKey: 'board.slotTravelDestination', description: '抵達後的際遇與收穫。', col: 2, row: 8 },
+    ],
   },
 };
 
