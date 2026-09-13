@@ -34,7 +34,8 @@ const DATE_LOCALES: Record<string, string> = {
  * 而分享卡是送出去的成品，錯了看不出來也收不回來。
  * mode 在此是 string（分享卡不綁 storage 的型別），故保留 fallback。
  */
-const CARD_MODE_ICONS: Record<string, IconName> = {
+/** 也供 ReportCardView 共用——哪個模式配哪個圖示是同一件事，只講一次。 */
+export const CARD_MODE_ICONS: Record<string, IconName> = {
   draw: 'dice', board: 'chess-board', lingqi: 'lingqi',
 };
 const CARD_MODE_LABEL_KEYS: Record<string, string> = {

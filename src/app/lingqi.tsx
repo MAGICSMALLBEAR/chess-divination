@@ -8,6 +8,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import OutcomeMarker from '@/components/OutcomeMarker';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
+import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
+import ReportExportSheet from '@/components/ReportExportSheet';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import { Icon } from '@/components/icons';
 import { castLingqi, lingqiOracle, lingqiOracleByKey, type LingqiCast, type LingqiOracle } from '@/services/lingqi';
@@ -21,6 +23,7 @@ import { cancelVerificationReminder, scheduleVerificationReminder } from '@/serv
 import { recordUsage, syncAchievements } from '@/services/achievements';
 import { notify } from '@/services/dialog';
 import { formatLingqiShareText, shareNative, shareToTarget, type ShareTarget } from '@/services/socialShare';
+import { buildReportSection, type ReportSection } from '@/services/report';
 import ShareTargetSheet from '@/components/ShareTargetSheet';
 import { hapticMedium, hapticSuccess } from '@/services/haptics';
 import { playFavoriteSound, playShakeSound } from '@/services/sound';
@@ -44,6 +47,10 @@ export default function LingqiScreen() {
   const [record, setRecord] = useState<DivinationRecord | null>(null);
   const [isFav, setIsFav] = useState(false);
   const shareRef = useRef<ShareCardHandle>(null);
+  const reportRef = useRef<ReportCardHandle>(null);
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
+  const [reportSections, setReportSections] = useState<ReportSection[]>([]);
+  const [pendingReportCapture, setPendingReportCapture] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('general');
   /** 待分享的文字。非 null 時分享去處選單就是開著的（同 reveal.tsx） */
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
@@ -189,6 +196,23 @@ export default function LingqiScreen() {
     const messageKey = await shareToTarget(target, { title: t('reveal.shareTitle'), text });
     if (messageKey) notify(t(messageKey));
   }
+
+  /** 使用者在匯出報告的確認框選了要不要帶上問題與筆記（同 reveal.tsx） */
+  function handleReportConfirm(includePersonalText: boolean) {
+    setReportSheetVisible(false);
+    if (!record) return;
+    setReportSections([buildReportSection(record, { includePersonalText })]);
+    setPendingReportCapture(true);
+  }
+
+  useEffect(() => {
+    if (!pendingReportCapture) return;
+    setPendingReportCapture(false);
+    (async () => {
+      const shared = await reportRef.current?.share();
+      if (!shared) notify(t('report.exportFailed'));
+    })();
+  }, [pendingReportCapture]);
 
   const refreshRecord = useCallback(async (id: string) => {
     setRecord((await getHistory()).find(r => r.id === id) ?? null);
@@ -358,6 +382,16 @@ export default function LingqiScreen() {
                   <Icon name="share" size={16} color={theme.textInverse} />
                   <Text style={styles.shareBtnText}> {t('common.share')}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.exportBtn}
+                  testID="lingqi-export-report"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('report.export')}
+                  onPress={() => setReportSheetVisible(true)}
+                >
+                  <Icon name="download" size={16} color={theme.textGold} />
+                  <Text style={styles.exportBtnText}> {t('report.export')}</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -389,10 +423,20 @@ export default function LingqiScreen() {
         </View>
       )}
 
+      {/* 隱藏的報告卡片，理由同上 */}
+      <View style={styles.shareHidden} aria-hidden>
+        <ReportCardView ref={reportRef} sections={reportSections} />
+      </View>
+
       <ShareTargetSheet
         visible={pendingShareText !== null}
         onSelect={handleShareTarget}
         onDismiss={() => setPendingShareText(null)}
+      />
+      <ReportExportSheet
+        visible={reportSheetVisible}
+        onConfirm={handleReportConfirm}
+        onDismiss={() => setReportSheetVisible(false)}
       />
     </SafeAreaView>
   );
@@ -460,6 +504,11 @@ const makeStyles = (theme: ThemeColors) => StyleSheet.create({
     borderRadius: 12, paddingVertical: 12, backgroundColor: theme.gold,
   },
   shareBtnText: { fontSize: FontSize.small, fontWeight: '700', color: theme.textInverse },
+  exportBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: theme.goldFaint, backgroundColor: theme.bgCard,
+  },
+  exportBtnText: { fontSize: FontSize.small, fontWeight: '600', color: theme.textGold },
   shareHidden: { position: 'absolute', top: -9999, left: -9999, pointerEvents: 'none' },
   recastBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

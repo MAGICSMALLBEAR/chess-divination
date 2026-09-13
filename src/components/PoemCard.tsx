@@ -28,6 +28,7 @@ interface PoemCardProps {
   highlightedCategory?: string;
   onToggleFavorite?: () => void;
   onShare?: () => void;
+  onExportReport?: () => void;
 }
 
 // label 存的是譯文 key 而非文字：這個陣列在模組載入時就固定了，
@@ -49,6 +50,7 @@ export default function PoemCard({
   highlightedCategory = 'general',
   onToggleFavorite,
   onShare,
+  onExportReport,
 }: PoemCardProps) {
   // 開啟時預設展開所問的那一面。子領域（求職、復合…）要先映回主類別才對得上
   // 分頁；自訂類別映不回來，退回綜合——留著原 key 的話七個分頁一個都不會亮，
@@ -263,6 +265,12 @@ export default function PoemCard({
           <Icon name="share" size={16} color={theme.textInverse} />
           <Text style={styles.shareBtnText}> {t('common.share')}</Text>
         </TouchableOpacity>
+        {onExportReport && (
+          <TouchableOpacity testID="poem-export-report" style={styles.exportBtn} onPress={onExportReport}>
+            <Icon name="download" size={16} color={theme.textGold} />
+            <Text style={styles.exportBtnText}> {t('report.export')}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -466,5 +474,21 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     fontSize: FontSize.body,
     fontWeight: '600',
     color: t.textInverse,
+  },
+  exportBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: t.bgCard,
+    borderWidth: 1,
+    borderColor: t.goldFaint,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 4,
+  },
+  exportBtnText: {
+    fontSize: FontSize.body,
+    color: t.textGold,
   },
 });

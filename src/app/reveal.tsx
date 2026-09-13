@@ -10,6 +10,8 @@ import InkBackground from '@/components/InkBackground';
 import InkSplashOverlay from '@/components/InkSplashOverlay';
 import PieceEntryFlyIn from '@/components/PieceEntryFlyIn';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
+import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
+import ReportExportSheet from '@/components/ReportExportSheet';
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
 import OutcomeMarker from '@/components/OutcomeMarker';
@@ -31,6 +33,7 @@ import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
 import { getSpread, spreadBriefFromSummary, SPREAD_LABEL_KEYS } from '@/services/spreads';
 import { shareNative, shareToTarget, formatDivinationShareText, type ShareTarget } from '@/services/socialShare';
+import { buildReportSection, type ReportSection } from '@/services/report';
 import ShareTargetSheet from '@/components/ShareTargetSheet';
 import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
@@ -74,6 +77,11 @@ export default function RevealScreen() {
   /** 待分享的文字。非 null 時分享去處選單就是開著的——選單本身沒有狀態 */
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const shareRef = useRef<ShareCardHandle>(null);
+  const reportRef = useRef<ReportCardHandle>(null);
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
+  const [reportSections, setReportSections] = useState<ReportSection[]>([]);
+  /** 非 null 時代表「離屏報告卡剛換過內容，下一輪 render 後要截圖分享」 */
+  const [pendingReportCapture, setPendingReportCapture] = useState(false);
 
   // AI 深度解讀。這是加值內容——取不到時保留下方的規則式解讀，
   // 不讓籤詩頁因為外部服務而壞掉。
@@ -278,6 +286,25 @@ export default function RevealScreen() {
     if (messageKey) notify(t(messageKey));
   }
 
+  /** 使用者在匯出報告的確認框選了要不要帶上問題與筆記 */
+  function handleReportConfirm(includePersonalText: boolean) {
+    setReportSheetVisible(false);
+    if (!record) return;
+    setReportSections([buildReportSection(record, { includePersonalText })]);
+    setPendingReportCapture(true);
+  }
+
+  // 離屏報告卡換過內容後才能截圖——state 更新不會在同一個事件循環內
+  // 反映到 view-shot 讀到的畫面，得等這一輪 render 真的畫上去。
+  useEffect(() => {
+    if (!pendingReportCapture) return;
+    setPendingReportCapture(false);
+    (async () => {
+      const shared = await reportRef.current?.share();
+      if (!shared) notify(t('report.exportFailed'));
+    })();
+  }, [pendingReportCapture]);
+
   function handleNewDraw() {
     if (mode === 'board') {
       router.replace('/board');
@@ -417,6 +444,7 @@ export default function RevealScreen() {
           highlightedCategory={record.questionCategory || 'general'}
           onToggleFavorite={handleToggleFavorite}
           onShare={handleShare}
+          onExportReport={() => setReportSheetVisible(true)}
         />
 
         {/* AI 深度解讀。取不到時不影響下方的規則式解讀 */}
@@ -539,10 +567,20 @@ export default function RevealScreen() {
         />
       </View>
 
+      {/* 隱藏的報告卡片，理由同上——離屏定位而非 opacity: 0 */}
+      <View style={styles.shareHidden} aria-hidden>
+        <ReportCardView ref={reportRef} sections={reportSections} divinerGender={divinerGender} />
+      </View>
+
       <ShareTargetSheet
         visible={pendingShareText !== null}
         onSelect={handleShareTarget}
         onDismiss={() => setPendingShareText(null)}
+      />
+      <ReportExportSheet
+        visible={reportSheetVisible}
+        onConfirm={handleReportConfirm}
+        onDismiss={() => setReportSheetVisible(false)}
       />
     </SafeAreaView>
   );

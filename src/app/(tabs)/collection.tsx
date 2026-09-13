@@ -9,8 +9,12 @@ import {
 import { useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon, type IconName } from '@/components/icons';
+import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
+import ReportExportSheet from '@/components/ReportExportSheet';
 import type { DivinationMode, DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
-import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder, removeFromFolder, recordHasLevel } from '@/services/storage';
+import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder, removeFromFolder, recordHasLevel, getSettings } from '@/services/storage';
+import { buildReportSections, REPORT_BATCH_LIMIT, type ReportSection } from '@/services/report';
+import type { DivinerGender } from '@/services/useGod';
 import { recordMatchesSearch, recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
 import { getLevelColor } from '@/data/poems';
@@ -78,6 +82,11 @@ export default function CollectionScreen() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'best'>('newest');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const reportRef = useRef<ReportCardHandle>(null);
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
+  const [reportSections, setReportSections] = useState<ReportSection[]>([]);
+  const [reportDivinerGender, setReportDivinerGender] = useState<DivinerGender | undefined>(undefined);
+  const [pendingReportCapture, setPendingReportCapture] = useState(false);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -124,6 +133,39 @@ export default function CollectionScreen() {
       notify(t('error.saveFailed'), t('collection.deleteFailed'));
     }
   }
+
+  function openReportExport() {
+    if (selectedIds.size === 0) {
+      notify(t('report.emptySelection'));
+      return;
+    }
+    if (selectedIds.size > REPORT_BATCH_LIMIT) {
+      notify(t('report.batchLimitExceeded', { n: REPORT_BATCH_LIMIT }));
+      return;
+    }
+    setReportSheetVisible(true);
+  }
+
+  async function handleReportConfirm(includePersonalText: boolean) {
+    setReportSheetVisible(false);
+    const records = history.filter(r => selectedIds.has(r.id));
+    if (records.length === 0) return;
+    const settings = await getSettings();
+    setReportDivinerGender(settings.divinerGender);
+    setReportSections(buildReportSections(records, { includePersonalText }));
+    setPendingReportCapture(true);
+  }
+
+  // 離屏報告卡換過內容後才能截圖，理由同 reveal.tsx
+  useEffect(() => {
+    if (!pendingReportCapture) return;
+    setPendingReportCapture(false);
+    (async () => {
+      const shared = await reportRef.current?.share();
+      if (!shared) notify(t('report.exportFailed'));
+      else { setSelectedIds(new Set()); setSelectMode(false); }
+    })();
+  }, [pendingReportCapture]);
 
   useEffect(() => {
     loadData();
@@ -498,8 +540,13 @@ export default function CollectionScreen() {
             <TouchableOpacity style={[styles.sortBtn, selectMode && { borderColor: theme.textRed }]}
               onPress={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}>
               <Text style={[styles.sortText, selectMode && { color: theme.textRed }]}>
-                {t(selectMode ? 'collection.deselect' : 'collection.batchDelete')}
+                {t(selectMode ? 'collection.deselect' : 'collection.select')}
               </Text>
+            </TouchableOpacity>
+          )}
+          {selectMode && selectedIds.size > 0 && (
+            <TouchableOpacity style={[styles.sortBtn, { borderColor: theme.gold }]} onPress={openReportExport}>
+              <Text style={[styles.sortText, { color: theme.textGold }]}>{t('report.export')}({selectedIds.size})</Text>
             </TouchableOpacity>
           )}
           {selectMode && selectedIds.size > 0 && (
@@ -669,12 +716,24 @@ export default function CollectionScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* 隱藏的報告卡片，理由同 reveal.tsx */}
+      <View style={styles.reportHidden} aria-hidden>
+        <ReportCardView ref={reportRef} sections={reportSections} divinerGender={reportDivinerGender} />
+      </View>
+      <ReportExportSheet
+        visible={reportSheetVisible}
+        count={selectedIds.size}
+        onConfirm={handleReportConfirm}
+        onDismiss={() => setReportSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }
 
 const makeStyles = (t: ThemeColors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: t.bgInk },
+  reportHidden: { position: 'absolute', top: -9999, left: -9999, pointerEvents: 'none' },
   controls: { paddingHorizontal: Spacing.md },
   header: {
     alignItems: 'center', paddingTop: Spacing.lg, paddingBottom: Spacing.md,
