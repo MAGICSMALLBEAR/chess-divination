@@ -565,6 +565,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 另外它是寫給開發者看的字，卻出現在使用者的對話框裡——使用者設不了任何
   // 環境變數。現在改成告訴他「這不是你那邊的問題」，然後停在那裡。
   'settings.syncUnset': { 'zh-TW': '雲端同步尚未啟用：伺服器端還沒接上資料庫。這不是你的裝置或配對碼的問題。', en: 'Cloud sync is not enabled yet — the server has no database connected. This is not a problem with your device or pairing code.', ja: 'クラウド同期はまだ有効になっていません（サーバーにデータベースが接続されていません）。端末やペアリングコードの問題ではありません。' },
+  'settings.syncUpstreamError': { 'zh-TW': '雲端資料庫已連接，但目前連線失敗，可能是伺服器端設定有誤。這不是你的裝置或配對碼的問題，稍後再試；若持續發生，需檢查伺服器端的資料庫連線設定。', en: 'The cloud database is connected, but the connection is currently failing — likely a server-side configuration issue. This is not a problem with your device or pairing code. Try again later; if it persists, the server-side database connection needs to be checked.', ja: 'クラウドデータベースは接続済みですが、現在接続に失敗しています（サーバー側の設定に問題がある可能性があります）。端末やペアリングコードの問題ではありません。しばらくして再試行してください。解消しない場合はサーバー側のデータベース接続設定を確認してください。' },
   'settings.syncOffline': { 'zh-TW': '連不上同步伺服器，請確認網路後再試。', en: 'Could not reach the sync server. Check your connection and try again.', ja: '同期サーバーに接続できません。通信状況を確認してください。' },
   'settings.syncTooLarge': { 'zh-TW': '資料量超過伺服器上限，未能上傳。可先刪除部分舊記錄再同步。', en: 'The data exceeds the server limit and was not uploaded. Delete some old records and sync again.', ja: 'データがサーバーの上限を超えたためアップロードできません。古い記録を削除してから再試行してください。' },
   'settings.syncRateLimited': { 'zh-TW': '同步太過頻繁，請稍候一分鐘再試。', en: 'Too many sync requests. Please wait a minute and try again.', ja: '同期の回数が多すぎます。1分ほど待って再試行してください。' },

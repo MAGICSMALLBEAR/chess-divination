@@ -491,6 +491,7 @@ describe('同步失敗的原因回報', () => {
    */
   test.each([
     [501, 'not-configured'],
+    [502, 'upstream-error'],
     [401, 'invalid-key'],
     [413, 'too-large'],
     [429, 'rate-limited'],

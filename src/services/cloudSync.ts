@@ -58,6 +58,7 @@ export interface CloudPayload {
 export type SyncFailure =
   | 'offline'          // 連不上（斷網、DNS、CORS）
   | 'not-configured'   // 伺服器端沒接上 Redis（501）
+  | 'upstream-error'   // 已接上但 Redis 呼叫本身失敗（502）——接了但接錯，不是沒接
   | 'invalid-key'      // 配對碼格式不對（401）
   | 'too-large'        // payload 超過伺服器上限（413）
   | 'rate-limited'     // 短時間內同步太多次（429）
@@ -140,6 +141,7 @@ function forUpload(payload: CloudPayload): CloudPayload {
 /** HTTP 狀態碼 → 失敗原因。伺服器的錯誤碼定義見 api/sync.ts */
 function failureFromStatus(status: number): SyncFailure {
   if (status === 501) return 'not-configured';
+  if (status === 502) return 'upstream-error';
   if (status === 401) return 'invalid-key';
   if (status === 413) return 'too-large';
   if (status === 429) return 'rate-limited';

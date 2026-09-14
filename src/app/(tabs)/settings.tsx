@@ -137,6 +137,7 @@ export default function SettingsScreen() {
       斷網或資料超限的使用者照著訊息去設環境變數也不會好 */
   const SYNC_FAIL_KEYS: Record<SyncFailure, string> = {
     'not-configured': 'settings.syncUnset',
+    'upstream-error': 'settings.syncUpstreamError',
     offline: 'settings.syncOffline',
     'too-large': 'settings.syncTooLarge',
     'rate-limited': 'settings.syncRateLimited',
