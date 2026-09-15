@@ -74,6 +74,22 @@ const CANDIDATES: Readonly<Record<string, UseGodCandidate>> = {
     favorable: '父母',
     taboo: '兄弟',
   },
+  lawsuit: {
+    descKey: 'useGod.lawsuit',
+    subject: '官鬼',
+    relatives: ['官鬼'],
+    description: '官司／訴訟問事以「官鬼」為候選用神，可觀其在本卦的位置與時間條件。喜父母為文書印信，忌子孫剋官。',
+    favorable: '父母',
+    taboo: '子孫',
+  },
+  lostItem: {
+    descKey: 'useGod.lostItem',
+    subject: '妻財',
+    relatives: ['妻財'],
+    description: '失物問事以「妻財」為候選用神——物如財也，可觀其上卦位置與飛伏，判斷能否尋回。忌兄弟劫財，喜子孫生財。',
+    favorable: '子孫',
+    taboo: '兄弟',
+  },
 };
 
 /** 感情取法隨占者性別相反：男占妻財、女占官鬼。 */

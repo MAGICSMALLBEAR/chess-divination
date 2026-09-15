@@ -262,8 +262,8 @@ describe('categoryLabel', () => {
     expect(categoryLabel('marriage')).toBe('恋愛');
   });
 
-  test('七個內建類別在三種語言下都有譯文', () => {
-    const keys = ['general', 'marriage', 'career', 'wealth', 'health', 'study', 'travel'];
+  test('九個內建類別在三種語言下都有譯文', () => {
+    const keys = ['general', 'marriage', 'career', 'wealth', 'health', 'study', 'travel', 'lawsuit', 'lostItem'];
     for (const lang of ALL_LANGS) {
       setLang(lang);
       for (const key of keys) {

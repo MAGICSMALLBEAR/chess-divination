@@ -28,7 +28,7 @@ export function questionCategoryDomain(category?: string): string {
  * 與 `Poem.jieYue` 的欄位一一對應（由 poems.test 釘住）。
  */
 export const POEM_FACETS = [
-  'general', 'marriage', 'career', 'wealth', 'health', 'study', 'travel',
+  'general', 'marriage', 'career', 'wealth', 'health', 'study', 'travel', 'lawsuit', 'lostItem',
 ] as const;
 
 /**

@@ -5,6 +5,8 @@ describe('問事用神候選', () => {
     expect(useGodForCategory('wealth')).toMatchObject({ subject: '妻財', relatives: ['妻財'] });
     expect(useGodForCategory('career')).toMatchObject({ subject: '官鬼', relatives: ['官鬼'] });
     expect(useGodForCategory('study')).toMatchObject({ subject: '父母', relatives: ['父母'] });
+    expect(useGodForCategory('lawsuit')).toMatchObject({ subject: '官鬼', relatives: ['官鬼'] });
+    expect(useGodForCategory('lostItem')).toMatchObject({ subject: '妻財', relatives: ['妻財'] });
   });
 
   test('自占身命之事以世爻為用神，盤面無六親可標', () => {
@@ -39,6 +41,8 @@ describe('問事用神候選', () => {
       useGodForCategory('study'),
       useGodForCategory('health'),
       useGodForCategory('travel'),
+      useGodForCategory('lawsuit'),
+      useGodForCategory('lostItem'),
       useGodForCategory('marriage', { gender: 'male' }),
       useGodForCategory('marriage', { gender: 'female' }),
     ];

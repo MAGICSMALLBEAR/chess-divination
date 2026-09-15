@@ -19,6 +19,8 @@ const SUGGESTIONS: Record<Lang, Record<string, string[]>> = {
     exam: ['這次考試準備的重點該放在哪裡？', '申請這個學校或計畫的機會如何？', '我現在適合加強準備，還是先補足弱項？', '考前最該避免哪一種分心或失誤？'],
     travel: ['這次出行是否適合成行？', '旅途中最需要注意什麼？', '現在是否適合規劃這趟旅行？', '這趟行程該保守安排還是彈性探索？', '我該先確認哪個風險或備案？'],
     relocation: ['現在適合搬家或換城市嗎？', '這個居住地選擇是否符合我現階段需要？', '搬遷前最該先處理哪個現實條件？', '我該先安定下來，還是再保留選擇空間？'],
+    lawsuit: ['這個糾紛適合協商和解，還是循法律途徑？', '我目前的立場與證據是否足夠有利？', '這件事該堅持到底，還是見好就收？', '對方接下來可能會如何應對？', '我現在最該先準備或確認什麼？'],
+    lostItem: ['這個東西還有機會找回來嗎？', '我該從哪個方向或地方開始找起？', '是自己遺落，還是可能被人拿走？', '現在適合繼續找，還是先放下？', '有沒有我一直忽略的線索？'],
   },
   en: {
     general: ['What should I pay most attention to right now?', 'What is the overall direction for the next three months?', 'What should my next step be in this situation?'],

@@ -63,7 +63,7 @@ describe('所問類別影響解讀', () => {
     expect(interpretation).toContain(poem.jieYue.marriage);
   });
 
-  test('六種具體類別各自帶出對應欄位', () => {
+  test('八種具體類別各自帶出對應欄位', () => {
     const cases = [
       ['marriage', '感情', poem.jieYue.marriage],
       ['wealth', '財運', poem.jieYue.wealth],
@@ -71,6 +71,8 @@ describe('所問類別影響解讀', () => {
       ['health', '健康', poem.jieYue.health],
       ['study', '學業', poem.jieYue.study],
       ['travel', '出行', poem.jieYue.travel],
+      ['lawsuit', '官司', poem.jieYue.lawsuit],
+      ['lostItem', '失物', poem.jieYue.lostItem],
     ] as const;
 
     for (const [key, label, text] of cases) {
@@ -180,8 +182,8 @@ describe('行動建議', () => {
 
 describe('全籤詩健全性', () => {
   /** 任何一首籤詩、任何類別，都不該產生 undefined 或空段落 */
-  test('64 首籤詩 × 7 種類別皆能產生完整解讀', () => {
-    const categories = ['general', 'marriage', 'wealth', 'career', 'health', 'study', 'travel'];
+  test('64 首籤詩 × 9 種類別皆能產生完整解讀', () => {
+    const categories = ['general', 'marriage', 'wealth', 'career', 'health', 'study', 'travel', 'lawsuit', 'lostItem'];
     for (const p of ALL_POEMS) {
       for (const c of categories) {
         const { interpretation, actionPlan } = buildInterpretation({

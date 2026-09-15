@@ -31,6 +31,8 @@ describe('Poems', () => {
       expect(poem.jieYue.health).toBeTruthy();
       expect(poem.jieYue.study).toBeTruthy();
       expect(poem.jieYue.travel).toBeTruthy();
+      expect(poem.jieYue.lawsuit).toBeTruthy();
+      expect(poem.jieYue.lostItem).toBeTruthy();
       expect(poem.jieYue.general).toBeTruthy();
     });
   });

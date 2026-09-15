@@ -125,6 +125,20 @@ export const translations: Record<string, Record<Lang, string>> = {
   'board.slotTravelDepart': { 'zh-TW': '啟程', en: 'Departure', ja: '出発' },
   'board.slotTravelTransit': { 'zh-TW': '途中', en: 'Journey', ja: '道中' },
   'board.slotTravelDestination': { 'zh-TW': '落腳之地', en: 'Destination', ja: '行き着く先' },
+
+  'board.spreadLawsuit': { 'zh-TW': '官司陣', en: 'Lawsuit spread', ja: '訴訟の陣' },
+  'board.spreadLawsuitDesc': { 'zh-TW': '從己方立場、爭議焦點與裁決走向三方觀察訴訟或糾紛。', en: 'Read your stance, the core dispute, and how the ruling may go.', ja: '自分の立場・争点・裁決の行方の三方から訴訟や争いを読みます。' },
+  'board.spreadLawsuitHint': { 'zh-TW': '適合詢問官司、訴訟與正式糾紛的處理方向。', en: 'For lawsuits, litigation, and formal disputes.', ja: '訴訟や公式な争いの対応方針に。' },
+  'board.slotLawsuitStance': { 'zh-TW': '己方立場', en: 'Your stance', ja: '自分の立場' },
+  'board.slotLawsuitDispute': { 'zh-TW': '爭議焦點', en: 'Core dispute', ja: '争点' },
+  'board.slotLawsuitRuling': { 'zh-TW': '裁決走向', en: 'Ruling direction', ja: '裁決の行方' },
+
+  'board.spreadLostItem': { 'zh-TW': '尋物陣', en: 'Lost item spread', ja: '失せ物の陣' },
+  'board.spreadLostItemDesc': { 'zh-TW': '從遺失之因、藏匿之處與尋獲契機三方觀察遺失物的下落。', en: 'Read the cause, the hiding place, and the clue that helps recovery.', ja: '紛失の原因・隠れている場所・見つかる糸口の三方から行方を読みます。' },
+  'board.spreadLostItemHint': { 'zh-TW': '適合詢問遺失物品或失物能否尋回。', en: 'For lost belongings and whether they can be recovered.', ja: '紛失物や失せ物が見つかるかどうかに。' },
+  'board.slotLostItemCause': { 'zh-TW': '遺失之因', en: 'Cause of loss', ja: '紛失の原因' },
+  'board.slotLostItemHidden': { 'zh-TW': '藏匿之處', en: 'Hiding place', ja: '隠れている場所' },
+  'board.slotLostItemClue': { 'zh-TW': '尋獲契機', en: 'Recovery clue', ja: '見つかる糸口' },
   'board.optionAPlaceholder': { 'zh-TW': '選項 A，例如：留在現職', en: 'Option A, e.g. stay in current role', ja: '選択肢 A、例：現職に残る' },
   'board.optionBPlaceholder': { 'zh-TW': '選項 B，例如：轉換跑道', en: 'Option B, e.g. change career', ja: '選択肢 B、例：転職する' },
 
@@ -520,6 +534,8 @@ export const translations: Record<string, Record<Lang, string>> = {
   'poem.catExam': { 'zh-TW': '考試申請', en: 'Exams / Applications', ja: '試験・出願' },
   'poem.catWellbeing': { 'zh-TW': '身心調整', en: 'Wellbeing', ja: '心身の調整' },
   'poem.catRelocation': { 'zh-TW': '搬遷定居', en: 'Relocation', ja: '引っ越し・定住' },
+  'poem.catLawsuit': { 'zh-TW': '官司／訴訟', en: 'Lawsuit', ja: '訴訟' },
+  'poem.catLostItem': { 'zh-TW': '失物', en: 'Lost Item', ja: '失せ物' },
 
   // 設定（擴充）
   'settings.namePlaceholder': { 'zh-TW': '輸入您的名字', en: 'Enter your name', ja: 'お名前を入力' },
@@ -750,6 +766,8 @@ const CATEGORY_KEYS: Record<string, string> = {
   exam: 'poem.catExam',
   wellbeing: 'poem.catWellbeing',
   relocation: 'poem.catRelocation',
+  lawsuit: 'poem.catLawsuit',
+  lostItem: 'poem.catLostItem',
 };
 
 /**

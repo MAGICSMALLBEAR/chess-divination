@@ -41,6 +41,8 @@ const CATEGORIES: { key: string; labelKey: string; icon: IconName }[] = [
   { key: 'health', labelKey: 'poem.catHealth', icon: 'health' },
   { key: 'study', labelKey: 'poem.catStudy', icon: 'study' },
   { key: 'travel', labelKey: 'poem.catTravel', icon: 'travel' },
+  { key: 'lawsuit', labelKey: 'poem.catLawsuit', icon: 'lawsuit' },
+  { key: 'lostItem', labelKey: 'poem.catLostItem', icon: 'search' },
 ];
 
 export default function PoemCard({

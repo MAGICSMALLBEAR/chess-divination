@@ -23,6 +23,7 @@ export type IconName =
   | 'moon' | 'sun' | 'save' | 'download' | 'graduation'
   | 'warning' | 'folder' | 'lightbulb'
   | 'career' | 'wealth' | 'health' | 'study' | 'travel'
+  | 'lawsuit' | 'search'
   | 'love'
   | 'fire';
 
@@ -187,6 +188,25 @@ function IconPaths({ name }: { name: IconName }) {
           <Path d="M12 2a10 10 0 0 1 0 20" />
           <Path d="M12 2a4 4 0 0 0 0 20" />
           <Line x1="2" y1="12" x2="22" y2="12" />
+        </>
+      );
+
+    case 'lawsuit':
+      return (
+        <>
+          <Line x1="12" y1="3" x2="12" y2="21" />
+          <Line x1="5" y1="21" x2="19" y2="21" />
+          <Line x1="4" y1="7" x2="20" y2="7" />
+          <Path d="M4 7l-3 6a3 3 0 0 0 6 0l-3-6z" />
+          <Path d="M20 7l-3 6a3 3 0 0 0 6 0l-3-6z" />
+        </>
+      );
+
+    case 'search':
+      return (
+        <>
+          <Circle cx="10.5" cy="10.5" r="6.5" />
+          <Line x1="21" y1="21" x2="15.5" y2="15.5" />
         </>
       );
 

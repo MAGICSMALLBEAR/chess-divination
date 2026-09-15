@@ -33,6 +33,8 @@ const BUILT_IN: { key: string; labelKey: string; icon: IconName }[] = [
   { key: 'exam', labelKey: 'poem.catExam', icon: 'study' },
   { key: 'wellbeing', labelKey: 'poem.catWellbeing', icon: 'health' },
   { key: 'relocation', labelKey: 'poem.catRelocation', icon: 'travel' },
+  { key: 'lawsuit', labelKey: 'poem.catLawsuit', icon: 'lawsuit' },
+  { key: 'lostItem', labelKey: 'poem.catLostItem', icon: 'search' },
 ];
 
 export function useQuestionCategories(): QuestionCategory[] {

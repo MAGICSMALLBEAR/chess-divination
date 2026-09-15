@@ -33,6 +33,8 @@ const CATEGORY_FIELDS: Record<string, { label: string; key: keyof Poem['jieYue']
   health: { label: '健康', key: 'health' },
   study: { label: '學業', key: 'study' },
   travel: { label: '出行', key: 'travel' },
+  lawsuit: { label: '官司', key: 'lawsuit' },
+  lostItem: { label: '失物', key: 'lostItem' },
   general: { label: '綜合', key: 'general' },
 };
 

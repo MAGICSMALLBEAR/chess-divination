@@ -6,7 +6,7 @@
 import { POSITION_DEEP_HEADING } from './position';
 
 export type SpreadId = 'free' | 'timeline' | 'choice' | 'relationship' | 'strategy' | 'formation'
-  | 'wealth' | 'health' | 'study' | 'travel';
+  | 'wealth' | 'health' | 'study' | 'travel' | 'lawsuit' | 'lostItem';
 
 /** 牌陣名稱的 i18n 鍵，供棋盤、收藏與日後統計共用。 */
 export const SPREAD_LABEL_KEYS: Record<SpreadId, string> = {
@@ -20,6 +20,8 @@ export const SPREAD_LABEL_KEYS: Record<SpreadId, string> = {
   health: 'board.spreadHealth',
   study: 'board.spreadStudy',
   travel: 'board.spreadTravel',
+  lawsuit: 'board.spreadLawsuit',
+  lostItem: 'board.spreadLostItem',
 };
 
 /** 牌陣說明文字的 i18n 鍵。與 LABEL／HINT 同放一處，避免同類對照表散落各頁。 */
@@ -34,6 +36,8 @@ export const SPREAD_DESC_KEYS: Record<SpreadId, string> = {
   health: 'board.spreadHealthDesc',
   study: 'board.spreadStudyDesc',
   travel: 'board.spreadTravelDesc',
+  lawsuit: 'board.spreadLawsuitDesc',
+  lostItem: 'board.spreadLostItemDesc',
 };
 
 /** 牌陣適用問題的 i18n 鍵，讓引導文字不和目前介面語言混用。 */
@@ -48,6 +52,8 @@ export const SPREAD_HINT_KEYS: Record<SpreadId, string> = {
   health: 'board.spreadHealthHint',
   study: 'board.spreadStudyHint',
   travel: 'board.spreadTravelHint',
+  lawsuit: 'board.spreadLawsuitHint',
+  lostItem: 'board.spreadLostItemHint',
 };
 
 export interface SpreadSlot {
@@ -190,6 +196,30 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
       { id: 'depart', label: '啟程', labelKey: 'board.slotTravelDepart', description: '出發前的準備與心態。', col: 2, row: 2 },
       { id: 'transit', label: '途中', labelKey: 'board.slotTravelTransit', description: '旅途中可能遇到的變數。', col: 6, row: 5 },
       { id: 'destination', label: '落腳之地', labelKey: 'board.slotTravelDestination', description: '抵達後的際遇與收穫。', col: 2, row: 8 },
+    ],
+  },
+  /** 上揚三角佈局（choice 的鏡像方向）：己方立場與裁決走向居下，爭議焦點居上頂點。 */
+  lawsuit: {
+    id: 'lawsuit',
+    name: '官司陣',
+    description: '從己方立場、爭議焦點與裁決走向三方觀察訴訟或糾紛。',
+    questionHint: '適合詢問官司、訴訟與正式糾紛的處理方向。',
+    slots: [
+      { id: 'stance', label: '己方立場', labelKey: 'board.slotLawsuitStance', description: '自己目前的理據與可主張之處。', col: 2, row: 6 },
+      { id: 'dispute', label: '爭議焦點', labelKey: 'board.slotLawsuitDispute', description: '雙方真正僵持不下的關鍵。', col: 4, row: 2 },
+      { id: 'ruling', label: '裁決走向', labelKey: 'board.slotLawsuitRuling', description: '案情可能發展的方向與結果。', col: 6, row: 6 },
+    ],
+  },
+  /** 倒三角佈局：藏匿之處居下頂點，遺失之因與尋獲契機分列上方兩側。 */
+  lostItem: {
+    id: 'lostItem',
+    name: '尋物陣',
+    description: '從遺失之因、藏匿之處與尋獲契機三方觀察遺失物的下落。',
+    questionHint: '適合詢問遺失物品或失物能否尋回。',
+    slots: [
+      { id: 'cause', label: '遺失之因', labelKey: 'board.slotLostItemCause', description: '物品是如何、為何離手的。', col: 2, row: 3 },
+      { id: 'hidden', label: '藏匿之處', labelKey: 'board.slotLostItemHidden', description: '物品此刻可能所在的位置。', col: 4, row: 7 },
+      { id: 'clue', label: '尋獲契機', labelKey: 'board.slotLostItemClue', description: '有助於找回它的線索或時機。', col: 6, row: 3 },
     ],
   },
 };
