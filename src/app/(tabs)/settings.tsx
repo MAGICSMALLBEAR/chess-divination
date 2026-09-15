@@ -182,7 +182,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <InkBackground />
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('settings.title')}</Text>
+        <Text testID="settings-title" style={[styles.title, { color: theme.textPrimary }]}>{t('settings.title')}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* 用戶名稱 */}

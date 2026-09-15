@@ -792,17 +792,24 @@ test.describe('頁面可達性', () => {
     { path: '/library', marker: '占卜圖鑑' },
     { path: '/stats', marker: '占卜統計' },
     { path: '/achievements', marker: '成就徽章' },
-    { path: '/settings', marker: '設定' },
+    // /settings 的頁面標題與底部導覽的分頁標籤文字都是「設定」，兩者同時
+    // 可見——不是「不可見卻被匹配到」（S37／S46／S49那一種），是「可見的
+    // 也不只一個」，filter({ visible: true }) 對這種情況無效，會撞上
+    // strict mode violation。改用頁面標題自己的 testID 避免文字碰撞（S69）。
+    { path: '/settings', testId: 'settings-title' },
   ];
 
-  for (const { path, marker } of routes) {
+  for (const { path, marker, testId } of routes) {
     test(`${path} 可正常載入`, async ({ page }) => {
       const errors: string[] = [];
       page.on('pageerror', (e) => errors.push(e.message));
 
       await page.goto(path);
       // 疊棧背景頁的同名文字留在 DOM 裡但不可見（S37／S46／S49）
-      await expect(page.getByText(marker).filter({ visible: true })).toBeVisible({ timeout: 15_000 });
+      const locator = testId
+        ? page.getByTestId(testId)
+        : page.getByText(marker!).filter({ visible: true });
+      await expect(locator).toBeVisible({ timeout: 15_000 });
 
       expect(errors, `${path} 出現 JS 例外`).toEqual([]);
     });
