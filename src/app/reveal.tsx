@@ -15,6 +15,7 @@ import ReportExportSheet from '@/components/ReportExportSheet';
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
 import OutcomeMarker from '@/components/OutcomeMarker';
+import AccuracyHint from '@/components/AccuracyHint';
 import Spinner from '@/components/Spinner';
 import { Icon } from '@/components/icons';
 import { buildLiuYaoReading } from '@/services/liuyao';
@@ -492,6 +493,10 @@ export default function RevealScreen() {
             </View>
           )}
         </View>
+
+        {/* 個人化應驗率提示：讀規則式解讀之前，先看使用者自己在這類問題上
+            過去驗得準不準（樣本不足時元件自己不渲染） */}
+        <AccuracyHint category={record.questionCategory} />
 
         {/* 規則式深度解讀 */}
         <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>

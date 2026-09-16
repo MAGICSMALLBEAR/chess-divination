@@ -7,6 +7,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import OutcomeMarker from '@/components/OutcomeMarker';
+import AccuracyHint from '@/components/AccuracyHint';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
 import ReportExportSheet from '@/components/ReportExportSheet';
@@ -327,6 +328,9 @@ export default function LingqiScreen() {
             {oracle.shiAlt.length > 0 && <Verse label={t('lingqi.shiAlt')} lines={oracle.shiAlt} styles={styles} />}
 
             <Text style={styles.source}>{t('lingqi.source')}</Text>
+
+            {/* 個人化應驗率提示，與 reveal.tsx 同一元件與同一位置理由 */}
+            <AccuracyHint category={record?.questionCategory ?? selectedCategory} />
 
             {/* 規則式深度解讀。放在原典出處之後——先讀原文，再讀我們的導讀。
                 與 reveal.tsx 的「規則式深度解讀」同一標題鍵與同一誠實邊界：

@@ -154,6 +154,13 @@ export const translations: Record<string, Record<Lang, string>> = {
   'reveal.deepTitle': { 'zh-TW': '深度解讀', en: 'In-depth Reading', ja: '詳細解読' },
   'reveal.deepActions': { 'zh-TW': '建議行動', en: 'Suggested Actions', ja: '推奨アクション' },
   'reveal.position': { 'zh-TW': '棋盤佈局解讀', en: 'Board Position Reading', ja: '盤面配置の解読' },
+  // 個人化應驗率提示（AccuracyHint）。樣本不足時元件不渲染，故此文案
+  // 不需要處理「資料不足」的情況——見 AccuracyHint.tsx 的說明。
+  'reveal.accuracyHint': {
+    'zh-TW': '你在「{label}」類問題已回填 {n} 則，應驗率 {rate}%，可作參考。',
+    en: 'You’ve logged {n} verified “{label}” readings at {rate}% accuracy — for reference.',
+    ja: '「{label}」の質問はこれまで {n} 件検証済み、的中率 {rate}%（参考情報）。',
+  },
 
   // 收藏
   'collection.title': { 'zh-TW': '收藏記錄', en: 'Collection', ja: 'コレクション' },
