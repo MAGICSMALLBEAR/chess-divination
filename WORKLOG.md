@@ -11,7 +11,7 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 102 個（`src` 的 .ts/.tsx，不含測試） |
-| Git Commits | 152 次 ※ |
+| Git Commits | 156 次 ※ |
 | Jest 測試 | 1201 個 ※ · 60 套件 · 全部通過 |
 | E2E 測試 | 234 個 ※ · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
@@ -4683,6 +4683,41 @@ Vercel 設定、母語校閱者、後端與法務決策。
 
 ---
 
+## Session 71 — 修 Jest 誤吃 `.kilo/` worktree 的假紅（9/17）
+
+使用者問「工作日誌還有什麼未完成」，日誌自己的結論是「維護待辦目前是零」
+——但這句話已被推翻過四次，S43 訂的規矩是要以最近一次 commit 重新核對，
+不能直接沿用。照規矩重跑一次 `npm test`，發現根目錄跑出來**不是全綠**：
+`Test Suites: 14 failed, 116 passed`。
+
+**根因**：專案根目錄下有 `.kilo/worktrees/steep-thunbergia/`——Kilo Code
+擴充功能建立的合法 git worktree（`git worktree list` 認得到，工作區乾淨、
+停在 `4269d61` 的 detached HEAD），裡面是整份專案的副本，含它自己的
+`e2e/` 資料夾。`package.json` 的 Jest `testPathIgnorePatterns` 只排除
+`<rootDir>/e2e/`，沒排除 `.kilo/`，於是 Jest 從根目錄掃描時把 worktree
+裡的 Playwright spec 也當成 Jest 測試檔執行——Playwright 的
+`test.describe` 一發現自己在 Jest 裡跑就直接丟錯，同時每個單元測試也被
+重複跑了一份（130 個套件，本該是 60 個）。
+
+**這正是「全綠」宣稱在乾淨環境下其實是假的**的一個新例子：worktree 不是
+我建的，可能是另一個工具在這台機器上跑過留下的，但它一直躺在會被 Jest
+掃到的路徑，此後任何人在根目錄跑 `npm test` 都會看到假紅，而先前的
+session 記錄之所以顯示全綠，只是因為那時候 worktree 還不存在或跑測試的
+時間點不同。
+
+**修法**：`testPathIgnorePatterns` 加一條 `<rootDir>/.kilo/`（沒有動
+worktree 本身，它可能是別的工具正在用的東西，不宜刪）。Playwright 端不受
+影響——`playwright.config.ts` 的 `testDir: './e2e'` 本來就只認根目錄的
+`e2e/`，不會遞迴進 `.kilo/`。修完重跑：`Test Suites: 60 passed, 60 total`／
+`Tests: 1201 passed`，與 Session 70 記錄的數字完全對上；`npx tsc --noEmit`
+零錯誤。
+
+**結論**：目前沒有其他未完成的程式功能——這次唯一浮出來的是測試環境本身
+被本機工具鏈污染，不是產品代碼缺口。功能候選表（雲端同步／多語校閱／
+匿名回饋）仍分別卡在你的 Vercel 設定、母語者與後端法務，維持不變。
+
+---
+
 ## Session 70 — 個人化應驗率提示：讀解讀之前先看自己準不準（9/16）
 
 使用者問「還能結合什麼技術讓占卜更準」。這句話本身要小心：文王卦刻意不做
@@ -5089,3 +5124,4 @@ Session 49 走的是同一份清單的下一層——見下方註。
 | Session 68 | 雲端同步的「未設定」與「上游失敗」不能共用同一個狀態碼；新增 `apiSync.test.ts` 端點測試（測試 1197、E2E 228） | 9/14 |
 | Session 69 | 問事類別擴充包：官司陣／尋物陣；同日修掉 `/settings` e2e strict mode 最後一項維護待辦（測試 1197、E2E 228） | 9/15 |
 | Session 70 | 個人化應驗率提示（AccuracyHint）：揭曉頁讀規則式解讀前先顯示同類問事的個人應驗率，reveal／lingqi 兩個入口都接（測試 1201、E2E 234） | 9/16 |
+| Session 71 | 修 Jest 誤吃 `.kilo/` worktree 的假紅：`testPathIgnorePatterns` 加 `.kilo/`，根目錄 `npm test` 恢復全綠（測試 1201、E2E 234） | 9/17 |
