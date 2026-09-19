@@ -8,6 +8,7 @@ import { recordLink } from '@/services/recordLink';
 import InkBackground from '@/components/InkBackground';
 import { PIECE_CHINESE_NAMES } from '@/components/icons';
 import TrendChart from '@/components/TrendChart';
+import AccuracyTrendChart from '@/components/AccuracyTrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getHistory, getSettings, recordHasLevel, type DivinationRecord } from '@/services/storage';
@@ -16,7 +17,8 @@ import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason, accuracyByMode,
   accuracyBySpread,
-  bestCategory, medianVerifyDelay, pendingVerification, verifyReminderPolicy, MIN_INSIGHT_SAMPLES,
+  bestCategory, medianVerifyDelay, pendingVerification, verifyReminderPolicy, accuracyTrend,
+  MIN_INSIGHT_SAMPLES,
   type AccuracyBreakdown,
 } from '@/services/verification';
 import { POEM_LEVELS, getLevelColor } from '@/data/poems';
@@ -109,6 +111,7 @@ export default function StatsScreen() {
   // 若跟著「本週」篩選會整批消失，正好漏掉最該提醒的那些。
   // 天數與首頁、通知排程同一個答案（verifyReminderPolicy）。關閉提醒時仍照預設天數
   // 算：這一行是使用者主動打開統計頁才看得到的資訊，不是打擾
+  const accTrend = React.useMemo(() => accuracyTrend(records), [records]);
   const pendingDays = verifyReminderPolicy(reminderSetting).days;
   const pending = React.useMemo(
     () => pendingVerification(records, Date.now(), pendingDays), [records, pendingDays]);
@@ -268,6 +271,10 @@ export default function StatsScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* 應驗率隨時間的變化。用未經日期篩選的完整清單：趨勢的橫軸本來就是時間，
+            再套「本週」篩選只會把折線砍成一兩個點 */}
+        <AccuracyTrendChart trend={accTrend} />
 
         {/* 趨勢圖表 */}
         <TrendChart data={trendData} title={t('stats.trend')} />

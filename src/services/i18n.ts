@@ -534,6 +534,13 @@ export const translations: Record<string, Record<Lang, string>> = {
   'glossary.groupUseGod': { 'zh-TW': '用神與斷語', en: 'Use-god and judgment', ja: '用神と断' },
   'glossary.groupMoving': { 'zh-TW': '動爻的變化', en: 'How the moving line changes', ja: '動爻の変化' },
   'glossary.groupStrength': { 'zh-TW': '旺衰', en: 'Seasonal strength', ja: '旺衰' },
+  // ── 應驗率趨勢（components/AccuracyTrendChart.tsx） ──
+  'stats.accTrend': { 'zh-TW': '應驗率趨勢', en: 'Accuracy Trend', ja: '的中率の推移' },
+  'stats.accTrendLocked': { 'zh-TW': '已回填 {v} 筆，再回填 {n} 筆就能畫出應驗率趨勢。', en: '{v} verified so far. Verify {n} more and the accuracy trend can be drawn.', ja: '記録済みは {v} 件。あと {n} 件で的中率の推移を表示できます。' },
+  'stats.accTrendAxis': { 'zh-TW': '第 {n} 筆', en: 'No. {n}', ja: '{n} 件目' },
+  'stats.accTrendSummary': { 'zh-TW': '最早 {w} 筆：{from}%　→　最近 {w} 筆：{to}%', en: 'First {w}: {from}%  →  latest {w}: {to}%', ja: '最初の {w} 件：{from}%　→　直近の {w} 件：{to}%' },
+  'stats.accTrendNote': { 'zh-TW': '每個點是連續 {w} 筆已回填占卜的應驗率，依占卜時間排列，部分應驗計半分。樣本少、起伏大，請看整體走向，別只看單一個點。', en: 'Each point is the accuracy of {w} consecutive verified readings, ordered by when you cast them; partial counts as half. With so few readings it swings a lot — read the overall direction, not single points.', ja: '各点は連続する {w} 件の記録済み占いの的中率で、占った順に並べています（一部的中は半分）。件数が少なく上下しやすいので、一点ではなく全体の流れを見てください。' },
+  'stats.accTrendA11y': { 'zh-TW': '應驗率趨勢圖，由 {from}% 到 {to}%', en: 'Accuracy trend chart, from {from}% to {to}%', ja: '的中率の推移グラフ、{from}% から {to}%' },
   'settings.verifyReminder': { 'zh-TW': '占驗提醒', en: 'Verification Reminder', ja: '占験のリマインド' },
   'settings.verifyReminderOff': { 'zh-TW': '關閉', en: 'Off', ja: 'オフ' },
   'settings.verifyReminderDays': { 'zh-TW': '{n} 天', en: '{n} days', ja: '{n}日' },

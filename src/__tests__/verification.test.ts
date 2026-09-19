@@ -7,6 +7,7 @@ import {
   bestCategory, medianVerifyDelay,
   OUTCOME_LABELS, OUTCOME_STATUSES, VERIFY_REMINDER_DAYS, MIN_INSIGHT_SAMPLES,
   verifyReminderPolicy, VERIFY_REMINDER_CHOICES, VERIFY_REMINDER_OFF,
+  accuracyTrend,
 } from '../services/verification';
 import type {
   DivinationRecord, OutcomeStatus, DivinationOutcome,
@@ -574,3 +575,103 @@ describe('verifyReminderPolicy', () => {
     expect(pendingVerification([r], NOW, verifyReminderPolicy(undefined).days)).toHaveLength(0);
   });
 });
+
+/**
+ * 應驗率趨勢（路線圖 #10）。
+ *
+ * 分項應驗率都是固定維度的分組，答不了「我用越久，準確率是變好還是變差」。
+ * 這裡的每個斷言都對應 S72 提案的一項設計決定，不是只檢查「有回傳東西」。
+ */
+describe('accuracyTrend', () => {
+  /** 依序造 N 筆已回填記錄，占卜時間逐筆遞增（第 0 筆最早） */
+  function series(statuses: OutcomeStatus[]): DivinationRecord[] {
+    return statuses.map((status, i) =>
+      verified(status, { id: `t${i}`, timestamp: NOW - (statuses.length - i) * DAY }));
+  }
+  const A: OutcomeStatus = 'accurate';
+  const P: OutcomeStatus = 'partial';
+  const X: OutcomeStatus = 'inaccurate';
+
+  test('視窗預設沿用 MIN_INSIGHT_SAMPLES；解鎖門檻是兩個視窗量', () => {
+    const t = accuracyTrend([]);
+    expect(t.window).toBe(MIN_INSIGHT_SAMPLES);
+    expect(t.needed).toBe(MIN_INSIGHT_SAMPLES * 2);
+  });
+
+  test('不足兩個視窗量：不畫線，回報還差幾筆', () => {
+    const t = accuracyTrend(series([A, A, A, X, X, A, A]));
+    expect(t.points).toEqual([]);
+    expect(t.verified).toBe(7);
+    expect(t.remaining).toBe(3);
+  });
+
+  test('剛好兩個視窗量：解鎖，每前進一筆一個點（10 筆 → 6 點，n 從 5 到 10）', () => {
+    const t = accuracyTrend(series([X, X, X, X, X, A, A, A, A, A]));
+    expect(t.remaining).toBe(0);
+    expect(t.points.map(p => p.n)).toEqual([5, 6, 7, 8, 9, 10]);
+    // 視窗逐步從全錯換成全對：0、20、40、60、80、100
+    expect(t.points.map(p => p.rate)).toEqual([0, 20, 40, 60, 80, 100]);
+  });
+
+  test('部分應驗計半分，與統計頁其他地方同一套算法', () => {
+    const t = accuracyTrend(series([P, P, P, P, P, P, P, P, P, P]));
+    expect(t.points.every(p => p.rate === 50)).toBe(true);
+  });
+
+  test('未回填的記錄不計入：既不占視窗、也不算進 verified', () => {
+    const unverified = rec({ id: 'u', timestamp: NOW - 100 * DAY });
+    const t = accuracyTrend([unverified, ...series([A, A, A, A, A, A, A, A, A])]);
+    expect(t.verified).toBe(9);
+    expect(t.points).toEqual([]);
+  });
+
+  test('狀態值不合法的記錄不計入（備份或手改檔案可能帶進來）', () => {
+    const bad = verified('accurate', { id: 'bad', timestamp: NOW - 100 * DAY });
+    (bad.outcome as unknown as { status: string }).status = 'weird';
+    const t = accuracyTrend([bad, ...series([A, A, A, A, A, A, A, A, A])]);
+    expect(t.verified).toBe(9);
+  });
+
+  /**
+   * 依占卜時間排，不是依回填時間，也不是輸入順序。
+   * 回填常是隔一陣子一口氣補完：依回填時間排，會把同一天補的十筆排成一團，
+   * 與這個人「判得越來越準嗎」無關。
+   */
+  test('依占卜時間排列：輸入順序與回填時間都不影響結果', () => {
+    const ordered = series([X, X, X, X, X, A, A, A, A, A]);
+    const expected = accuracyTrend(ordered).points;
+
+    const shuffled = [ordered[7], ordered[2], ordered[9], ordered[0], ordered[5],
+      ordered[3], ordered[8], ordered[1], ordered[6], ordered[4]];
+    expect(accuracyTrend(shuffled).points).toEqual(expected);
+
+    // 回填時間完全顛倒（最早占的最晚才回填）
+    const reversedVerify = ordered.map((r, i) => ({
+      ...r, outcome: { ...r.outcome!, verifiedAt: NOW + (10 - i) * DAY },
+    }));
+    expect(accuracyTrend(reversedVerify).points).toEqual(expected);
+  });
+
+  test('同一毫秒的兩筆以 id 定序，結果不隨輸入順序漂移', () => {
+    const same = (id: string, status: OutcomeStatus) => verified(status, { id, timestamp: NOW - 50 * DAY });
+    const rest = series([A, A, A, A, A, A, A, A]);
+    const one = accuracyTrend([same('a', X), same('b', A), ...rest]).points;
+    const two = accuracyTrend([same('b', A), same('a', X), ...rest]).points;
+    expect(one).toEqual(two);
+  });
+
+  test('可自訂視窗：視窗 3 → 6 筆就解鎖', () => {
+    const t = accuracyTrend(series([A, A, X, X, A, A]), 3);
+    expect(t.needed).toBe(6);
+    expect(t.points.map(p => p.n)).toEqual([3, 4, 5, 6]);
+  });
+
+  test('不修改傳入的陣列', () => {
+    // 故意把輸入排成逆序：若函式就地排序，傳入的陣列順序就會被改掉
+    const input = series([X, X, X, X, X, A, A, A, A, A]).reverse();
+    const idsBefore = input.map(r => r.id);
+    accuracyTrend(input);
+    expect(input.map(r => r.id)).toEqual(idsBefore);
+  });
+});
+

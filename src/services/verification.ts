@@ -368,3 +368,70 @@ export function medianVerifyDelay(records: DivinationRecord[]): number | null {
   const mid = Math.floor(delays.length / 2);
   return delays.length % 2 === 0 ? Math.round((delays[mid - 1] + delays[mid]) / 2) : delays[mid];
 }
+
+// ====== 應驗率趨勢 ======
+
+export interface AccuracyTrendPoint {
+  /** 走到第 n 筆已回填的占卜（依占卜時間排列，從 1 起算） */
+  n: number;
+  /** 以第 n 筆為終點、往前 window 筆的加權應驗率 0–100 */
+  rate: number;
+}
+
+export interface AccuracyTrend {
+  /** 每個點涵蓋幾筆。沿用 MIN_INSIGHT_SAMPLES——「幾筆才算數」只該有一個答案 */
+  window: number;
+  /** 已回填、且狀態值合法的筆數 */
+  verified: number;
+  /** 解鎖趨勢所需的已回填筆數：兩個視窗量，否則第一個點與最後一個點是同一批樣本 */
+  needed: number;
+  /** 還差幾筆，已解鎖為 0 */
+  remaining: number;
+  /** 不足 needed 筆時為空陣列，畫面改顯示「還差幾筆」而不是一條只有雜訊的線 */
+  points: AccuracyTrendPoint[];
+}
+
+/**
+ * 「我用越久，準確率是變好還是變差」——分項應驗率答不了這題，
+ * 它們都是固定維度的分組，沒有時間軸。
+ *
+ * 排序依**占卜時間**而不是回填時間：問的是「這個人判得越來越準嗎」，
+ * 而回填常常是隔了一陣子一口氣補完，依回填時間排會把同一天補的十筆
+ * 排成一團，與占卜的先後無關。
+ *
+ * X 軸用「第 N 筆」而不是日曆時間：App 上線才一個多月，按日曆分段會太稀疏，
+ * 而且使用者關心的是「驗證的次數多了以後」，不是「過了幾週」。
+ *
+ * 滑動視窗每次前進一筆，每點的計算直接重用 computeAccuracy——
+ * 部分應驗計半分等規則因此與統計頁其他地方完全一致，沒有第二套算法。
+ *
+ * 誠實邊界：視窗只有 5 筆時，一筆的差別就是 10–20 個百分點，起伏大半是雜訊。
+ * 這個函式只給資料，不下「變準了」「變差了」的結論；畫面上要如實附上這句提醒。
+ */
+export function accuracyTrend(
+  records: DivinationRecord[],
+  window: number = MIN_INSIGHT_SAMPLES,
+): AccuracyTrend {
+  const verified = records
+    .filter(r => r.outcome !== undefined && r.outcome.status in OUTCOME_WEIGHT)
+    // 同一毫秒的兩筆以 id 定序，讓結果不隨輸入順序而變
+    .sort((a, b) => a.timestamp - b.timestamp || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  const needed = window * 2;
+  const points: AccuracyTrendPoint[] = [];
+  if (verified.length >= needed) {
+    for (let end = window; end <= verified.length; end++) {
+      const rate = computeAccuracy(verified.slice(end - window, end)).rate;
+      // 視窗內全是已回填，rate 不會是 null；留著判斷是給型別看的
+      if (rate !== null) points.push({ n: end, rate });
+    }
+  }
+
+  return {
+    window,
+    verified: verified.length,
+    needed,
+    remaining: Math.max(0, needed - verified.length),
+    points,
+  };
+}
