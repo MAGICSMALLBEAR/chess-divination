@@ -47,6 +47,38 @@ const OUTCOME_WEIGHT: Readonly<Record<OutcomeStatus, number>> = {
  */
 export const VERIFY_REMINDER_DAYS = 14;
 
+/** 使用者可選的等待天數。固定選項而非自訂：自訂要處理 0 天與負數，使用者要的只是早一點或晚一點 */
+export const VERIFY_REMINDER_CHOICES = [7, 14, 30] as const;
+
+/** 設定值 0 = 關閉提醒（存進設定的是數字，而不是另開一個布林） */
+export const VERIFY_REMINDER_OFF = 0;
+
+export interface VerifyReminderPolicy {
+  /** 關閉時不發通知、首頁也不顯示待回填提示（統計頁的筆數不受影響，見 verifyReminderPolicy） */
+  enabled: boolean;
+  /** 滿幾天算「該回填」。通知、首頁提示與統計頁筆數都用這個數字 */
+  days: number;
+}
+
+/**
+ * 把設定裡存的值解析成提醒政策。
+ *
+ * 通知排程、首頁提示、統計頁筆數三個地方都問同一個問題——「滿幾天算該回填」，
+ * 所以答案只在這裡算一次；各自讀設定各自判斷，就是 S58 抓過的那一種：
+ * 常數自稱真相來源、實際發提醒的地方卻自己寫一份。
+ *
+ * 不認得的值（備份或雲端帶進來的舊資料、手改的檔案）一律退回預設而非關閉：
+ * 靜靜把提醒關掉，比用預設天數多提醒一次更難被發現。
+ *
+ * 關閉時 days 仍給預設值：統計頁那一行是使用者主動點開才看得到的資訊，
+ * 不是打擾，關掉「提醒」不該讓它跟著出錯或消失。
+ */
+export function verifyReminderPolicy(setting: unknown): VerifyReminderPolicy {
+  if (setting === VERIFY_REMINDER_OFF) return { enabled: false, days: VERIFY_REMINDER_DAYS };
+  const known = (VERIFY_REMINDER_CHOICES as readonly unknown[]).includes(setting);
+  return { enabled: true, days: known ? (setting as number) : VERIFY_REMINDER_DAYS };
+}
+
 // ====== 型別 ======
 
 export interface AccuracyStats {

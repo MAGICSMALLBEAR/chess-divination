@@ -9,14 +9,17 @@ import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import type { AppSettings } from '@/services/storage';
 import type { DivinerGender } from '@/services/useGod';
-import { getSettings, saveSettings } from '@/services/storage';
+import { getSettings, saveSettings, getHistory } from '@/services/storage';
+import {
+  verifyReminderPolicy, VERIFY_REMINDER_CHOICES, VERIFY_REMINDER_OFF,
+} from '@/services/verification';
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import { backupData, restoreData } from '@/services/backup';
 import { confirmAction, notify } from '@/services/dialog';
 import { clearHistory } from '@/services/storage';
 import CustomCategoriesSection from '@/components/CustomCategoriesSection';
-import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission, cancelAllVerificationReminders } from '@/services/notifications';
+import { scheduleDailyReminder, cancelDailyReminder, isReminderScheduled, requestNotificationPermission, cancelAllVerificationReminders, rescheduleVerificationReminders } from '@/services/notifications';
 import { getSyncKey, saveSyncKey, syncWithCloud, type SyncFailure } from '@/services/cloudSync';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -32,6 +35,9 @@ const GENDER_OPTIONS: { value: DivinerGender | undefined; labelKey: string }[] =
   { value: 'female', labelKey: 'settings.genderFemale' },
   { value: undefined, labelKey: 'settings.genderUnset' },
 ];
+
+/** 占驗提醒的選項：關閉（0）與可選天數。天數清單的真相來源在 verification.ts */
+const VERIFY_REMINDER_OPTIONS: readonly number[] = [VERIFY_REMINDER_OFF, ...VERIFY_REMINDER_CHOICES];
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -110,6 +116,27 @@ export default function SettingsScreen() {
     } else {
       await cancelDailyReminder();
     }
+  }
+
+  /**
+   * 選擇占驗提醒的天數（0 為關閉）。
+   *
+   * 三件事缺一不可：存設定（首頁與統計頁的提示天數就是讀它）、必要時要通知權限、
+   * 把已排好的提醒整批重排——只存設定的話，首頁馬上改照新天數算，而先前排好的
+   * 通知還是照舊天數響。選了天數卻沒有權限時設定仍然保留：首頁提示照樣用得到，
+   * 只是通知發不出來，那句話要說出口，不能讓人以為設好了。
+   */
+  async function chooseVerifyReminder(value: number) {
+    const policy = verifyReminderPolicy(value);
+    const current = verifyReminderPolicy(settings?.verifyReminderDays);
+    // 點的是已選的那個：不重排、也不再問一次權限。比的是解析後的政策而非原始值——
+    // 沒設定過的人畫面上亮的是預設天數，點它也算「沒變」
+    if (policy.enabled === current.enabled && (!policy.enabled || policy.days === current.days)) return;
+    await update('verifyReminderDays', value);
+    if (policy.enabled && Platform.OS !== 'web' && !(await requestNotificationPermission())) {
+      notify(t('settings.notifyDenied'), t('settings.notifyDeniedDesc'));
+    }
+    await rescheduleVerificationReminders(await getHistory(), policy);
   }
 
   async function handleRestore() {
@@ -344,6 +371,32 @@ export default function SettingsScreen() {
               onValueChange={toggleReminder}
               trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
           </View>
+          {/* 占驗提醒：固定選項，選中的是解析後的值（沒設定過就是預設天數，而不是「關閉」）。
+              標籤與選項上下堆疊而不是同一列：四顆按鈕加標籤在手機寬度放不下，
+              英文版最後一顆會超出卡片、日文標籤會在字中間斷行（截圖看出來的，測試看不出來） */}
+          <View style={[styles.row, styles.stackedRow]}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.verifyReminder')}</Text>
+            <View style={[styles.options, styles.optionsWrap]}>
+              {VERIFY_REMINDER_OPTIONS.map(value => {
+                const current = verifyReminderPolicy(settings.verifyReminderDays);
+                const selected = value === VERIFY_REMINDER_OFF ? !current.enabled : current.enabled && current.days === value;
+                const label = value === VERIFY_REMINDER_OFF
+                  ? t('settings.verifyReminderOff') : t('settings.verifyReminderDays', { n: value });
+                return (
+                  <TouchableOpacity key={value}
+                    testID={`verify-reminder-${value}`}
+                    style={[styles.option, selected && { borderColor: theme.gold }]}
+                    onPress={() => chooseVerifyReminder(value)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={label}>
+                    <Text style={[styles.optionText, selected && { color: theme.textGold }]}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+          <Text style={[styles.note, { color: theme.textMuted }]}>{t('settings.verifyReminderNote')}</Text>
         </View>
 
         {/* 自訂問事類別 */}
@@ -501,6 +554,8 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   label: { fontSize: FontSize.body },
   hint: { fontSize: 11, marginTop: Spacing.xs, lineHeight: 16 },
   options: { flexDirection: 'row', gap: 6 },
+  optionsWrap: { flexWrap: 'wrap' },
+  stackedRow: { flexDirection: 'column', alignItems: 'flex-start', gap: Spacing.sm },
   option: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,

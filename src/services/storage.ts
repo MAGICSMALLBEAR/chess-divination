@@ -148,6 +148,11 @@ export interface AppSettings {
    * 未設定時感情不出用神斷語——取反的用神比沒有用神更誤導。
    */
   divinerGender?: DivinerGender;
+  /**
+   * 占驗提醒：占卜後滿幾天提醒回填，0 為關閉。未設定即預設天數。
+   * 解析一律走 `verifyReminderPolicy()`，不要在別處直接比對這個欄位。
+   */
+  verifyReminderDays?: number;
 }
 
 /** 使用者自訂問事類別 */

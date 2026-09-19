@@ -6,6 +6,7 @@ import {
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason,
   bestCategory, medianVerifyDelay,
   OUTCOME_LABELS, OUTCOME_STATUSES, VERIFY_REMINDER_DAYS, MIN_INSIGHT_SAMPLES,
+  verifyReminderPolicy, VERIFY_REMINDER_CHOICES, VERIFY_REMINDER_OFF,
 } from '../services/verification';
 import type {
   DivinationRecord, OutcomeStatus, DivinationOutcome,
@@ -537,5 +538,39 @@ describe('樣本門檻', () => {
     ]);
     expect(rows.map(r => r.key)).toEqual(['中吉', '下下']);
     expect(rows.every(r => !r.enoughSamples)).toBe(true);
+  });
+});
+
+describe('verifyReminderPolicy', () => {
+  test('沒設定過：啟用，預設天數', () => {
+    expect(verifyReminderPolicy(undefined)).toEqual({ enabled: true, days: VERIFY_REMINDER_DAYS });
+  });
+
+  test.each([...VERIFY_REMINDER_CHOICES])('可選的 %i 天：啟用並照該天數', days => {
+    expect(verifyReminderPolicy(days)).toEqual({ enabled: true, days });
+  });
+
+  test('關閉（0）：停用；days 仍是預設天數，供統計頁那一行使用', () => {
+    expect(verifyReminderPolicy(VERIFY_REMINDER_OFF)).toEqual({ enabled: false, days: VERIFY_REMINDER_DAYS });
+  });
+
+  /**
+   * 備份與雲端同步會把別處寫的設定帶進來，手改的檔案也一樣。
+   * 不認得的值退回「啟用＋預設天數」，而不是關閉：靜靜把提醒關掉，
+   * 比多提醒一次更難被發現。
+   */
+  test.each([5, -1, 1.5, NaN, '7', null, {}, true])('不認得的值 %p：退回啟用＋預設天數', bad => {
+    expect(verifyReminderPolicy(bad)).toEqual({ enabled: true, days: VERIFY_REMINDER_DAYS });
+  });
+
+  test('預設天數在可選項裡、關閉值不在（0 不能被當成一個「0 天」的選項）', () => {
+    expect(VERIFY_REMINDER_CHOICES as readonly number[]).toContain(VERIFY_REMINDER_DAYS);
+    expect(VERIFY_REMINDER_CHOICES as readonly number[]).not.toContain(VERIFY_REMINDER_OFF);
+  });
+
+  test('與 pendingVerification 串起來：7 天政策下，8 天前的記錄算待回填、預設政策下不算', () => {
+    const r = rec({ timestamp: NOW - 8 * DAY });
+    expect(pendingVerification([r], NOW, verifyReminderPolicy(7).days)).toHaveLength(1);
+    expect(pendingVerification([r], NOW, verifyReminderPolicy(undefined).days)).toHaveLength(0);
   });
 });

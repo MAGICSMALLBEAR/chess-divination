@@ -429,7 +429,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'outcome.edit': { 'zh-TW': '修改', en: 'Edit', ja: '編集' },
   'outcome.delay': { 'zh-TW': '占卜後 {n} 天回填', en: 'Recorded {n} days after the reading', ja: '占いの {n} 日後に記録' },
   'notify.verifyTitle': { 'zh-TW': '該回填占驗了', en: 'Time to verify your reading', ja: '占験を記録しましょう' },
-  'notify.verifyBody': { 'zh-TW': '「{title}」已過 14 天，記下實際結果吧。', en: 'It has been 14 days since “{title}”. Record what happened.', ja: '「{title}」から14日経ちました。結果を記録しましょう。' },
+  'notify.verifyBody': { 'zh-TW': '「{title}」已過 {days} 天，記下實際結果吧。', en: 'It has been {days} days since “{title}”. Record what happened.', ja: '「{title}」から{days}日経ちました。結果を記録しましょう。' },
 
   // 統計（擴充）
   'stats.trend': { 'zh-TW': '近 7 天占卜趨勢', en: 'Last 7 Days', ja: '直近7日の推移' },
@@ -448,7 +448,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 寫死就會變成 S60 那種「改了常數、文案沒跟上」的重複。
   'stats.lowSample': { 'zh-TW': '樣本不足', en: 'Low sample', ja: 'サンプル不足' },
   'stats.sampleNote': { 'zh-TW': '少於 {n} 筆的分組僅供參考，不列入「最準」的判斷。', en: 'Groups with fewer than {n} verified readings are shown for reference only and are not used to pick your strongest area.', ja: '{n} 件未満のグループは参考表示で、「最も当たる」判定には使いません。' },
-  'stats.pending':{ 'zh-TW': '有 {n} 則兩週前的占卜還沒回填結果。', en: '{n} readings from over two weeks ago are still unverified.', ja: '2週間以上前の占いが {n} 件、未記録です。' },
+  'stats.pending':{ 'zh-TW': '有 {n} 則已滿 {days} 天的占卜還沒回填結果。', en: '{n} readings older than {days} days are still unverified.', ja: '{days}日以上前の占いが {n} 件、未記録です。' },
   'stats.byCategory': { 'zh-TW': '各類問事的應驗率', en: 'Accuracy by Question Type', ja: '問い別の的中率' },
   'stats.bySpread': { 'zh-TW': '各牌陣的應驗率', en: 'Accuracy by Spread', ja: '配置別の的中率' },
   'stats.byMode': { 'zh-TW': '各占卜模式的應驗率', en: 'Accuracy by Divination Mode', ja: '占い方法別の的中率' },
@@ -534,6 +534,10 @@ export const translations: Record<string, Record<Lang, string>> = {
   'glossary.groupUseGod': { 'zh-TW': '用神與斷語', en: 'Use-god and judgment', ja: '用神と断' },
   'glossary.groupMoving': { 'zh-TW': '動爻的變化', en: 'How the moving line changes', ja: '動爻の変化' },
   'glossary.groupStrength': { 'zh-TW': '旺衰', en: 'Seasonal strength', ja: '旺衰' },
+  'settings.verifyReminder': { 'zh-TW': '占驗提醒', en: 'Verification Reminder', ja: '占験のリマインド' },
+  'settings.verifyReminderOff': { 'zh-TW': '關閉', en: 'Off', ja: 'オフ' },
+  'settings.verifyReminderDays': { 'zh-TW': '{n} 天', en: '{n} days', ja: '{n}日' },
+  'settings.verifyReminderNote': { 'zh-TW': '占卜滿所選天數後，提醒你回填實際結果；首頁與統計頁的待回填提示也照這個天數算。關閉後不發通知、首頁也不再顯示待回填提示。', en: 'After the chosen number of days you are reminded to record what actually happened; the pending hints on Home and Statistics use the same number. Off means no notification and no pending hint on Home.', ja: '選んだ日数が経つと、実際の結果の記録を促します。ホームと統計の「結果待ち」表示も同じ日数で数えます。オフにすると通知も、ホームの結果待ち表示も出ません。' },
   'settings.glossary': { 'zh-TW': '術語詞典', en: 'Glossary', ja: '用語辞典' },
   'settings.glossaryDesc': { 'zh-TW': '看懂盤面上的術語', en: 'Understand the chart’s terms', ja: '盤面の用語を調べる' },
   'reveal.glossaryLink': { 'zh-TW': '看不懂盤面上的術語？查看術語詞典', en: 'Unfamiliar with the terms on the chart? Open the glossary', ja: '盤面の用語がわかりませんか？用語辞典を開く' },

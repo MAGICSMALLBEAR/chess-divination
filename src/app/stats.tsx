@@ -10,13 +10,13 @@ import { PIECE_CHINESE_NAMES } from '@/components/icons';
 import TrendChart from '@/components/TrendChart';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { getHistory, recordHasLevel, type DivinationRecord } from '@/services/storage';
+import { getHistory, getSettings, recordHasLevel, type DivinationRecord } from '@/services/storage';
 import { startOfLocalWeek, startOfLocalMonth } from '@/services/date';
 import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
   accuracyByBodyUse, accuracyByMovingLine, accuracyBySeason, accuracyByMode,
   accuracyBySpread,
-  bestCategory, medianVerifyDelay, pendingVerification, MIN_INSIGHT_SAMPLES,
+  bestCategory, medianVerifyDelay, pendingVerification, verifyReminderPolicy, MIN_INSIGHT_SAMPLES,
   type AccuracyBreakdown,
 } from '@/services/verification';
 import { POEM_LEVELS, getLevelColor } from '@/data/poems';
@@ -37,12 +37,14 @@ export default function StatsScreen() {
   const styles = useThemedStyles(makeStyles);
   const { t, lang } = useI18n();
   const [records, setRecords] = useState<DivinationRecord[]>([]);
+  const [reminderSetting, setReminderSetting] = useState<number | undefined>(undefined);
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
   useEffect(() => { loadData(); }, []);
   async function loadData() {
-    const h = await getHistory();
+    const [h, settings] = await Promise.all([getHistory(), getSettings()]);
     setRecords(h);
+    setReminderSetting(settings.verifyReminderDays);
   }
 
   // 依日期篩選。
@@ -105,7 +107,11 @@ export default function StatsScreen() {
     () => accuracyBySpread(filtered, id => t(SPREAD_LABEL_KEYS[id as SpreadId])), [filtered, t, lang]);
   // 提醒用未經日期篩選的完整清單：待回填的多半是較舊的記錄，
   // 若跟著「本週」篩選會整批消失，正好漏掉最該提醒的那些。
-  const pending = React.useMemo(() => pendingVerification(records), [records]);
+  // 天數與首頁、通知排程同一個答案（verifyReminderPolicy）。關閉提醒時仍照預設天數
+  // 算：這一行是使用者主動打開統計頁才看得到的資訊，不是打擾
+  const pendingDays = verifyReminderPolicy(reminderSetting).days;
+  const pending = React.useMemo(
+    () => pendingVerification(records, Date.now(), pendingDays), [records, pendingDays]);
 
   /** 應驗率的色調：七成以上為吉、四成以下為凶 */
   function rateColor(rate: number) {
@@ -257,7 +263,7 @@ export default function StatsScreen() {
               onPress={() => router.push(recordLink(pending[0]))}
             >
               <Text style={[styles.pendingText, { color: theme.textGold }]}>
-                {t('stats.pending', { n: pending.length })}
+                {t('stats.pending', { n: pending.length, days: pendingDays })}
               </Text>
             </TouchableOpacity>
           )}

@@ -7,8 +7,8 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { t } from './i18n';
 import { recordTitle } from './poemList';
-import { VERIFY_REMINDER_DAYS } from './verification';
-import type { DivinationRecord } from './storage';
+import { verifyReminderPolicy, type VerifyReminderPolicy } from './verification';
+import { getSettings, type DivinationRecord } from './storage';
 
 const REMINDER_ID = 'daily-divination-reminder';
 const VERIFICATION_REMINDER_PREFIX = 'verification-reminder-';
@@ -158,25 +158,37 @@ export function verificationReminderId(recordId: string): string {
 }
 
 /**
- * 在占卜滿 `VERIFY_REMINDER_DAYS` 天時提醒一次。
+ * 在占卜滿設定天數時提醒一次；使用者關掉提醒則什麼都不排。
  *
- * 天數取自 `verification.ts` 的常數而非再寫一次 14：那支常數本來就自稱是
- * 「建議回填的等待天數」的真相來源，卻只有統計那一側在用，真正決定何時
- * 發提醒的這裡是自己寫死的——兩邊哪天分岔，畫面上不會有任何跡象。
+ * 天數與開關取自 `verifyReminderPolicy()`（真相來源在 verification.ts），
+ * 而不是在這裡再寫一份：先前這裡寫死 14、只有統計那一側用常數，兩邊哪天
+ * 分岔畫面上不會有任何跡象（S58）。
+ *
+ * `policy` 由呼叫端傳入的情況只有「設定剛改完、要整批重排」——那時設定值
+ * 是使用者剛選的，重讀儲存沒有意義，且批次重排不必每筆各讀一次設定。
+ * 平常占卜完成時不傳，這裡自己讀。讀不到設定就用預設政策：排一則預設天數的
+ * 提醒，比因為儲存暫時讀不出來而漏排好。
  *
  * 標題走 recordTitle() 而非 record.poemTitle：記錄存的是起卦當下的中文
  * 原題，en/ja 介面下直接印它，通知裡是中文、點進去的畫面卻是譯文——
  * 首頁與收藏早就改走 recordTitle 了（見 poemList.ts），只有這裡漏掉。
  * 靈棋記錄也靠它才不會被當成籤詩 #1（其 poemId 恆為 0）。
  */
-export async function scheduleVerificationReminder(record: DivinationRecord): Promise<boolean> {
-  if (Platform.OS === 'web' || record.outcome || !(await hasNotificationPermission())) return false;
-  const trigger = new Date(record.timestamp + VERIFY_REMINDER_DAYS * 86_400_000);
+export async function scheduleVerificationReminder(
+  record: DivinationRecord,
+  policy?: VerifyReminderPolicy,
+): Promise<boolean> {
+  if (Platform.OS === 'web' || record.outcome) return false;
+  const resolved = policy ?? verifyReminderPolicy(
+    await getSettings().then(s => s.verifyReminderDays).catch(() => undefined),
+  );
+  if (!resolved.enabled || !(await hasNotificationPermission())) return false;
+  const trigger = new Date(record.timestamp + resolved.days * 86_400_000);
   if (trigger.getTime() <= Date.now()) return false;
   try {
     await Notifications.scheduleNotificationAsync({
       identifier: verificationReminderId(record.id),
-      content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: recordTitle(record) }), data: { screen: '/stats', recordId: record.id } },
+      content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: recordTitle(record), days: resolved.days }), data: { screen: '/stats', recordId: record.id } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger },
     });
     return true;
@@ -206,6 +218,23 @@ export async function cancelAllVerificationReminders(): Promise<void> {
         .map(n => Notifications.cancelScheduledNotificationAsync(n.identifier)),
     );
   } catch { console.warn('清除占驗提醒排程失敗'); }
+}
+
+/**
+ * 依新的提醒政策整批重排：先清掉所有占驗排程，再替還沒回填的記錄重新排。
+ *
+ * 為什麼不只改「之後」的：使用者把 14 天改成 7 天，首頁的待回填提示馬上照
+ * 7 天算，而先前已排好的通知還是 14 天後才響——同一件事兩個時間。
+ * 關閉時只清不排。已經滿期的記錄不會被排（scheduleVerificationReminder
+ * 對過去的時間直接略過），它們由首頁提示接手，與原本的行為一致。
+ */
+export async function rescheduleVerificationReminders(
+  records: DivinationRecord[],
+  policy: VerifyReminderPolicy,
+): Promise<void> {
+  await cancelAllVerificationReminders();
+  if (!policy.enabled) return;
+  await Promise.all(records.filter(r => !r.outcome).map(r => scheduleVerificationReminder(r, policy)));
 }
 
 /** 排程每日占卜提醒（每天上午 9:00） */

@@ -1,18 +1,18 @@
 // 首頁：模式選擇 + 每日運勢
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
 import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
 import { generateDailyFortune } from '@/services/divination';
-import { getDailyFortune, saveDailyFortune, getHistory, recordHasLevel, type DailyFortune, type DivinationRecord } from '@/services/storage';
+import { getDailyFortune, saveDailyFortune, getHistory, getSettings, recordHasLevel, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
 import { recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
-import { pendingVerification, daysSince } from '@/services/verification';
+import { pendingVerification, daysSince, verifyReminderPolicy } from '@/services/verification';
 import { getLevelColor } from '@/data/poems';
 import { shareNative, shareToTarget, type ShareTarget } from '@/services/socialShare';
 import ShareTargetSheet from '@/components/ShareTargetSheet';
@@ -38,9 +38,13 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadDaily();
-    loadRecent();
     loadStreak();
   }, []);
+
+  // 每次回到首頁都重讀，而不只在掛載時：分頁掛上後不會卸載，使用者到設定頁
+  // 改了占驗提醒天數再切回來，若只在掛載時讀，待回填提示會停在舊天數的結果，
+  // 設定看起來沒生效。focus 事件在掛載時也會觸發，所以不需要另外呼叫一次。
+  useFocusEffect(useCallback(() => { void loadRecent(); }, []));
 
   async function loadStreak() { setStreak(await getStreak()); }
 
@@ -65,10 +69,13 @@ export default function HomeScreen() {
     setDailyFortune(fortune);
   }
   async function loadRecent() {
-    const h = await getHistory();
+    const [h, settings] = await Promise.all([getHistory(), getSettings()]);
     setRecentRecords(h.slice(0, 3));
-    // 與最近記錄共用同一次讀取：待回填要看的是完整歷史，不是前三筆
-    setPending(pendingVerification(h));
+    // 與最近記錄共用同一次讀取：待回填要看的是完整歷史，不是前三筆。
+    // 天數與開關走 verifyReminderPolicy——與通知排程、統計頁是同一個答案；
+    // 關閉提醒的人，首頁也不該繼續頂著一張待回填卡片
+    const policy = verifyReminderPolicy(settings.verifyReminderDays);
+    setPending(policy.enabled ? pendingVerification(h, Date.now(), policy.days) : []);
   }
 
   function handleSelectMode(mode: 'draw' | 'board') {
@@ -168,7 +175,7 @@ export default function HomeScreen() {
         )}
 
         {/* 待回填提示。
-            占驗提醒排在占卜後 14 天，但那是一則通知——關掉、沒看到、或當下
+            占驗提醒排在占卜後滿設定天數，但那是一則通知——關掉、沒看到、或當下
             不方便回填就沒有第二次機會了。`pendingVerification()` 早就算得出
             「哪些已經滿期還沒回填」，在此之前卻只有統計頁用它，而且只印成
             一個數字：使用者被告知有 N 筆，然後自己去歷史裡找是哪幾筆。

@@ -19,7 +19,7 @@ import { achievementTranslations } from '../data/translations/achievements';
 import { ALL_POEMS, POEM_LEVELS } from '../data/poems';
 import { ALL_PIECES } from '../data/pieces';
 import { LINGQI_ORACLES } from '../data/lingqiOracles';
-import { VERIFY_REMINDER_DAYS } from '../services/verification';
+import { VERIFY_REMINDER_DAYS, VERIFY_REMINDER_CHOICES } from '../services/verification';
 
 const LANGS: Lang[] = ['zh-TW', 'en', 'ja'];
 
@@ -65,15 +65,6 @@ const RULES: { what: string; truth: number; patterns: Partial<Record<Lang, RegEx
       ja: [/(\d+)の駒から/g],
     },
   },
-  {
-    what: '占驗提醒天數',
-    truth: VERIFY_REMINDER_DAYS,
-    patterns: {
-      'zh-TW': [/已過\s*(\d+)\s*天/g],
-      en: [/(\d+)\s+days\s+since/g],
-      ja: [/から(\d+)日/g],
-    },
-  },
 ];
 
 describe('文案裡的數字對得上真相來源', () => {
@@ -108,6 +99,49 @@ describe('文案裡的數字對得上真相來源', () => {
   test.each(RULES.map(r => [r.what, r] as const))('%s：三種語言都掃得到', (_what, rule) => {
     const langs = new Set(scan(rule).map(h => h.lang));
     expect([...langs].sort()).toEqual(['en', 'ja', 'zh-TW']);
+  });
+});
+
+/**
+ * 占驗提醒的天數。
+ *
+ * 這條規則原本是 RULES 裡的一列：文案寫「已過 14 天」，要等於 `VERIFY_REMINDER_DAYS`。
+ * S74 把天數開放給使用者選（7／14／30 或關閉），**那句文案就不可能再寫死任何數字**——
+ * 寫 14 的人選 7 天時，通知會說「已過 14 天」，而那是謊話。所以守門的判準換了：
+ * 不是「數字對不對得上真相來源」，而是「這幾句話不准帶字面天數，一律用 {days}」。
+ *
+ * 天數搬進 `{days}` 參數的當下，舊規則的正則變成零命中、反空轉檢查紅了——這是
+ * 它該有的反應：字面量搬走了，守門必須換一種守法，而不是被靜靜刪掉或放寬到過。
+ */
+describe('天數可調的文案不寫死數字', () => {
+  /** 會出現在使用者面前、且天數由設定決定的文案鍵 */
+  const DAYS_KEYS = ['notify.verifyBody', 'stats.pending'];
+
+  test.each(DAYS_KEYS)('%s：三語都帶 {days}，且沒有字面天數或「兩週」這類換個說法的寫死', key => {
+    const entry = translations[key];
+    expect(entry).toBeDefined();
+    for (const lang of LANGS) {
+      const text = entry[lang] ?? '';
+      expect({ key, lang, hasPlaceholder: text.includes('{days}') })
+        .toEqual({ key, lang, hasPlaceholder: true });
+      // 字面天數：數字緊接著天／日／days，或講成兩週／two weeks／2週間
+      expect({ key, lang, hardcoded: /\d+\s*(?:天|日|days?)/.test(text.replace(/\{days\}/g, '')) })
+        .toEqual({ key, lang, hardcoded: false });
+      expect({ key, lang, weeks: /兩週|two weeks|2週間|二週/i.test(text) })
+        .toEqual({ key, lang, weeks: false });
+    }
+  });
+
+  test('反空轉：{n}、{days} 之外的數字寫法確實抓得到（正則不是永遠為假）', () => {
+    const hard = (s: string) => /\d+\s*(?:天|日|days?)/.test(s.replace(/\{days\}/g, ''));
+    expect(hard('已過 14 天')).toBe(true);
+    expect(hard('from 7 days ago')).toBe(true);
+    expect(hard('14日経ちました')).toBe(true);
+    expect(hard('已過 {days} 天')).toBe(false);
+  });
+
+  test('預設天數是可選項之一（否則沒設定的人畫面上沒有亮著的那一顆）', () => {
+    expect(VERIFY_REMINDER_CHOICES as readonly number[]).toContain(VERIFY_REMINDER_DAYS);
   });
 });
 

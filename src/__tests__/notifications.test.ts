@@ -14,11 +14,14 @@ import {
   scheduleVerificationReminder,
   cancelVerificationReminder,
   cancelAllVerificationReminders,
+  rescheduleVerificationReminders,
   scheduleDailyReminder,
   cancelDailyReminder,
   isReminderScheduled,
 } from '../services/notifications';
 import { setLang } from '../services/i18n';
+import { getSettings } from '../services/storage';
+import { verifyReminderPolicy } from '../services/verification';
 
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -31,6 +34,11 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(),
   SchedulableTriggerInputTypes: { DAILY: 'daily', DATE: 'date' },
 }));
+
+// 占驗提醒的天數與開關讀自設定；notifications.ts 只用到 getSettings，
+// 整個 storage 換成假的就不必連帶模擬 AsyncStorage
+jest.mock('../services/storage', () => ({ getSettings: jest.fn() }));
+const mockedGetSettings = getSettings as jest.MockedFunction<typeof getSettings>;
 
 const mocked = Notifications as jest.Mocked<typeof Notifications>;
 const originalOS = Platform.OS;
@@ -56,6 +64,8 @@ beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   setPlatform('ios');
   grantAndSucceed();
+  // 預設「沒設定過」：占驗提醒走預設天數
+  mockedGetSettings.mockResolvedValue({} as never);
 });
 
 afterEach(() => {
@@ -548,6 +558,121 @@ describe('scheduleVerificationReminder', () => {
     mocked.scheduleNotificationAsync.mockRejectedValue(new Error('boom'));
     await expect(scheduleVerificationReminder(makeRecord(Date.now() + 1000) as never))
       .resolves.toBe(false);
+  });
+});
+
+/**
+ * 占驗提醒的天數與開關（路線圖 #12）。
+ *
+ * 判準與 S58 相同：「有真相來源」不等於「有人在用」。天數開放給使用者選之後，
+ * 發提醒的這個函式若還是照預設常數排，設定頁的選項就成了裝飾——
+ * 首頁提示照 7 天算、通知卻 14 天後才響，而且不會有任何東西紅。
+ */
+describe('scheduleVerificationReminder 讀設定', () => {
+  const DAY = 86_400_000;
+  const triggerOf = () => (mocked.scheduleNotificationAsync.mock.calls[0][0].trigger as { date: Date }).date.getTime();
+
+  test.each([7, 14, 30])('設定 %i 天：觸發時間是占卜後第 N 天', async days => {
+    mockedGetSettings.mockResolvedValue({ verifyReminderDays: days } as never);
+    const record = makeRecord(Date.now() + 1000);
+
+    await expect(scheduleVerificationReminder(record as never)).resolves.toBe(true);
+
+    expect(triggerOf()).toBe(record.timestamp + days * DAY);
+  });
+
+  test('通知內文帶的是實際天數，不是寫死的 14', async () => {
+    mockedGetSettings.mockResolvedValue({ verifyReminderDays: 7 } as never);
+    await scheduleVerificationReminder(makeRecord(Date.now() + 1000) as never);
+
+    const body = mocked.scheduleNotificationAsync.mock.calls[0][0].content.body ?? '';
+    expect(body).toContain('7');
+    expect(body).not.toContain('14');
+  });
+
+  test('設定關閉（0）：不排程，連權限都不必問', async () => {
+    mockedGetSettings.mockResolvedValue({ verifyReminderDays: 0 } as never);
+
+    await expect(scheduleVerificationReminder(makeRecord(Date.now() + 1000) as never)).resolves.toBe(false);
+
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+    expect(mocked.getPermissionsAsync).not.toHaveBeenCalled();
+  });
+
+  test('不認得的設定值退回預設天數，而不是靜靜關掉提醒', async () => {
+    mockedGetSettings.mockResolvedValue({ verifyReminderDays: 5 } as never);
+    const record = makeRecord(Date.now() + 1000);
+
+    await expect(scheduleVerificationReminder(record as never)).resolves.toBe(true);
+
+    expect(triggerOf()).toBe(record.timestamp + 14 * DAY);
+  });
+
+  test('讀不到設定時用預設政策照排，不因為儲存暫時讀不出來而漏排', async () => {
+    mockedGetSettings.mockRejectedValue(new Error('storage unavailable'));
+    const record = makeRecord(Date.now() + 1000);
+
+    await expect(scheduleVerificationReminder(record as never)).resolves.toBe(true);
+
+    expect(triggerOf()).toBe(record.timestamp + 14 * DAY);
+  });
+
+  test('呼叫端傳入政策時以它為準，不再讀設定（設定剛改完的批次重排用）', async () => {
+    mockedGetSettings.mockResolvedValue({ verifyReminderDays: 30 } as never);
+    const record = makeRecord(Date.now() + 1000);
+
+    await scheduleVerificationReminder(record as never, verifyReminderPolicy(7));
+
+    expect(triggerOf()).toBe(record.timestamp + 7 * DAY);
+    expect(mockedGetSettings).not.toHaveBeenCalled();
+  });
+});
+
+describe('rescheduleVerificationReminders', () => {
+  const DAY = 86_400_000;
+
+  /** 一份已排程的占驗提醒清單，讓「先清後排」看得出真的清過 */
+  function withScheduled(ids: string[]) {
+    mocked.getAllScheduledNotificationsAsync.mockResolvedValue(
+      ids.map(id => ({ identifier: `verification-reminder-${id}` })) as never,
+    );
+  }
+
+  test('先清掉全部舊排程，再替還沒回填的記錄用新天數重排', async () => {
+    withScheduled(['old-1', 'old-2']);
+    const a = makeRecord(Date.now() + 1000, { id: 'a' });
+    const b = makeRecord(Date.now() + 2000, { id: 'b' });
+    const done = { ...makeRecord(Date.now() + 3000, { id: 'done' }), outcome: { status: 'accurate' } };
+
+    await rescheduleVerificationReminders([a, b, done] as never, verifyReminderPolicy(7));
+
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('verification-reminder-old-1');
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('verification-reminder-old-2');
+    const scheduled = mocked.scheduleNotificationAsync.mock.calls.map(c => c[0]);
+    expect(scheduled.map(s => s.identifier).sort()).toEqual(['verification-reminder-a', 'verification-reminder-b']);
+    for (const call of scheduled) {
+      const id = String(call.identifier).replace('verification-reminder-', '');
+      const record = id === 'a' ? a : b;
+      expect((call.trigger as { date: Date }).date.getTime()).toBe(record.timestamp + 7 * DAY);
+    }
+  });
+
+  test('關閉：只清不排', async () => {
+    withScheduled(['old-1']);
+
+    await rescheduleVerificationReminders([makeRecord(Date.now() + 1000)] as never, verifyReminderPolicy(0));
+
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('verification-reminder-old-1');
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('已經滿期的記錄不會被排（觸發時間落在過去），留給首頁提示接手', async () => {
+    withScheduled([]);
+    const overdue = makeRecord(Date.now() - 10 * DAY, { id: 'overdue' });
+
+    await rescheduleVerificationReminders([overdue] as never, verifyReminderPolicy(7));
+
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
   });
 });
 
