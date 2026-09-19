@@ -403,6 +403,17 @@ export default function RevealScreen() {
               questionCategory={record.questionCategory}
               divinerGender={divinerGender}
             />
+            {/* 術語詞典的入口放在這裡而不是 LiuYaoPanel 裡：那個元件同時被離屏的
+                報告截圖使用，加上可按的連結會連累匯出的長圖 */}
+            <TouchableOpacity
+              testID="reveal-glossary-link"
+              accessibilityRole="link"
+              style={styles.glossaryLink}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={() => router.push('/glossary')}
+            >
+              <Text style={[styles.glossaryLinkText, { color: theme.textGold }]}>{t('reveal.glossaryLink')} →</Text>
+            </TouchableOpacity>
           </View>
         ) : record.hexagramName ? (
           <View style={[styles.hexBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
@@ -633,6 +644,13 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   },
   panelWrap: {
     width: '100%',
+  },
+  // LiuYaoPanel 自帶 marginBottom，往上收一點讓連結貼著盤面而不是漂在兩塊內容中間
+  glossaryLink: {
+    alignSelf: 'flex-start', marginTop: -Spacing.sm, marginBottom: Spacing.lg,
+  },
+  glossaryLinkText: {
+    fontSize: FontSize.caption, fontWeight: '600',
   },
   hexBox: {
     width: '100%',

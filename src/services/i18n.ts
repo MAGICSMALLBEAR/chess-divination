@@ -521,6 +521,23 @@ export const translations: Record<string, Record<Lang, string>> = {
   'library.divineWithLingqi': { 'zh-TW': '擲靈棋占卜', en: 'Cast the Lingqi', ja: '霊棋を擲つ' },
   'library.element': { 'zh-TW': '五行', en: 'Element', ja: '五行' },
 
+  // ── 命理術語詞典（app/glossary.tsx） ──
+  'glossary.title': { 'zh-TW': '命理術語詞典', en: 'Divination Glossary', ja: '占術用語辞典' },
+  'glossary.search': { 'zh-TW': '搜尋術語，例如：用神、月破…', en: 'Search terms, e.g. use-god, void…', ja: '用語を検索（例：用神、月破…）' },
+  'glossary.intro': { 'zh-TW': '盤面上印著的術語，依「由看得見的卦到怎麼算」的順序整理。每一條分兩段：這個詞在命理裡的意思，以及本 App 在盤面上怎麼用它。', en: 'The terms printed on the chart, ordered from what you can see to how it is worked out. Each entry has two parts: what the term means in divination, and how this app uses it on the chart.', ja: '盤面に印字されている用語を、見える卦から計算の仕組みへという順に整理しました。各項目は、占術での意味と、このアプリが盤面でどう使うかの二段構成です。' },
+  'glossary.count': { 'zh-TW': '共 {n} 條', en: '{n} terms', ja: '{n} 項目' },
+  'glossary.notFound': { 'zh-TW': '找不到符合的術語', en: 'No matching terms', ja: '該当する用語がありません' },
+  'glossary.inApp': { 'zh-TW': '在本 App', en: 'In this app', ja: 'このアプリでは' },
+  'glossary.groupHexagram': { 'zh-TW': '三卦與動爻', en: 'Hexagrams and the moving line', ja: '三卦と動爻' },
+  'glossary.groupChart': { 'zh-TW': '納甲盤的構成', en: 'Parts of the Na Jia chart', ja: '納甲盤の構成' },
+  'glossary.groupRelative': { 'zh-TW': '六親', en: 'The six relatives', ja: '六親' },
+  'glossary.groupUseGod': { 'zh-TW': '用神與斷語', en: 'Use-god and judgment', ja: '用神と断' },
+  'glossary.groupMoving': { 'zh-TW': '動爻的變化', en: 'How the moving line changes', ja: '動爻の変化' },
+  'glossary.groupStrength': { 'zh-TW': '旺衰', en: 'Seasonal strength', ja: '旺衰' },
+  'settings.glossary': { 'zh-TW': '術語詞典', en: 'Glossary', ja: '用語辞典' },
+  'settings.glossaryDesc': { 'zh-TW': '看懂盤面上的術語', en: 'Understand the chart’s terms', ja: '盤面の用語を調べる' },
+  'reveal.glossaryLink': { 'zh-TW': '看不懂盤面上的術語？查看術語詞典', en: 'Unfamiliar with the terms on the chart? Open the glossary', ja: '盤面の用語がわかりませんか？用語辞典を開く' },
+
   // 籤詩卡
   'poem.pieces': { 'zh-TW': '棋象：', en: 'Pieces:', ja: '棋象：' },
   'poem.number': { 'zh-TW': '第 {n} 籤 · {hexagram}', en: 'Poem {n} · {hexagram}', ja: '第 {n} 籤 · {hexagram}' },

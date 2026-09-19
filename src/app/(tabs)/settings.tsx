@@ -359,6 +359,13 @@ export default function SettingsScreen() {
             </View>
             <Text style={{ color: theme.textMuted }}>{t('settings.libraryDesc')} →</Text>
           </TouchableOpacity>
+          <TouchableOpacity testID="settings-glossary" style={styles.row} onPress={() => router.push('/glossary')}>
+            <View style={styles.optionInner}>
+              <Icon name="lightbulb" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.glossary')}</Text>
+            </View>
+            <Text style={{ color: theme.textMuted }}>{t('settings.glossaryDesc')} →</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/stats')}>
             <View style={styles.optionInner}>
               <Icon name="chart" size={16} color={theme.textSecondary} />
