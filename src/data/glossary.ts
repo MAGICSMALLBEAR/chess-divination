@@ -176,7 +176,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     },
   },
   {
-    key: 'sixSpirits', term: '六神', printedAs: ['青龍', '朱雀', '勾陳', '螣蛇', '白虎', '玄武'],
+    key: 'sixSpirits', term: '六神',
     group: 'chart', gloss: 'Six Spirits',
     plain: {
       'zh-TW': '青龍、朱雀、勾陳、螣蛇、白虎、玄武六位，依起卦當日的天干從初爻起排、向上輪轉。傳統上各有象徵（例如青龍主喜慶、白虎主凶險），用來補充事情的性質。',

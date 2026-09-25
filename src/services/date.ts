@@ -122,7 +122,22 @@ export interface MonthBranchContext {
   isFallback: boolean;
 }
 
-function solarTermCalendarDate(year: number, termIndex: number): Date {
+/**
+ * 二十四節氣名，索引與 SOLAR_TERM_MINUTES 對齊（0 = 小寒）。
+ * 偶數索引是「節」（換月建），奇數是「中氣」。MONTH_BOUNDARIES 的 term 必須與這張表一致，
+ * date.test.ts 有守門。
+ */
+export const SOLAR_TERM_NAMES = [
+  '小寒', '大寒', '立春', '雨水', '驚蟄', '春分', '清明', '穀雨',
+  '立夏', '小滿', '芒種', '夏至', '小暑', '大暑', '立秋', '處暑',
+  '白露', '秋分', '寒露', '霜降', '立冬', '小雪', '大雪', '冬至',
+] as const;
+
+/**
+ * 某年第 termIndex 個節氣落在哪一個當地日曆日（時分捨去）。
+ * 與月建共用同一條近似式——節氣只算一份，首頁顯示的「今日節氣」與六爻旺衰用的月建才不會各說各話。
+ */
+export function solarTermCalendarDate(year: number, termIndex: number): Date {
   const estimate = new Date(
     SOLAR_TERM_BASE_UTC_MS
       + TROPICAL_YEAR_MS * (year - 1900)

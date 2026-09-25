@@ -16,6 +16,8 @@ import { pendingVerification, daysSince, verifyReminderPolicy } from '@/services
 import { getLevelColor } from '@/data/poems';
 import { shareNative, shareToTarget, type ShareTarget } from '@/services/socialShare';
 import ShareTargetSheet from '@/components/ShareTargetSheet';
+import TodayAlmanacCard from '@/components/TodayAlmanacCard';
+import { todayAlmanac, type TodayAlmanac } from '@/services/calendar';
 import { notify } from '@/services/dialog';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -35,6 +37,7 @@ export default function HomeScreen() {
   const [streak, setStreak] = useState(0);
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const [pending, setPending] = useState<DivinationRecord[]>([]);
+  const [almanac, setAlmanac] = useState<TodayAlmanac | null>(null);
 
   useEffect(() => {
     loadDaily();
@@ -45,6 +48,10 @@ export default function HomeScreen() {
   // 改了占驗提醒天數再切回來，若只在掛載時讀，待回填提示會停在舊天數的結果，
   // 設定看起來沒生效。focus 事件在掛載時也會觸發，所以不需要另外呼叫一次。
   useFocusEffect(useCallback(() => { void loadRecent(); }, []));
+
+  // 今日曆法也在 focus 時算：不能在 render 裡取 new Date()——預渲染與 hydration 各取一次，
+  // 跨午夜兩邊對不上（S66 的 #418）；放在 focus 也讓隔夜切回首頁時換成新的一天
+  useFocusEffect(useCallback(() => { setAlmanac(todayAlmanac()); }, []));
 
   async function loadStreak() { setStreak(await getStreak()); }
 
@@ -173,6 +180,9 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         )}
+
+        {/* 今日曆法：農曆、節氣、月建與當令五行、日柱——月建與日柱正是卦盤判旺衰用的值 */}
+        {almanac && <TodayAlmanacCard almanac={almanac} />}
 
         {/* 待回填提示。
             占驗提醒排在占卜後滿設定天數，但那是一則通知——關掉、沒看到、或當下
