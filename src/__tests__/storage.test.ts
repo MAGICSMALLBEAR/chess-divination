@@ -26,6 +26,7 @@ import {
   getDailyFortune, saveDailyFortune,
   isLegacyRecord, hasLiuYaoData,
   setOutcome, clearOutcome,
+  linkRelatedRecord, unlinkRelatedRecord,
   recordFromDivination, STORAGE_KEYS,
   type DivinationRecord, type DailyFortune,
 } from '../services/storage';
@@ -658,3 +659,102 @@ describe('占驗回填', () => {
     expect(saved.id).toBe(r.id);
   });
 });
+
+describe('同一件事的連結（relatedTo）', () => {
+  const DAY = 86_400_000;
+
+  /** 造一對前後記錄：older 較早、newer 較晚 */
+  async function pair() {
+    const older = await addHistory(makeRecord({ poemTitle: '早', timestamp: Date.now() - 5 * DAY }));
+    const newer = await addHistory(makeRecord({ poemTitle: '晚', timestamp: Date.now() }));
+    return { older, newer };
+  }
+  const find = async (id: string) => (await getHistory()).find(r => r.id === id)!;
+
+  test('連結成功：新的那筆指向舊的，回傳 true', async () => {
+    const { older, newer } = await pair();
+    await expect(linkRelatedRecord(newer.id, older.id)).resolves.toBe(true);
+    expect((await find(newer.id)).relatedTo).toBe(older.id);
+    // 舊的那筆不存反向欄位——反向由查表得出，只存一份就不會有兩份互相矛盾
+    expect((await find(older.id)).relatedTo).toBeUndefined();
+  });
+
+  test('收藏裡的副本一起更新，否則從收藏頁進去看到的是沒連結的舊副本', async () => {
+    const { older, newer } = await pair();
+    await toggleFavorite(await find(newer.id));
+    await linkRelatedRecord(newer.id, older.id);
+    expect((await getFavorites()).find(r => r.id === newer.id)?.relatedTo).toBe(older.id);
+  });
+
+  /**
+   * 只允許指向「更早」的記錄：既擋掉指向自己，也讓連結不可能成環——
+   * 環會讓任何沿著連結往回找的走訪無限迴圈。
+   */
+  test.each([
+    ['指向自己', (o: string, n: string) => [n, n]],
+    ['指向更晚的記錄', (o: string, n: string) => [o, n]],
+    ['指向不存在的記錄', (_o: string, n: string) => [n, 'ghost']],
+    ['連結不存在的記錄', (o: string) => ['ghost', o]],
+  ])('拒絕%s：回傳 false，記錄不變', async (_name, args) => {
+    const { older, newer } = await pair();
+    const before = JSON.stringify(await getHistory());
+    const [id, prev] = args(older.id, newer.id);
+    await expect(linkRelatedRecord(id, prev)).resolves.toBe(false);
+    expect(JSON.stringify(await getHistory())).toBe(before);
+  });
+
+  test('時間相同也拒絕（嚴格更早）', async () => {
+    const t = Date.now();
+    const a = await addHistory(makeRecord({ timestamp: t }));
+    const b = await addHistory(makeRecord({ timestamp: t }));
+    await expect(linkRelatedRecord(b.id, a.id)).resolves.toBe(false);
+  });
+
+  test('取消連結：欄位被移除，其他欄位不動；本來就沒連結也無妨', async () => {
+    const { older, newer } = await pair();
+    await linkRelatedRecord(newer.id, older.id);
+    await unlinkRelatedRecord(newer.id);
+    const after = await find(newer.id);
+    expect(after.relatedTo).toBeUndefined();
+    expect('relatedTo' in after).toBe(false);
+    expect(after.poemTitle).toBe('晚');
+
+    await expect(unlinkRelatedRecord(newer.id)).resolves.toBeUndefined();
+  });
+
+  /**
+   * 與 pruneFromFolders 同一個道理（S54）：只在顯示端過濾的話，死 id 會跟著備份與
+   * 雲端同步一路複製下去、只增不減。修來源——刪除路徑一併清掉指向它的連結。
+   */
+  test('刪掉被指向的記錄：指向它的連結一併清掉（歷史與收藏兩份副本）', async () => {
+    const { older, newer } = await pair();
+    await linkRelatedRecord(newer.id, older.id);
+    await toggleFavorite(await find(newer.id));
+
+    await removeHistory(older.id);
+
+    expect((await find(newer.id)).relatedTo).toBeUndefined();
+    expect((await getFavorites()).find(r => r.id === newer.id)?.relatedTo).toBeUndefined();
+    // 連結那一筆本身還在
+    expect((await getHistory()).map(r => r.id)).toEqual([newer.id]);
+  });
+
+  test('刪掉沒人連結的記錄：其他記錄的連結不受影響', async () => {
+    const { older, newer } = await pair();
+    const bystander = await addHistory(makeRecord({ poemTitle: '路人', timestamp: Date.now() - 9 * DAY }));
+    await linkRelatedRecord(newer.id, older.id);
+
+    await removeHistory(bystander.id);
+
+    expect((await find(newer.id)).relatedTo).toBe(older.id);
+  });
+
+  test('刪掉「連結別人的那一筆」：被指向的記錄毫髮無傷', async () => {
+    const { older, newer } = await pair();
+    await linkRelatedRecord(newer.id, older.id);
+    await removeHistory(newer.id);
+    expect((await getHistory()).map(r => r.id)).toEqual([older.id]);
+    expect(await find(older.id)).toMatchObject({ poemTitle: '早' });
+  });
+});
+

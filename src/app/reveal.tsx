@@ -16,6 +16,7 @@ import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
 import OutcomeMarker from '@/components/OutcomeMarker';
 import AccuracyHint from '@/components/AccuracyHint';
+import RelatedReadings from '@/components/RelatedReadings';
 import Spinner from '@/components/Spinner';
 import { Icon } from '@/components/icons';
 import { buildLiuYaoReading } from '@/services/liuyao';
@@ -508,6 +509,10 @@ export default function RevealScreen() {
         {/* 個人化應驗率提示：讀規則式解讀之前，先看使用者自己在這類問題上
             過去驗得準不準（樣本不足時元件自己不渲染） */}
         <AccuracyHint category={record.questionCategory} />
+
+        {/* 同一件事的占卜：連結先前那一次並並列卦象。靈棋頁是另一個入口，
+            兩邊各掛一份（元件自己認 recordId） */}
+        <RelatedReadings recordId={record.id} />
 
         {/* 規則式深度解讀 */}
         <View style={[styles.aiBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>

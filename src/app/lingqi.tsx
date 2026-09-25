@@ -8,6 +8,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import OutcomeMarker from '@/components/OutcomeMarker';
 import AccuracyHint from '@/components/AccuracyHint';
+import RelatedReadings from '@/components/RelatedReadings';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
 import ReportExportSheet from '@/components/ReportExportSheet';
@@ -331,6 +332,9 @@ export default function LingqiScreen() {
 
             {/* 個人化應驗率提示，與 reveal.tsx 同一元件與同一位置理由 */}
             <AccuracyHint category={record?.questionCategory ?? selectedCategory} />
+
+            {/* 同一件事的占卜，與 reveal.tsx 同一元件：靈棋是第二個入口，最容易被漏掉 */}
+            <RelatedReadings recordId={record?.id} />
 
             {/* 規則式深度解讀。放在原典出處之後——先讀原文，再讀我們的導讀。
                 與 reveal.tsx 的「規則式深度解讀」同一標題鍵與同一誠實邊界：

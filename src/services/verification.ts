@@ -297,13 +297,18 @@ export function accuracyBySpread(
 /**
  * 還原歷史記錄的六爻讀法。v1 或缺少卦象資料的舊記錄直接略過，
  * 不能拿錯卦序的資料來檢驗新引擎。
+ *
+ * 匯出給「同一件事」的並列比較（related.ts）共用：那裡同樣要在備份還原可能帶進
+ * 越界或損毀卦象資料的前提下重算卦例，範圍檢查只該有一份。timestamp 也要有限——
+ * 無效日期會讓月建與旬空的查表拿到 undefined（reveal.tsx 同一個理由）。
  */
-function readingForRecord(record: DivinationRecord) {
+export function readingForRecord(record: DivinationRecord) {
   if (
     (record.engineVersion ?? 1) < 2 ||
     record.hexagramIndex === undefined || record.movingLine === undefined ||
     record.hexagramIndex < 0 || record.hexagramIndex > 63 ||
-    record.movingLine < 1 || record.movingLine > 6
+    record.movingLine < 1 || record.movingLine > 6 ||
+    !Number.isFinite(record.timestamp)
   ) return null;
 
   const [upper, lower] = trigramsFromIndex(record.hexagramIndex);

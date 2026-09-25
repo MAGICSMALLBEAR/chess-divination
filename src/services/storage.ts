@@ -72,6 +72,19 @@ export interface DivinationRecord {
    * 不可用預設值混為一談，否則應驗率會被大量未驗記錄稀釋成無意義的數字。
    */
   outcome?: DivinationOutcome;
+  /**
+   * 使用者確認「這和先前那一次問的是同一件事」時，指向**較早**那筆記錄的 id。
+   *
+   * 為什麼是手動確認而不是程式判斷：「同一件事」沒有可靠的自動判準——同一句話可以是
+   * 兩件事，換個問法卻是同一件事。規則式判斷把握不夠就別猜（與尋人陣因用神取法
+   * 不明確而收斂掉同源）。App 只在「問題文字完全相同」時**建議**，仍由使用者按下才成立。
+   *
+   * 只存單向（新指向舊）：反向的「之後又占過」由查表得出，不存第二份，
+   * 也就不會有兩份互相矛盾的資料。連結只允許指向更早的記錄，因此不可能成環。
+   * 指向的記錄被 removeHistory 刪掉時一併清掉（clearHistory 整批清空，沒有殘留可清）；顯示端也不信任這個 id，
+   * 一律拿去記錄清單裡查，查不到就當沒有連結。
+   */
+  relatedTo?: string;
 }
 
 /** 占驗結果三態。刻意不做五級量表——事後回想本就模糊，選項太細只會降低回填率 */
@@ -263,6 +276,7 @@ export async function removeHistory(id: string): Promise<void> {
   ]);
   await addDeletedIds([id]);
   await pruneFromFolders([id]);
+  await pruneRelatedLinks([id]);
 }
 
 export async function clearHistory(): Promise<void> {
@@ -358,6 +372,52 @@ export async function setRecordNote(id: string, note: string): Promise<void> {
     }
     return { ...r, note: trimmed };
   });
+}
+
+/**
+ * 把一筆占卜連結到「同一件事的前一次」。成功回傳 true。
+ *
+ * 只允許指向更早的記錄：既擋掉自己指向自己，也讓連結不可能成環
+ * （環會讓「沿著連結往回找」的任何走訪無限迴圈）。前一筆必須真的存在——
+ * 使用者在選單開著的時候刪掉它，這裡要拒絕，而不是存下一個指不到東西的 id。
+ */
+export async function linkRelatedRecord(id: string, previousId: string): Promise<boolean> {
+  if (id === previousId) return false;
+  const history = await getHistory();
+  const current = history.find(r => r.id === id);
+  const previous = history.find(r => r.id === previousId);
+  if (!current || !previous || previous.timestamp >= current.timestamp) return false;
+  await patchRecord(id, r => ({ ...r, relatedTo: previousId }));
+  return true;
+}
+
+/** 取消連結；本來就沒連結也無妨 */
+export async function unlinkRelatedRecord(id: string): Promise<void> {
+  await patchRecord(id, ({ relatedTo, ...rest }) => rest);
+}
+
+/**
+ * 記錄被刪後，清掉指向它們的連結。
+ *
+ * 與 pruneFromFolders 同一個道理：只在顯示端過濾的話，死 id 會跟著備份與雲端同步
+ * 一路複製下去、只增不減。改的是歷史與收藏兩份副本；沒有任何連結指向被刪者時
+ * 不寫入——刪一筆沒人連結的記錄是最常見的情況。
+ */
+async function pruneRelatedLinks(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const gone = new Set(ids);
+  const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
+  const dangling = (r: DivinationRecord) => r.relatedTo !== undefined && gone.has(r.relatedTo);
+  if (!history.some(dangling) && !favorites.some(dangling)) return;
+  const strip = (r: DivinationRecord): DivinationRecord => {
+    if (!dangling(r)) return r;
+    const { relatedTo, ...rest } = r;
+    return rest;
+  };
+  await Promise.all([
+    AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history.map(strip))),
+    AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites.map(strip))),
+  ]);
 }
 
 /** 同時套用到歷史與收藏兩份副本 */
