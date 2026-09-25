@@ -72,6 +72,9 @@ test.describe('棋盤棋子池版面', () => {
   test('未先點選也能直接把棋子拖到棋盤上落子', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/board');
+    // mouse.move 用的是視窗座標，棋盤必須先在畫面內（S77 問題區多一列直覺選項後，900px 視窗
+    // 要捲動才看得到棋盤）。捲動本身也是被測的一部分：見下一條「捲動之後拖曳」
+    await page.getByTestId('chess-board').scrollIntoViewIfNeeded({ timeout: 30_000 });
     const { board } = await geometry(page);
 
     const piece = page.getByTestId('tray-piece-selectable').first();
@@ -99,6 +102,36 @@ test.describe('棋盤棋子池版面', () => {
   });
 
   /**
+   * 迴歸（S77）：棋盤位置原本只在 onLayout 用 measureInWindow 量一次，那是**視窗座標**；
+   * 頁面捲動不會觸發 onLayout，快取過期，拖曳放下就換算到錯的格子或落在棋盤外。
+   * 所以這裡刻意在棋盤量好之後才捲動，確認放下那一刻會重量。
+   */
+  test('頁面捲動之後拖曳，仍落在放手的那一格', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1600 });
+    await page.goto('/board');
+    const before = (await geometry(page)).board;   // 等棋盤掛上、onLayout 量過一次
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.getByTestId('chess-board').scrollIntoViewIfNeeded();
+    const { board } = await geometry(page);
+
+    const piece = page.getByTestId('tray-piece-selectable').first();
+    const from = (await piece.boundingBox())!;
+    const cell = board.width / 9;
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(board.x + cell * 2.5, board.y + cell * 6.5, { steps: 12 });
+    await page.mouse.up();
+
+    await expect(page.getByTestId('piece-tray')).toContainText('(1/3)');
+    // col=round((2.5c-0.5c)/c)=2、row=round((6.5c-0.5c)/c)=6。標籤是「第 (row+1) 行第 (col+1) 列」
+    // → 第 7 行第 3 列（刻意選行列不對稱的點：對稱點比不出行列是否寫反）
+    await expect(page.getByLabel(/點擊移除/).first()).toHaveAccessibleName(/第 7 行第 3 列/);
+    // 前提檢查：這條測試要有意義，棋盤量好之後它在視窗裡的位置必須真的變過。
+    // 不看 window.scrollY——捲動的是 RN ScrollView 那一層 div，視窗本身恆為 0
+    expect(before.y - board.y).toBeGreaterThan(100);
+  });
+
+  /**
    * 已選 A 再拖 B，放下去的必須是 B。
    * 沿用 `selectedPiece` 的舊寫法會放成 A——畫面上是「拖了一顆、掉下另一顆」，
    * 而落子數同樣會變成 1/3，光看計數看不出來，所以要比對棋子的字。
@@ -106,6 +139,7 @@ test.describe('棋盤棋子池版面', () => {
   test('已選取別顆時，拖曳落下的仍是被拖的那一顆', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/board');
+    await page.getByTestId('chess-board').scrollIntoViewIfNeeded({ timeout: 30_000 });
     const { board } = await geometry(page);
 
     const first = page.getByTestId('tray-piece-selectable').nth(0);

@@ -95,12 +95,21 @@ export default function ChessBoard({
     return { col, row };
   };
 
-  // 測量棋盤位置
-  const measureBoard = () => {
+  // 測量棋盤在視窗中的位置。
+  //
+  // 只在 onLayout 量一次是不夠的：measureInWindow 給的是**視窗座標**，頁面一捲動棋盤在視窗裡
+  // 就換了位置，卻不會觸發 onLayout——快取的位置過期，拖曳放下時換算出錯的格子或落在棋盤外
+  // （S77 問題區多一列直覺選項，桌面 900px 視窗也得捲動才看得到棋盤，e2e 才露出來；
+  // 手機本來就幾乎一定要捲，原生 ScrollView 也是同一回事）。所以放下那一刻重量一次再換算，
+  // 量不到（測試環境、元件已卸載）才退回快取值。
+  const measureBoard = (then?: () => void) => {
     if (boardRef.current && typeof (boardRef.current as any).measureInWindow === 'function') {
       (boardRef.current as any).measureInWindow((px: number, py: number, pw: number, ph: number) => {
         boardLayoutRef.current = { x: px, y: py, w: pw, h: ph };
+        then?.();
       });
+    } else {
+      then?.();
     }
   };
 
@@ -142,7 +151,7 @@ export default function ChessBoard({
       <View
         ref={boardRef}
         testID="chess-board"
-        onLayout={measureBoard}
+        onLayout={() => measureBoard()}
         style={[
           styles.board,
           {
@@ -365,7 +374,7 @@ export default function ChessBoard({
                     draggable={canSelect}
                     selected={isSelected}
                     onPress={canSelect ? () => onSelectAvailable?.(piece) : undefined}
-                    onDragEnd={canSelect ? (p, x, y) => {
+                    onDragEnd={canSelect ? (p, x, y) => measureBoard(() => {
                       const grid = screenToGrid(x, y);
                       const isValidSpreadTarget = !activeSpreadSlot || (
                         grid?.col === activeSpreadSlot.col && grid?.row === activeSpreadSlot.row
@@ -377,7 +386,7 @@ export default function ChessBoard({
                       } else {
                         onSelectAvailable?.(p);
                       }
-                    } : undefined}
+                    }) : undefined}
                   />
                   {isPlaced && <Text style={styles.placedLabel}>{t('board.placedTag')}</Text>}
                   {isSelected && <Text style={styles.selectedLabel}>{t('board.selected')}</Text>}
