@@ -419,6 +419,13 @@ export default function SettingsScreen() {
             </View>
             <Text style={{ color: theme.textMuted }}>{t('settings.glossaryDesc')} →</Text>
           </TouchableOpacity>
+          <TouchableOpacity testID="settings-learn" style={styles.row} onPress={() => router.push('/learn')}>
+            <View style={styles.optionInner}>
+              <Icon name="graduation" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.learn')}</Text>
+            </View>
+            <Text style={{ color: theme.textMuted }}>{t('settings.learnDesc')} →</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/stats')}>
             <View style={styles.optionInner}>
               <Icon name="chart" size={16} color={theme.textSecondary} />

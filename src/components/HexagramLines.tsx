@@ -15,6 +15,8 @@ interface Props {
   /** 是否顯示每一爻的爻名 */
   showLabels?: boolean;
   width?: number;
+  /** 讀屏念的說明。學習模式以卦形出題時必須給：否則讀屏只念得出「圖片」，題目等於不存在 */
+  accessibilityLabel?: string;
 }
 
 export default function HexagramLines({
@@ -22,12 +24,13 @@ export default function HexagramLines({
   movingLine,
   showLabels = false,
   width = 64,
+  accessibilityLabel,
 }: Props) {
   const { theme } = useAppTheme();
   const gap = Math.max(2, Math.round(width * 0.09));
 
   return (
-    <View style={styles.container} accessibilityRole="image">
+    <View style={styles.container} accessibilityRole="image" accessibilityLabel={accessibilityLabel}>
       {/* 由上而下繪製，故將六爻反轉（陣列索引 0 為最下的初爻） */}
       {[...lines].reverse().map((value, reversedIndex) => {
         const position = lines.length - reversedIndex;

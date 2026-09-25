@@ -17,6 +17,8 @@ const BACKUP_KEYS = [
   '@chess_divination_settings',
   // 墓碑也要備份：還原後雲端同步才不會把已刪的記錄復活
   '@chess_divination_deleted',
+  // 易經學習的間隔重複進度（learning.ts）。不進雲端同步，換機只能靠備份帶過去
+  '@chess_divination_learning',
 ] as const;
 
 const BACKUP_VERSION = 1;
@@ -100,6 +102,8 @@ const KEY_SHAPES: Record<(typeof BACKUP_KEYS)[number], (value: unknown) => boole
   '@chess_divination_favorites': isRecordArray,
   '@chess_divination_settings': isPlainObject,
   '@chess_divination_deleted': isStringArray,
+  // 逐張卡片的細部由 normalizeLearningState 在讀取時把關（壞的那張當成沒學過），這裡只擋整份形狀不對
+  '@chess_divination_learning': isPlainObject,
 };
 
 /**

@@ -73,6 +73,7 @@ const HISTORY = '@chess_divination_history';
 const FAVORITES = '@chess_divination_favorites';
 const SETTINGS = '@chess_divination_settings';
 const DELETED = '@chess_divination_deleted';
+const LEARNING = '@chess_divination_learning';
 
 beforeEach(() => {
   mockStore.clear();
@@ -100,9 +101,17 @@ describe('產生備份', () => {
     expect(Number.isNaN(Date.parse(b.date))).toBe(false);
   });
 
-  test('備份涵蓋歷史／收藏／設定／刪除墓碑四個鍵', async () => {
+  test('備份涵蓋歷史／收藏／設定／刪除墓碑／學習進度五個鍵', async () => {
     const b = await buildBackup();
-    expect(Object.keys(b.data).sort()).toEqual([HISTORY, FAVORITES, SETTINGS, DELETED].sort());
+    expect(Object.keys(b.data).sort()).toEqual([HISTORY, FAVORITES, SETTINGS, DELETED, LEARNING].sort());
+  });
+
+  /** 學習進度不進雲端同步，換機只能靠備份——漏掉它等於換機就從頭學起 */
+  test('學習進度可以備份並還原；形狀不對（陣列）時整份拒絕', () => {
+    const progress = { 'hexagram:0': { box: 2, due: '2026-10-01', reviews: 3, lapses: 1 } };
+    const ok = parseBackup(JSON.stringify({ version: 1, data: { [LEARNING]: progress } }));
+    expect(ok?.[LEARNING]).toEqual(progress);
+    expect(parseBackup(JSON.stringify({ version: 1, data: { [LEARNING]: [1, 2] } }))).toBeNull();
   });
 
   test('空儲存時各鍵為 null 而非拋錯', async () => {
