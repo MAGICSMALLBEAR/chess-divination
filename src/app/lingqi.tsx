@@ -200,10 +200,11 @@ export default function LingqiScreen() {
   }
 
   /** 使用者在匯出報告的確認框選了要不要帶上問題與筆記（同 reveal.tsx） */
-  function handleReportConfirm(includePersonalText: boolean) {
+  async function handleReportConfirm(includePersonalText: boolean) {
     setReportSheetVisible(false);
     if (!record) return;
-    setReportSections([buildReportSection(record, { includePersonalText })]);
+    // 帶上完整歷史，報告才查得到「同一件事」的前一次與之後又占過幾次
+    setReportSections([buildReportSection(record, { includePersonalText }, await getHistory())]);
     setPendingReportCapture(true);
   }
 

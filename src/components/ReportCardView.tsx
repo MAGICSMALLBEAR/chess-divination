@@ -171,6 +171,22 @@ function ReportSectionView({
         </View>
       )}
 
+      {(section.relatedPrevious || section.relatedLaterCount > 0) && (
+        <View testID="report-related" style={styles.relatedBox}>
+          {section.relatedPrevious && (
+            <Text style={styles.relatedText}>
+              {t('report.relatedPrevious', {
+                date: dateStr(section.relatedPrevious.timestamp),
+                title: section.relatedPrevious.title,
+              })}
+            </Text>
+          )}
+          {section.relatedLaterCount > 0 && (
+            <Text style={styles.relatedText}>{t('report.relatedLater', { n: section.relatedLaterCount })}</Text>
+          )}
+        </View>
+      )}
+
       {(section.questionText || section.note) && (
         <View style={styles.personalBox}>
           {section.questionText && (
@@ -288,6 +304,10 @@ const styles = StyleSheet.create({
     backgroundColor: P.white, alignItems: 'center', justifyContent: 'center', borderWidth: 2,
   },
   pieceChar: { fontSize: 17, fontWeight: '900' },
+  relatedBox: {
+    marginTop: 12, borderLeftWidth: 3, borderLeftColor: P.gold, paddingLeft: 10, gap: 2,
+  },
+  relatedText: { fontSize: 12, color: P.inkMuted, lineHeight: 18 },
   personalBox: {
     marginTop: 12, backgroundColor: P.paperDeep, borderRadius: 8,
     padding: 12, gap: 4,

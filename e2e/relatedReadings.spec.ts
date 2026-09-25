@@ -218,4 +218,35 @@ test.describe('同一件事的占卜', () => {
     const note = await page.getByTestId('related-note').innerText();
     expect(note).not.toMatch(/[一-鿿]/);
   });
+
+  /**
+   * S76 補完：連結原本只在揭曉頁與靈棋頁看得到，收藏清單上看不出哪幾筆是同一件事。
+   * 標記的規則與揭曉頁相同（resolvePrevious）——指不到東西的連結兩端都不標。
+   */
+  test('收藏頁：有效連結的兩端標「同一件事」，無關與失效連結的不標；取消後標記消失', async ({ page }) => {
+    await seedHistory(page, [
+      draw('older', 9),
+      draw('target', 0, { relatedTo: 'older' }),
+      draw('stranger', 5),
+      draw('dangling', 1, { relatedTo: 'gone' }),
+    ]);
+
+    await page.goto('/collection');
+    await expect(page.getByTestId('record-related-target')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('record-related-target')).toHaveText('同一件事');
+    await expect(page.getByTestId('record-related-older')).toBeVisible();
+    await expect(page.getByTestId('record-related-stranger')).toHaveCount(0);
+    await expect(page.getByTestId('record-related-dangling')).toHaveCount(0);
+
+    // 從卡片點進去取消連結，再用返回鍵回到收藏頁：標記要跟著消失。
+    // 必須走站內導覽而不是 goto——goto 會重新掛載（也會重跑 addInitScript 把連結灌回去），
+    // 遮住「收藏頁只在掛載時讀一次」的缺陷（S74 首頁同一個教訓）。
+    await page.getByTestId('record-related-target').click();
+    await page.getByTestId('related-unlink').click({ timeout: 30_000 });
+    await expect.poll(() => storedRelatedTo(page, 'target')).toBeNull();
+    await page.goBack();
+    await expect(page.getByTestId('record-related-stranger')).toHaveCount(0);
+    await expect(page.getByTestId('record-related-target')).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.getByTestId('record-related-older')).toHaveCount(0);
+  });
 });

@@ -102,6 +102,74 @@ describe('去重', () => {
     expect(merged[0].outcome?.status).toBe('accurate');
   });
 
+  /**
+   * 「同一件事」的連結不跟著整筆選版本（S76 已知限制，本輪補上）。
+   * 整筆的規則是為占驗訂的，連結要單獨比 relatedAt。
+   */
+  describe('同一件事的連結（relatedTo／relatedAt）', () => {
+    type R = { id: string; timestamp: number; relatedTo?: string; relatedAt?: number; outcome?: unknown };
+    const merge = (local: R[], cloud: R[]) => mergeHistories(local, cloud) as R[];
+    const outcome = { status: 'accurate', verifiedAt: 100 };
+
+    test('另一台回填了占驗、這台加了連結：占驗與連結都保留', () => {
+      const merged = merge(
+        [{ id: 'a', timestamp: 1, relatedTo: 'p', relatedAt: 50 }],
+        [{ id: 'a', timestamp: 1, outcome }],
+      );
+      expect(merged[0].outcome).toEqual(outcome);
+      expect(merged[0].relatedTo).toBe('p');
+      expect(merged[0].relatedAt).toBe(50);
+    });
+
+    test('兩台都沒回填、雲端有連結而本地從沒碰過：連結不被本地勝出的規則蓋掉', () => {
+      const merged = merge([rec('a', 1)], [{ id: 'a', timestamp: 1, relatedTo: 'p', relatedAt: 50 }]);
+      expect(merged[0].relatedTo).toBe('p');
+    });
+
+    test('本地取消得比雲端的連結晚：墓碑勝出，連結不復活', () => {
+      const merged = merge(
+        [{ id: 'a', timestamp: 1, relatedAt: 90 }],
+        [{ id: 'a', timestamp: 1, relatedTo: 'p', relatedAt: 50, outcome }],
+      );
+      expect(merged[0].relatedTo).toBeUndefined();
+      expect('relatedTo' in merged[0]).toBe(false);
+      expect(merged[0].relatedAt).toBe(90);
+      expect(merged[0].outcome).toEqual(outcome);
+    });
+
+    test('雲端取消得比本地的連結晚：本地的連結被拿掉', () => {
+      const merged = merge(
+        [{ id: 'a', timestamp: 1, relatedTo: 'p', relatedAt: 50 }],
+        [{ id: 'a', timestamp: 1, relatedAt: 90 }],
+      );
+      expect('relatedTo' in merged[0]).toBe(false);
+    });
+
+    test('兩台連到不同的前一次：取較晚連的那一個', () => {
+      const merged = merge(
+        [{ id: 'a', timestamp: 1, relatedTo: 'old', relatedAt: 50 }],
+        [{ id: 'a', timestamp: 1, relatedTo: 'new', relatedAt: 60 }],
+      );
+      expect(merged[0].relatedTo).toBe('new');
+    });
+
+    test('時間相同或兩邊都沒碰過連結：維持整筆選出的那一版', () => {
+      expect(merge(
+        [{ id: 'a', timestamp: 1, relatedTo: 'L', relatedAt: 50 }],
+        [{ id: 'a', timestamp: 1, relatedTo: 'C', relatedAt: 50 }],
+      )[0].relatedTo).toBe('L');
+      expect(merge([rec('a', 1)], [rec('a', 1)])[0]).toEqual(rec('a', 1));
+    });
+
+    test('雲端的 relatedAt 不是數字：當作沒碰過，不採用', () => {
+      const merged = merge(
+        [{ id: 'a', timestamp: 1, relatedTo: 'L', relatedAt: 50 }],
+        [{ id: 'a', timestamp: 1, relatedTo: 'C', relatedAt: '999' as unknown as number }],
+      );
+      expect(merged[0].relatedTo).toBe('L');
+    });
+  });
+
   test('雲端內部自身重複也只保留一筆', () => {
     const merged = mergeHistories([], [rec('a', 1), rec('a', 2)]);
     expect(merged).toHaveLength(1);

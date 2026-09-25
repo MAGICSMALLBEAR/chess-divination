@@ -108,6 +108,26 @@ export function laterAsks(
     .sort((a, b) => a.timestamp - b.timestamp || (a.id < b.id ? -1 : 1));
 }
 
+/**
+ * 整份清單裡，哪些記錄屬於某個「同一件事」的連結（指向別人或被指向都算）。
+ *
+ * 給清單畫面一次算完——逐張卡片各跑 resolvePrevious／laterAsks 是平方級的成本。
+ * 規則與 resolvePrevious 相同、不另訂一套：指向的 id 查不到、或指到不是更早的記錄，
+ * 兩端都不算。否則卡片上標著「有連結」，點進去卻什麼都沒有。
+ */
+export function linkedRecordIds(all: readonly DivinationRecord[]): Set<string> {
+  const byId = new Map(all.map(r => [r.id, r]));
+  const linked = new Set<string>();
+  for (const r of all) {
+    if (!r.relatedTo) continue;
+    const prev = byId.get(r.relatedTo);
+    if (!prev || prev.timestamp >= r.timestamp) continue;
+    linked.add(r.id);
+    linked.add(prev.id);
+  }
+  return linked;
+}
+
 export interface ReadingSummary {
   /** 本卦名；靈棋則是卦目名 */
   name: string;

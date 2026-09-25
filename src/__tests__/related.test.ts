@@ -5,7 +5,7 @@
 
 import {
   normalizeQuestion, isSameQuestion, isSameCategory,
-  relatedCandidates, suggestedPrevious, resolvePrevious, laterAsks,
+  relatedCandidates, suggestedPrevious, resolvePrevious, laterAsks, linkedRecordIds,
   summarizeReading, compareReadings, formatShortDate,
   RELATED_CANDIDATE_LIMIT,
 } from '../services/related';
@@ -152,6 +152,42 @@ describe('resolvePrevious / laterAsks', () => {
     const third = rec({ id: 'third', timestamp: NOW - 5 * DAY, relatedTo: 'base' });
     const stranger = rec({ id: 'stranger', timestamp: NOW - DAY });
     expect(laterAsks(base, [third, stranger, second, base]).map(r => r.id)).toEqual(['second', 'third']);
+  });
+});
+
+/**
+ * 收藏頁卡片上的「同一件事」標記（S76 補完）。規則必須與 resolvePrevious 一致：
+ * 卡片標著有連結、點進去卻什麼都沒有，是比不標更糟的謊話。
+ */
+describe('linkedRecordIds（清單畫面一次算完）', () => {
+  test('有效連結的兩端都算，無關的記錄不算', () => {
+    const older = rec({ id: 'older', timestamp: NOW - 2 * DAY });
+    const cur = rec({ id: 'cur', timestamp: NOW, relatedTo: 'older' });
+    const stranger = rec({ id: 'stranger', timestamp: NOW - DAY });
+    expect([...linkedRecordIds([cur, stranger, older])].sort()).toEqual(['cur', 'older']);
+  });
+
+  test('指不到或指到更晚的記錄：兩端都不算（與 resolvePrevious 同一條規則）', () => {
+    const newer = rec({ id: 'newer', timestamp: NOW + DAY });
+    const bad = rec({ id: 'bad', timestamp: NOW, relatedTo: 'newer' });
+    const dangling = rec({ id: 'dangling', timestamp: NOW, relatedTo: 'gone' });
+    expect(linkedRecordIds([newer, bad, dangling]).size).toBe(0);
+  });
+
+  test('與 resolvePrevious／laterAsks 逐筆一致', () => {
+    const all = [
+      rec({ id: 'a', timestamp: NOW - 9 * DAY }),
+      rec({ id: 'b', timestamp: NOW - 5 * DAY, relatedTo: 'a' }),
+      rec({ id: 'c', timestamp: NOW - 3 * DAY, relatedTo: 'a' }),
+      rec({ id: 'd', timestamp: NOW - 2 * DAY, relatedTo: 'zzz' }),
+      rec({ id: 'e', timestamp: NOW - 8 * DAY, relatedTo: 'c' }),
+      rec({ id: 'f', timestamp: NOW - DAY }),
+    ];
+    const set = linkedRecordIds(all);
+    for (const r of all) {
+      const expected = resolvePrevious(r, all) !== null || laterAsks(r, all).length > 0;
+      expect([r.id, set.has(r.id)]).toEqual([r.id, expected]);
+    }
   });
 });
 

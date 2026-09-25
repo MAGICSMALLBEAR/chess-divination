@@ -17,6 +17,8 @@ import { buildInterpretation } from './interpretation';
 import { lingqiOracleByKey, type LingqiOracle } from './lingqi';
 import { buildLingqiInterpretation } from './lingqiInterpretation';
 import { getSpread } from './spreads';
+import { resolvePrevious, laterAsks } from './related';
+import { recordTitle } from './poemList';
 
 export interface ReportPrivacyOptions {
   /**
@@ -40,6 +42,14 @@ export interface ReportSection {
   questionText?: string;
   note?: string;
   outcome?: DivinationOutcome;
+  /**
+   * 「同一件事」的前一次（S76 連結）。報告是這筆記錄的完整版，漏掉「這是重問」
+   * 就少了讀這一卦時最該知道的前提。只給日期與題名：前一次的問題本文屬於那一筆，
+   * 不經它自己的隱私選項就印出來不對。
+   */
+  relatedPrevious?: { timestamp: number; title: string };
+  /** 之後又連結到這一筆的次數（同一件事後來又占的） */
+  relatedLaterCount: number;
 }
 
 /**
@@ -64,7 +74,19 @@ function readingForRecord(record: DivinationRecord): LiuYaoReading | null {
   return buildLiuYaoReading(upper, lower, record.movingLine, new Date(record.timestamp));
 }
 
-export function buildReportSection(record: DivinationRecord, options?: ReportPrivacyOptions): ReportSection {
+/**
+ * @param all 用來查「同一件事」連結的完整記錄清單；不給就當沒有連結（不猜）。
+ */
+export function buildReportSection(
+  record: DivinationRecord,
+  options?: ReportPrivacyOptions,
+  all: readonly DivinationRecord[] = [],
+): ReportSection {
+  const previous = resolvePrevious(record, all);
+  const related = {
+    relatedPrevious: previous ? { timestamp: previous.timestamp, title: recordTitle(previous) } : undefined,
+    relatedLaterCount: laterAsks(record, all).length,
+  };
   const includePersonal = options?.includePersonalText ?? true;
   const questionText = includePersonal ? record.questionText : undefined;
   const note = includePersonal ? record.note : undefined;
@@ -80,6 +102,7 @@ export function buildReportSection(record: DivinationRecord, options?: ReportPri
       return {
         record, title: record.poemTitle || '', poem: null, reading: null, oracle: null,
         interpretation: null, actionPlan: [], spreadName, questionText, note, outcome: record.outcome,
+        ...related,
       };
     }
     const deep = buildLingqiInterpretation({ oracle, questionCategory: record.questionCategory });
@@ -95,6 +118,7 @@ export function buildReportSection(record: DivinationRecord, options?: ReportPri
       questionText,
       note,
       outcome: record.outcome,
+      ...related,
     };
   }
 
@@ -113,12 +137,14 @@ export function buildReportSection(record: DivinationRecord, options?: ReportPri
     questionText,
     note,
     outcome: record.outcome,
+    ...related,
   };
 }
 
 export function buildReportSections(
   records: readonly DivinationRecord[],
   options?: ReportPrivacyOptions,
+  all: readonly DivinationRecord[] = [],
 ): ReportSection[] {
-  return records.map(record => buildReportSection(record, options));
+  return records.map(record => buildReportSection(record, options, all));
 }

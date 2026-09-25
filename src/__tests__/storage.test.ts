@@ -723,6 +723,40 @@ describe('同一件事的連結（relatedTo）', () => {
   });
 
   /**
+   * 墓碑：取消後 relatedAt 要留著、而且比連結時更新。沒有它，同步時分不出
+   * 「這台從沒連過」與「這台連了又取消」，另一台還帶著連結的副本會把它救回來。
+   */
+  test('連結與取消都記下 relatedAt；取消後它留著當墓碑', async () => {
+    const { older, newer } = await pair();
+    const spy = jest.spyOn(Date, 'now');
+    try {
+      spy.mockReturnValue(1_000);
+      await linkRelatedRecord(newer.id, older.id);
+      expect((await find(newer.id)).relatedAt).toBe(1_000);
+      spy.mockReturnValue(2_000);
+      await unlinkRelatedRecord(newer.id);
+      const after = await find(newer.id);
+      expect(after.relatedTo).toBeUndefined();
+      expect(after.relatedAt).toBe(2_000);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test('刪除造成的清除也算一次變更（relatedAt 更新），否則同步回來的舊連結會勝出', async () => {
+    const { older, newer } = await pair();
+    await linkRelatedRecord(newer.id, older.id);
+    const linkedAt = (await find(newer.id)).relatedAt!;
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(linkedAt + 5_000);
+    try {
+      await removeHistory(older.id);
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await find(newer.id)).relatedAt).toBe(linkedAt + 5_000);
+  });
+
+  /**
    * 與 pruneFromFolders 同一個道理（S54）：只在顯示端過濾的話，死 id 會跟著備份與
    * 雲端同步一路複製下去、只增不減。修來源——刪除路徑一併清掉指向它的連結。
    */

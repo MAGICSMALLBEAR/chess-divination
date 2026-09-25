@@ -127,6 +127,42 @@ describe('buildReportSections — 批次', () => {
   });
 });
 
+/** S76 補完：報告是這筆記錄的完整版，「這是同一件事的再一次」不能只在揭曉頁看得到 */
+describe('buildReportSection — 同一件事的連結', () => {
+  const DAY = 86_400_000;
+  const older = makeRecord({ id: 'older', timestamp: Date.now() - 3 * DAY, questionText: '前一次的私事' });
+  const cur = makeRecord({ id: 'cur', relatedTo: 'older' });
+  const later = makeRecord({ id: 'later', timestamp: Date.now() + DAY, relatedTo: 'cur' });
+
+  test('帶出前一次的日期與題名、之後又占過的次數', () => {
+    const section = buildReportSection(cur, undefined, [older, cur, later]);
+    expect(section.relatedPrevious).toEqual({ timestamp: older.timestamp, title: expect.any(String) });
+    expect(section.relatedPrevious!.title).not.toBe('');
+    expect(section.relatedLaterCount).toBe(1);
+  });
+
+  test('只給日期與題名，前一次的問題本文不會跟著印出來', () => {
+    const section = buildReportSection(cur, undefined, [older, cur]);
+    expect(JSON.stringify(section.relatedPrevious)).not.toContain('前一次的私事');
+  });
+
+  test('沒給完整清單、或連結指不到：當作沒有連結', () => {
+    expect(buildReportSection(cur).relatedPrevious).toBeUndefined();
+    expect(buildReportSection(cur, undefined, [cur]).relatedPrevious).toBeUndefined();
+    expect(buildReportSection(cur).relatedLaterCount).toBe(0);
+  });
+
+  test('靈棋記錄同樣帶得出來', () => {
+    const lq = makeRecord({ id: 'lq', mode: 'lingqi', lingqiKey: LINGQI_ORACLES[0].key, relatedTo: 'older' });
+    expect(buildReportSection(lq, undefined, [older, lq]).relatedPrevious?.timestamp).toBe(older.timestamp);
+  });
+
+  test('批次：前一次沒被勾選進報告也查得到（對完整歷史查，不是只對這批）', () => {
+    const sections = buildReportSections([cur], undefined, [older, cur]);
+    expect(sections[0].relatedPrevious?.timestamp).toBe(older.timestamp);
+  });
+});
+
 describe('REPORT_BATCH_LIMIT', () => {
   test('是一個正整數上限，供呼叫端在匯出前擋下過大的選取', () => {
     expect(Number.isInteger(REPORT_BATCH_LIMIT)).toBe(true);

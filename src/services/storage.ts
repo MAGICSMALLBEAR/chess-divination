@@ -85,6 +85,15 @@ export interface DivinationRecord {
    * 一律拿去記錄清單裡查，查不到就當沒有連結。
    */
   relatedTo?: string;
+  /**
+   * `relatedTo` 最後一次被設定或**取消**的時間——取消時 relatedTo 消失、這個欄位留著，
+   * 就是連結的墓碑。
+   *
+   * 雲端同步是整筆記錄選一版（有占驗者勝、否則本地勝），連結若跟著整筆走，
+   * 另一台沒連結的副本會把它蓋掉，而且分不出「從沒連過」與「連了又取消」。
+   * 所以合併時連結單獨比這個時間（cloudSync.ts 的 mergeRelatedLink），與整筆選哪一版無關。
+   */
+  relatedAt?: number;
 }
 
 /** 占驗結果三態。刻意不做五級量表——事後回想本就模糊，選項太細只會降低回填率 */
@@ -387,13 +396,16 @@ export async function linkRelatedRecord(id: string, previousId: string): Promise
   const current = history.find(r => r.id === id);
   const previous = history.find(r => r.id === previousId);
   if (!current || !previous || previous.timestamp >= current.timestamp) return false;
-  await patchRecord(id, r => ({ ...r, relatedTo: previousId }));
+  await patchRecord(id, r => ({ ...r, relatedTo: previousId, relatedAt: Date.now() }));
   return true;
 }
 
-/** 取消連結；本來就沒連結也無妨 */
+/**
+ * 取消連結；本來就沒連結也無妨。留下 relatedAt 當墓碑——
+ * 不留的話，另一台還帶著連結的副本同步回來時，會被當成「這台只是還沒連」而復活。
+ */
 export async function unlinkRelatedRecord(id: string): Promise<void> {
-  await patchRecord(id, ({ relatedTo, ...rest }) => rest);
+  await patchRecord(id, ({ relatedTo, ...rest }) => ({ ...rest, relatedAt: Date.now() }));
 }
 
 /**
@@ -409,10 +421,11 @@ async function pruneRelatedLinks(ids: string[]): Promise<void> {
   const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
   const dangling = (r: DivinationRecord) => r.relatedTo !== undefined && gone.has(r.relatedTo);
   if (!history.some(dangling) && !favorites.some(dangling)) return;
+  const now = Date.now();
   const strip = (r: DivinationRecord): DivinationRecord => {
     if (!dangling(r)) return r;
     const { relatedTo, ...rest } = r;
-    return rest;
+    return { ...rest, relatedAt: now };
   };
   await Promise.all([
     AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history.map(strip))),

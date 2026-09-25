@@ -559,6 +559,9 @@ export const translations: Record<string, Record<Lang, string>> = {
   'related.note': { 'zh-TW': '傳統有「一事不二占」的說法（典出《易·蒙》卦辭），同一件事重占，通常以第一次的卦為主。這是通行說法，不是本 App 算出來的；App 只把兩次的卦象並列，不替你決定信哪一次。', en: 'Tradition holds that one matter should not be cast twice (from the Meng hexagram of the Book of Changes), and that the first cast usually counts. That is the common teaching, not something this app computes; the app only sets the two side by side and does not decide which to trust.', ja: '伝統には「一事不二占」の教えがあり（『易』蒙卦に由来）、同じ件を占い直すときは初回の卦を重んじるのが通例です。これは通説であり、このアプリが算出したものではありません。二つの卦を並べるだけで、どちらを信じるかは決めません。' },
   'related.unlink': { 'zh-TW': '取消連結', en: 'Unlink', ja: '連結を外す' },
   'related.later': { 'zh-TW': '之後你又為這件事占過 {n} 次：', en: 'You cast this matter again {n} time(s) later:', ja: 'この件はその後 {n} 回占っています：' },
+  'related.chip': { 'zh-TW': '同一件事', en: 'Same matter', ja: '同じ件' },
+  'report.relatedPrevious': { 'zh-TW': '這是同一件事的再一次；前一次在 {date}（{title}）。', en: 'This is the same matter cast again; the previous reading was on {date} ({title}).', ja: '同じ件の再占です。前回は {date}（{title}）。' },
+  'report.relatedLater': { 'zh-TW': '之後你又為這件事占過 {n} 次。', en: 'You cast this matter again {n} time(s) later.', ja: 'この件はその後 {n} 回占っています。' },
   'related.linkFailed': { 'zh-TW': '無法連結，先前那一次可能已被刪除。', en: 'Could not link; the earlier reading may have been deleted.', ja: '結びつけられませんでした。以前の占いが削除された可能性があります。' },
   // ── 應驗率趨勢（components/AccuracyTrendChart.tsx） ──
   'stats.accTrend': { 'zh-TW': '應驗率趨勢', en: 'Accuracy Trend', ja: '的中率の推移' },

@@ -203,6 +203,26 @@ function preferRecord(a: SyncRecord, b: SyncRecord): SyncRecord {
   return a; // 兩者皆未回填：維持先出現者優先（本地勝出）
 }
 
+/**
+ * 「同一件事」的連結不跟著整筆記錄選版本，單獨以 relatedAt 取較新者（取消也算一次變更）。
+ *
+ * 整筆選版本的規則是為占驗結果訂的：一台加了連結、另一台回填了占驗，有占驗那版勝出，
+ * 連結就被沒有連結的副本蓋掉；兩台都沒回填時本地勝，兩台各自以為自己對，雲端上的連結
+ * 隨最後一個同步的人來回翻轉。relatedAt 相同（含兩邊都沒碰過連結）時維持整筆選出的那版。
+ */
+type LinkedSyncRecord = SyncRecord & Pick<DivinationRecord, 'relatedTo' | 'relatedAt'>;
+function mergeRelatedLink(winner: SyncRecord, other: SyncRecord): LinkedSyncRecord {
+  const w: LinkedSyncRecord = winner;
+  const o: LinkedSyncRecord = other;
+  const wAt = typeof w.relatedAt === 'number' ? w.relatedAt : 0;
+  const oAt = typeof o.relatedAt === 'number' ? o.relatedAt : 0;
+  if (oAt <= wAt) return winner;
+  const { relatedTo, relatedAt, ...rest } = w;
+  return typeof o.relatedTo === 'string'
+    ? { ...rest, relatedTo: o.relatedTo, relatedAt: oAt }
+    : { ...rest, relatedAt: oAt };
+}
+
 export function mergeHistories(
   local: unknown,
   cloud: unknown,
@@ -215,7 +235,9 @@ export function mergeHistories(
   const resolved = new Map<string, SyncRecord>();
   for (const r of [...localArr, ...cloudArr]) {
     const prev = resolved.get(r.id);
-    resolved.set(r.id, prev ? preferRecord(prev, r) : r);
+    if (!prev) { resolved.set(r.id, r); continue; }
+    const winner = preferRecord(prev, r);
+    resolved.set(r.id, mergeRelatedLink(winner, winner === prev ? r : prev));
   }
 
   const all = [...resolved.values()].sort((a, b) => b.timestamp - a.timestamp);

@@ -1,12 +1,12 @@
 // 收藏與歷史記錄頁面
 // 支援左右滑動切換分頁（快捷手勢 Phase 6.2）
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView,
   TouchableOpacity, TextInput, RefreshControl,
   NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon, type IconName } from '@/components/icons';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
@@ -17,6 +17,7 @@ import { buildReportSections, REPORT_BATCH_LIMIT, type ReportSection } from '@/s
 import type { DivinerGender } from '@/services/useGod';
 import { recordMatchesSearch, recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
+import { linkedRecordIds } from '@/services/related';
 import { getLevelColor } from '@/data/poems';
 import { confirmAction } from '@/services/dialog';
 import { notify } from '@/services/dialog';
@@ -152,7 +153,8 @@ export default function CollectionScreen() {
     if (records.length === 0) return;
     const settings = await getSettings();
     setReportDivinerGender(settings.divinerGender);
-    setReportSections(buildReportSections(records, { includePersonalText }));
+    // 連結要對完整歷史查：前一次不一定也被勾選進這份報告
+    setReportSections(buildReportSections(records, { includePersonalText }, history));
     setPendingReportCapture(true);
   }
 
@@ -167,9 +169,10 @@ export default function CollectionScreen() {
     })();
   }, [pendingReportCapture]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // 每次回到這一頁都重讀，而不是只在掛載時讀一次：收藏頁是分頁，點進揭曉頁再返回時
+  // 它一直掛著——在那裡回填占驗、加收藏、取消「同一件事」的連結，回來看到的都是舊的
+  // （S74 首頁同一個缺陷，e2e 必須用返回鍵而非 goto 才抓得到）。
+  useFocusEffect(useCallback(() => { void loadData(); }, []));
 
   async function loadData() {
     const h = await getHistory();
@@ -290,6 +293,8 @@ export default function CollectionScreen() {
     );
   }
 
+  // 「同一件事」的連結一律對完整歷史查（收藏只是其中一部分副本），規則與揭曉頁相同
+  const linkedIds = useMemo(() => linkedRecordIds(history), [history]);
   const historyData = sortAndFilter(history);
   const favoritesData = sortAndFilter(favorites);
   // 資料夾內容也走同一套排序與搜尋：搜尋框在三個分頁都看得到，
@@ -421,6 +426,13 @@ export default function CollectionScreen() {
                 <Text style={[styles.outcomeChipText, { color: outcomeColor(record.outcome.status) }]}>
                   {t(`outcome.${record.outcome.status}`)}
                 </Text>
+              </View>
+            )}
+            {/* 屬於「同一件事」的連結（S76）。連結只在揭曉頁與靈棋頁看得到的話，
+                清單上完全看不出哪幾筆是同一件事的再一次 */}
+            {linkedIds.has(record.id) && (
+              <View testID={`record-related-${record.id}`} style={styles.relatedChip}>
+                <Text style={styles.relatedChipText}>{t('related.chip')}</Text>
               </View>
             )}
           </View>
@@ -823,6 +835,11 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 1, marginTop: 2,
   },
   outcomeChipText: { fontSize: FontSize.overline, fontWeight: '700' },
+  relatedChip: {
+    borderWidth: 1, borderRadius: 8, borderColor: t.goldFaint,
+    paddingHorizontal: 6, paddingVertical: 1, marginTop: 2,
+  },
+  relatedChipText: { fontSize: FontSize.overline, fontWeight: '700', color: t.textGold },
   cardRight: { gap: Spacing.sm, alignItems: 'center' },
   favIcon: { fontSize: 22 },
   folderIcon: { fontSize: 18, marginBottom: 2 },
