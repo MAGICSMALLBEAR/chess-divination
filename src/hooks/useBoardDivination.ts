@@ -19,6 +19,7 @@ import { scheduleVerificationReminder } from '@/services/notifications';
 import { generatePositionSummaryDeep } from '@/services/position';
 import { BOARD } from '@/constants/theme';
 import type { SpreadId } from '@/services/spreads';
+import type { IntuitionPct } from '@/services/calibration';
 import { spreadContextReading, spreadReadingPrefix, spreadRoleReading } from '@/services/spreads';
 
 export interface PlacedPiece {
@@ -95,8 +96,12 @@ export function useBoardDivination(maxPieces: number = 3) {
     text?: string,
     spreadId: SpreadId = 'free',
     spreadContext: { optionA?: string; optionB?: string } = {},
-  ) => {
-    if (interpretingRef.current || placedPieces.length === 0) return;
+    /** 占卜前記下的直覺（選填）。在這裡、起卦之前寫入記錄，之後不再改 */
+    intuition?: IntuitionPct,
+  ): Promise<boolean> => {
+    // 回傳這次有沒有真的存成記錄：頁面據此決定要不要清掉直覺——沒存成（陣未成、儲存失敗）
+    // 就清掉，使用者重按解讀時等於默默丟了他剛選的那一檔
+    if (interpretingRef.current || placedPieces.length === 0) return false;
     interpretingRef.current = true;
     try {
       const cat = category || questionCategory;
@@ -124,7 +129,7 @@ export function useBoardDivination(maxPieces: number = 3) {
         const counts = formationCounts(placedPieces);
         if (counts.red !== FORMATION_PER_SIDE || counts.black !== FORMATION_PER_SIDE) {
           notify(t('board.formationIncomplete'), t('board.formationIncompleteDesc'));
-          return;
+          return false;
         }
         hex = computeFormationHexagram(placedPieces);
         positionSummary = formationForceReading(placedPieces) + '\n\n'
@@ -158,6 +163,7 @@ export function useBoardDivination(maxPieces: number = 3) {
           hourBranch: hex.hourBranch,
         },
         spreadId,
+        intuition,
       );
       const saved = await addHistory(record);
       void scheduleVerificationReminder(saved);
@@ -173,6 +179,7 @@ export function useBoardDivination(maxPieces: number = 3) {
       // 導航後清空棋盤：從 reveal 返回時是全新佈局，不會把同一佈局
       // 再解讀一次而製造重複記錄
       reset();
+      return true;
     } catch (e) {
       // 與抽棋模式同理：addHistory 失敗時沒有 catch 就是 unhandled
       // rejection，畫面停在解讀中。這裡不 reset 棋盤——使用者辛苦擺的
@@ -180,6 +187,7 @@ export function useBoardDivination(maxPieces: number = 3) {
       console.warn('棋盤占卜記錄儲存失敗:', e);
       notify(t('error.saveFailed'), t('error.saveRecordFailed'));
       setStep('place-pieces');
+      return false;
     } finally {
       interpretingRef.current = false;
     }

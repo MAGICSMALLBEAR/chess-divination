@@ -13,6 +13,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { OUTCOME_STATUSES, daysSince } from '@/services/verification';
 import type { DivinationOutcome, OutcomeStatus } from '@/services/storage';
+import { REALIZED_STATUSES, REALIZED_LABEL_KEYS, type IntuitionPct, type RealizedStatus } from '@/services/calibration';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize } from '@/constants/theme';
 
@@ -21,7 +22,13 @@ interface Props {
   recordNote?: string;
   /** 占卜當時的時間，用來顯示「占卜後 n 天回填」 */
   timestamp: number;
-  onSave: (status: OutcomeStatus, note?: string) => void | Promise<void>;
+  /**
+   * 占卜前記下的直覺。有記的記錄才多問「事情本身有沒有如願」——那是給直覺打分數的基準，
+   * 與上面的「卦說中了沒」是兩個問題（見 services/calibration.ts）。沒記直覺的不問，
+   * 回填表單不為用不到的資料多長一列。
+   */
+  intuition?: IntuitionPct;
+  onSave: (status: OutcomeStatus, note?: string, realized?: RealizedStatus) => void | Promise<void>;
   onSaveNote: (note: string) => void | Promise<void>;
   onClear: () => void | Promise<void>;
 }
@@ -33,21 +40,26 @@ function toneOf(theme: ThemeColors, status: OutcomeStatus): string {
   return theme.danger;
 }
 
-export default function OutcomeMarker({ outcome, recordNote, timestamp, onSave, onSaveNote, onClear }: Props) {
+export default function OutcomeMarker({ outcome, recordNote, timestamp, intuition, onSave, onSaveNote, onClear }: Props) {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
 
   const [editing, setEditing] = useState(false);
   const [picked, setPicked] = useState<OutcomeStatus | null>(outcome?.status ?? null);
+  const [realized, setRealized] = useState<RealizedStatus | null>(outcome?.realized ?? null);
   const [note, setNote] = useState(outcome?.note ?? recordNote ?? '');
   const [saving, setSaving] = useState(false);
 
+  // 事情結果只能跟著占驗一起存（它掛在 outcome 底下）。只選了它、沒選占驗就按儲存的話，
+  // 存下來的只有筆記、它被靜靜丟掉——所以這種組合直接不給存，並在該列說明
+  const canSave = !!picked || (!!note.trim() && !realized);
+
   async function handleSave() {
-    if ((!picked && !note.trim()) || saving) return;
+    if (!canSave || saving) return;
     setSaving(true);
     try {
-      if (picked) await onSave(picked, note);
+      if (picked) await onSave(picked, note, realized ?? undefined);
       else await onSaveNote(note);
       setEditing(false);
     } finally {
@@ -62,6 +74,7 @@ export default function OutcomeMarker({ outcome, recordNote, timestamp, onSave, 
     try {
       await onClear();
       setPicked(null);
+      setRealized(null);
       setNote('');
       setEditing(false);
     } finally {
@@ -71,6 +84,7 @@ export default function OutcomeMarker({ outcome, recordNote, timestamp, onSave, 
 
   function startEditing() {
     setPicked(outcome?.status ?? null);
+    setRealized(outcome?.realized ?? null);
     setNote(outcome?.note ?? recordNote ?? '');
     setEditing(true);
   }
@@ -99,6 +113,13 @@ export default function OutcomeMarker({ outcome, recordNote, timestamp, onSave, 
             {t('outcome.delay', { n: delay })}
           </Text>
         </View>
+
+        {intuition !== undefined && (
+          <Text testID="outcome-intuition" style={[styles.intuitionText, { color: theme.textMuted }]}>
+            {t('intuition.recorded', { pct: intuition })}
+            {outcome.realized ? `　${t('realized.summary', { status: t(REALIZED_LABEL_KEYS[outcome.realized]) })}` : ''}
+          </Text>
+        )}
 
         {outcome.note ? (
           <Text style={[styles.noteText, { color: theme.textSecondary }]}>{outcome.note}</Text>
@@ -147,6 +168,42 @@ export default function OutcomeMarker({ outcome, recordNote, timestamp, onSave, 
         })}
       </View>
 
+      {intuition !== undefined && (
+        <View testID="outcome-realized">
+          <Text style={[styles.prompt, { color: theme.textSecondary }]}>
+            {t('realized.prompt', { pct: intuition })}
+          </Text>
+          <View style={styles.options}>
+            {REALIZED_STATUSES.map(status => {
+              const active = realized === status;
+              return (
+                <TouchableOpacity
+                  key={status}
+                  testID={`realized-${status}`}
+                  accessibilityRole="button"
+                  aria-selected={active}
+                  style={[
+                    styles.option,
+                    { borderColor: active ? theme.gold : theme.bgMedium },
+                    active && { backgroundColor: theme.goldSoft },
+                  ]}
+                  onPress={() => setRealized(active ? null : status)}
+                >
+                  <Text style={[styles.optionText, { color: active ? theme.textGold : theme.textMuted }]}>
+                    {t(REALIZED_LABEL_KEYS[status])}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {realized && !picked && (
+            <Text testID="realized-needs-status" style={[styles.intuitionText, { color: theme.textMuted }]}>
+              {t('realized.needsStatus')}
+            </Text>
+          )}
+        </View>
+      )}
+
       <TextInput
         style={[styles.input, {
           backgroundColor: theme.bgCard,
@@ -174,17 +231,18 @@ export default function OutcomeMarker({ outcome, recordNote, timestamp, onSave, 
         ) : null}
 
         <TouchableOpacity
+          testID="outcome-save"
           style={[
             styles.saveBtn,
-            { borderColor: (picked || note.trim()) ? theme.gold : theme.bgMedium },
-            !(picked || note.trim()) && styles.saveDisabled,
+            { borderColor: canSave ? theme.gold : theme.bgMedium },
+            !canSave && styles.saveDisabled,
           ]}
           onPress={handleSave}
-          disabled={(!picked && !note.trim()) || saving}
-          accessibilityState={{ disabled: (!picked && !note.trim()) || saving }}
+          disabled={!canSave || saving}
+          accessibilityState={{ disabled: !canSave || saving }}
         >
-          <Icon name="check" size={14} color={(picked || note.trim()) ? theme.gold : theme.textMuted} />
-          <Text style={[styles.saveText, { color: (picked || note.trim()) ? theme.gold : theme.textMuted }]}> 
+          <Icon name="check" size={14} color={canSave ? theme.gold : theme.textMuted} />
+          <Text style={[styles.saveText, { color: canSave ? theme.gold : theme.textMuted }]}> 
             {' '}{t(saving ? 'common.saving' : 'outcome.saveBtn')}
           </Text>
         </TouchableOpacity>
@@ -237,4 +295,5 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   badgeText: { fontSize: FontSize.small, fontWeight: '700' },
   delay: { fontSize: FontSize.caption },
   noteText: { fontSize: FontSize.small, lineHeight: 22 },
+  intuitionText: { fontSize: FontSize.caption, lineHeight: 18, marginBottom: Spacing.sm },
 });

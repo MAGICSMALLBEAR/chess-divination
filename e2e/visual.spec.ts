@@ -82,6 +82,10 @@ test.describe('內容可見性', () => {
       await page.goto(path);
       // 疊棧背景頁的同名文字留在 DOM 裡但不可見（S37／S46／S49）
       await expect(page.getByText(marker).filter({ visible: true })).toBeVisible({ timeout: 15_000 });
+      // readability 用 elementFromPoint，座標夾在視窗內——標記在首屏以下時量到的是別的元素，
+      // 會被誤判成「被遮蓋」（S77 統計頁多一張卡後，吉凶分佈在手機上就落到首屏外）。
+      // 先捲進畫面；要抓的遮罩是全螢幕固定定位，捲動後照樣蓋得住，這條迴歸仍抓得到
+      await page.getByText(marker).filter({ visible: true }).scrollIntoViewIfNeeded();
 
       // 版面由 onLayout 非同步量測，需輪詢等它收斂再判斷可見性
       await expect

@@ -27,7 +27,7 @@ import {
   isLegacyRecord, hasLiuYaoData,
   setOutcome, clearOutcome,
   linkRelatedRecord, unlinkRelatedRecord,
-  recordFromDivination, STORAGE_KEYS,
+  recordFromDivination, recordFromLingqi, STORAGE_KEYS,
   type DivinationRecord, type DailyFortune,
 } from '../services/storage';
 import { todayString } from '../services/date';
@@ -143,6 +143,28 @@ describe('牌陣記錄', () => {
     );
 
     expect(record.spreadId).toBe('timeline');
+  });
+});
+
+/** 預測校準：直覺在起卦那一刻寫入記錄（calibration.ts） */
+describe('占卜前的直覺（intuition）', () => {
+  const lingqiOracle = { key: '1-1-1', notation: '一上一中一下', name: '大通卦', shi: ['a'] };
+
+  test('三種模式建立記錄時都帶得進去', () => {
+    const draw = recordFromDivination(getPoemById(1), ALL_PIECES.slice(0, 2), 'draw', 'general', 'q',
+      undefined, undefined, undefined, 70);
+    const board = recordFromDivination(getPoemById(1), ALL_PIECES.slice(0, 3), 'board', 'general', 'q',
+      '牌陣解讀', undefined, 'timeline', 30);
+    const lingqi = recordFromLingqi(lingqiOracle, 'career', 'q', 90);
+    expect([draw.intuition, board.intuition, lingqi.intuition]).toEqual([70, 30, 90]);
+  });
+
+  /** 沒選就不該留下 intuition: undefined 這個鍵——備份與同步裡看得到，也會讓「有沒有記」變成兩種寫法 */
+  test('沒選直覺時記錄上沒有這個欄位', () => {
+    const draw = recordFromDivination(getPoemById(1), ALL_PIECES.slice(0, 2), 'draw');
+    const lingqi = recordFromLingqi(lingqiOracle);
+    expect('intuition' in draw).toBe(false);
+    expect('intuition' in lingqi).toBe(false);
   });
 });
 
@@ -577,6 +599,22 @@ describe('占驗回填', () => {
 
     await setOutcome(r.id, 'partial', '   ');
     expect((await getHistory())[0].outcome?.note).toBeUndefined();
+  });
+
+  /** 事情本身的結果掛在 outcome 底下，與占驗同生同死（清除占驗一併清掉） */
+  test('setOutcome 可一併記下事情本身的結果；沒給就不留這個鍵；clearOutcome 一併清掉', async () => {
+    const r = await addHistory(makeRecord({ intuition: 70 }));
+    await setOutcome(r.id, 'inaccurate', undefined, 'yes');
+    expect((await getHistory())[0].outcome).toMatchObject({ status: 'inaccurate', realized: 'yes' });
+
+    await setOutcome(r.id, 'accurate');
+    expect('realized' in (await getHistory())[0].outcome!).toBe(false);
+
+    await setOutcome(r.id, 'accurate', undefined, 'partial');
+    await clearOutcome(r.id);
+    expect((await getHistory())[0].outcome).toBeUndefined();
+    // 直覺是起卦當下的事，清除占驗不動它
+    expect((await getHistory())[0].intuition).toBe(70);
   });
 
   test('備註前後空白會被修掉', async () => {

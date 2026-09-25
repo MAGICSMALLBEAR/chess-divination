@@ -13,6 +13,9 @@ import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView'
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
 import ReportExportSheet from '@/components/ReportExportSheet';
 import QuestionPrompts from '@/components/QuestionPrompts';
+import type { RealizedStatus } from '@/services/calibration';
+import IntuitionPicker from '@/components/IntuitionPicker';
+import type { IntuitionPct } from '@/services/calibration';
 import { Icon } from '@/components/icons';
 import { castLingqi, lingqiOracle, lingqiOracleByKey, type LingqiCast, type LingqiOracle } from '@/services/lingqi';
 import { buildLingqiInterpretation } from '@/services/lingqiInterpretation';
@@ -57,6 +60,8 @@ export default function LingqiScreen() {
   /** 待分享的文字。非 null 時分享去處選單就是開著的（同 reveal.tsx） */
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState('');
+  /** 占卜前的直覺（選填）。擲出之後清掉，理由同 draw.tsx */
+  const [intuition, setIntuition] = useState<IntuitionPct | undefined>(undefined);
 
   // 規則式深度解讀。在 render 時取語言（localizeProse 讀 getLang），
   // 本頁有 useI18n 訂閱，切語言會重算。分類取記錄上存的那份——
@@ -129,7 +134,8 @@ export default function LingqiScreen() {
       setCast(thrown);
       setOracle(result);
 
-      const saved = await addHistory(recordFromLingqi(result, selectedCategory, questionText.trim() || undefined));
+      const saved = await addHistory(recordFromLingqi(result, selectedCategory, questionText.trim() || undefined, intuition));
+      setIntuition(undefined);
       setRecord(saved);
       setIsFav(saved.isFavorited);
       void scheduleVerificationReminder(saved);
@@ -221,10 +227,10 @@ export default function LingqiScreen() {
     setRecord((await getHistory()).find(r => r.id === id) ?? null);
   }, []);
 
-  async function handleSaveOutcome(status: OutcomeStatus, note?: string) {
+  async function handleSaveOutcome(status: OutcomeStatus, note?: string, realized?: RealizedStatus) {
     if (!record) return;
     try {
-      await setOutcome(record.id, status, note);
+      await setOutcome(record.id, status, note, realized);
       await cancelVerificationReminder(record.id);
       await refreshRecord(record.id);
     } catch (e) {
@@ -291,6 +297,7 @@ export default function LingqiScreen() {
               onCategoryChange={handleCategorySelect}
               onSelect={setQuestionText}
             />
+            <IntuitionPicker value={intuition} onChange={setIntuition} width={contentWidth} />
 
             <TouchableOpacity style={styles.castBtn} testID="lingqi-cast" accessibilityRole="button" onPress={handleCast}>
               <Text style={styles.castText}>{t('lingqi.cast')}</Text>
@@ -360,6 +367,7 @@ export default function LingqiScreen() {
                 outcome={record.outcome}
                 recordNote={record.note}
                 timestamp={record.timestamp}
+                intuition={record.intuition}
                 onSave={handleSaveOutcome}
                 onSaveNote={handleSaveNote}
                 onClear={handleClearOutcome}

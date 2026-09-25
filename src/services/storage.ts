@@ -10,6 +10,7 @@ import { FolderColors } from '@/constants/theme';
 import type { DivinerGender } from './useGod';
 import type { Lang } from './i18n';
 import type { SpreadId } from './spreads';
+import type { IntuitionPct, RealizedStatus } from './calibration';
 
 // ====== Keys ======
 
@@ -94,6 +95,11 @@ export interface DivinationRecord {
    * 所以合併時連結單獨比這個時間（cloudSync.ts 的 mergeRelatedLink），與整筆選哪一版無關。
    */
   relatedAt?: number;
+  /**
+   * 占卜**前**使用者自己估的「這件事如你所願的機率」（%，INTUITION_CHOICES 之一），選填。
+   * 起卦當下寫入之後不再改：看過卦才改，量到的就不是直覺了（calibration.ts）。
+   */
+  intuition?: IntuitionPct;
 }
 
 /** 占驗結果三態。刻意不做五級量表——事後回想本就模糊，選項太細只會降低回填率 */
@@ -105,6 +111,11 @@ export interface DivinationOutcome {
   note?: string;
   /** 回填當下的時間，用於「占卜後多久才驗」的分析 */
   verifiedAt: number;
+  /**
+   * 事情本身有沒有如願——與 status（卦說中了沒）是兩個問題。只有記了直覺的記錄才問，
+   * 用來給直覺打分數（calibration.ts）；拿 status 來打會變成用卦評卦。
+   */
+  realized?: RealizedStatus;
 }
 
 /**
@@ -356,11 +367,13 @@ export async function setOutcome(
   id: string,
   status: OutcomeStatus,
   note?: string,
+  realized?: RealizedStatus,
 ): Promise<DivinationOutcome> {
   const outcome: DivinationOutcome = {
     status,
     note: note?.trim() || undefined,
     verifiedAt: Date.now(),
+    ...(realized ? { realized } : {}),
   };
   await patchRecord(id, r => ({ ...r, outcome }));
   return outcome;
@@ -606,6 +619,7 @@ export function recordFromDivination(
   positionSummary?: string,
   hexagram?: { name: string; index: number; movingLine: number; hourBranch: number },
   spreadId?: SpreadId,
+  intuition?: IntuitionPct,
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: poem.id,
@@ -627,6 +641,7 @@ export function recordFromDivination(
     hexagramIndex: hexagram?.index,
     movingLine: hexagram?.movingLine,
     hourBranch: hexagram?.hourBranch,
+    ...(intuition !== undefined ? { intuition } : {}),
   };
 }
 
@@ -638,6 +653,7 @@ export function recordFromLingqi(
   oracle: { key: string; notation: string; name: string; shi: string[] },
   questionCategory?: string,
   questionText?: string,
+  intuition?: IntuitionPct,
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: 0,
@@ -654,6 +670,7 @@ export function recordFromLingqi(
     timestamp: Date.now(),
     isFavorited: false,
     engineVersion: DIVINATION_ENGINE_VERSION,
+    ...(intuition !== undefined ? { intuition } : {}),
   };
 }
 

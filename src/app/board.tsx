@@ -12,6 +12,8 @@ import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { confirmAction } from '@/services/dialog';
 import { getSettings, saveSettings } from '@/services/storage';
 import QuestionPrompts from '@/components/QuestionPrompts';
+import IntuitionPicker from '@/components/IntuitionPicker';
+import type { IntuitionPct } from '@/services/calibration';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import type { ThemeColors } from '@/constants/theme';
@@ -48,6 +50,8 @@ export default function BoardScreen() {
   } = useBoardDivination(getSpreadMaxPieces(spreadId, 3));
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [questionText, setQuestionText] = useState('');
+  /** 占卜前的直覺（選填）。解讀之後清掉，理由同 draw.tsx */
+  const [intuition, setIntuition] = useState<IntuitionPct | undefined>(undefined);
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [optionA, setOptionA] = useState('');
@@ -88,6 +92,11 @@ export default function BoardScreen() {
 
   const currentPool = showRedPieces ? ALL_RED_PIECES : ALL_BLACK_PIECES;
   const spreadContext = { optionA, optionB };
+
+  // 兩個解讀按鈕（一般與全螢幕）共用：直覺用過一次就清掉，理由同 draw.tsx
+  async function handleInterpret() {
+    if (await interpret(selectedCategory, questionText, spreadId, spreadContext, intuition)) setIntuition(undefined);
+  }
 
   const handleBack = async () => {
     if (placedPieces.length === 0) { router.back(); return; }
@@ -160,7 +169,7 @@ export default function BoardScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.fsInterpretBtn, placedPieces.length === 0 && { opacity: 0.4 }]}
-                onPress={() => interpret(selectedCategory, questionText, spreadId, spreadContext)}
+                onPress={handleInterpret}
                 disabled={!canInterpret}
               >
                 <Icon name="crystal-ball" size={14} color={theme.textInverse} />
@@ -210,6 +219,7 @@ export default function BoardScreen() {
           onCategoryChange={handleCategorySelect}
           onSelect={setQuestionText}
         />
+        <IntuitionPicker value={intuition} onChange={setIntuition} />
 
         {/* 牌陣選擇。切換時清空棋盤，避免將不同角色的舊落子混入新牌陣。 */}
         <Text style={styles.spreadTitle}>{t('board.spread')}</Text>
@@ -347,7 +357,7 @@ export default function BoardScreen() {
         <View style={styles.controls}>
           <TouchableOpacity
             style={[styles.interpretBtn, !canInterpret && styles.btnDisabled]}
-            onPress={() => interpret(selectedCategory, questionText, spreadId, spreadContext)}
+            onPress={handleInterpret}
             disabled={!canInterpret}
           >
             <Text style={styles.interpretBtnText}>

@@ -76,6 +76,18 @@ describe('buildReportSection — 隱私選項', () => {
   });
 });
 
+describe('buildReportSection — 占卜前的直覺', () => {
+  test('預設帶出；關閉「問題與筆記」時一併不帶（那是使用者對自己這件事的私下估計）', () => {
+    const record = makeRecord({ intuition: 70 });
+    expect(buildReportSection(record).intuition).toBe(70);
+    expect(buildReportSection(record, { includePersonalText: false }).intuition).toBeUndefined();
+  });
+
+  test('沒記直覺的記錄：沒有這個值', () => {
+    expect(buildReportSection(makeRecord()).intuition).toBeUndefined();
+  });
+});
+
 describe('buildReportSection — 靈棋模式', () => {
   test('有效鍵值時填出卦名／象／原典與結構解讀，reading 與 poem 為 null', () => {
     const oracle = LINGQI_ORACLES[0];

@@ -12,6 +12,7 @@ import { addHistory, recordFromDivination } from '@/services/storage';
 import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
 import { scheduleVerificationReminder } from '@/services/notifications';
+import type { IntuitionPct } from '@/services/calibration';
 
 export type DrawStep = 'select-count' | 'drawing' | 'result';
 
@@ -63,9 +64,11 @@ export function useDrawDivination() {
   // 交錯時互相覆蓋（一筆記錄遺失、reveal 頁找不到 recordId 卡死）
   const savingRef = useRef(false);
 
-  // 儲存並前往結果頁
-  const goToResult = useCallback(async () => {
-    if (savingRef.current || !selectedPoem || drawnPieces.length === 0) return;
+  // 儲存並前往結果頁。
+  // intuition 是占卜前記下的直覺（選填），在存檔這一刻才收——不在開始抽棋時收，
+  // 否則「重抽」會把它弄丟。回傳是否真的存成記錄，頁面據此清掉直覺（同棋盤頁）
+  const goToResult = useCallback(async (intuition?: IntuitionPct): Promise<boolean> => {
+    if (savingRef.current || !selectedPoem || drawnPieces.length === 0) return false;
     savingRef.current = true;
     try {
       // 儲存到歷史記錄
@@ -84,6 +87,8 @@ export function useDrawDivination() {
               hourBranch: hexagram.hourBranch,
             }
           : undefined,
+        undefined,
+        intuition,
       );
       const saved = await addHistory(record);
       void scheduleVerificationReminder(saved);
@@ -100,6 +105,7 @@ export function useDrawDivination() {
       // 導航後重設：從 reveal 返回時回到選擇畫面，而不是卡在
       // 「正在為您解讀…」的死畫面
       reset();
+      return true;
     } catch (e) {
       // addHistory 寫入失敗（儲存空間滿、AsyncStorage 損毀）時，
       // 沒有這一段就是 unhandled rejection——setStep('result') 沒跑到，
@@ -108,6 +114,7 @@ export function useDrawDivination() {
       console.warn('占卜記錄儲存失敗:', e);
       notify(t('error.saveFailed'), t('error.saveRecordFailed'));
       reset();
+      return false;
     } finally {
       savingRef.current = false;
     }

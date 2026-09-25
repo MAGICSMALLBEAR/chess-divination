@@ -17,6 +17,7 @@ import LiuYaoPanel from '@/components/LiuYaoPanel';
 import OutcomeMarker from '@/components/OutcomeMarker';
 import AccuracyHint from '@/components/AccuracyHint';
 import RelatedReadings from '@/components/RelatedReadings';
+import type { RealizedStatus } from '@/services/calibration';
 import Spinner from '@/components/Spinner';
 import { Icon } from '@/components/icons';
 import { buildLiuYaoReading } from '@/services/liuyao';
@@ -182,10 +183,10 @@ export default function RevealScreen() {
   // unhandled rejection，而畫面上的表現是「按了完全沒有反應」——
   // 使用者不會知道回填沒存進去，只會以為按鈕壞了，下次再回來看
   // 才發現占驗不見了。至少要講一聲。
-  async function handleSaveOutcome(status: OutcomeStatus, note?: string) {
+  async function handleSaveOutcome(status: OutcomeStatus, note?: string, realized?: RealizedStatus) {
     if (!record) return;
     try {
-      await setOutcome(record.id, status, note);
+      await setOutcome(record.id, status, note, realized);
       await cancelVerificationReminder(record.id);
       hapticSuccess();
       await loadRecord();
@@ -538,6 +539,7 @@ export default function RevealScreen() {
           outcome={record.outcome}
           recordNote={record.note}
           timestamp={record.timestamp}
+          intuition={record.intuition}
           onSave={handleSaveOutcome}
           onSaveNote={handleSaveNote}
           onClear={handleClearOutcome}

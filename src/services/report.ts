@@ -50,6 +50,11 @@ export interface ReportSection {
   relatedPrevious?: { timestamp: number; title: string };
   /** 之後又連結到這一筆的次數（同一件事後來又占的） */
   relatedLaterCount: number;
+  /**
+   * 占卜前的直覺（%）。跟著「問題與筆記」同一個隱私開關：那是使用者對自己這件事的私下估計，
+   * 分享報告時不想被看到的程度與問題本文相當——多藏一項比開關說的多，是安全的那一側。
+   */
+  intuition?: number;
 }
 
 /**
@@ -77,6 +82,10 @@ function readingForRecord(record: DivinationRecord): LiuYaoReading | null {
 /**
  * @param all 用來查「同一件事」連結的完整記錄清單；不給就當沒有連結（不猜）。
  */
+function includePersonalFor(options?: ReportPrivacyOptions): boolean {
+  return options?.includePersonalText ?? true;
+}
+
 export function buildReportSection(
   record: DivinationRecord,
   options?: ReportPrivacyOptions,
@@ -84,10 +93,11 @@ export function buildReportSection(
 ): ReportSection {
   const previous = resolvePrevious(record, all);
   const related = {
+    intuition: includePersonalFor(options) ? record.intuition : undefined,
     relatedPrevious: previous ? { timestamp: previous.timestamp, title: recordTitle(previous) } : undefined,
     relatedLaterCount: laterAsks(record, all).length,
   };
-  const includePersonal = options?.includePersonalText ?? true;
+  const includePersonal = includePersonalFor(options);
   const questionText = includePersonal ? record.questionText : undefined;
   const note = includePersonal ? record.note : undefined;
   const spreadName = record.mode === 'board' && record.spreadId && record.spreadId !== 'free'

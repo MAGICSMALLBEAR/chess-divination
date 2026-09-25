@@ -17,6 +17,7 @@ import { daysSince } from '@/services/verification';
 import type { ReportSection } from '@/services/report';
 import type { DivinerGender } from '@/services/useGod';
 import type { OutcomeStatus } from '@/services/storage';
+import { REALIZED_LABEL_KEYS } from '@/services/calibration';
 import { useI18n } from '@/hooks/useI18n';
 import { getLang } from '@/services/i18n';
 import { ShareCardPalette as P, ShareCardLevelColors } from '@/constants/theme';
@@ -204,6 +205,12 @@ function ReportSectionView({
         </View>
       )}
 
+      {section.intuition !== undefined && (
+        <Text testID="report-intuition" style={styles.relatedText}>
+          {t('intuition.recorded', { pct: section.intuition })}
+        </Text>
+      )}
+
       {section.poem && (
         <View style={styles.poemBox}>
           {section.poem.content.split('\n').map((line, i) => (
@@ -270,6 +277,11 @@ function ReportSectionView({
               {t('outcome.delay', { n: daysSince(record.timestamp, section.outcome.verifiedAt) })}
             </Text>
           </View>
+          {section.outcome.realized && (
+            <Text style={styles.blockText}>
+              {t('realized.summary', { status: t(REALIZED_LABEL_KEYS[section.outcome.realized]) })}
+            </Text>
+          )}
           {section.outcome.note && <Text style={styles.blockText}>{section.outcome.note}</Text>}
         </View>
       )}

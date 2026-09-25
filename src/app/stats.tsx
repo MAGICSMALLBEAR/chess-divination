@@ -9,6 +9,8 @@ import InkBackground from '@/components/InkBackground';
 import { PIECE_CHINESE_NAMES } from '@/components/icons';
 import TrendChart from '@/components/TrendChart';
 import AccuracyTrendChart from '@/components/AccuracyTrendChart';
+import CalibrationCard from '@/components/CalibrationCard';
+import { computeCalibration } from '@/services/calibration';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getHistory, getSettings, recordHasLevel, type DivinationRecord } from '@/services/storage';
@@ -112,6 +114,8 @@ export default function StatsScreen() {
   // 天數與首頁、通知排程同一個答案（verifyReminderPolicy）。關閉提醒時仍照預設天數
   // 算：這一行是使用者主動打開統計頁才看得到的資訊，不是打擾
   const accTrend = React.useMemo(() => accuracyTrend(records), [records]);
+  // 校準同樣用完整清單：記了直覺又回填了結果的記錄本來就少，再切「本週」只剩零頭
+  const calibration = React.useMemo(() => computeCalibration(records), [records]);
   const pendingDays = verifyReminderPolicy(reminderSetting).days;
   const pending = React.useMemo(
     () => pendingVerification(records, Date.now(), pendingDays), [records, pendingDays]);
@@ -275,6 +279,9 @@ export default function StatsScreen() {
         {/* 應驗率隨時間的變化。用未經日期篩選的完整清單：趨勢的橫軸本來就是時間，
             再套「本週」篩選只會把折線砍成一兩個點 */}
         <AccuracyTrendChart trend={accTrend} />
+
+        {/* 占卜前記下的直覺準不準，以及與卦的方向並列（預測校準） */}
+        <CalibrationCard report={calibration} />
 
         {/* 趨勢圖表 */}
         <TrendChart data={trendData} title={t('stats.trend')} />
