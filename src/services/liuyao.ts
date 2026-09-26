@@ -10,7 +10,7 @@
 import {
   TRIGRAM_NAMES, TRIGRAM_SYMBOLS, TRIGRAM_GLYPHS, TRIGRAM_ELEMENTS,
   hexagramIndex, hexagramLines, hexagramNameOf, poemIdFromTrigrams,
-  trigramFromLines, trigramsFromLines, lineName,
+  trigramsFromLines, nuclearTrigrams, lineName,
   type LineValue,
 } from './hexagram';
 import {
@@ -128,8 +128,7 @@ function buildChanged(lines: LineValue[], movingLine: number): HexagramInfo {
  * 代表事情發展過程中，表面之下的實際因素。
  */
 function buildNuclear(lines: LineValue[]): HexagramInfo {
-  const lower = trigramFromLines([lines[1], lines[2], lines[3]]);
-  const upper = trigramFromLines([lines[2], lines[3], lines[4]]);
+  const { upper, lower } = nuclearTrigrams(lines);
   return buildInfo(upper, lower);
 }
 

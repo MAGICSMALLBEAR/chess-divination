@@ -94,6 +94,32 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     },
   },
   {
+    key: 'opposite', term: '錯卦', group: 'hexagram', gloss: 'Opposite hexagram',
+    plain: {
+      'zh-TW': '把一卦六爻的陰陽全部反過來得到的卦，如乾與坤、坎與離互為錯卦。象徵同一件事對立的一面。',
+      en: 'The hexagram you get by flipping every line of a hexagram, as Qian and Kun, or Kan and Li, are to each other. It stands for the opposite side of the same matter.',
+      ja: 'ある卦の六爻の陰陽をすべて反転して得られる卦で、乾と坤、坎と離がそれぞれ錯卦の関係です。同じ物事の対になる面を表します。',
+    },
+    inApp: {
+      'zh-TW': '只在圖鑑的「卦典」分頁列出，可點過去讀那一卦。它不在揭曉頁的盤面上，也不進入任何斷語。',
+      en: 'Listed only in the Hexagrams tab of the library, where you can tap through to it. It is not on the reveal chart and does not enter any judgement.',
+      ja: '図鑑の「卦典」タブにだけ載っており、タップしてその卦を読めます。結果ページの盤面にはなく、どの断にも入りません。',
+    },
+  },
+  {
+    key: 'reversed', term: '綜卦', group: 'hexagram', gloss: 'Inverted hexagram',
+    plain: {
+      'zh-TW': '把一卦六爻上下顛倒（初爻變上爻）得到的卦，如屯與蒙互為綜卦。象徵換到對方的立場看同一件事。乾、坤、坎、離等八卦顛倒後不變，綜卦就是自己。',
+      en: 'The hexagram you get by turning a hexagram upside down (the first line becomes the top line), as Zhun and Meng are to each other. It stands for seeing the same matter from the other side. Eight hexagrams, such as Qian, Kun, Kan and Li, look the same upside down, so they are their own inverse.',
+      ja: 'ある卦の六爻を上下逆さに（初爻が上爻に）して得られる卦で、屯と蒙が綜卦の関係です。相手の立場から同じ物事を見ることを表します。乾・坤・坎・離など八つの卦は逆さにしても変わらず、綜卦は自分自身です。',
+    },
+    inApp: {
+      'zh-TW': '與錯卦一樣，只在圖鑑的「卦典」分頁列出，不在盤面上、也不進入斷語。',
+      en: 'Like the opposite hexagram, it is listed only in the Hexagrams tab of the library; it is not on the chart and does not enter any judgement.',
+      ja: '錯卦と同じく、図鑑の「卦典」タブにだけ載っており、盤面にはなく、断にも入りません。',
+    },
+  },
+  {
     key: 'movingLine', term: '動爻', group: 'hexagram', gloss: 'Moving line',
     plain: {
       'zh-TW': '本卦裡發生變化的那一爻，是整件事變化的關鍵。它的位置決定誰是體、誰是用，也決定讀哪一條爻辭。',

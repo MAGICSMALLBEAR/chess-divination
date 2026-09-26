@@ -408,15 +408,30 @@ export default function RevealScreen() {
             />
             {/* 術語詞典的入口放在這裡而不是 LiuYaoPanel 裡：那個元件同時被離屏的
                 報告截圖使用，加上可按的連結會連累匯出的長圖 */}
+            <View style={styles.panelLinks}>
             <TouchableOpacity
               testID="reveal-glossary-link"
               accessibilityRole="link"
-              style={styles.glossaryLink}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               onPress={() => router.push('/glossary')}
             >
               <Text style={[styles.glossaryLinkText, { color: theme.textGold }]}>{t('reveal.glossaryLink')} →</Text>
             </TouchableOpacity>
+            {/* 盤面只印得出動爻那一條爻辭；其餘五條與互錯綜在卦典。同上理由不放進 LiuYaoPanel */}
+            <TouchableOpacity
+              testID="reveal-hexagram-link"
+              accessibilityRole="link"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={() => router.push({
+                pathname: '/library',
+                params: { tab: 'hexagrams', hex: String(reading.primary.poemId) },
+              })}
+            >
+              <Text style={[styles.glossaryLinkText, { color: theme.textGold }]}>
+                {t('reveal.hexagramLink')}（{reading.primary.name}）→
+              </Text>
+            </TouchableOpacity>
+            </View>
           </View>
         ) : record.hexagramName ? (
           <View style={[styles.hexBox, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
@@ -654,8 +669,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     width: '100%',
   },
   // LiuYaoPanel 自帶 marginBottom，往上收一點讓連結貼著盤面而不是漂在兩塊內容中間
-  glossaryLink: {
-    alignSelf: 'flex-start', marginTop: -Spacing.sm, marginBottom: Spacing.lg,
+  // 兩個連結（術語詞典、卦典）直排，各自靠左、只佔文字寬，不是整列可按
+  panelLinks: {
+    alignItems: 'flex-start', gap: Spacing.sm, marginTop: -Spacing.sm, marginBottom: Spacing.lg,
   },
   glossaryLinkText: {
     fontSize: FontSize.caption, fontWeight: '600',

@@ -243,6 +243,11 @@ export function getMovingLineGuidance(
   };
 }
 
+/** 一卦的六條爻辭（索引 0 為初爻），供卦典逐卦列出；未校對時為 null。 */
+export function getYaoTexts(poemId: number): readonly string[] | null {
+  return VERIFIED_YAO_TEXTS[poemId] ?? null;
+}
+
 /** 供測試與資料覆蓋率顯示使用。 */
 export function hasVerifiedYaoText(poemId: number, movingLine: number): boolean {
   return Boolean(VERIFIED_YAO_TEXTS[poemId]?.[movingLine - 1]);

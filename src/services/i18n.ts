@@ -520,6 +520,21 @@ export const translations: Record<string, Record<Lang, string>> = {
   'library.notFoundLingqi': { 'zh-TW': '找不到符合的卦目', en: 'No matching oracles', ja: '該当する卦がありません' },
   'library.divineWithLingqi': { 'zh-TW': '擲靈棋占卜', en: 'Cast the Lingqi', ja: '霊棋を擲つ' },
   'library.element': { 'zh-TW': '五行', en: 'Element', ja: '五行' },
+  // 卦典分頁（Session 80）：卦名與爻辭三語皆印漢字原文，這裡只有標籤與說明
+  'library.tabHexagrams': { 'zh-TW': '卦典', en: 'Hexagrams', ja: '卦典' },
+  'library.searchHexagrams': { 'zh-TW': '搜尋卦名或爻辭...', en: 'Search names or line texts...', ja: '卦名・爻辞を検索...' },
+  'library.countHexagrams': { 'zh-TW': '共 {n} 卦', en: '{n} hexagrams', ja: '{n} 卦' },
+  'library.notFoundHexagrams': { 'zh-TW': '找不到符合的卦', en: 'No matching hexagrams', ja: '該当する卦がありません' },
+  'library.hexTrigrams': { 'zh-TW': '上 {upper}　下 {lower}', en: 'Upper {upper} · Lower {lower}', ja: '上 {upper}　下 {lower}' },
+  'library.hexYaoTexts': { 'zh-TW': '爻辭', en: 'Line texts', ja: '爻辞' },
+  'library.hexRelations': { 'zh-TW': '相關的卦', en: 'Related hexagrams', ja: '関連する卦' },
+  'library.hexNuclearHint': { 'zh-TW': '二至五爻重組，看表面之下的因素', en: 'Lines 2–5 regrouped: what lies beneath', ja: '二爻から五爻を組み直し、表面下の要因を見る' },
+  'library.hexOpposite': { 'zh-TW': '錯卦', en: 'Opposite', ja: '錯卦' },
+  'library.hexOppositeHint': { 'zh-TW': '六爻陰陽全變，看對立的一面', en: 'All six lines flipped: the opposite side', ja: '六爻の陰陽をすべて反転し、対になる面を見る' },
+  'library.hexReversed': { 'zh-TW': '綜卦', en: 'Inverted', ja: '綜卦' },
+  'library.hexReversedHint': { 'zh-TW': '六爻上下顛倒，換到對方的立場看', en: 'Turned upside down: the view from the other side', ja: '六爻を上下逆さにし、相手の立場から見る' },
+  'library.hexSelf': { 'zh-TW': '{name}（即本卦）', en: '{name} (the same hexagram)', ja: '{name}（本卦と同じ）' },
+  'library.hexOpenPoem': { 'zh-TW': '看這一卦的籤詩', en: "See this hexagram's poem", ja: 'この卦の籤詩を見る' },
 
   // ── 命理術語詞典（app/glossary.tsx） ──
   'glossary.title': { 'zh-TW': '命理術語詞典', en: 'Divination Glossary', ja: '占術用語辞典' },
@@ -632,6 +647,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'learn.finish': { 'zh-TW': '完成', en: 'Finish', ja: '終了' },
   'learn.finished': { 'zh-TW': '{deck}：這次答對 {correct}／{total} 題。', en: '{deck}: {correct} of {total} correct this time.', ja: '{deck}：今回は {total} 問中 {correct} 問正解。' },
   'settings.glossaryDesc': { 'zh-TW': '看懂盤面上的術語', en: 'Understand the chart’s terms', ja: '盤面の用語を調べる' },
+  'reveal.hexagramLink': { 'zh-TW': '在卦典讀本卦六條爻辭與互錯綜', en: 'Read all six line texts and related hexagrams', ja: '卦典で本卦の六爻辞と関連する卦を読む' },
   'reveal.glossaryLink': { 'zh-TW': '看不懂盤面上的術語？查看術語詞典', en: 'Unfamiliar with the terms on the chart? Open the glossary', ja: '盤面の用語がわかりませんか？用語辞典を開く' },
 
   // 籤詩卡

@@ -154,6 +154,32 @@ export function trigramsFromLines(lines: LineValue[]): { upper: number; lower: n
   };
 }
 
+// ====== 卦與卦的關係：互、錯、綜 ======
+//
+// 三者都只是六爻的重排或翻轉，由爻象直接推得，不另建對照表。
+// 揭曉頁的互卦（liuyao.ts）與卦典頁的互／錯／綜共用這裡，只有一份算法。
+
+/** 互卦：取二、三、四爻為下卦，三、四、五爻為上卦 */
+export function nuclearTrigrams(lines: LineValue[]): { upper: number; lower: number } {
+  return {
+    lower: trigramFromLines([lines[1], lines[2], lines[3]]),
+    upper: trigramFromLines([lines[2], lines[3], lines[4]]),
+  };
+}
+
+/** 錯卦：六爻陰陽全變，上下卦各取其錯（乾↔坤、兌↔艮、離↔坎、震↔巽） */
+export function oppositeTrigrams(upper: number, lower: number): { upper: number; lower: number } {
+  return { upper: TRIGRAM_OPPOSITE[upper], lower: TRIGRAM_OPPOSITE[lower] };
+}
+
+/**
+ * 綜卦：六爻上下顛倒（初爻變上爻）。
+ * 乾、坤、坎、離、頤、大過、中孚、小過八卦顛倒後不變，其綜卦即本卦。
+ */
+export function reversedTrigrams(upper: number, lower: number): { upper: number; lower: number } {
+  return trigramsFromLines([...hexagramLines(upper, lower)].reverse());
+}
+
 /**
  * 爻位名稱，如「初九」「六三」「上六」。
  *

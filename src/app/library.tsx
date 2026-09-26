@@ -1,16 +1,21 @@
-// 占卜圖鑑 — 六十四籤詩與《靈棋經》125 卦目，分兩個分頁
+// 占卜圖鑑 — 六十四籤詩、《靈棋經》125 卦目、六十四卦卦典，分三個分頁
 //
 // 為什麼靈棋另開分頁而不是併進同一份清單：兩者的欄位對不起來。籤詩有
 // 吉凶等級與卦名（等級與五行篩選都建立在這上面），靈棋原典沒有等級，
 // 有的是三才卦目與方位。混成一份清單，篩選列會對一半的資料失效。
-import React, { useState, useMemo, useRef } from 'react';
+//
+// 卦典與籤詩同是六十四卦、同一個文王卦序，卻另開分頁：籤詩卡片讀的是
+// 本 App 撰寫的七言詩與白話，卦典讀的是《周易》原文的六條爻辭與卦際關係。
+// 揭曉頁只印得出動爻那一條爻辭，其餘 383 條原本無處可讀。
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
-import { Icon } from '@/components/icons';
+import { Icon, TrigramGlyph } from '@/components/icons';
+import HexagramLines from '@/components/HexagramLines';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { LINGQI_ORACLES, type LingqiOracle } from '@/data/lingqiOracles';
 import { localizePoem } from '@/services/localize';
@@ -23,9 +28,25 @@ import { useGrid } from '@/hooks/useGrid';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
 import { parseHexagramName, TRIGRAM_ELEMENTS } from '@/services/hexagram';
+import { trigramLabel } from '@/services/liuyao';
+import {
+  HEXAGRAM_CATALOG, hexagramMatchesSearch,
+  type HexagramEntry, type HexagramRef,
+} from '@/services/hexagramCatalog';
 
-/** 圖鑑的兩個分頁：六十四籤詩、《靈棋經》125 卦目 */
-type LibraryTab = 'poems' | 'lingqi';
+/** 圖鑑的三個分頁：六十四籤詩、《靈棋經》125 卦目、六十四卦卦典 */
+type LibraryTab = 'poems' | 'lingqi' | 'hexagrams';
+const LIBRARY_TABS: readonly LibraryTab[] = ['poems', 'lingqi', 'hexagrams'];
+
+/** 網址參數（`/library?tab=hexagrams&hex=3`）只收認得的值，其餘退回預設 */
+function tabFromParam(value: string | undefined): LibraryTab {
+  return (LIBRARY_TABS as readonly string[]).includes(value ?? '') ? value as LibraryTab : 'poems';
+}
+
+function hexFromParam(value: string | undefined): number | null {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 64 ? n : null;
+}
 
 /**
  * 卡片在座標表裡的鍵。兩個分頁共用一張表，故加前綴避免
@@ -35,18 +56,37 @@ function cardKey(id: number | string): string {
   return typeof id === 'number' ? `p:${id}` : `l:${id}`;
 }
 
+/** 卦典卡片的鍵。卦序與籤詩同是 1–64，不另加前綴會互相蓋掉座標 */
+function hexKey(poemId: number): string {
+  return `h:${poemId}`;
+}
+
 export default function LibraryScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { t, lang } = useI18n();
   const { onLayout, cardWidth } = useGrid();
-  const [tab, setTab] = useState<LibraryTab>('poems');
+  // 揭曉頁的「在卦典查看」連過來時帶著分頁與卦序
+  const params = useLocalSearchParams<{ tab?: string; hex?: string }>();
+  const [tab, setTab] = useState<LibraryTab>(() => tabFromParam(params.tab));
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<string | null>(null);
   const [elementFilter, setElementFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [expandedHex, setExpandedHex] = useState<number | null>(
+    () => tabFromParam(params.tab) === 'hexagrams' ? hexFromParam(params.hex) : null,
+  );
+  /**
+   * 等著捲過去的卡片鍵。目標卡片可能還沒排版（剛進頁、剛切分頁、剛清掉搜尋），
+   * 座標要等它的 onLayout 才有；到時候再捲，捲完清掉。
+   */
+  const pendingScroll = useRef<string | null>(expandedHex !== null ? hexKey(expandedHex) : null);
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (pendingTimer.current) clearTimeout(pendingTimer.current);
+  }, []);
   const scrollRef = useRef<ScrollView>(null);
   /**
    * 每張卡片在網格內的 y 座標，由 onLayout 填入（見 handleRandomScroll）。
@@ -70,21 +110,72 @@ export default function LibraryScreen() {
     // 展開一首籤詩，等於這顆按鈕在半數情況下答非所問
     const pool: (string | undefined)[] = tab === 'poems'
       ? filtered.map(p => cardKey(p.id))
-      : lingqiFiltered.map(o => cardKey(o.key));
+      : tab === 'lingqi'
+        ? lingqiFiltered.map(o => cardKey(o.key))
+        : hexFiltered.map(e => hexKey(e.poemId));
     const picked = pool[Math.floor(Math.random() * pool.length)];
     if (!picked) return;
 
     if (tab === 'poems') {
       setExpandedId(Number(picked.slice(2)));
-    } else {
+    } else if (tab === 'lingqi') {
       setExpandedKey(picked.slice(2));
+    } else {
+      setExpandedHex(Number(picked.slice(2)));
     }
+    scrollToCard(picked);
+  }
 
-    const y = cardOffsets.current.get(picked);
+  function scrollToCard(key: string) {
+    const y = cardOffsets.current.get(key);
     if (y !== undefined) {
       // 留一點上緣空隙，讓卡片不會緊貼著篩選列
       scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
     }
+  }
+
+  /**
+   * 記下卡片座標；若它正是等著捲過去的那一張，現在捲。
+   *
+   * 捲完不立刻放掉：剛進頁時網格先以單欄排一次，量到容器寬度後才改多欄
+   * （useGrid），目標卡片的座標會在幾十毫秒內再變一次。短暫留著這個目標，
+   * 這段時間內的每次重排都再捲一次；之後才放掉，免得使用者自己捲動後
+   * 某次無關的重排把畫面拉回來。
+   */
+  function recordOffset(key: string, y: number) {
+    cardOffsets.current.set(key, y);
+    if (pendingScroll.current === key) {
+      scrollToCard(key);
+      if (pendingTimer.current) clearTimeout(pendingTimer.current);
+      pendingTimer.current = setTimeout(() => {
+        if (pendingScroll.current === key) pendingScroll.current = null;
+      }, 400);
+    }
+  }
+
+  /**
+   * 從一張卦典卡片跳到另一卦（互／錯／綜）。
+   *
+   * 不當場捲：這一按同時收起來源卡片、展開目標卡片，目標若在來源下方，
+   * 它的座標馬上會變，當場捲會捲到舊位置。目標從收合變展開，尺寸必變，
+   * onLayout 必定會帶著新座標回來，由 recordOffset 接手。
+   * 搜尋字串先清掉：目標卦多半不符合目前的搜尋，留著會跳到一張被濾掉的卡片。
+   */
+  function jumpToHexagram(poemId: number) {
+    setSearch('');
+    setExpandedHex(poemId);
+    pendingScroll.current = hexKey(poemId);
+  }
+
+  /** 從卦典卡片看同一卦的籤詩：切到籤詩分頁、清掉篩選、展開那一首 */
+  function openPoemOf(poemId: number) {
+    setSearch('');
+    setLevelFilter(null);
+    setElementFilter(null);
+    setTab('poems');
+    setExpandedHex(null);
+    setExpandedId(poemId);
+    pendingScroll.current = cardKey(poemId);
   }
 
   /** 切分頁時收起展開中的卡片：另一個分頁的展開狀態留著只會在切回來時突然出現 */
@@ -93,6 +184,7 @@ export default function LibraryScreen() {
     setTab(next);
     setExpandedId(null);
     setExpandedKey(null);
+    setExpandedHex(null);
   }
 
   const filtered = useMemo(() => {
@@ -117,6 +209,16 @@ export default function LibraryScreen() {
     return q ? LINGQI_ORACLES.filter(o => lingqiMatchesSearch(o, q)) : LINGQI_ORACLES;
   }, [search]);
 
+  // 卦典同樣不吃等級與五行篩選：等級是籤詩的，不是卦的
+  const hexFiltered = useMemo(() => {
+    const q = search.trim();
+    return q ? HEXAGRAM_CATALOG.filter(e => hexagramMatchesSearch(e, q)) : HEXAGRAM_CATALOG;
+  }, [search]);
+
+  const shownCount = tab === 'poems'
+    ? filtered.length
+    : tab === 'lingqi' ? lingqiFiltered.length : hexFiltered.length;
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -139,21 +241,26 @@ export default function LibraryScreen() {
       {/* 搜尋與篩選。包在限寬容器內，與下方內容網格對齊 */}
       <View style={styles.controls}>
       <View testID="library-tabs" style={styles.tabRow}>
-        {(['poems', 'lingqi'] as const).map(id => (
+        {LIBRARY_TABS.map(id => (
           <TouchableOpacity
             key={id}
             testID={`library-tab-${id}`}
             accessibilityRole="tab"
             accessibilityState={{ selected: tab === id }}
+            // accessibilityState 在 react-native-web 不輸出 aria-selected（S74 記下的缺口），
+            // 讀屏在網頁上分不出目前在哪個分頁；原生端讀的是上面那一行
+            aria-selected={tab === id}
             style={[styles.tabChip, tab === id && { borderColor: theme.gold, backgroundColor: theme.bgDark }]}
             onPress={() => switchTab(id)}>
-            <Icon
-              name={id === 'poems' ? 'scroll' : 'lingqi'}
-              size={14}
-              color={tab === id ? theme.gold : theme.textMuted}
-            />
+            {id === 'hexagrams'
+              ? <TrigramGlyph trigram={0} size={14} color={tab === id ? theme.gold : theme.textMuted} />
+              : <Icon
+                  name={id === 'poems' ? 'scroll' : 'lingqi'}
+                  size={14}
+                  color={tab === id ? theme.gold : theme.textMuted}
+                />}
             <Text style={[styles.tabText, tab === id && { color: theme.textGold }]}>
-              {' '}{t(id === 'poems' ? 'library.tabPoems' : 'library.tabLingqi')}
+              {' '}{t(TAB_LABEL[id])}
             </Text>
           </TouchableOpacity>
         ))}
@@ -161,7 +268,7 @@ export default function LibraryScreen() {
 
       <TextInput
         style={[styles.searchInput, { backgroundColor: theme.bgCard, borderColor: theme.goldFaint, color: theme.textPrimary }]}
-        placeholder={t(tab === 'poems' ? 'library.search' : 'library.searchLingqi')}
+        placeholder={t(TAB_SEARCH[tab])}
         placeholderTextColor={theme.textMuted}
         value={search}
         onChangeText={setSearch}
@@ -200,9 +307,7 @@ export default function LibraryScreen() {
       </>}
 
       <Text testID="library-count" style={[styles.count, { color: theme.textMuted }]}>
-        {tab === 'poems'
-          ? t('library.count', { n: filtered.length })
-          : t('library.countLingqi', { n: lingqiFiltered.length })}
+        {t(TAB_COUNT[tab], { n: shownCount })}
       </Text>
       </View>
 
@@ -218,7 +323,7 @@ export default function LibraryScreen() {
               cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
             ]}
             onPress={() => setExpandedId(expandedId === p.id ? null : p.id)}
-            onLayout={e => cardOffsets.current.set(cardKey(p.id), e.nativeEvent.layout.y)}
+            onLayout={e => recordOffset(cardKey(p.id), e.nativeEvent.layout.y)}
             activeOpacity={0.8}
           >
             <View style={styles.cardHeader}>
@@ -261,7 +366,7 @@ export default function LibraryScreen() {
             oracle={oracle}
             expanded={expandedKey === oracle.key}
             onPress={() => setExpandedKey(expandedKey === oracle.key ? null : oracle.key)}
-            onLayout={y => cardOffsets.current.set(cardKey(oracle.key), y)}
+            onLayout={y => recordOffset(cardKey(oracle.key), y)}
             onDivine={() => router.push('/lingqi')}
             width={cardWidth}
             theme={theme}
@@ -269,10 +374,26 @@ export default function LibraryScreen() {
             t={t}
           />
         ))}
+
+        {tab === 'hexagrams' && hexFiltered.map(entry => (
+          <HexagramCard
+            key={entry.poemId}
+            entry={entry}
+            expanded={expandedHex === entry.poemId}
+            onPress={() => setExpandedHex(expandedHex === entry.poemId ? null : entry.poemId)}
+            onLayout={y => recordOffset(hexKey(entry.poemId), y)}
+            onJump={jumpToHexagram}
+            onOpenPoem={() => openPoemOf(entry.poemId)}
+            width={cardWidth}
+            theme={theme}
+            styles={styles}
+            t={t}
+          />
+        ))}
         </View>
-        {(tab === 'poems' ? filtered.length : lingqiFiltered.length) === 0 && (
+        {shownCount === 0 && (
           <Text style={[styles.empty, { color: theme.textMuted }]}>
-            {t(tab === 'poems' ? 'library.notFound' : 'library.notFoundLingqi')}
+            {t(TAB_NOT_FOUND[tab])}
           </Text>
         )}
       </ScrollView>
@@ -342,6 +463,121 @@ function LingqiCard({ oracle, expanded, onPress, onLayout, onDivine, width, them
           <TouchableOpacity style={[styles.drawBtn, { borderColor: theme.gold }]} onPress={onDivine}>
             <Icon name="lingqi" size={16} color={theme.gold} />
             <Text style={[styles.drawBtnText, { color: theme.textGold }]}> {t('library.divineWithLingqi')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <Text style={[styles.expandHint, { color: theme.textMuted }]}>
+        {expanded ? `▲ ${t('library.collapse')}` : `▼ ${t('library.expand')}`}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+const TAB_LABEL: Record<LibraryTab, string> = {
+  poems: 'library.tabPoems', lingqi: 'library.tabLingqi', hexagrams: 'library.tabHexagrams',
+};
+const TAB_SEARCH: Record<LibraryTab, string> = {
+  poems: 'library.search', lingqi: 'library.searchLingqi', hexagrams: 'library.searchHexagrams',
+};
+const TAB_COUNT: Record<LibraryTab, string> = {
+  poems: 'library.count', lingqi: 'library.countLingqi', hexagrams: 'library.countHexagrams',
+};
+const TAB_NOT_FOUND: Record<LibraryTab, string> = {
+  poems: 'library.notFound', lingqi: 'library.notFoundLingqi', hexagrams: 'library.notFoundHexagrams',
+};
+
+/**
+ * 一張卦典卡片。
+ *
+ * 收合時印卦序、卦名、卦形與上下卦——翻找時認得出是哪一卦就夠了。
+ * 展開後才給六條爻辭與互／錯／綜，避免 64 張卡片一次倒出 384 條爻辭。
+ *
+ * 爻辭由初爻到上爻、由上往下列：這是經文的書寫順序，與卦形「上爻在最上」
+ * 的畫法相反，但每一條都自帶爻名（初九、六二…），對得起來。
+ */
+function HexagramCard({ entry, expanded, onPress, onLayout, onJump, onOpenPoem, width, theme, styles, t }: {
+  entry: HexagramEntry;
+  expanded: boolean;
+  onPress: () => void;
+  onLayout: (y: number) => void;
+  onJump: (poemId: number) => void;
+  onOpenPoem: () => void;
+  width: number | undefined;
+  theme: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
+  const relations: { id: string; label: string; hint: string; ref: HexagramRef }[] = [
+    { id: 'nuclear', label: t('liuyao.nuclear'), hint: t('library.hexNuclearHint'), ref: entry.nuclear },
+    { id: 'opposite', label: t('library.hexOpposite'), hint: t('library.hexOppositeHint'), ref: entry.opposite },
+    { id: 'reversed', label: t('library.hexReversed'), hint: t('library.hexReversedHint'), ref: entry.reversed },
+  ];
+  return (
+    <TouchableOpacity
+      testID={`hexagram-card-${entry.poemId}`}
+      style={[
+        styles.card,
+        { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
+        width === undefined ? { width: '100%' } : { width },
+      ]}
+      onPress={onPress}
+      onLayout={e => onLayout(e.nativeEvent.layout.y)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.cardHeader}>
+        <Text style={[styles.cardNum, { color: theme.textMuted }]}>#{entry.poemId}</Text>
+        <Text style={[styles.cardHex, { color: theme.textSecondary }]}>
+          {t('library.hexTrigrams', { upper: trigramLabel(entry.upper), lower: trigramLabel(entry.lower) })}
+        </Text>
+      </View>
+      <View style={styles.hexRow}>
+        <HexagramLines lines={entry.lines} width={40} accessibilityLabel={entry.name} />
+        <Text style={[styles.hexTitle, { color: theme.textPrimary }]}>{entry.name}</Text>
+      </View>
+
+      {expanded && (
+        <View style={styles.expandedContent}>
+          <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
+          {entry.yaoTexts && (
+            <View testID="hexagram-yao-texts" style={styles.verseBlock}>
+              <Text style={[styles.verseLabel, { color: theme.textGold }]}>{t('library.hexYaoTexts')}</Text>
+              {entry.yaoTexts.map((text, i) => (
+                <Text key={i} style={[styles.yaoLine, { color: theme.textSecondary }]}>{text}</Text>
+              ))}
+              <Text style={[styles.storyText, { color: theme.textMuted }]}>{t('liuyao.yaoSource')}</Text>
+            </View>
+          )}
+
+          <Text style={[styles.verseLabel, { color: theme.textGold }]}>{t('library.hexRelations')}</Text>
+          {relations.map(({ id, label, hint, ref }) => {
+            // 乾坤的互卦、頤大過等八卦的綜卦就是自己：印出來但不能按，按了等於原地不動
+            const self = ref.poemId === entry.poemId;
+            return (
+              <TouchableOpacity
+                key={id}
+                testID={`hexagram-relation-${id}`}
+                accessibilityRole={self ? 'text' : 'link'}
+                disabled={self}
+                style={styles.relationRow}
+                onPress={() => onJump(ref.poemId)}
+              >
+                <Text style={[styles.relationLabel, { color: theme.textMuted }]}>{label}</Text>
+                <Text style={[styles.relationName, { color: self ? theme.textSecondary : theme.textGold }]}>
+                  {self ? t('library.hexSelf', { name: ref.name }) : `${ref.name} →`}
+                </Text>
+                <Text style={[styles.relationHint, { color: theme.textMuted }]}>{hint}</Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          <TouchableOpacity
+            testID="hexagram-open-poem"
+            style={[styles.drawBtn, { borderColor: theme.gold }]}
+            onPress={onOpenPoem}
+          >
+            <Icon name="scroll" size={16} color={theme.gold} />
+            <Text style={[styles.drawBtnText, { color: theme.textGold }]}> {t('library.hexOpenPoem')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -437,6 +673,16 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   cardNum: { fontSize: FontSize.small, fontWeight: '600' },
   cardHex: { fontSize: FontSize.small },
   cardTitle: { fontSize: FontSize.body, fontWeight: '700', marginBottom: 8 },
+  hexRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  hexTitle: { fontSize: FontSize.heading, fontWeight: '700', letterSpacing: 2 },
+  yaoLine: { fontSize: FontSize.small, lineHeight: 24, marginBottom: 2 },
+  relationRow: {
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 6,
+    paddingVertical: 6,
+  },
+  relationLabel: { fontSize: FontSize.caption, fontWeight: '600', minWidth: 36 },
+  relationName: { fontSize: FontSize.small, fontWeight: '700' },
+  relationHint: { fontSize: FontSize.caption },
   poemLine: { fontSize: FontSize.body, textAlign: 'center', lineHeight: 30, letterSpacing: 2 },
   expandedContent: { marginTop: Spacing.sm },
   divider: { height: 1, marginBottom: Spacing.sm },
