@@ -128,4 +128,54 @@ export const achievementTranslations: Record<string, Partial<Record<Lang, Achiev
       desc: '10回の占いの実際の結果を記録する',
     },
   },
+  first_learn: {
+    en: {
+      title: 'First Glimpse of the Changes',
+      desc: 'Answer a card correctly in study mode for the first time',
+    },
+    ja: {
+      title: '易理を初めて窺う',
+      desc: '学習モードで初めて正解する',
+    },
+  },
+  trigram_mastery: {
+    en: {
+      title: 'Eight Trigrams at Heart',
+      desc: 'Get all eight trigram cards to a review gap of 4 days or more',
+    },
+    ja: {
+      title: '八卦を胸に',
+      desc: '八卦カード8枚すべての復習間隔を4日以上にする',
+    },
+  },
+  first_intuition: {
+    en: {
+      title: 'Ask Yourself First',
+      desc: 'Record your intuition before a divination for the first time',
+    },
+    ja: {
+      title: 'まず己に問う',
+      desc: '占う前に初めて直感を記録する',
+    },
+  },
+  ten_calibrated: {
+    en: {
+      title: 'Know Yourself, Know the Hexagram',
+      desc: 'Have 10 readings with both an intuition and the actual outcome recorded',
+    },
+    ja: {
+      title: '己を知り卦を知る',
+      desc: '直感と実際の結果の両方を記録した占いを10件にする',
+    },
+  },
+  first_link: {
+    en: {
+      title: 'Asking Again',
+      desc: 'Link two readings as the same question for the first time',
+    },
+    ja: {
+      title: '一事再び問う',
+      desc: '初めて二つの占いを同じ問いとして結びつける',
+    },
+  },
 };

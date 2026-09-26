@@ -5,7 +5,6 @@ import Svg, { Circle, G } from 'react-native-svg';
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
-import type { IconName } from '@/components/icons/Icon';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -49,18 +48,6 @@ export default function AchievementsScreen() {
   const total = achievements.length;
   // 資料載入完成前 total 為 0，直接相除會短暫顯示 NaN%
   const pct = total === 0 ? 0 : Math.round((unlocked / total) * 100);
-
-  // 成就圖示從 emoji 字串 → IconName 的對映
-  function achievementIcon(emoji: string): IconName {
-    const map: Record<string, IconName> = {
-      '🎲': 'dice', '🔮': 'crystal-ball', '👑': 'trophy',
-      '♟️': 'chess-board', '❤️': 'heart', '🔥': 'flame',
-      '☯️': 'refresh', '📜': 'scroll',
-      '🔍': 'lightbulb', '📖': 'scroll',
-      '🎋': 'lingqi', '🏮': 'lantern',
-    };
-    return map[emoji] || 'star';
-  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bgInk }]}>
@@ -124,14 +111,17 @@ export default function AchievementsScreen() {
         {/* 成就列表。寬螢幕改為多欄，每張成就自成一卡 */}
         <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
           {achievements.map(ach => { const a = localizeAchievement(ach); return (
-            <View key={a.id} style={[
+            <View key={a.id} testID={`achievement-${a.id}`}
+              // 解鎖與否只靠顏色與鎖頭圖示分辨，讀屏與 e2e 都看不到；補一個說得出來的狀態
+              aria-label={`${a.title}：${t(a.unlocked ? 'achievement.unlocked' : 'achievement.locked')}`}
+              style={[
               styles.achRow,
               { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
               cardWidth === undefined ? { width: '100%' } : { width: cardWidth },
               a.unlocked && styles.achUnlocked,
             ]}>
               <View style={[styles.achIcon, !a.unlocked && { opacity: 0.3 }]}>
-                <Icon name={achievementIcon(a.icon)} size={28} color={a.unlocked ? theme.gold : theme.textMuted} />
+                <Icon name={a.icon} size={28} color={a.unlocked ? theme.gold : theme.textMuted} />
               </View>
               <View style={styles.achInfo}>
                 <Text style={[styles.achTitle, { color: a.unlocked ? theme.textPrimary : theme.textMuted }]}>

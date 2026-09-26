@@ -21,13 +21,14 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 import fs from 'fs';
 import path from 'path';
 import {
-  ACHIEVEMENTS,
+  ACHIEVEMENTS, ACHIEVEMENT_THRESHOLDS,
   getAchievements, checkAchievements, getStreak, recordUsage, syncAchievements,
 } from '../services/achievements';
 import {
-  saveSettings, getSettings, addHistory, toggleFavorite, setOutcome,
+  saveSettings, getSettings, addHistory, toggleFavorite, setOutcome, linkRelatedRecord,
   type DivinationRecord,
 } from '../services/storage';
+import { recordAnswer, deckCards, LEITNER_INTERVALS } from '../services/learning';
 import { todayString, yesterdayString } from '../services/date';
 import { POEM_LEVELS } from '../data/poems';
 
@@ -480,5 +481,87 @@ describe('占卜終點畫面的成就接線', () => {
 
   test.each(ENDPOINTS)('%s 重算成就', (_name, segments) => {
     expect(readCode('app', ...segments)).toContain('syncAchievements(');
+  });
+});
+
+/**
+ * S82：S76–S78 上線的學習、預測校準、複占連結原本沒有任何成就認得（S47 的教訓：
+ * 新功能接完主流程不等於做完，周邊系統要逐一走過）。這裡走的是真的儲存函式——
+ * 學習進度在另一個儲存鍵，成就要自己讀進來，漏讀的話條件永遠是假。
+ */
+describe('學習、校準、複占連結的成就', () => {
+  const TODAY = '2026-09-26';
+  const trigramIds = deckCards('trigram').map(c => c.id);
+
+  test('學習模式答錯不解鎖，答對一次解鎖初窺易理', async () => {
+    await recordAnswer(trigramIds[0], false, TODAY);
+    expect(await syncAchievements()).not.toContain('first_learn');
+    await recordAnswer(trigramIds[0], true, TODAY);
+    expect(await syncAchievements()).toContain('first_learn');
+  });
+
+  // 第一次就答對與答錯都落在第一格，看格數分不出來——答對與否要看 reviews 與 lapses
+  test('第一次作答就答對也算（不能看格數判斷）', async () => {
+    await recordAnswer(trigramIds[0], true, TODAY);
+    expect(await syncAchievements()).toContain('first_learn');
+  });
+
+  test(`八卦八張的複習間隔都到 ${ACHIEVEMENT_THRESHOLDS.trigram_mastery} 天以上才解鎖八卦在心`, async () => {
+    const intervalFor = (box: number) => LEITNER_INTERVALS[box - 1];
+    // 連續答對到間隔剛好達到門檻的那一格
+    const box = LEITNER_INTERVALS.findIndex(d => d >= ACHIEVEMENT_THRESHOLDS.trigram_mastery) + 1;
+    expect(intervalFor(box)).toBeGreaterThanOrEqual(ACHIEVEMENT_THRESHOLDS.trigram_mastery);
+
+    for (const id of trigramIds.slice(0, 7)) {
+      for (let i = 0; i < box; i++) await recordAnswer(id, true, TODAY);
+    }
+    // 第八張只差一格
+    for (let i = 0; i < box - 1; i++) await recordAnswer(trigramIds[7], true, TODAY);
+    expect(await syncAchievements()).not.toContain('trigram_mastery');
+
+    await recordAnswer(trigramIds[7], true, TODAY);
+    expect(await syncAchievements()).toContain('trigram_mastery');
+  });
+
+  test('六十四卦牌學得再多也不算八卦在心', async () => {
+    for (const card of deckCards('hexagram').slice(0, 8)) {
+      for (let i = 0; i < 5; i++) await recordAnswer(card.id, true, TODAY);
+    }
+    expect(await syncAchievements()).not.toContain('trigram_mastery');
+  });
+
+  test('記下直覺解鎖先問本心；壞值（非五檔之一）不算', async () => {
+    await addHistory(makeRecord({ intuition: 55 as never }));
+    expect(await syncAchievements()).not.toContain('first_intuition');
+    await addHistory(makeRecord({ intuition: 70 }));
+    expect(await syncAchievements()).toContain('first_intuition');
+  });
+
+  test(`${ACHIEVEMENT_THRESHOLDS.ten_calibrated} 筆既有直覺又回填了事情結果，才解鎖知己知卦`, async () => {
+    const n = ACHIEVEMENT_THRESHOLDS.ten_calibrated;
+    for (let i = 0; i < n - 1; i++) {
+      const r = await addHistory(makeRecord({ intuition: 70 }));
+      await setOutcome(r.id, 'accurate', undefined, 'yes');
+    }
+    // 有直覺、回填了卦準不準，卻沒答事情結果——校準打不了分數，不算
+    const noRealized = await addHistory(makeRecord({ intuition: 70 }));
+    await setOutcome(noRealized.id, 'accurate');
+    // 沒有直覺的回填也不算
+    const noIntuition = await addHistory(makeRecord());
+    await setOutcome(noIntuition.id, 'accurate', undefined, 'yes');
+    expect(await syncAchievements()).not.toContain('ten_calibrated');
+
+    const last = await addHistory(makeRecord({ intuition: 30 }));
+    await setOutcome(last.id, 'inaccurate', undefined, 'no');
+    expect(await syncAchievements()).toContain('ten_calibrated');
+  });
+
+  test('連結兩次占卜解鎖一事再問', async () => {
+    // 連結只允許指向更早的一筆，時間戳要錯開，否則連結本身就被拒絕
+    const first = await addHistory(makeRecord({ timestamp: 1_000 }));
+    const second = await addHistory(makeRecord({ timestamp: 2_000 }));
+    expect(await syncAchievements()).not.toContain('first_link');
+    expect(await linkRelatedRecord(second.id, first.id)).toBe(true);
+    expect(await syncAchievements()).toContain('first_link');
   });
 });

@@ -508,6 +508,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'achievement.title': { 'zh-TW': '成就徽章', en: 'Achievements', ja: '実績バッジ' },
   'achievement.progress': { 'zh-TW': '成就進度', en: 'Progress', ja: '進捗' },
   'achievement.unlocked': { 'zh-TW': '已解鎖', en: 'Unlocked', ja: '解除済み' },
+  'achievement.locked': { 'zh-TW': '未解鎖', en: 'Locked', ja: '未解除' },
   'achievement.streakDays': { 'zh-TW': '連續 {n} 天', en: '{n}-day streak', ja: '{n}日連続' },
   'achievement.totalDraws': { 'zh-TW': '{n} 次占卜', en: '{n} readings', ja: '{n} 回の占い' },
   'achievement.checkFailed': { 'zh-TW': '成就檢查失敗', en: 'Achievement check failed', ja: '実績のチェックに失敗しました' },

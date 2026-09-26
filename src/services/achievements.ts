@@ -3,12 +3,19 @@ import { getSettings, updateSettings, getHistory, getFavorites } from './storage
 import type { AppSettings } from './storage';
 import { todayString, yesterdayString } from './date';
 import { POEM_LEVELS } from '@/data/poems';
+import type { IconName } from '@/components/icons';
+import { getLearningState, deckCards, LEITNER_INTERVALS } from './learning';
+import { isIntuitionPct, isRealizedStatus } from './calibration';
 
 export interface Achievement {
   id: string;
   title: string;
   desc: string;
-  icon: string;
+  /**
+   * 直接是圖示名稱，由型別檢查。原本存 emoji、畫面上再查一張 emoji→圖示對照表，
+   * 對照表漏了就靜靜退回星星——S82 新增的五個成就差點全部顯示成同一顆星
+   */
+  icon: IconName;
   unlocked: boolean;
 }
 
@@ -29,6 +36,13 @@ export const ACHIEVEMENT_THRESHOLDS = {
   fifty_draws: 50,
   week_streak: 7,
   ten_verify: 10,
+  /**
+   * 八卦牌八張的複習間隔都拉到幾天以上（S82）。用天數而不是 Leitner 的格數：
+   * 學習頁對使用者說的是「依序 1、2、4、8、16 天」，從沒提過「格」
+   */
+  trigram_mastery: 4,
+  /** 同時記了直覺、也回填了事情結果的記錄筆數——預測校準真正能打分數的那幾筆 */
+  ten_calibrated: 10,
 } as const;
 
 /**
@@ -38,18 +52,24 @@ export const ACHIEVEMENT_THRESHOLDS = {
  * 那份手抄清單之外，靠人工補才沒出事）。
  */
 export const ACHIEVEMENTS: Omit<Achievement, 'unlocked'>[] = [
-  { id: 'first_draw', title: '初窺棋道', desc: '完成第一次抽棋占卜', icon: '🎲' },
-  { id: 'ten_draws', title: '棋道修行者', desc: '累積 10 次占卜', icon: '🔮' },
-  { id: 'fifty_draws', title: '占卜大師', desc: '累積 50 次占卜', icon: '👑' },
-  { id: 'first_board', title: '佈局新手', desc: '完成第一次棋盤佈局', icon: '♟️' },
-  { id: 'first_lingqi', title: '靈棋初擲', desc: '完成第一次靈棋占卜', icon: '🎋' },
-  { id: 'first_favorite', title: '慧眼識籤', desc: '收藏第一首籤詩', icon: '❤️' },
-  { id: 'week_streak', title: '七日問道', desc: '連續使用 7 天', icon: '🔥' },
-  { id: 'both_modes', title: '雙修圓滿', desc: '使用過抽棋和佈局兩種模式', icon: '☯️' },
-  { id: 'all_modes', title: '三法俱通', desc: '抽棋、棋盤、靈棋三種模式都用過', icon: '🏮' },
-  { id: 'all_levels', title: '知天命', desc: '抽過全部 5 種吉凶等級的籤詩', icon: '📜' },
-  { id: 'first_verify', title: '占而後驗', desc: '回填第一次占卜的實際結果', icon: '🔍' },
-  { id: 'ten_verify', title: '占驗有簿', desc: '累積回填 10 次占驗', icon: '📖' },
+  { id: 'first_draw', title: '初窺棋道', desc: '完成第一次抽棋占卜', icon: 'dice' },
+  { id: 'ten_draws', title: '棋道修行者', desc: '累積 10 次占卜', icon: 'crystal-ball' },
+  { id: 'fifty_draws', title: '占卜大師', desc: '累積 50 次占卜', icon: 'trophy' },
+  { id: 'first_board', title: '佈局新手', desc: '完成第一次棋盤佈局', icon: 'chess-board' },
+  { id: 'first_lingqi', title: '靈棋初擲', desc: '完成第一次靈棋占卜', icon: 'lingqi' },
+  { id: 'first_favorite', title: '慧眼識籤', desc: '收藏第一首籤詩', icon: 'heart' },
+  { id: 'week_streak', title: '七日問道', desc: '連續使用 7 天', icon: 'flame' },
+  { id: 'both_modes', title: '雙修圓滿', desc: '使用過抽棋和佈局兩種模式', icon: 'refresh' },
+  { id: 'all_modes', title: '三法俱通', desc: '抽棋、棋盤、靈棋三種模式都用過', icon: 'lantern' },
+  { id: 'all_levels', title: '知天命', desc: '抽過全部 5 種吉凶等級的籤詩', icon: 'scroll' },
+  { id: 'first_verify', title: '占而後驗', desc: '回填第一次占卜的實際結果', icon: 'lightbulb' },
+  { id: 'ten_verify', title: '占驗有簿', desc: '累積回填 10 次占驗', icon: 'scroll' },
+  // S82：S76–S78 上線的功能原本沒有任何成就認得
+  { id: 'first_learn', title: '初窺易理', desc: '在學習模式第一次答對', icon: 'study' },
+  { id: 'trigram_mastery', title: '八卦在心', desc: '八卦牌八張都排到隔 4 天以上才複習', icon: 'graduation' },
+  { id: 'first_intuition', title: '先問本心', desc: '第一次在占卜前記下直覺', icon: 'moon' },
+  { id: 'ten_calibrated', title: '知己知卦', desc: '10 筆記錄既記了直覺、也回填了事情結果', icon: 'chart' },
+  { id: 'first_link', title: '一事再問', desc: '第一次把兩次占卜連結成同一件事', icon: 'refresh' },
 ];
 
 export async function getAchievements(): Promise<Achievement[]> {
@@ -73,6 +93,16 @@ export async function checkAchievements(stats: {
    */
   totalLingqi?: number;
   hasLingqi?: boolean;
+  /**
+   * S82 的五個成就。同樣選填，理由同上。學習進度存在另一個儲存鍵（learning.ts），
+   * 由 syncAchievements 讀進來算好，這裡只收結論。
+   */
+  hasLearnCorrect?: boolean;
+  /** 八卦牌八張裡，複習間隔最短的那一張是幾天；有一張沒學過就是 0 */
+  trigramMinInterval?: number;
+  hasIntuition?: boolean;
+  totalCalibrated?: number;
+  hasLink?: boolean;
 }): Promise<string[]> {
   // 先算出「這次符合條件的成就有哪些」，實際的解鎖寫入放到 updateSettings
   // 的 updater 裡再依當下的清單決定。在這裡讀 unlockedAchievements 再寫回，
@@ -103,6 +133,11 @@ export async function checkAchievements(stats: {
   tryUnlock('all_levels', POEM_LEVELS.every(level => stats.levels.includes(level)));
   tryUnlock('first_verify', (stats.totalVerified ?? 0) >= 1);
   tryUnlock('ten_verify', (stats.totalVerified ?? 0) >= ACHIEVEMENT_THRESHOLDS.ten_verify);
+  tryUnlock('first_learn', stats.hasLearnCorrect === true);
+  tryUnlock('trigram_mastery', (stats.trigramMinInterval ?? 0) >= ACHIEVEMENT_THRESHOLDS.trigram_mastery);
+  tryUnlock('first_intuition', stats.hasIntuition === true);
+  tryUnlock('ten_calibrated', (stats.totalCalibrated ?? 0) >= ACHIEVEMENT_THRESHOLDS.ten_calibrated);
+  tryUnlock('first_link', stats.hasLink === true);
 
   let newUnlocks: string[] = [];
   await updateSettings(current => {
@@ -127,7 +162,14 @@ export async function checkAchievements(stats: {
  * 這裡把「讀資料→算統計→檢查」包成一步，讓呼叫端不必自己拼統計而漏算。
  */
 export async function syncAchievements(): Promise<string[]> {
-  const [history, favorites] = await Promise.all([getHistory(), getFavorites()]);
+  const [history, favorites, learning] = await Promise.all([
+    getHistory(), getFavorites(), getLearningState(),
+  ]);
+  const progress = Object.values(learning);
+  // 答對過至少一次＝作答次數多於答錯次數。不能看格數：第一次就答對與答錯都落在第一格
+  const hasLearnCorrect = progress.some(p => p.reviews > p.lapses);
+  const trigramIntervals = deckCards('trigram')
+    .map(c => learning[c.id] ? LEITNER_INTERVALS[learning[c.id].box - 1] : 0);
 
   return checkAchievements({
     totalDraws: history.filter(r => r.mode === 'draw').length,
@@ -142,6 +184,12 @@ export async function syncAchievements(): Promise<string[]> {
     // 空字串湊不進去（見下方 tryUnlock('all_levels') 的註解）。
     levels: history.map(r => r.poemLevel),
     totalVerified: history.filter(r => r.outcome !== undefined).length,
+    hasLearnCorrect,
+    trigramMinInterval: Math.min(...trigramIntervals),
+    // 與 calibration.ts 用同一組判斷：壞值（舊備份、手改檔案）在統計頁不算數，這裡也不算
+    hasIntuition: history.some(r => isIntuitionPct(r.intuition)),
+    totalCalibrated: history.filter(r => isIntuitionPct(r.intuition) && isRealizedStatus(r.outcome?.realized)).length,
+    hasLink: history.some(r => r.relatedTo !== undefined),
   });
 }
 

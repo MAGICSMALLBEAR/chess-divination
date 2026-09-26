@@ -106,3 +106,32 @@ test.describe('易經學習', () => {
     expect(label).toMatch(/^From the bottom up: (yang|yin)/);
   });
 });
+
+// S82：學習進度存在另一個儲存鍵，成就要自己讀進來——漏讀的話條件永遠是假，單元測試之外
+// 再走一次真頁面：答對一題之後打開成就頁，看得到「初窺易理」解鎖
+test.describe('學習模式的成就', () => {
+  test('答對一題：成就頁的初窺易理解鎖，八卦在心仍鎖著', async ({ page }) => {
+    await page.goto('/learn');
+    await page.getByTestId('learn-start-trigram').click({ timeout: 30_000 });
+    const answer = TRIGRAM_LABELS[await trigramFromPrompt(page)];
+    await page.getByTestId(`learn-option-${answer}`).click();
+    await expect(page.getByTestId('learn-feedback')).toContainText('答對了');
+
+    await page.goto('/achievements');
+    await expect(page.getByTestId('achievement-first_learn')).toHaveAttribute('aria-label', /已解鎖/, { timeout: 30_000 });
+    await expect(page.getByTestId('achievement-trigram_mastery')).toHaveAttribute('aria-label', /未解鎖/);
+  });
+
+  test('八卦八張都排到隔 4 天以上：八卦在心解鎖', async ({ page }) => {
+    // 第 3 格的間隔是 4 天（LEITNER_INTERVALS）
+    const progress = Object.fromEntries(
+      Array.from({ length: 8 }, (_, i) => [`trigram:${i}`, { box: 3, due: '2099-01-01', reviews: 3, lapses: 0 }]),
+    );
+    await page.addInitScript(
+      ([key, value]) => window.localStorage.setItem(key as string, value as string),
+      [LEARNING_KEY, JSON.stringify(progress)] as const,
+    );
+    await page.goto('/achievements');
+    await expect(page.getByTestId('achievement-trigram_mastery')).toHaveAttribute('aria-label', /已解鎖/, { timeout: 30_000 });
+  });
+});
