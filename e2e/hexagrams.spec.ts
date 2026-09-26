@@ -18,6 +18,8 @@ test.describe('卦典', () => {
 
     const card = page.getByTestId('hexagram-card-3');
     await card.click();
+    await expect(card.getByTestId('hexagram-judgment')).toContainText('屯：元亨，利貞。勿用有攸往，利建侯。');
+    await expect(card.getByTestId('hexagram-image')).toContainText('雲雷，屯；君子以經綸。');
     const yao = card.getByTestId('hexagram-yao-texts');
     await expect(yao).toContainText('初九：磐桓');
     await expect(yao).toContainText('上六：乘馬班如，泣血漣如。');
@@ -99,6 +101,10 @@ test.describe('卦典', () => {
     await page.goto('/reveal?recordId=target&mode=draw');
     const link = page.getByTestId('reveal-hexagram-link');
     await expect(link).toBeVisible({ timeout: 30_000 });
+    // 盤面上本卦的卦辭與大象（S81）：一爻動讀本卦卦辭，不列變卦的
+    const judgment = page.getByTestId('liuyao-judgment');
+    await expect(judgment).toContainText('未濟：亨。小狐汔濟，濡其尾，无攸利。');
+    await expect(judgment).toContainText('火在水上');
     await expect(link).toContainText('火水未濟');
     await link.click();
 

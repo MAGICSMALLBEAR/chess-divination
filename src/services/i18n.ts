@@ -534,6 +534,11 @@ export const translations: Record<string, Record<Lang, string>> = {
   'library.hexReversed': { 'zh-TW': '綜卦', en: 'Inverted', ja: '綜卦' },
   'library.hexReversedHint': { 'zh-TW': '六爻上下顛倒，換到對方的立場看', en: 'Turned upside down: the view from the other side', ja: '六爻を上下逆さにし、相手の立場から見る' },
   'library.hexSelf': { 'zh-TW': '{name}（即本卦）', en: '{name} (the same hexagram)', ja: '{name}（本卦と同じ）' },
+  // 卦辭與大象（Session 81）：經文三語皆印原文，這裡只有標籤
+  'zhouyi.judgment': { 'zh-TW': '卦辭', en: 'Judgment', ja: '卦辞' },
+  'zhouyi.image': { 'zh-TW': '大象', en: 'Great Image', ja: '大象' },
+  'zhouyi.source': { 'zh-TW': '《周易》原文（依維基文庫，並對過《周易正義》）', en: 'Zhouyi original (from Wikisource, checked against the Zhouyi Zhengyi)', ja: '『周易』原文（ウィキソース所収、『周易正義』と照合済み）' },
+  'liuyao.primaryJudgment': { 'zh-TW': '本卦卦辭（{name}）', en: 'Judgment of the primary hexagram ({name})', ja: '本卦の卦辞（{name}）' },
   'library.hexOpenPoem': { 'zh-TW': '看這一卦的籤詩', en: "See this hexagram's poem", ja: 'この卦の籤詩を見る' },
 
   // ── 命理術語詞典（app/glossary.tsx） ──

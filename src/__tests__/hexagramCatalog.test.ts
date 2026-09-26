@@ -5,6 +5,7 @@ import { lineName } from '../services/hexagram';
 import { buildLiuYaoReading } from '../services/liuyao';
 import { getMovingLineGuidance } from '../services/yaoReading';
 import { ALL_POEMS } from '../data/poems';
+import { ZHOUYI_TEXTS } from '../data/zhouyiTexts';
 
 const byId = (id: number) => {
   const e = hexagramEntry(id);
@@ -52,6 +53,68 @@ describe('卦典：爻辭', () => {
         expect(e.yaoTexts![line - 1]).toBe(getMovingLineGuidance(e.poemId, line, '平').classicalText);
       }
     }
+  });
+});
+
+describe('卦典：卦辭與大象', () => {
+  // 籤詩卦名與維基原文的用字不同（無妄／无妄、恒／恆），比對卦名時視為同字；
+  // 畫面上各自印來源原字，這裡只是認人
+  const same = (s: string) => s.replace(/無/g, '无').replace(/恒/g, '恆');
+
+  it('產生檔 64 卦齊全，卦序 1–64', () => {
+    expect(Object.keys(ZHOUYI_TEXTS).map(Number).sort((a, b) => a - b))
+      .toEqual(Array.from({ length: 64 }, (_, i) => i + 1));
+  });
+
+  // 產生檔的卦名來自維基逐卦頁，App 的卦名來自籤詩——兩個來源互相獨立，
+  // 對得上才證明產生腳本沒有把卦序排錯（例如把第三卦的卦辭掛到第四卦）
+  it('產生檔的卦名就是同一號籤詩卦名的卦名部分（坎卦原文作「習坎」）', () => {
+    for (const poem of ALL_POEMS) {
+      const shortName = poem.hexagramName.includes('為') ? poem.hexagramName[0] : poem.hexagramName.slice(2);
+      const name = ZHOUYI_TEXTS[poem.id].name;
+      expect([same(shortName), `習${same(shortName)}`]).toContain(same(name));
+    }
+  });
+
+  it('卦辭一律以卦名起首（「屯：」或「履虎尾」這種卦名入句的寫法）', () => {
+    for (const e of HEXAGRAM_CATALOG) {
+      expect(e.judgment.startsWith(ZHOUYI_TEXTS[e.poemId].name)).toBe(true);
+    }
+  });
+
+  it('大象都提到本卦卦名（乾坤除外：「天行健」「地勢坤」以象起首）', () => {
+    for (const e of HEXAGRAM_CATALOG.filter(x => x.poemId > 2)) {
+      const shortName = ZHOUYI_TEXTS[e.poemId].name.replace(/^習/, '');
+      expect(same(e.image)).toContain(same(shortName));
+    }
+  });
+
+  it.each([
+    [1, '乾：元亨。利貞。', '天行健，君子以自強不息。'],
+    [2, '坤：元亨。利牝馬之貞。', '地勢坤，君子以厚德載物。'],
+    [10, '履虎尾，不咥人，亨。', '上天下澤，履；君子以辨上下，定民志。'],
+  ])('#%i 的卦辭與大象', (id, judgment, image) => {
+    expect(byId(id).judgment).toBe(judgment);
+    expect(byId(id).image).toBe(image);
+  });
+
+  it('兩處已裁定的異文：剝取「山附於地」、革取「巳日乃孚」', () => {
+    expect(byId(23).image).toContain('山附於地');
+    expect(byId(49).judgment).toContain('巳日乃孚');
+  });
+
+  it('經文裡沒有維基標記殘留，也沒有空白', () => {
+    for (const e of HEXAGRAM_CATALOG) {
+      for (const text of [e.judgment, e.image]) {
+        expect(text).not.toMatch(/[-{}<>'|\s]/);
+      }
+    }
+  });
+
+  it('可以用卦辭或大象搜到那一卦', () => {
+    const hits = (q: string) => HEXAGRAM_CATALOG.filter(e => hexagramMatchesSearch(e, q)).map(e => e.poemId);
+    expect(hits('自強不息')).toEqual([1]);
+    expect(hits('厚德載物')).toEqual([2]);
   });
 });
 

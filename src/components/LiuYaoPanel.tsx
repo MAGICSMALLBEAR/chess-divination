@@ -9,6 +9,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { Spacing, FontSize } from '@/constants/theme';
 import { getMovingLineGuidance } from '@/services/yaoReading';
+import { ZHOUYI_TEXTS } from '@/data/zhouyiTexts';
 import { buildNaJiaReading, transformedLineRelation, type NaJiaLine } from '@/services/najja';
 import { useGodForCategory, type DivinerGender } from '@/services/useGod';
 import { questionCategoryDomain } from '@/services/questionCategories';
@@ -51,6 +52,7 @@ export default function LiuYaoPanel({
   const strengthColor = colorFor(STRENGTH_TONE[strength.state] || 'neutral');
   const adjusted = finalLevel !== bodyUse.level;
   const movingGuidance = getMovingLineGuidance(primary.poemId, movingLine, finalLevel);
+  const primaryText = ZHOUYI_TEXTS[primary.poemId];
   const naJia = buildNaJiaReading(primary.upper, primary.lower, primary.poemId, primary.lines, castAt);
   const changedNaJia = buildNaJiaReading(changed.upper, changed.lower, changed.poemId, changed.lines, castAt);
   const primaryMovingNaJia = naJia?.lines[movingLine - 1];
@@ -114,6 +116,20 @@ export default function LiuYaoPanel({
           </View>
         ))}
       </View>
+
+      {/* 本卦卦辭與大象。一爻動的通行讀法是看本卦卦辭與動爻爻辭，故只列本卦，
+          不列變卦的卦辭——兩段卦辭並列只會讓人不知道該讀哪一段 */}
+      {primaryText && (
+        <View testID="liuyao-judgment" style={[styles.yaoBox, { borderColor: theme.bgMedium, backgroundColor: theme.bgInk }]}>
+          <Text style={[styles.yaoLabel, { color: theme.textGold }]}>
+            {t('liuyao.primaryJudgment', { name: primary.name })}
+          </Text>
+          <Text style={[styles.classicalText, { color: theme.textPrimary }]}>{primaryText.judgment}</Text>
+          <Text style={[styles.yaoLabel, styles.imageLabel, { color: theme.textGold }]}>{t('zhouyi.image')}</Text>
+          <Text style={[styles.imageText, { color: theme.textSecondary }]}>{primaryText.image}</Text>
+          <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('zhouyi.source')}</Text>
+        </View>
+      )}
 
       {/* 動爻 */}
       <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
@@ -301,6 +317,8 @@ const styles = StyleSheet.create({
   yaoBox: { borderWidth: 1, borderRadius: 10, padding: Spacing.sm, marginTop: Spacing.sm },
   yaoLabel: { fontSize: FontSize.caption, fontWeight: '700', marginBottom: 4 },
   classicalText: { fontSize: FontSize.body, fontWeight: '600', lineHeight: 26 },
+  imageLabel: { marginTop: Spacing.sm },
+  imageText: { fontSize: FontSize.small, lineHeight: 22 },
   sourceNote: { fontSize: FontSize.overline, lineHeight: 18, marginTop: 3 },
   yaoPlain: { fontSize: FontSize.small, lineHeight: 22, marginTop: Spacing.sm },
   yaoAction: { fontSize: FontSize.small, lineHeight: 22, marginTop: Spacing.sm, fontWeight: '600' },

@@ -539,6 +539,14 @@ function HexagramCard({ entry, expanded, onPress, onLayout, onJump, onOpenPoem, 
       {expanded && (
         <View style={styles.expandedContent}>
           <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
+          <View testID="hexagram-judgment" style={styles.verseBlock}>
+            <Text style={[styles.verseLabel, { color: theme.textGold }]}>{t('zhouyi.judgment')}</Text>
+            <Text style={[styles.yaoLine, { color: theme.textPrimary }]}>{entry.judgment}</Text>
+          </View>
+          <View testID="hexagram-image" style={styles.verseBlock}>
+            <Text style={[styles.verseLabel, { color: theme.textGold }]}>{t('zhouyi.image')}</Text>
+            <Text style={[styles.yaoLine, { color: theme.textSecondary }]}>{entry.image}</Text>
+          </View>
           {entry.yaoTexts && (
             <View testID="hexagram-yao-texts" style={styles.verseBlock}>
               <Text style={[styles.verseLabel, { color: theme.textGold }]}>{t('library.hexYaoTexts')}</Text>
