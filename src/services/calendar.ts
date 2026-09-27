@@ -1,4 +1,4 @@
-// 今日曆法 — 農曆日期、二十四節氣、月建與當令五行、日柱
+// 今日曆法 — 農曆日期、月相、二十四節氣、月建與當令五行、日柱
 //
 // 只呈現曆法事實，**不做擇日、不列宜忌**：黃曆宜忌的流派差異大、取法不明確，
 // 與當初因用神取法不明確而收斂掉「尋人」同一個理由。這裡每一項都是算得出來、
@@ -8,6 +8,7 @@
 //   - 節氣與月建：date.ts 的同一條近似式（solarTermCalendarDate／monthBranchContext），
 //     不另算一份——首頁說的節氣與卦盤用的月建必須是同一個答案。
 //   - 日柱：sexagenary.ts。
+//   - 月相：天文算式（見下方「月相」一節），並以農曆初一／十五反過來核對（calendar.test.ts）。
 //   - 農曆：平台的 Intl 中國曆（`-u-ca-chinese`）。自己寫 200 年的農曆資料表容易抄錯又難驗證；
 //     平台曆法由 ICU 維護。**平台不支援時回傳 null、畫面整列不顯示**，不退回近似值——
 //     錯一天的農曆日期比沒有更糟。
@@ -126,6 +127,86 @@ export function solarTermOn(date: Date): SolarTermInfo | null {
   };
 }
 
+// ====== 月相 ======
+//
+// 不用「朔望月 29.53 天」的平均值推算：平均月相與真月相最多差到半天以上，
+// 會把望月那天說成虧凸月。改用 Meeus《Astronomical Algorithms》第 48 章的低精度式，
+// 算出日月的角距（0 = 朔、90 = 上弦、180 = 望、270 = 下弦），誤差約零點幾度，
+// 換成時間約一小時以內。
+//
+// 取名規則：朔、上弦、望、下弦是「瞬間」——只有那個瞬間落在今天（當地日曆日）裡，
+// 今天才叫那個名字；其餘日子取兩個瞬間之間的名稱。這樣每個主月相恰好一天，
+// 不會連續兩天都叫「滿月」。與農曆同一個時鐘（裝置當地時間），理由同 A23。
+
+export type MoonPhase =
+  | 'new' | 'waxingCrescent' | 'firstQuarter' | 'waxingGibbous'
+  | 'full' | 'waningGibbous' | 'lastQuarter' | 'waningCrescent';
+
+export interface MoonInfo {
+  phase: MoonPhase;
+  /** 當地正午的亮面比例 0–1 */
+  illumination: number;
+}
+
+const RAD = Math.PI / 180;
+
+function julianDay(date: Date): number {
+  return date.getTime() / 86_400_000 + 2440587.5;
+}
+
+/** 日月角距（度，0–360）：由朔往後量，0 朔、90 上弦、180 望、270 下弦 */
+export function moonElongation(date: Date): number {
+  const T = (julianDay(date) - 2451545) / 36525;
+  const D = 297.8501921 + 445267.1114034 * T - 0.0018819 * T * T;
+  const M = 357.5291092 + 35999.0502909 * T - 0.0001536 * T * T;
+  const Mp = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T;
+  // 月相角 i（Meeus 48.4）；角距 = 180 − i
+  const i = 180 - D
+    - 6.289 * Math.sin(Mp * RAD)
+    + 2.100 * Math.sin(M * RAD)
+    - 1.274 * Math.sin((2 * D - Mp) * RAD)
+    - 0.658 * Math.sin(2 * D * RAD)
+    - 0.214 * Math.sin(2 * Mp * RAD)
+    - 0.110 * Math.sin(D * RAD);
+  return (((180 - i) % 360) + 360) % 360;
+}
+
+/** 亮面比例：(1 + cos 月相角) / 2 */
+export function moonIllumination(date: Date): number {
+  const i = 180 - moonElongation(date);
+  return (1 + Math.cos(i * RAD)) / 2;
+}
+
+const PRINCIPAL: { at: number; phase: MoonPhase }[] = [
+  { at: 90, phase: 'firstQuarter' },
+  { at: 180, phase: 'full' },
+  { at: 270, phase: 'lastQuarter' },
+  { at: 360, phase: 'new' },
+];
+const BETWEEN: MoonPhase[] = ['waxingCrescent', 'waxingGibbous', 'waningGibbous', 'waningCrescent'];
+
+export function moonOn(date: Date): MoonInfo {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const end = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+  const noon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+  const from = moonElongation(start);
+  let to = moonElongation(end);
+  if (to < from) to += 360; // 今天跨過了朔
+  const crossed = PRINCIPAL.find(p => (from < p.at && p.at <= to) || (from < p.at - 360 && p.at - 360 <= to));
+  const phase = crossed ? crossed.phase : BETWEEN[Math.floor(moonElongation(noon) / 90)];
+  return { phase, illumination: moonIllumination(noon) };
+}
+
+/**
+ * 亮面的百分比（畫面用）。望的前一天亮面約 99.6%，四捨五入成 100% 就會印出「盈凸月 · 100%」
+ * 這種自相矛盾的句子——所以只有望可以是 100%、只有朔可以是 0%，其他日子夾在 1–99。
+ */
+export function moonLitPercent(moon: MoonInfo): number {
+  const pct = Math.round(moon.illumination * 100);
+  if (moon.phase === 'full' || moon.phase === 'new') return pct;
+  return Math.min(99, Math.max(1, pct));
+}
+
 // ====== 今日曆法 ======
 
 export interface TodayAlmanac {
@@ -139,6 +220,7 @@ export interface TodayAlmanac {
   seasonElement: string;
   /** 日柱（如「甲子」）：旬空與六神由它推 */
   dayPillar: string;
+  moon: MoonInfo;
 }
 
 export function todayAlmanac(date: Date = new Date()): TodayAlmanac {
@@ -152,5 +234,6 @@ export function todayAlmanac(date: Date = new Date()): TodayAlmanac {
     season,
     seasonElement: SEASON_ELEMENT[season],
     dayPillar: sexagenaryDay(date).name,
+    moon: moonOn(date),
   };
 }

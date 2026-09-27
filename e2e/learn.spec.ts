@@ -79,6 +79,31 @@ test.describe('易經學習', () => {
     await expect(page.getByTestId('learn-explain')).toContainText(/上卦 .・.，下卦 .・./);
   });
 
+  test('棋子卦象：帥將成對出現，解說帶出另一色的錯卦；仕的解說提到同卦的兵', async ({ page }) => {
+    await page.goto('/learn');
+    await expect(page.getByTestId('learn-summary-piece')).toContainText('已學 0／14', { timeout: 30_000 });
+    await page.getByTestId('learn-start-piece').click();
+
+    // 第一張紅帥：另一色（黑將＝坤）一定在選項裡——考的是記不記得顏色
+    await expect(page.getByTestId('learn-prompt')).toContainText('紅帥');
+    await expect(page.getByTestId('learn-option-坤・地')).toBeVisible();
+    await page.getByTestId('learn-option-乾・天').click();
+    await expect(page.getByTestId('learn-feedback')).toContainText('答對了');
+    await expect(page.getByTestId('learn-explain')).toContainText('黑將屬坤・地');
+    await expect(page.getByTestId('learn-explain-sharing')).toHaveCount(0);
+    await page.getByTestId('learn-next').click();
+
+    await expect(page.getByTestId('learn-prompt')).toContainText('黑將');
+    await page.getByTestId('learn-option-坤・地').click();
+    await page.getByTestId('learn-next').click();
+
+    await expect(page.getByTestId('learn-prompt')).toContainText('紅仕');
+    await page.getByTestId('learn-option-艮・山').click();
+    await expect(page.getByTestId('learn-explain-sharing')).toContainText('紅兵也屬這一卦');
+    await expect.poll(async () => Object.keys(await storedProgress(page)).filter(k => k.startsWith('piece:')))
+      .toEqual(['piece:0', 'piece:1', 'piece:2']);
+  });
+
   test('全部學過且都沒到期：不給一顆按了沒反應的按鈕，而是說明天再來', async ({ page }) => {
     const future = '2099-01-01';
     const state = Object.fromEntries(
@@ -99,8 +124,9 @@ test.describe('易經學習', () => {
     );
     await page.goto('/learn');
     await expect(page.getByTestId('learn-title')).toHaveText('Learn the I Ching', { timeout: 30_000 });
-    const deckText = await page.getByTestId('learn-deck-hexagram').innerText();
-    expect(deckText).not.toMatch(/[一-鿿]/);
+    for (const deck of ['hexagram', 'piece']) {
+      expect(await page.getByTestId(`learn-deck-${deck}`).innerText()).not.toMatch(/[一-鿿]/);
+    }
     await page.getByTestId('learn-start-trigram').click();
     const label = await page.getByTestId('learn-prompt').getByRole('img').first().getAttribute('aria-label');
     expect(label).toMatch(/^From the bottom up: (yang|yin)/);

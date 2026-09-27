@@ -19,6 +19,8 @@ const BACKUP_KEYS = [
   '@chess_divination_deleted',
   // 易經學習的間隔重複進度（learning.ts）。不進雲端同步，換機只能靠備份帶過去
   '@chess_divination_learning',
+  // 抽棋計數（drawTally.ts），同上只存本機
+  '@chess_divination_draw_tally',
 ] as const;
 
 const BACKUP_VERSION = 1;
@@ -104,6 +106,8 @@ const KEY_SHAPES: Record<(typeof BACKUP_KEYS)[number], (value: unknown) => boole
   '@chess_divination_deleted': isStringArray,
   // 逐張卡片的細部由 normalizeLearningState 在讀取時把關（壞的那張當成沒學過），這裡只擋整份形狀不對
   '@chess_divination_learning': isPlainObject,
+  // 八個計數的細部由 normalizeDrawTally 在讀取時把關（壞了就從零開始）
+  '@chess_divination_draw_tally': isPlainObject,
 };
 
 /**

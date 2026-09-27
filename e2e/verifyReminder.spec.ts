@@ -49,7 +49,7 @@ test.describe('占驗提醒可調', () => {
   test('設定頁：沒設定過時亮的是預設天數；點選項會存進設定並改亮那一顆', async ({ page }) => {
     await page.goto('/settings');
     // 選中狀態看使用者看得到的訊號：被選中那一顆的邊框色與其餘三顆不同（其餘三顆彼此相同）。
-    // 不看 aria-selected——專案裡所有選項都用 accessibilityState，在 web 上並不輸出該屬性
+    // 讀屏聽得到的訊號（aria-selected）另外斷言——兩者要指向同一顆
     const borderColors = () => Promise.all([0, 7, 14, 30].map(async days => ({
       days,
       color: await page.getByTestId(`verify-reminder-${days}`)
@@ -61,6 +61,10 @@ test.describe('占驗提醒可調', () => {
       const mine = all.find(o => o.days === days)!.color;
       expect(new Set(others).size).toBe(1);
       expect(mine).not.toBe(others[0]);
+      for (const d of [0, 7, 14, 30]) {
+        expect(await page.getByTestId(`verify-reminder-${d}`).getAttribute('aria-selected'))
+          .toBe(d === days ? 'true' : 'false');
+      }
     };
     const selected = (days: number) => expect.poll(async () => {
       try { await expectOnlySelected(days); return true; } catch { return false; }

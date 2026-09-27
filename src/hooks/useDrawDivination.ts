@@ -12,6 +12,7 @@ import { addHistory, recordFromDivination } from '@/services/storage';
 import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
 import { scheduleVerificationReminder } from '@/services/notifications';
+import { recordDraw } from '@/services/drawTally';
 import type { IntuitionPct } from '@/services/calibration';
 
 export type DrawStep = 'select-count' | 'drawing' | 'result';
@@ -40,6 +41,8 @@ export function useDrawDivination() {
     // 執行抽棋
     const pieces = drawPieces(count);
     setDrawnPieces(pieces);
+    // 抽出的這一刻就計數，之後「重新抽取」丟掉的也算——隨機性要量的是亂數，不是使用者留下了哪幾次
+    void recordDraw(pieces.map(p => p.trigram));
 
     // 起卦並選擇籤詩
     const hex = computeHexagram(pieces);

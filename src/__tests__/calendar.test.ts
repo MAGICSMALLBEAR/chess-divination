@@ -5,6 +5,7 @@
 
 import {
   lunarDate, lunarDayName, lunarMonthName, lunarYearGanZhi, solarTermOn, todayAlmanac,
+  moonElongation, moonIllumination, moonOn, moonLitPercent,
 } from '../services/calendar';
 import { monthBranchContext, SOLAR_TERM_NAMES, EARTHLY_BRANCHES, seasonOf, SEASON_ELEMENT } from '../services/date';
 import { sexagenaryDay } from '../services/sexagenary';
@@ -127,5 +128,76 @@ describe('今日曆法：與卦盤用同一份答案', () => {
       const term = monthBranchContext(d(2026, m, 15)).term;
       expect(SOLAR_TERM_NAMES.indexOf(term as (typeof SOLAR_TERM_NAMES)[number]) % 2).toBe(0);
     }
+  });
+});
+
+describe('月相', () => {
+  // 已公布的月相瞬間（UTC）：與時區無關，直接比角距
+  test.each([
+    ['2024-01-11T11:57:00Z', 0],   // 朔
+    ['2024-01-18T03:52:00Z', 90],  // 上弦
+    ['2024-01-25T17:54:00Z', 180], // 望
+    ['2024-02-02T23:18:00Z', 270], // 下弦
+    ['2024-04-08T18:21:00Z', 0],   // 朔（日全食）
+    ['2024-09-18T02:34:00Z', 180], // 望（月偏食）
+  ])('%s 的角距約為 %s°（誤差 1° 內 ≈ 兩小時內）', (iso, target) => {
+    const e = moonElongation(new Date(iso));
+    const diff = Math.abs(((e - target + 540) % 360) - 180);
+    expect(diff).toBeLessThan(1);
+  });
+
+  test('亮面比例：朔約 0、望約 1、上弦約一半', () => {
+    expect(moonIllumination(new Date('2024-01-11T11:57:00Z'))).toBeLessThan(0.01);
+    expect(moonIllumination(new Date('2024-01-25T17:54:00Z'))).toBeGreaterThan(0.99);
+    expect(moonIllumination(new Date('2024-01-18T03:52:00Z'))).toBeCloseTo(0.5, 1);
+  });
+
+  test('亮面百分比：只有望能印 100%、只有朔能印 0%（避免「盈凸月 · 100%」）', () => {
+    expect(moonLitPercent({ phase: 'waxingGibbous', illumination: 0.996 })).toBe(99);
+    expect(moonLitPercent({ phase: 'full', illumination: 0.996 })).toBe(100);
+    expect(moonLitPercent({ phase: 'waningCrescent', illumination: 0.002 })).toBe(1);
+    expect(moonLitPercent({ phase: 'new', illumination: 0.002 })).toBe(0);
+    expect(moonLitPercent({ phase: 'firstQuarter', illumination: 0.5 })).toBe(50);
+  });
+
+  test('主月相恰好一天：連續 90 天裡，朔、上弦、望、下弦各自不會連兩天出現', () => {
+    let prev = '';
+    const counts: Record<string, number> = {};
+    for (let i = 0; i < 90; i++) {
+      const { phase } = moonOn(d(2025, 1, 1 + i));
+      counts[phase] = (counts[phase] ?? 0) + 1;
+      if (['new', 'firstQuarter', 'full', 'lastQuarter'].includes(phase)) expect(phase).not.toBe(prev);
+      prev = phase;
+    }
+    // 三個朔望月：每個主月相 3 次左右（90 天可能碰到第 4 次）
+    for (const p of ['new', 'firstQuarter', 'full', 'lastQuarter']) {
+      expect(counts[p]).toBeGreaterThanOrEqual(3);
+      expect(counts[p]).toBeLessThanOrEqual(4);
+    }
+  });
+
+  test('月相順序只會往前走：新月 → 眉月 → 上弦 → 盈凸 → 望 → 虧凸 → 下弦 → 殘月', () => {
+    const ORDER = ['new', 'waxingCrescent', 'firstQuarter', 'waxingGibbous', 'full', 'waningGibbous', 'lastQuarter', 'waningCrescent'];
+    let prev = ORDER.indexOf(moonOn(d(2025, 3, 1)).phase);
+    for (let i = 1; i < 120; i++) {
+      const cur = ORDER.indexOf(moonOn(d(2025, 3, 1 + i)).phase);
+      expect([prev, (prev + 1) % 8]).toContain(cur);
+      prev = cur;
+    }
+  });
+
+  // 與另一個獨立來源對照：農曆以朔日為初一。平台中國曆由 ICU 維護，與本檔的天文算式互不相干
+  test('與平台農曆互相核對：初一亮面極小，十五、十六亮面極大', () => {
+    const probe = lunarDate(d(2025, 1, 1));
+    if (!probe) return; // 平台不支援中國曆時無從對照（單元測試環境的 Node 有完整 ICU）
+    let checked = 0;
+    for (let i = 0; i < 365; i++) {
+      const date = d(2025, 1, 1 + i);
+      const lunar = lunarDate(date)!;
+      const lit = moonOn(date).illumination;
+      if (lunar.day === 1) { expect(lit).toBeLessThan(0.06); checked++; }
+      if (lunar.day === 15 || lunar.day === 16) { expect(lit).toBeGreaterThan(0.9); checked++; }
+    }
+    expect(checked).toBeGreaterThanOrEqual(30);
   });
 });

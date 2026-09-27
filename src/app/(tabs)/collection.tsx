@@ -363,6 +363,8 @@ export default function CollectionScreen() {
     return (
       <TouchableOpacity
         key={record.id}
+        // 批次選取時被選中的卡片只靠紅框分辨，讀屏要另外聽得到
+        aria-selected={selectMode && selectedIds.has(record.id)}
         style={[
           styles.card,
           // 尚未量測或單欄時佔滿；多欄時以量測推得的卡片寬並排
@@ -483,7 +485,7 @@ export default function CollectionScreen() {
                   testID={`folder-pick-${f.id}-${record.id}`}
                   style={styles.folderPickItem}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: filed }}
+                  aria-selected={filed}
                   onPress={() => handleToggleFolder(record.id, f)}>
                   <View style={[styles.folderPickDot, { backgroundColor: f.color }]} />
                   <Text style={{ color: filed ? theme.textGold : theme.textPrimary, fontSize: 13 }}>{f.name}</Text>
@@ -541,6 +543,8 @@ export default function CollectionScreen() {
         <View style={styles.sortRow}>
           {(['newest', 'oldest', 'best'] as const).map(o => (
             <TouchableOpacity key={o}
+              accessibilityRole="button"
+              aria-selected={sortOrder === o}
               style={[styles.sortBtn, sortOrder === o && { borderColor: theme.gold }]}
               onPress={() => setSortOrder(o)}>
               <Text style={[styles.sortText, sortOrder === o && { color: theme.textGold }]}>
@@ -550,6 +554,8 @@ export default function CollectionScreen() {
           ))}
           {tab === 'history' && data.length > 0 && (
             <TouchableOpacity style={[styles.sortBtn, selectMode && { borderColor: theme.textRed }]}
+              accessibilityRole="button"
+              aria-pressed={selectMode}
               onPress={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}>
               <Text style={[styles.sortText, selectMode && { color: theme.textRed }]}>
                 {t(selectMode ? 'collection.deselect' : 'collection.select')}

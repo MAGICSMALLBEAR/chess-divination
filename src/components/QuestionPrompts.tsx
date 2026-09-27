@@ -62,7 +62,7 @@ export default function QuestionPrompts({ category, onCategoryChange, onSelect }
               onPress={() => onCategoryChange(primary.key)}
               style={[styles.domain, { backgroundColor: theme.bgCard, borderColor: theme.bgMedium }, isActive && { backgroundColor: theme.bgMedium, borderColor: theme.gold }]}
               accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
+              aria-selected={isActive}
             >
               <Icon name={primary.icon} size={20} color={isActive ? theme.gold : theme.textMuted} />
               <Text style={[styles.domainText, { color: isActive ? theme.textGold : theme.textSecondary }]}>{primary.label}</Text>
@@ -84,7 +84,7 @@ export default function QuestionPrompts({ category, onCategoryChange, onSelect }
                 onPress={() => onCategoryChange(item.key)}
                 style={[styles.scenario, { backgroundColor: theme.bgMedium }, category === item.key && { backgroundColor: theme.gold }]}
                 accessibilityRole="button"
-                accessibilityState={{ selected: category === item.key }}
+                aria-selected={category === item.key}
               >
                 <Text style={{ color: category === item.key ? theme.textInverse : theme.textSecondary }}>{item.label}</Text>
               </TouchableOpacity>

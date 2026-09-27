@@ -382,7 +382,7 @@ export default function LingqiScreen() {
                   style={styles.favBtn}
                   testID="lingqi-favorite"
                   accessibilityRole="button"
-                  accessibilityState={{ selected: isFav }}
+                  aria-selected={isFav}
                   accessibilityLabel={t(isFav ? 'common.unfavorite' : 'common.favorite')}
                   onPress={handleToggleFavorite}
                 >

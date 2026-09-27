@@ -1,4 +1,4 @@
-// 今日曆法卡 — 農曆、節氣、月建與當令五行、日柱
+// 今日曆法卡 — 農曆、月相、節氣、月建與當令五行、日柱
 //
 // 只列曆法事實，不做擇日宜忌（理由見 services/calendar.ts）。月建與日柱是揭曉頁六爻盤判旺衰、
 // 旬空、六神實際在用的兩個值——卡片說明這一點，並連到詞典的「月建」讓人查。
@@ -10,7 +10,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Icon } from '@/components/icons';
 import {
-  lunarMonthName, lunarDayName, lunarYearGanZhi, type TodayAlmanac, type LunarDate,
+  lunarMonthName, lunarDayName, lunarYearGanZhi, moonLitPercent, type TodayAlmanac, type LunarDate, type MoonPhase,
 } from '@/services/calendar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -19,6 +19,18 @@ import { Spacing, FontSize } from '@/constants/theme';
 interface Props {
   almanac: TodayAlmanac;
 }
+
+/** 月相名稱的譯文鍵。寫成字面量對照表，理由同詞典頁的 GROUP_TITLE_KEYS */
+const MOON_PHASE_KEYS: Record<MoonPhase, string> = {
+  new: 'almanac.moonNew',
+  waxingCrescent: 'almanac.moonWaxingCrescent',
+  firstQuarter: 'almanac.moonFirstQuarter',
+  waxingGibbous: 'almanac.moonWaxingGibbous',
+  full: 'almanac.moonFull',
+  waningGibbous: 'almanac.moonWaningGibbous',
+  lastQuarter: 'almanac.moonLastQuarter',
+  waningCrescent: 'almanac.moonWaningCrescent',
+};
 
 const shortDate = (date: Date) => `${date.getMonth() + 1}/${date.getDate()}`;
 
@@ -38,6 +50,13 @@ export default function TodayAlmanacCard({ almanac }: Props) {
   const rows: { key: string; text: string }[] = [
     // 平台不支援中國曆時整列不出現：錯一天的農曆日期比沒有更糟
     ...(almanac.lunar ? [{ key: 'lunar', text: lunarText(almanac.lunar) }] : []),
+    // 月相緊跟農曆：農曆以朔為初一、望在十五前後，兩列放在一起才對得起來
+    {
+      key: 'moon',
+      text: t('almanac.moon', {
+        phase: t(MOON_PHASE_KEYS[almanac.moon.phase]), pct: moonLitPercent(almanac.moon),
+      }),
+    },
     ...(term ? [{
       key: 'term',
       text: t('almanac.term', {

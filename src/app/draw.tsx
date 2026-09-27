@@ -105,7 +105,7 @@ export default function DrawScreen() {
                   key={n}
                   testID={`draw-count-${n}`}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: preferredCount === n }}
+                  aria-selected={preferredCount === n}
                   style={[
                     styles.countBtn,
                     { width: (contentWidth - Spacing.md * 2) / 3 },

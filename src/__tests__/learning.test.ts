@@ -15,14 +15,15 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 import {
   DECKS, deckCards, buildQuestion, trigramLabel, trigramLinesOf,
   applyAnswer, sessionQueue, deckSummary, addDays, normalizeLearningState,
-  getLearningState, recordAnswer,
+  getLearningState, recordAnswer, pieceOfCard,
   LEITNER_INTERVALS, MAX_BOX, NEW_PER_SESSION, OPTION_COUNT, LEARNING_KEY,
   type LearningState,
 } from '../services/learning';
 import {
   TRIGRAM_NAMES, TRIGRAM_ELEMENTS, XIANTIAN_TO_KINGWEN,
-  trigramsFromIndex, hexagramNameOf, hexagramLines, trigramFromLines, trigramsFromLines,
+  trigramsFromIndex, hexagramNameOf, hexagramLines, trigramFromLines, trigramsFromLines, YANG, YIN,
 } from '../services/hexagram';
+import { ALL_PIECES, PIECE_ORDER, pieceTrigram } from '../data/pieces';
 import { getPoemById } from '../data/poems';
 
 /** 可重現的亂數（線性同餘），讓選項順序在測試裡固定 */
@@ -106,6 +107,55 @@ describe('出題：答案對回真相來源', () => {
     if (q.prompt.kind !== 'lines') throw new Error();
     expect(q.prompt.lines).toEqual(hexagramLines(...trigramsFromIndex(40)));
     expect(trigramLinesOf(3)).toEqual(hexagramLines(3, 3).slice(0, 3));
+  });
+
+  test('棋子牌：14 張、每張是一種（棋種, 顏色），紅黑同種相鄰', () => {
+    const cards = deckCards('piece');
+    expect(cards).toHaveLength(PIECE_ORDER.length * 2);
+    const keys = cards.map(c => { const p = pieceOfCard(c.index); return `${p.type}-${p.color}`; });
+    expect(new Set(keys).size).toBe(cards.length);
+    // 帥、將先出，錯卦的對照一起學
+    expect(keys.slice(0, 2)).toEqual(['king-red', 'king-black']);
+  });
+
+  test('棋子牌：32 顆真棋子的卦，都等於牌上那題的答案（真相來源是 ALL_PIECES）', () => {
+    const byKey = new Map(deckCards('piece').map(c => {
+      const p = pieceOfCard(c.index);
+      return [`${p.type}-${p.color}`, buildQuestion(c, seeded(c.index + 5))] as const;
+    }));
+    expect(ALL_PIECES).toHaveLength(32);
+    for (const piece of ALL_PIECES) {
+      expect(byKey.get(`${piece.type}-${piece.color}`)!.answer).toBe(trigramLabel(piece.trigram));
+    }
+  });
+
+  test('棋子牌：干擾選項一定含另一色的卦，且那一卦是答案的錯卦（六爻全變）', () => {
+    for (const card of deckCards('piece')) {
+      const q = buildQuestion(card, seeded(card.index + 11));
+      if (q.prompt.kind !== 'piece') throw new Error('棋子牌應以棋子出題');
+      const { type, color } = q.prompt;
+      const other = pieceTrigram(type, color === 'red' ? 'black' : 'red');
+      expect(q.opposite).toBe(other);
+      expect(q.options).toContain(trigramLabel(other));
+      expect(q.options).toHaveLength(OPTION_COUNT);
+      expect(new Set(q.options).size).toBe(OPTION_COUNT);
+      const mine = trigramLinesOf(pieceTrigram(type, color));
+      expect(trigramLinesOf(other)).toEqual(mine.map(v => (v === YANG ? YIN : YANG)));
+    }
+  });
+
+  test('棋子牌：同卦的其他棋種要列出來，而且真的同卦（仕與兵）', () => {
+    const q = (type: string, color: 'red' | 'black') => buildQuestion(
+      deckCards('piece').find(c => { const p = pieceOfCard(c.index); return p.type === type && p.color === color; })!,
+    );
+    expect(q('advisor', 'red').sharing).toEqual(['pawn']);
+    expect(q('pawn', 'black').sharing).toEqual(['advisor']);
+    expect(q('king', 'red').sharing).toEqual([]);
+    for (const card of deckCards('piece')) {
+      const question = buildQuestion(card);
+      const { type, color } = pieceOfCard(card.index);
+      for (const s of question.sharing!) expect(pieceTrigram(s, color)).toBe(pieceTrigram(type, color));
+    }
   });
 
   test('八卦標示是「卦名・象」', () => {

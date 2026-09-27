@@ -191,7 +191,8 @@ function makePiece(type: PieceType, color: PieceColor, index: number): ChessPiec
   };
 }
 
-const PIECE_ORDER: PieceType[] = ['king', 'advisor', 'elephant', 'chariot', 'horse', 'cannon', 'pawn'];
+/** 棋種的固定順序（帥仕相車馬炮兵）——棋子陣列與學習模式的棋子牌組都照這個順序 */
+export const PIECE_ORDER: readonly PieceType[] = ['king', 'advisor', 'elephant', 'chariot', 'horse', 'cannon', 'pawn'];
 
 function buildSide(color: PieceColor): ChessPiece[] {
   const pieces: ChessPiece[] = [];

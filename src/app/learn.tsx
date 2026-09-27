@@ -11,6 +11,8 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import HexagramLines from '@/components/HexagramLines';
+import ChessPiece from '@/components/ChessPiece';
+import { ALL_PIECES, type PieceType, type PieceColor } from '@/data/pieces';
 import {
   DECKS, LEITNER_INTERVALS, NEW_PER_SESSION, trigramLabel, trigramLinesOf,
   buildQuestion, deckSummary, sessionQueue, getLearningState, recordAnswer,
@@ -25,13 +27,21 @@ import { Spacing, FontSize, Layout } from '@/constants/theme';
 /** 牌組名稱與說明的譯文鍵。寫成字面量對照表，理由同詞典頁的 GROUP_TITLE_KEYS */
 const DECK_TITLE_KEYS: Record<DeckId, string> = {
   trigram: 'learn.deckTrigram', trigramElement: 'learn.deckElement', hexagram: 'learn.deckHexagram',
+  piece: 'learn.deckPiece',
 };
 const DECK_DESC_KEYS: Record<DeckId, string> = {
   trigram: 'learn.deckTrigramDesc', trigramElement: 'learn.deckElementDesc', hexagram: 'learn.deckHexagramDesc',
+  piece: 'learn.deckPieceDesc',
 };
 const DECK_PROMPT_KEYS: Record<DeckId, string> = {
   trigram: 'learn.promptTrigram', trigramElement: 'learn.promptElement', hexagram: 'learn.promptHexagram',
+  piece: 'learn.promptPiece',
 };
+
+/** 棋子牌要畫的那一顆：同種同色的棋子長得都一樣，取第一顆 */
+function pieceFor(type: PieceType, color: PieceColor) {
+  return ALL_PIECES.find(p => p.type === type && p.color === color)!;
+}
 
 interface Session {
   deck: DeckId;
@@ -57,6 +67,13 @@ export default function LearnScreen() {
     setState(await getLearningState());
   }, []);
   useEffect(() => { void reload(); }, [reload]);
+
+  // 紅車與黑車是同一個字，只寫棋名分不出是哪一顆——顏色一定要跟著名字走
+  const pieceName = useCallback(
+    (type: PieceType, color: PieceColor) =>
+      t(color === 'red' ? 'learn.pieceRed' : 'learn.pieceBlack', { name: pieceFor(type, color).chineseName }),
+    [t],
+  );
 
   const describeLines = useCallback(
     (lines: LineValue[]) => t('learn.linesLabel', {
@@ -156,6 +173,7 @@ export default function LearnScreen() {
           {session && (() => {
             const q = session.question;
             const answered = session.picked !== null;
+            const piecePrompt = q.prompt.kind === 'piece' ? q.prompt : null;
             return (
               <View testID="learn-session" style={[styles.card, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
                 <Text testID="learn-progress" style={[styles.summary, { color: theme.textMuted }]}>
@@ -166,6 +184,13 @@ export default function LearnScreen() {
                 <View testID="learn-prompt" style={styles.promptBox}>
                   {q.prompt.kind === 'lines' ? (
                     <HexagramLines lines={q.prompt.lines} width={96} accessibilityLabel={describeLines(q.prompt.lines)} />
+                  ) : q.prompt.kind === 'piece' ? (
+                    <View accessible accessibilityLabel={pieceName(q.prompt.type, q.prompt.color)} style={styles.pieceBox}>
+                      <ChessPiece piece={pieceFor(q.prompt.type, q.prompt.color)} size={64} />
+                      <Text style={[styles.promptName, { color: theme.textPrimary }]}>
+                        {pieceName(q.prompt.type, q.prompt.color)}
+                      </Text>
+                    </View>
                   ) : (
                     <>
                       <HexagramLines
@@ -207,14 +232,30 @@ export default function LearnScreen() {
                     <Text style={[styles.feedback, { color: session.picked === q.answer ? theme.success : theme.danger }]}>
                       {session.picked === q.answer ? t('learn.correct') : t('learn.wrong', { answer: q.answer })}
                     </Text>
-                    {/* 換個方向再看一次答案：六十四卦拆回上下卦，八卦補上五行，五行牌補上卦象 */}
+                    {/* 換個方向再看一次答案：六十四卦拆回上下卦，八卦補上五行，五行牌補上卦象，
+                        棋子牌補上另一色那一顆（錯卦）與同卦的棋種 */}
                     <Text testID="learn-explain" style={[styles.explain, { color: theme.textSecondary }]}>
-                      {q.upper !== undefined && q.lower !== undefined
-                        ? t('learn.explainHexagram', { upper: trigramLabel(q.upper), lower: trigramLabel(q.lower) })
-                        : t('learn.explainTrigram', {
-                          label: trigramLabel(q.card.index), element: TRIGRAM_ELEMENTS[q.card.index],
-                        })}
+                      {piecePrompt && q.opposite !== undefined
+                        ? t('learn.explainPiece', {
+                          piece: pieceName(piecePrompt.type, piecePrompt.color),
+                          label: q.answer,
+                          other: pieceName(piecePrompt.type, piecePrompt.color === 'red' ? 'black' : 'red'),
+                          opposite: trigramLabel(q.opposite),
+                        })
+                        : q.upper !== undefined && q.lower !== undefined
+                          ? t('learn.explainHexagram', { upper: trigramLabel(q.upper), lower: trigramLabel(q.lower) })
+                          : t('learn.explainTrigram', {
+                            label: trigramLabel(q.card.index), element: TRIGRAM_ELEMENTS[q.card.index],
+                          })}
                     </Text>
+                    {piecePrompt && q.sharing && q.sharing.length > 0 && (
+                      <Text testID="learn-explain-sharing" style={[styles.explain, { color: theme.textSecondary }]}>
+                        {t('learn.explainPieceSharing', {
+                          pieces: q.sharing.map(type => pieceName(type, piecePrompt.color))
+                            .join(t('learn.listSeparator')),
+                        })}
+                      </Text>
+                    )}
                     <TouchableOpacity
                       testID="learn-next"
                       accessibilityRole="button"
@@ -260,6 +301,7 @@ const styles = StyleSheet.create({
   startText: { fontSize: FontSize.small, fontWeight: '600' },
   prompt: { fontSize: FontSize.small, marginTop: Spacing.sm },
   promptBox: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
+  pieceBox: { alignItems: 'center', gap: Spacing.sm },
   promptName: { fontSize: FontSize.subtitle, fontWeight: '700' },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   option: {

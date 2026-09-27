@@ -42,6 +42,23 @@ test.describe('今日曆法', () => {
     await expect(page.getByTestId('almanac-lunar')).toHaveText('農曆 八月十六（丙午年）');
   });
 
+  /**
+   * 月相以「主月相的瞬間落在哪一個當地日」定名。2024-01-25 17:54 UTC 望，台北時間是 1/26 01:54：
+   * 所以台北的 1/25 還是盈凸月、1/26 才是望——用平均朔望月推算或以 UTC 日期定名都會說錯其中一天
+   */
+  test('月相：望的瞬間落在哪一天（當地時間），那一天才叫望', async ({ page }) => {
+    await page.clock.install({ time: new Date('2024-01-25T20:00:00+08:00') });
+    await page.goto('/');
+    await expect(page.getByTestId('almanac-moon')).toHaveText(/^月相 盈凸月 · 亮面約 9\d%$/, { timeout: 30_000 });
+    await page.clock.setSystemTime(new Date('2024-01-26T20:00:00+08:00'));
+    await page.reload();
+    await expect(page.getByTestId('almanac-moon')).toHaveText(/^月相 望（滿月） · 亮面約 (99|100)%$/, { timeout: 30_000 });
+    // 月相緊跟在農曆下面
+    const ids = await page.getByTestId('today-almanac').locator('[data-testid^="almanac-"]')
+      .evaluateAll(els => els.map(e => e.getAttribute('data-testid')));
+    expect(ids.indexOf('almanac-moon')).toBe(ids.indexOf('almanac-lunar') + 1);
+  });
+
   test('「月建是什麼」連到詞典', async ({ page }) => {
     await page.goto('/');
     await page.getByTestId('almanac-glossary').click({ timeout: 30_000 });
@@ -57,5 +74,6 @@ test.describe('今日曆法', () => {
     await page.goto('/');
     await expect(page.getByTestId('almanac-lunar')).toHaveText('Lunar calendar: month 8, day 15 (丙午 year)', { timeout: 30_000 });
     expect(await page.getByTestId('almanac-note').innerText()).not.toMatch(/[一-鿿]/);
+    expect(await page.getByTestId('almanac-moon').innerText()).toMatch(/^Moon: [a-z ]+ · about \d+% lit$/);
   });
 });

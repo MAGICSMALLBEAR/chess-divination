@@ -10,6 +10,8 @@ import { PIECE_CHINESE_NAMES } from '@/components/icons';
 import TrendChart from '@/components/TrendChart';
 import AccuracyTrendChart from '@/components/AccuracyTrendChart';
 import CalibrationCard from '@/components/CalibrationCard';
+import RandomnessCard from '@/components/RandomnessCard';
+import { getDrawTally, randomnessReport, type DrawTally } from '@/services/drawTally';
 import { computeCalibration } from '@/services/calibration';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -42,12 +44,14 @@ export default function StatsScreen() {
   const { t, lang } = useI18n();
   const [records, setRecords] = useState<DivinationRecord[]>([]);
   const [reminderSetting, setReminderSetting] = useState<number | undefined>(undefined);
+  const [tally, setTally] = useState<DrawTally | null>(null);
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
   useEffect(() => { loadData(); }, []);
   async function loadData() {
-    const [h, settings] = await Promise.all([getHistory(), getSettings()]);
+    const [h, settings, drawTally] = await Promise.all([getHistory(), getSettings(), getDrawTally()]);
     setRecords(h);
+    setTally(drawTally);
     setReminderSetting(settings.verifyReminderDays);
   }
 
@@ -169,6 +173,8 @@ export default function StatsScreen() {
         <View style={styles.filterRow}>
           {(['all', 'week', 'month'] as const).map(f => (
             <TouchableOpacity key={f}
+              accessibilityRole="button"
+              aria-selected={dateFilter === f}
               style={[styles.filterBtn, dateFilter === f && { borderColor: theme.gold }]}
               onPress={() => setDateFilter(f)}>
               <Text style={[styles.filterText, dateFilter === f && { color: theme.textGold }]}>
@@ -282,6 +288,9 @@ export default function StatsScreen() {
 
         {/* 占卜前記下的直覺準不準，以及與卦的方向並列（預測校準） */}
         <CalibrationCard report={calibration} />
+
+        {/* 抽棋的隨機性：用的是抽出當下的計數（含重抽丟掉的），不是歷史記錄——理由見 drawTally.ts */}
+        {tally && <RandomnessCard report={randomnessReport(tally)} />}
 
         {/* 趨勢圖表 */}
         <TrendChart data={trendData} title={t('stats.trend')} />

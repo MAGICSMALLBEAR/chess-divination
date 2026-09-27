@@ -125,13 +125,15 @@ test.describe('互動元件尺寸', () => {
     await page.goto('/library');
     await expect(page.getByText('共 64 首')).toBeVisible({ timeout: 15_000 });
 
-    await expect
-      .poll(async () => (await readability(page, '全部')).found, { timeout: 15_000 })
-      .toBe(true);
-
-    const r = await readability(page, '全部');
+    // 量可點擊目標本身（chip 按鈕），不量內層文字——S83 替 chip 補上 button 角色與 aria-selected 後，
+    // 它在 web 上輸出成 <button>，舊寫法以 div/span 找「全部」只找得到 16px 高的文字節點。
+    // 修前修後按鈕都是 30px；ScrollView 塌陷的原迴歸會連按鈕一起壓扁，這裡照樣抓得到
+    const chip = page.getByRole('button', { name: '全部', exact: true });
+    await expect(chip).toBeVisible({ timeout: 15_000 });
+    await expect(chip).toHaveAttribute('aria-selected', 'true');
+    const box = await chip.boundingBox();
     // 一般可點擊目標至少要有 20px 高
-    expect(r.height, '篩選 chip 高度不足，無法點擊').toBeGreaterThan(20);
+    expect(box!.height, '篩選 chip 高度不足，無法點擊').toBeGreaterThan(20);
   });
 
   test('棋盤頁問事面向按鈕有可點擊的高度', async ({ page }) => {

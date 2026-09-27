@@ -249,6 +249,8 @@ export default function SettingsScreen() {
             <View style={styles.options}>
               {GENDER_OPTIONS.map(({ value, labelKey }) => (
                 <TouchableOpacity key={labelKey}
+                  accessibilityRole="button"
+                  aria-selected={settings.divinerGender === value}
                   style={[styles.option, settings.divinerGender === value && { borderColor: theme.gold }]}
                   onPress={() => update('divinerGender', value)}
                   accessibilityLabel={t(labelKey)}>
@@ -270,6 +272,8 @@ export default function SettingsScreen() {
             <View style={styles.options}>
               {(['dark', 'light', 'system'] as const).map((opt) => (
                 <TouchableOpacity key={opt}
+                  accessibilityRole="button"
+                  aria-selected={mode === opt}
                   style={[styles.option, mode === opt && { borderColor: theme.gold }]}
                   // 只寫 settings 不通知 ThemeProvider 的話，按鈕會亮起、
                   // 設定也存了，畫面卻要等重開才變色。setMode 自己會持久化，
@@ -290,6 +294,8 @@ export default function SettingsScreen() {
             <View style={styles.options}>
               {LANG_OPTIONS.map((opt) => (
                 <TouchableOpacity key={opt.key}
+                  accessibilityRole="button"
+                  aria-selected={lang === opt.key}
                   style={[styles.option, lang === opt.key && { borderColor: theme.gold }]}
                   onPress={() => {
                     // 語言是模組記憶體狀態，不寫進 settings 的話重開就歸零
@@ -314,7 +320,7 @@ export default function SettingsScreen() {
                 <TouchableOpacity key={n}
                   testID={`preset-count-${n}`}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: settings.pieceCountPreset === n }}
+                  aria-selected={settings.pieceCountPreset === n}
                   style={[styles.option, settings.pieceCountPreset === n && { borderColor: theme.gold }]}
                   onPress={() => update('pieceCountPreset', n)}>
                   <Text style={[styles.optionText, settings.pieceCountPreset === n && { color: theme.textGold }]}>{t('settings.pieces', { n })}</Text>
@@ -337,7 +343,7 @@ export default function SettingsScreen() {
                 <TouchableOpacity key={speed}
                   testID={`anim-speed-${speed}`}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: settings.drawAnimationSpeed === speed }}
+                  aria-selected={settings.drawAnimationSpeed === speed}
                   style={[styles.option, settings.drawAnimationSpeed === speed && { borderColor: theme.gold }]}
                   onPress={() => update('drawAnimationSpeed', speed)}>
                   <Text style={[styles.optionText, settings.drawAnimationSpeed === speed && { color: theme.textGold }]}>
@@ -388,7 +394,7 @@ export default function SettingsScreen() {
                     style={[styles.option, selected && { borderColor: theme.gold }]}
                     onPress={() => chooseVerifyReminder(value)}
                     accessibilityRole="button"
-                    accessibilityState={{ selected }}
+                    aria-selected={selected}
                     accessibilityLabel={label}>
                     <Text style={[styles.optionText, selected && { color: theme.textGold }]}>{label}</Text>
                   </TouchableOpacity>

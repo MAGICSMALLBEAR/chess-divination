@@ -246,9 +246,8 @@ export default function LibraryScreen() {
             key={id}
             testID={`library-tab-${id}`}
             accessibilityRole="tab"
-            accessibilityState={{ selected: tab === id }}
-            // accessibilityState 在 react-native-web 不輸出 aria-selected（S74 記下的缺口），
-            // 讀屏在網頁上分不出目前在哪個分頁；原生端讀的是上面那一行
+            // 用 aria-selected 而非 accessibilityState：後者在 react-native-web 不輸出
+            // aria-selected，原生端 RN 則兩種寫法都認（a11ySelected.test.ts 守門）
             aria-selected={tab === id}
             style={[styles.tabChip, tab === id && { borderColor: theme.gold, backgroundColor: theme.bgDark }]}
             onPress={() => switchTab(id)}>
@@ -279,12 +278,16 @@ export default function LibraryScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
         style={styles.filterRow} contentContainerStyle={styles.filterContent}>
         <TouchableOpacity
+          accessibilityRole="button"
+          aria-selected={!levelFilter}
           style={[styles.filterChip, !levelFilter && { borderColor: theme.gold }]}
           onPress={() => setLevelFilter(null)}>
           <Text style={[styles.filterText, !levelFilter && { color: theme.textGold }]}>{t('library.all')}</Text>
         </TouchableOpacity>
         {POEM_LEVELS.map(level => (
           <TouchableOpacity key={level}
+            accessibilityRole="button"
+            aria-selected={levelFilter === level}
             style={[styles.filterChip, levelFilter === level && { borderColor: getLevelColor(level) }]}
             onPress={() => setLevelFilter(level === levelFilter ? null : level)}>
             <View style={[styles.filterDot, { backgroundColor: getLevelColor(level) }]} />
@@ -298,7 +301,7 @@ export default function LibraryScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
         <Text style={[styles.filterLabel, { color: theme.textMuted }]}>{t('library.element')}</Text>
         {[...new Set(TRIGRAM_ELEMENTS)].map(element => (
-          <TouchableOpacity key={element} style={[styles.filterChip, elementFilter === element && { borderColor: theme.gold }]} onPress={() => setElementFilter(element === elementFilter ? null : element)}>
+          <TouchableOpacity key={element} accessibilityRole="button" aria-selected={elementFilter === element} style={[styles.filterChip, elementFilter === element && { borderColor: theme.gold }]} onPress={() => setElementFilter(element === elementFilter ? null : element)}>
             <Text style={[styles.filterText, elementFilter === element && { color: theme.textGold }]}>{element}</Text>
           </TouchableOpacity>
         ))}

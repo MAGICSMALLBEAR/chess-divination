@@ -180,6 +180,7 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
                         style={[styles.iconCell, editIcon === name && { borderColor: theme.gold, backgroundColor: theme.bgMedium }]}
                         onPress={() => { setEditIcon(name); setShowIconPicker(false); }}
                         accessibilityRole="button"
+                        aria-selected={editIcon === name}
                         accessibilityLabel={name}
                       >
                         <Icon name={name} size={20} color={editIcon === name ? theme.gold : theme.textMuted} />

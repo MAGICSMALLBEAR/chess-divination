@@ -152,7 +152,7 @@ export default function OutcomeMarker({ outcome, recordNote, timestamp, intuitio
             <TouchableOpacity
               key={status}
               accessibilityRole="button"
-              accessibilityState={{ selected: active }}
+              aria-selected={active}
               style={[
                 styles.option,
                 { borderColor: active ? tone : theme.bgMedium },

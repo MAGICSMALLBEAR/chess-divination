@@ -16,23 +16,42 @@ import {
   TRIGRAM_NAMES, TRIGRAM_SYMBOLS, TRIGRAM_ELEMENTS, XIANTIAN_TO_KINGWEN,
   trigramsFromIndex, hexagramNameOf, hexagramLines, trigramLine, type LineValue,
 } from './hexagram';
+import { PIECE_ORDER, pieceTrigram, type PieceType, type PieceColor } from '@/data/pieces';
 
 export const LEARNING_KEY = '@chess_divination_learning';
 
 // ====== 牌組 ======
 
-export type DeckId = 'trigram' | 'trigramElement' | 'hexagram';
+export type DeckId = 'trigram' | 'trigramElement' | 'hexagram' | 'piece';
 
-/** 牌組的呈現順序：先認八卦，再記五行，最後才是由八卦組成的六十四卦 */
-export const DECKS: readonly DeckId[] = ['trigram', 'trigramElement', 'hexagram'] as const;
+/**
+ * 牌組的呈現順序：先認八卦，再記五行，再來是由八卦組成的六十四卦。
+ * 棋子牌組排最後：前三副是《易》本身，這一副是本 App 自己的對映（棋子→八卦），
+ * 要先認得八卦才考得了它。
+ */
+export const DECKS: readonly DeckId[] = ['trigram', 'trigramElement', 'hexagram', 'piece'] as const;
 
 export interface Card {
   /** `${deck}:${index}`，存進進度表的鍵 */
   id: string;
   deck: DeckId;
-  /** 八卦牌：卦序 0–7（乾兌離震巽坎艮坤）；六十四卦牌：先天序索引 0–63 */
+  /**
+   * 八卦牌：卦序 0–7（乾兌離震巽坎艮坤）；六十四卦牌：先天序索引 0–63；
+   * 棋子牌：0–13，見 `pieceOfCard`
+   */
   index: number;
 }
+
+/**
+ * 棋子牌的索引：棋種（依 PIECE_ORDER）× 2 ＋ 顏色（紅 0、黑 1）。
+ * 同一棋種的紅黑兩張相鄰——介紹新卡時帥、將一起出現，錯卦的對照才看得出來。
+ * 只有 14 張而非 32 張：同種同色的棋子卦都一樣，重複出題只是在灌張數。
+ */
+export function pieceOfCard(index: number): { type: PieceType; color: PieceColor } {
+  return { type: PIECE_ORDER[Math.floor(index / 2)], color: index % 2 === 0 ? 'red' : 'black' };
+}
+
+const PIECE_CARD_COUNT = PIECE_ORDER.length * 2;
 
 /**
  * 牌組裡的卡片，依「介紹新卡」的順序排列。
@@ -44,6 +63,9 @@ export function deckCards(deck: DeckId): Card[] {
     return Array.from({ length: 64 }, (_, i) => i)
       .sort((a, b) => XIANTIAN_TO_KINGWEN[a] - XIANTIAN_TO_KINGWEN[b])
       .map(index => ({ id: `${deck}:${index}`, deck, index }));
+  }
+  if (deck === 'piece') {
+    return Array.from({ length: PIECE_CARD_COUNT }, (_, index) => ({ id: `${deck}:${index}`, deck, index }));
   }
   return TRIGRAM_NAMES.map((_, index) => ({ id: `${deck}:${index}`, deck, index }));
 }
@@ -64,7 +86,8 @@ const ELEMENTS = ['金', '木', '水', '火', '土'] as const;
 
 export type QuestionPrompt =
   | { kind: 'lines'; lines: LineValue[] }
-  | { kind: 'trigram'; trigram: number };
+  | { kind: 'trigram'; trigram: number }
+  | { kind: 'piece'; type: PieceType; color: PieceColor };
 
 export interface Question {
   card: Card;
@@ -77,6 +100,10 @@ export interface Question {
    */
   upper?: number;
   lower?: number;
+  /** 棋子牌：同一棋種另一色所屬的卦（必為本卦的錯卦） */
+  opposite?: number;
+  /** 棋子牌：同色、同卦的其他棋種（仕與兵同屬一卦——七種棋分四組錯卦的必然結果） */
+  sharing?: PieceType[];
 }
 
 /** 可注入的亂數來源（測試要可重現）；預設 Math.random */
@@ -102,6 +129,24 @@ export function buildQuestion(card: Card, rng: Rng = Math.random): Question {
     return {
       card, prompt: { kind: 'lines', lines: trigramLinesOf(card.index) },
       options: shuffle([answer, ...others], rng), answer,
+    };
+  }
+
+  if (card.deck === 'piece') {
+    const { type, color } = pieceOfCard(card.index);
+    const trigram = pieceTrigram(type, color);
+    const opposite = pieceTrigram(type, color === 'red' ? 'black' : 'red');
+    // 干擾選項一定含「另一色的卦」：紅黑同種互為錯卦是這張對映表唯一的規則，
+    // 記不得顏色的人會在這兩個之間猶豫——考的就是這一點。其餘兩個隨機
+    const rest = shuffle(
+      TRIGRAM_NAMES.map((_, i) => i).filter(i => i !== trigram && i !== opposite), rng,
+    ).slice(0, OPTION_COUNT - 2);
+    const answer = trigramLabel(trigram);
+    return {
+      card, prompt: { kind: 'piece', type, color },
+      options: shuffle([answer, trigramLabel(opposite), ...rest.map(trigramLabel)], rng),
+      answer, opposite,
+      sharing: PIECE_ORDER.filter(t => t !== type && pieceTrigram(t, color) === trigram),
     };
   }
 

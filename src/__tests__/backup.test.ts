@@ -74,6 +74,7 @@ const FAVORITES = '@chess_divination_favorites';
 const SETTINGS = '@chess_divination_settings';
 const DELETED = '@chess_divination_deleted';
 const LEARNING = '@chess_divination_learning';
+const DRAW_TALLY = '@chess_divination_draw_tally';
 
 beforeEach(() => {
   mockStore.clear();
@@ -101,9 +102,17 @@ describe('產生備份', () => {
     expect(Number.isNaN(Date.parse(b.date))).toBe(false);
   });
 
-  test('備份涵蓋歷史／收藏／設定／刪除墓碑／學習進度五個鍵', async () => {
+  test('備份涵蓋歷史／收藏／設定／刪除墓碑／學習進度／抽棋計數六個鍵', async () => {
     const b = await buildBackup();
-    expect(Object.keys(b.data).sort()).toEqual([HISTORY, FAVORITES, SETTINGS, DELETED, LEARNING].sort());
+    expect(Object.keys(b.data).sort()).toEqual([HISTORY, FAVORITES, SETTINGS, DELETED, LEARNING, DRAW_TALLY].sort());
+  });
+
+  /** 抽棋計數同樣只存本機——換機時漏掉它，隨機性檢驗就得從零重數 */
+  test('抽棋計數可以備份並還原；形狀不對（陣列）時整份拒絕', () => {
+    const tally = { counts: [1, 7, 4, 4, 4, 4, 7, 1] };
+    const ok = parseBackup(JSON.stringify({ version: 1, data: { [DRAW_TALLY]: tally } }));
+    expect(ok?.[DRAW_TALLY]).toEqual(tally);
+    expect(parseBackup(JSON.stringify({ version: 1, data: { [DRAW_TALLY]: [1, 2] } }))).toBeNull();
   });
 
   /** 學習進度不進雲端同步，換機只能靠備份——漏掉它等於換機就從頭學起 */
