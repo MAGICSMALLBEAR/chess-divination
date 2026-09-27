@@ -10,7 +10,7 @@ import { computeHexagram, type HexagramResult } from '@/services/divination';
 import {
   computeFormationHexagram, formationForceReading, formationCounts, FORMATION_PER_SIDE,
 } from '@/services/formation';
-import { addHistory, recordFromDivination } from '@/services/storage';
+import { addHistory, recordFromDivination, type DecisionJournal } from '@/services/storage';
 import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
 import { playPlacePieceSound } from '@/services/sound';
@@ -98,6 +98,7 @@ export function useBoardDivination(maxPieces: number = 3) {
     spreadContext: { optionA?: string; optionB?: string } = {},
     /** 占卜前記下的直覺（選填）。在這裡、起卦之前寫入記錄，之後不再改 */
     intuition?: IntuitionPct,
+    decisionJournal?: DecisionJournal,
   ): Promise<boolean> => {
     // 回傳這次有沒有真的存成記錄：頁面據此決定要不要清掉直覺——沒存成（陣未成、儲存失敗）
     // 就清掉，使用者重按解讀時等於默默丟了他剛選的那一檔
@@ -164,6 +165,7 @@ export function useBoardDivination(maxPieces: number = 3) {
         },
         spreadId,
         intuition,
+        decisionJournal,
       );
       const saved = await addHistory(record);
       void scheduleVerificationReminder(saved);

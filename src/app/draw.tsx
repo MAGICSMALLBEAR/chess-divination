@@ -11,12 +11,13 @@ import PieceDraw3D from '@/components/PieceDraw3D';
 import { useDrawDivination } from '@/hooks/useDrawDivination';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import IntuitionPicker from '@/components/IntuitionPicker';
+import DecisionJournalForm from '@/components/DecisionJournalForm';
 import type { IntuitionPct } from '@/services/calibration';
 import { playDrawPieceSound } from '@/services/sound';
 import { hapticMedium } from '@/services/haptics';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
-import { getSettings, saveSettings } from '@/services/storage';
+import { getSettings, saveSettings, type DecisionJournal } from '@/services/storage';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import type { ThemeColors } from '@/constants/theme';
@@ -35,6 +36,7 @@ export default function DrawScreen() {
   const [questionText, setQuestionText] = useState('');
   /** 占卜前的直覺（選填）。用過一次就清掉：下一次占卜是另一件事，不能默默沿用 */
   const [intuition, setIntuition] = useState<IntuitionPct | undefined>(undefined);
+  const [decisionJournal, setDecisionJournal] = useState<DecisionJournal>({});
   /** 設定裡的預設抽棋數量，標為建議選項（見下方讀取設定的 effect） */
   const [preferredCount, setPreferredCount] = useState<1 | 2 | 3 | null>(null);
 
@@ -97,6 +99,7 @@ export default function DrawScreen() {
               onSelect={setQuestionText}
             />
             <IntuitionPicker value={intuition} onChange={setIntuition} width={contentWidth} />
+            <DecisionJournalForm value={decisionJournal} onChange={setDecisionJournal} />
 
             <Text style={styles.subtitle}>{t('draw.count')}</Text>
             <View style={styles.countRow}>
@@ -135,7 +138,7 @@ export default function DrawScreen() {
           <PieceDraw3D
             drawnPieces={drawnPieces}
             drawSummary={drawSummary}
-            onReveal={async () => { if (await goToResult(intuition)) setIntuition(undefined); }}
+            onReveal={async () => { if (await goToResult(intuition, decisionJournal)) { setIntuition(undefined); setDecisionJournal({}); } }}
             onRedraw={reset}
           />
         )}

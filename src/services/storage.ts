@@ -39,6 +39,12 @@ export interface DivinationRecord {
   mode: DivinationMode;
   questionCategory?: string;
   questionText?: string;         // user's written question
+  /**
+   * 問卜前留下的決策日誌（選填）。跟著這筆記錄走——備份、以及開了雲端同步時的同步都會帶上，
+   * 與 questionText 同等；**不送進 AI 解讀**（模型順著使用者的期待說，同 S77 直覺不進提示詞的理由）。
+   * 寫入與顯示都經過 normalizeDecisionJournal：空白欄位不存，全空就整個不存。
+   */
+  decisionJournal?: DecisionJournal;
   /** 使用者為這次籤詩留下的自由筆記，不需先填占驗結果。 */
   note?: string;
   positionSummary?: string;      // board position interpretation summary
@@ -100,6 +106,37 @@ export interface DivinationRecord {
    * 起卦當下寫入之後不再改：看過卦才改，量到的就不是直覺了（calibration.ts）。
    */
   intuition?: IntuitionPct;
+}
+
+export interface DecisionJournal {
+  /** 我期待發生什麼。 */
+  expectation?: string;
+  /** 我目前依據的事實或訊號。 */
+  evidence?: string;
+  /** 無論結果如何，我願意採取的下一步。 */
+  nextStep?: string;
+}
+
+/** 決策日誌的三個欄位，依畫面上的順序 */
+export const DECISION_JOURNAL_FIELDS = ['expectation', 'evidence', 'nextStep'] as const;
+/** 每一欄的字數上限：日誌是提醒自己的幾句話，不是長文（輸入框也照這個數字限制） */
+export const DECISION_JOURNAL_MAX = 160;
+
+/**
+ * 決策日誌的唯一整理出口。表單的狀態是 `{}` 起跳，使用者什麼都沒寫也會傳進來——
+ * 不整理的話，每一筆記錄都會帶一個空物件，顯示端就會畫出一個只有標題的空框（S44／S54 那一族）。
+ * 讀回來的舊資料或手改的備份也走這裡：不是字串的欄位丟掉、過長的截斷。
+ */
+export function normalizeDecisionJournal(raw: unknown): DecisionJournal | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const out: DecisionJournal = {};
+  for (const key of DECISION_JOURNAL_FIELDS) {
+    const v = (raw as Record<string, unknown>)[key];
+    if (typeof v !== 'string') continue;
+    const text = v.trim().slice(0, DECISION_JOURNAL_MAX);
+    if (text) out[key] = text;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** 占驗結果三態。刻意不做五級量表——事後回想本就模糊，選項太細只會降低回填率 */
@@ -610,6 +647,11 @@ export async function saveDailyFortune(fortune: DailyFortune): Promise<void> {
 
 // ====== Export helpers for records ======
 
+function withDecisionJournal(raw: DecisionJournal | undefined): { decisionJournal?: DecisionJournal } {
+  const journal = normalizeDecisionJournal(raw);
+  return journal ? { decisionJournal: journal } : {};
+}
+
 export function recordFromDivination(
   poem: Poem,
   pieces: ChessPiece[],
@@ -620,6 +662,7 @@ export function recordFromDivination(
   hexagram?: { name: string; index: number; movingLine: number; hourBranch: number },
   spreadId?: SpreadId,
   intuition?: IntuitionPct,
+  decisionJournal?: DecisionJournal,
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: poem.id,
@@ -632,6 +675,7 @@ export function recordFromDivination(
     mode,
     questionCategory,
     questionText,
+    ...withDecisionJournal(decisionJournal),
     positionSummary,
     spreadId,
     timestamp: Date.now(),
@@ -654,6 +698,7 @@ export function recordFromLingqi(
   questionCategory?: string,
   questionText?: string,
   intuition?: IntuitionPct,
+  decisionJournal?: DecisionJournal,
 ): Omit<DivinationRecord, 'id'> {
   return {
     poemId: 0,
@@ -666,6 +711,7 @@ export function recordFromLingqi(
     mode: 'lingqi',
     questionCategory,
     questionText,
+    ...withDecisionJournal(decisionJournal),
     lingqiKey: oracle.key,
     timestamp: Date.now(),
     isFavorited: false,

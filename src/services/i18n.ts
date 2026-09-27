@@ -33,6 +33,16 @@ export const translations: Record<string, Record<Lang, string>> = {
   'draw.question': { 'zh-TW': '請問您想問什麼？', en: 'What would you like to ask?', ja: '何をお聞きになりますか？' },
   'draw.count': { 'zh-TW': '選擇抽取棋子數量', en: 'Select number of pieces', ja: '引く駒の数を選ぶ' },
 
+  'journal.title': { 'zh-TW': '決策日誌（選填）', en: 'Decision journal (optional)', ja: '意思決定メモ（任意）' },
+  'journal.desc': { 'zh-TW': '先記下自己的判斷；結果仍由你自行衡量，內容不會交給 AI 解讀。', en: 'Record your own judgment first. You assess the result; this is not sent to AI.', ja: '先に自分の判断を記録します。結果は自分で評価し、この内容はAIに渡りません。' },
+  'journal.expectation': { 'zh-TW': '我期待發生什麼？', en: 'What do I expect?', ja: '何を期待している？' },
+  'journal.expectationPlaceholder': { 'zh-TW': '例如：這個方案能在本月完成', en: 'For example: This plan can finish this month', ja: '例：この案は今月中に完了できる' },
+  'journal.evidence': { 'zh-TW': '我目前依據什麼？', en: 'What evidence do I have?', ja: '今の根拠は？' },
+  'journal.evidencePlaceholder': { 'zh-TW': '可寫事實、訊號或尚未確認的假設', en: 'Facts, signals, or assumptions still to verify', ja: '事実、兆候、未確認の仮説を書く' },
+  'journal.nextStep': { 'zh-TW': '無論結果如何，我的下一步？', en: 'What is my next step either way?', ja: '結果にかかわらず次にすることは？' },
+  'journal.nextStepPlaceholder': { 'zh-TW': '例如：週五前先和對方確認時程', en: 'For example: Confirm the timeline by Friday', ja: '例：金曜までに相手と日程を確認する' },
+  'journal.recordTitle': { 'zh-TW': '當時的決策日誌', en: 'Your decision journal then', ja: '当時の意思決定メモ' },
+
   // 籤詩
   'poem.vernacular': { 'zh-TW': '白話解釋', en: 'Explanation', ja: '解説' },
   'poem.story': { 'zh-TW': '典故參考', en: 'Reference Story', ja: '典故' },

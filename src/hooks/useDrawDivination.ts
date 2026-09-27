@@ -8,7 +8,7 @@ import type { Poem } from '@/data/poems';
 import { getPoemById } from '@/data/poems';
 import type { HexagramResult } from '@/services/divination';
 import { drawPieces, computeHexagram, generateDrawSummary } from '@/services/divination';
-import { addHistory, recordFromDivination } from '@/services/storage';
+import { addHistory, recordFromDivination, type DecisionJournal } from '@/services/storage';
 import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
 import { scheduleVerificationReminder } from '@/services/notifications';
@@ -70,7 +70,7 @@ export function useDrawDivination() {
   // 儲存並前往結果頁。
   // intuition 是占卜前記下的直覺（選填），在存檔這一刻才收——不在開始抽棋時收，
   // 否則「重抽」會把它弄丟。回傳是否真的存成記錄，頁面據此清掉直覺（同棋盤頁）
-  const goToResult = useCallback(async (intuition?: IntuitionPct): Promise<boolean> => {
+  const goToResult = useCallback(async (intuition?: IntuitionPct, decisionJournal?: DecisionJournal): Promise<boolean> => {
     if (savingRef.current || !selectedPoem || drawnPieces.length === 0) return false;
     savingRef.current = true;
     try {
@@ -92,6 +92,7 @@ export function useDrawDivination() {
           : undefined,
         undefined,
         intuition,
+        decisionJournal,
       );
       const saved = await addHistory(record);
       void scheduleVerificationReminder(saved);

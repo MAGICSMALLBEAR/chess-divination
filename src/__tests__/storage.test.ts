@@ -28,6 +28,7 @@ import {
   setOutcome, clearOutcome,
   linkRelatedRecord, unlinkRelatedRecord,
   recordFromDivination, recordFromLingqi, STORAGE_KEYS,
+  normalizeDecisionJournal, DECISION_JOURNAL_MAX,
   type DivinationRecord, type DailyFortune,
 } from '../services/storage';
 import { todayString } from '../services/date';
@@ -165,6 +166,40 @@ describe('占卜前的直覺（intuition）', () => {
     const lingqi = recordFromLingqi(lingqiOracle);
     expect('intuition' in draw).toBe(false);
     expect('intuition' in lingqi).toBe(false);
+  });
+});
+
+describe('決策日誌（decisionJournal）', () => {
+  const lingqiOracle = { key: '1-1-1', notation: '一上一中一下', name: '大通卦', shi: ['a'] };
+
+  test('三種模式都帶得進去，前後空白會修掉', () => {
+    const journal = { expectation: '  主管會同意  ', evidence: '上週口頭答應', nextStep: '週五前寄提案' };
+    const draw = recordFromDivination(getPoemById(1), ALL_PIECES.slice(0, 2), 'draw', 'general', 'q',
+      undefined, undefined, undefined, undefined, journal);
+    const board = recordFromDivination(getPoemById(1), ALL_PIECES.slice(0, 3), 'board', 'general', 'q',
+      '牌陣解讀', undefined, 'timeline', undefined, journal);
+    const lingqi = recordFromLingqi(lingqiOracle, 'career', 'q', undefined, journal);
+    const expected = { expectation: '主管會同意', evidence: '上週口頭答應', nextStep: '週五前寄提案' };
+    expect([draw.decisionJournal, board.decisionJournal, lingqi.decisionJournal]).toEqual([expected, expected, expected]);
+  });
+
+  /** 表單狀態從 {} 起跳：什麼都沒寫也會傳進來，不能每筆記錄都帶一個空物件（顯示端會畫出空框） */
+  test('全空或只有空白時，記錄上沒有這個欄位', () => {
+    const empty = recordFromDivination(getPoemById(1), ALL_PIECES.slice(0, 2), 'draw', 'general', 'q',
+      undefined, undefined, undefined, undefined, {});
+    const blank = recordFromLingqi(lingqiOracle, 'career', 'q', undefined, { expectation: '   ', nextStep: '' });
+    expect('decisionJournal' in empty).toBe(false);
+    expect('decisionJournal' in blank).toBe(false);
+  });
+
+  test('只留有寫的欄位；壞值與過長都整理掉', () => {
+    expect(normalizeDecisionJournal({ expectation: '', evidence: '有訊號' })).toEqual({ evidence: '有訊號' });
+    expect(normalizeDecisionJournal({ expectation: 42, nextStep: ['x'] })).toBeUndefined();
+    expect(normalizeDecisionJournal(null)).toBeUndefined();
+    expect(normalizeDecisionJournal('文字')).toBeUndefined();
+    expect(normalizeDecisionJournal([])).toBeUndefined();
+    const long = normalizeDecisionJournal({ expectation: '長'.repeat(DECISION_JOURNAL_MAX + 20) });
+    expect(long!.expectation).toHaveLength(DECISION_JOURNAL_MAX);
   });
 });
 

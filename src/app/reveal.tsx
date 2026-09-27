@@ -15,6 +15,7 @@ import ReportExportSheet from '@/components/ReportExportSheet';
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
 import OutcomeMarker from '@/components/OutcomeMarker';
+import { DecisionJournalView } from '@/components/DecisionJournalForm';
 import AccuracyHint from '@/components/AccuracyHint';
 import RelatedReadings from '@/components/RelatedReadings';
 import type { RealizedStatus } from '@/services/calibration';
@@ -548,6 +549,9 @@ export default function RevealScreen() {
             </View>
           )}
         </View>
+
+        {/* 當時的決策日誌：放在回填正上方，回答「準不準」時當初怎麼想就在眼前 */}
+        <DecisionJournalView journal={record.decisionJournal} />
 
         {/* 占驗回填。放在解讀之後——剛揭曉時結果還沒發生，先問「準不準」只會困惑 */}
         <OutcomeMarker

@@ -33,6 +33,22 @@ afterEach(() => {
 });
 
 describe('提示詞建構', () => {
+  /**
+   * 決策日誌不送進 AI：模型會順著使用者寫下的期待說（S77 直覺不進提示詞同一個理由），
+   * 畫面上的說明也這樣承諾。請求形狀是逐欄位列出的 InterpretRequestBody，物件字面量多塞欄位
+   * 會被型別擋下——所以守的是「請求形狀與建構提示詞的程式裡不出現日誌」。
+   */
+  test('決策日誌不在 AI 請求的形狀與提示詞建構裡', () => {
+    const fs = jest.requireActual('fs') as typeof import('fs');
+    const path = jest.requireActual('path') as typeof import('path');
+    const root = path.join(__dirname, '..', '..');
+    for (const file of ['src/services/aiPrompt.ts', 'src/services/aiInterpretation.ts', 'api/interpret.ts']) {
+      const src = fs.readFileSync(path.join(root, file), 'utf-8');
+      expect(src.length).toBeGreaterThan(200);
+      expect(src).not.toMatch(/journal|expectation|nextStep/i);
+    }
+  });
+
   test('包含籤詩的各欄位', () => {
     const p = buildPrompt(body);
     expect(p).toContain('龍騰九霄');

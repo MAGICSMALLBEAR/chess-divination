@@ -7,6 +7,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import OutcomeMarker from '@/components/OutcomeMarker';
+import DecisionJournalForm, { DecisionJournalView } from '@/components/DecisionJournalForm';
 import AccuracyHint from '@/components/AccuracyHint';
 import RelatedReadings from '@/components/RelatedReadings';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
@@ -22,7 +23,7 @@ import { buildLingqiInterpretation } from '@/services/lingqiInterpretation';
 import {
   addHistory, getHistory, getSettings, saveSettings, toggleFavorite,
   recordFromLingqi, setOutcome, clearOutcome, setRecordNote,
-  type DivinationRecord, type OutcomeStatus,
+  type DivinationRecord, type OutcomeStatus, type DecisionJournal,
 } from '@/services/storage';
 import { cancelVerificationReminder, scheduleVerificationReminder } from '@/services/notifications';
 import { recordUsage, syncAchievements } from '@/services/achievements';
@@ -62,6 +63,8 @@ export default function LingqiScreen() {
   const [questionText, setQuestionText] = useState('');
   /** 占卜前的直覺（選填）。擲出之後清掉，理由同 draw.tsx */
   const [intuition, setIntuition] = useState<IntuitionPct | undefined>(undefined);
+  /** 占卜前的決策日誌（選填）。存成記錄後清掉，理由同直覺 */
+  const [decisionJournal, setDecisionJournal] = useState<DecisionJournal>({});
 
   // 規則式深度解讀。在 render 時取語言（localizeProse 讀 getLang），
   // 本頁有 useI18n 訂閱，切語言會重算。分類取記錄上存的那份——
@@ -134,8 +137,11 @@ export default function LingqiScreen() {
       setCast(thrown);
       setOracle(result);
 
-      const saved = await addHistory(recordFromLingqi(result, selectedCategory, questionText.trim() || undefined, intuition));
+      const saved = await addHistory(
+        recordFromLingqi(result, selectedCategory, questionText.trim() || undefined, intuition, decisionJournal),
+      );
       setIntuition(undefined);
+      setDecisionJournal({});
       setRecord(saved);
       setIsFav(saved.isFavorited);
       void scheduleVerificationReminder(saved);
@@ -298,6 +304,7 @@ export default function LingqiScreen() {
               onSelect={setQuestionText}
             />
             <IntuitionPicker value={intuition} onChange={setIntuition} width={contentWidth} />
+            <DecisionJournalForm value={decisionJournal} onChange={setDecisionJournal} />
 
             <TouchableOpacity style={styles.castBtn} testID="lingqi-cast" accessibilityRole="button" onPress={handleCast}>
               <Text style={styles.castText}>{t('lingqi.cast')}</Text>
@@ -361,6 +368,8 @@ export default function LingqiScreen() {
                 </View>
               </View>
             )}
+
+            {record && <DecisionJournalView journal={record.decisionJournal} />}
 
             {record && (
               <OutcomeMarker

@@ -10,9 +10,10 @@ import ChessBoard from '@/components/ChessBoard';
 import { Icon } from '@/components/icons';
 import { useBoardDivination } from '@/hooks/useBoardDivination';
 import { confirmAction } from '@/services/dialog';
-import { getSettings, saveSettings } from '@/services/storage';
+import { getSettings, saveSettings, type DecisionJournal } from '@/services/storage';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import IntuitionPicker from '@/components/IntuitionPicker';
+import DecisionJournalForm from '@/components/DecisionJournalForm';
 import type { IntuitionPct } from '@/services/calibration';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -52,6 +53,7 @@ export default function BoardScreen() {
   const [questionText, setQuestionText] = useState('');
   /** 占卜前的直覺（選填）。解讀之後清掉，理由同 draw.tsx */
   const [intuition, setIntuition] = useState<IntuitionPct | undefined>(undefined);
+  const [decisionJournal, setDecisionJournal] = useState<DecisionJournal>({});
   const [showRedPieces, setShowRedPieces] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [optionA, setOptionA] = useState('');
@@ -95,7 +97,7 @@ export default function BoardScreen() {
 
   // 兩個解讀按鈕（一般與全螢幕）共用：直覺用過一次就清掉，理由同 draw.tsx
   async function handleInterpret() {
-    if (await interpret(selectedCategory, questionText, spreadId, spreadContext, intuition)) setIntuition(undefined);
+    if (await interpret(selectedCategory, questionText, spreadId, spreadContext, intuition, decisionJournal)) { setIntuition(undefined); setDecisionJournal({}); }
   }
 
   const handleBack = async () => {
@@ -220,6 +222,7 @@ export default function BoardScreen() {
           onSelect={setQuestionText}
         />
         <IntuitionPicker value={intuition} onChange={setIntuition} />
+        <DecisionJournalForm value={decisionJournal} onChange={setDecisionJournal} />
 
         {/* 牌陣選擇。切換時清空棋盤，避免將不同角色的舊落子混入新牌陣。 */}
         <Text style={styles.spreadTitle}>{t('board.spread')}</Text>

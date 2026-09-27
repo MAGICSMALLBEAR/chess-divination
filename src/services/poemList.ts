@@ -95,6 +95,8 @@ export interface SearchableRecord {
   note?: string;
   /** 占驗回填時自述「實際發生了什麼」 */
   outcome?: { note?: string };
+  /** 占卜前的決策日誌（期待、依據、下一步） */
+  decisionJournal?: { expectation?: string; evidence?: string; nextStep?: string };
   /** 靈棋記錄不查籤詩表，見 recordTitle 與 recordMatchesSearch */
   mode?: string;
 }
@@ -140,6 +142,10 @@ export function recordMatchesSearch(record: SearchableRecord, query: string, lan
     record.questionText ?? '',
     record.note ?? '',
     record.outcome?.note ?? '',
+    // 決策日誌也是使用者自己打的字（「我那次寫『主管會同意』的是哪一筆？」），S54 同一條規則
+    record.decisionJournal?.expectation ?? '',
+    record.decisionJournal?.evidence ?? '',
+    record.decisionJournal?.nextStep ?? '',
   ];
   return own.some(text => text.toLowerCase().includes(q));
 }

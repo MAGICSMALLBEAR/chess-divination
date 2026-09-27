@@ -103,6 +103,18 @@ describe('localizedPoemTitle：記錄清單顯示的譯文標題', () => {
  * 圖鑑那一處已於 Session 32 修掉，收藏頁當時漏掉。
  */
 describe('recordMatchesSearch：收藏頁的記錄搜尋', () => {
+  /** 決策日誌是使用者自己打的字——與 note、outcome.note 同一條規則（S54） */
+  test('決策日誌的三個欄位都搜得到', () => {
+    const withJournal = {
+      poemId: 1, poemTitle: '乾為天', poemContent: '', drawnPieceChars: [],
+      decisionJournal: { expectation: '主管會同意', evidence: '上週口頭答應', nextStep: '週五前寄提案' },
+    };
+    expect(recordMatchesSearch(withJournal, '主管會同意', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(withJournal, '口頭', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(withJournal, '寄提案', 'zh-TW')).toBe(true);
+    expect(recordMatchesSearch(withJournal, '沒寫過的字', 'zh-TW')).toBe(false);
+  });
+
   const record = {
     poemId: 1,
     poemTitle: '乾為天',
