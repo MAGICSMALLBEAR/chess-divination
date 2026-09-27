@@ -2,7 +2,8 @@
 //
 // 六十四卦的卦辭（文王）與大象傳（《象》解全卦的那一句）。Key 為文王卦序。
 // 卦辭取逐卦頁（與 yaoReading.ts 的 384 條爻辭同一頁、同一版本）；大象取「周易/大象」頁。
-// 產生時已查核：兩頁大象互相一致，卦辭與大象逐字對過《周易正義》（十三經注疏本），
+// 乾坤另收用九／用六（逐卦頁）。來源固定在腳本的 SOURCE_AS_OF 修訂版。
+// 產生時已查核：兩頁大象互相一致，卦辭、大象與用九／用六逐字對過《周易正義》（十三經注疏本），
 // 版本異文與已裁定的例外列在腳本裡。經文三語皆印原文，不翻譯。
 
 export interface ZhouyiText {
@@ -12,11 +13,16 @@ export interface ZhouyiText {
   judgment: string;
   /** 大象傳 */
   image: string;
+  /**
+   * 用九／用六（只有乾、坤有）：六爻皆變時讀的辭，整句照原文、含「用九：」。
+   * 本 App 起卦只有單一動爻，揭曉頁不會遇到六爻皆變——這一句只在卦典裡讀得到
+   */
+  allMoving?: string;
 }
 
 export const ZHOUYI_TEXTS: Readonly<Record<number, ZhouyiText>> = {
-  1: { name: '乾', judgment: '乾：元亨。利貞。', image: '天行健，君子以自強不息。' },
-  2: { name: '坤', judgment: '坤：元亨。利牝馬之貞。', image: '地勢坤，君子以厚德載物。' },
+  1: { name: '乾', judgment: '乾：元亨。利貞。', image: '天行健，君子以自強不息。', allMoving: '用九：見羣龍无首，吉。' },
+  2: { name: '坤', judgment: '坤：元亨。利牝馬之貞。', image: '地勢坤，君子以厚德載物。', allMoving: '用六：利永貞。' },
   3: { name: '屯', judgment: '屯：元亨，利貞。勿用有攸往，利建侯。', image: '雲雷，屯；君子以經綸。' },
   4: { name: '蒙', judgment: '蒙：亨。匪我求童蒙，童蒙求我。初筮告，再三瀆，瀆則不告。利貞。', image: '山下出泉，蒙；君子以果行育德。' },
   5: { name: '需', judgment: '需：有孚，光亨。貞吉，利涉大川。', image: '雲上於天，需；君子以飲食宴樂。' },

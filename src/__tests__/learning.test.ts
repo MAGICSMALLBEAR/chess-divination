@@ -15,7 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 import {
   DECKS, deckCards, buildQuestion, trigramLabel, trigramLinesOf,
   applyAnswer, sessionQueue, deckSummary, addDays, normalizeLearningState,
-  getLearningState, recordAnswer, pieceOfCard,
+  getLearningState, recordAnswer, pieceOfCard, dueReviews,
   LEITNER_INTERVALS, MAX_BOX, NEW_PER_SESSION, OPTION_COUNT, LEARNING_KEY,
   type LearningState,
 } from '../services/learning';
@@ -243,5 +243,35 @@ describe('儲存', () => {
     expect(Object.keys(state).sort()).toEqual(['trigram:0', 'trigram:4']);
     expect(state['trigram:4']).toEqual({ box: 1, due: '2026-09-30', reviews: 0, lapses: 0 });
     expect(normalizeLearningState([1, 2])).toEqual({});
+  });
+});
+
+describe('首頁的待複習（dueReviews）', () => {
+  const TODAY = '2026-09-27';
+  const at = (due: string) => ({ box: 2, due, reviews: 2, lapses: 0 });
+
+  /** 沒在學的人看不到提示：新卡不算「待複習」 */
+  test('沒有任何進度：0 張、不列牌組', () => {
+    expect(dueReviews({}, TODAY)).toEqual({ total: 0, decks: [] });
+  });
+
+  test('只數到期（含逾期）的複習，逐牌組列出，沒有到期的牌組不列', () => {
+    const state = {
+      'trigram:0': at('2026-09-27'),
+      'trigram:1': at('2026-09-20'), // 逾期也算
+      'trigram:2': at('2026-09-28'), // 明天才到期
+      'hexagram:0': at('2026-09-01'),
+      'piece:3': at('2026-10-05'),
+    };
+    expect(dueReviews(state, TODAY)).toEqual({
+      total: 3,
+      decks: [{ deck: 'trigram', due: 2 }, { deck: 'hexagram', due: 1 }],
+    });
+  });
+
+  test('與學習頁各牌組的「今天待複習」是同一個數（共用 deckSummary）', () => {
+    const state = { 'trigramElement:4': at('2026-09-26'), 'piece:0': at('2026-09-27') };
+    const { decks } = dueReviews(state, TODAY);
+    for (const d of decks) expect(d.due).toBe(deckSummary(d.deck, state, TODAY).due);
   });
 });

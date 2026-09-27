@@ -38,6 +38,8 @@ export interface HexagramEntry {
   image: string;
   /** 六條爻辭，索引 0 為初爻；未校對時為 null */
   yaoTexts: readonly string[] | null;
+  /** 用九／用六（只有乾、坤有），六爻皆變時讀的辭 */
+  allMoving?: string;
   nuclear: HexagramRef;
   opposite: HexagramRef;
   reversed: HexagramRef;
@@ -60,6 +62,7 @@ function buildEntry(poemId: number, name: string): HexagramEntry {
     judgment: text.judgment,
     image: text.image,
     yaoTexts: getYaoTexts(poemId),
+    ...(text.allMoving ? { allMoving: text.allMoving } : {}),
     nuclear: refOf(nuclearTrigrams(lines)),
     opposite: refOf(oppositeTrigrams(upper, lower)),
     reversed: refOf(reversedTrigrams(upper, lower)),
@@ -76,7 +79,7 @@ export function hexagramEntry(poemId: number): HexagramEntry | undefined {
 }
 
 /**
- * 卦是否命中搜尋字串：比對卦名、卦辭、大象與六條爻辭。
+ * 卦是否命中搜尋字串：比對卦名、卦辭、大象、六條爻辭與用九／用六。
  *
  * 沒有 lang 參數：卦名與經文三語都印漢字原文（經文不翻譯，理由見
  * DEVELOPMENT_PLAN「刻意不做」），卡片上看得到的字只有這一份。
@@ -85,6 +88,6 @@ export function hexagramEntry(poemId: number): HexagramEntry | undefined {
 export function hexagramMatchesSearch(entry: HexagramEntry, query: string): boolean {
   const q = query.trim();
   if (!q) return true;
-  return [entry.name, entry.judgment, entry.image, ...(entry.yaoTexts ?? [])]
+  return [entry.name, entry.judgment, entry.image, ...(entry.yaoTexts ?? []), entry.allMoving ?? '']
     .some(text => text.includes(q));
 }

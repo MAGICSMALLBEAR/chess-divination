@@ -161,3 +161,44 @@ test.describe('學習模式的成就', () => {
     await expect(page.getByTestId('achievement-trigram_mastery')).toHaveAttribute('aria-label', /已解鎖/, { timeout: 30_000 });
   });
 });
+
+// 首頁的待複習提示：只數排到今天的複習；沒在學的人看不到。
+// 答完回首頁要用頁面上的返回鍵——goto 會重新掛載首頁，遮住「只在掛載時讀」的缺陷（S74）
+test.describe('首頁的待複習提示', () => {
+  test('沒有學習進度：首頁沒有這張卡', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('today-almanac')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('due-reviews')).toHaveCount(0);
+  });
+
+  test('有到期的複習：列出牌組與張數，點進學習頁；複習完返回首頁，卡片消失', async ({ page }) => {
+    const progress = {
+      'trigram:3': { box: 2, due: '2020-01-01', reviews: 2, lapses: 0 },
+      'hexagram:0': { box: 3, due: '2099-01-01', reviews: 3, lapses: 0 },
+    };
+    await page.addInitScript(
+      ([key, value]) => { if (!window.localStorage.getItem(key as string)) window.localStorage.setItem(key as string, value as string); },
+      [LEARNING_KEY, JSON.stringify(progress)] as const,
+    );
+    await page.goto('/');
+    const card = page.getByTestId('due-reviews');
+    await expect(card).toContainText('今天有 1 張易經卡片該複習了', { timeout: 30_000 });
+    await expect(card).toContainText('八卦 1');
+    await expect(card).not.toContainText('六十四卦');
+
+    await card.click();
+    await expect(page.getByTestId('learn-title')).toBeVisible({ timeout: 30_000 });
+    // 八卦牌組的佇列：到期的那張排在新卡前面
+    await page.getByTestId('learn-start-trigram').click();
+    const answer = TRIGRAM_LABELS[await trigramFromPrompt(page)];
+    await page.getByTestId(`learn-option-${answer}`).click();
+    await expect(page.getByTestId('learn-feedback')).toContainText('答對了');
+    await expect.poll(async () => (await storedProgress(page))['trigram:3'].box).toBe(3);
+
+    // 頁面上的返回：先離開練習，再離開學習頁
+    await page.getByText('← 返回').filter({ visible: true }).click();
+    await page.getByText('← 返回').filter({ visible: true }).click();
+    await expect(page.getByTestId('today-almanac')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('due-reviews')).toHaveCount(0);
+  });
+});

@@ -286,6 +286,8 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 只說數字的話，使用者還是得自己去找是哪些（統計頁原本就只說數字）。
   // 天數走 {days} 佔位而不是寫死：它每天都在變。
   'home.pending': { 'zh-TW': '{n} 筆占卜可以回填結果了', en: '{n} readings are ready to verify', ja: '{n} 件の占いが結果待ちです' },
+  'home.reviews': { 'zh-TW': '今天有 {n} 張易經卡片該複習了', en: '{n} I Ching cards are due for review today', ja: '今日復習する易経カードが {n} 枚あります' },
+  'home.reviewsDeck': { 'zh-TW': '{deck} {n}', en: '{deck}: {n}', ja: '{deck} {n}' },
   'home.pendingLatest': { 'zh-TW': '最近的是「{title}」，已過 {days} 天', en: 'Most recent: “{title}”, {days} days ago', ja: '直近は「{title}」（{days} 日前）' },
   'home.quickDraw': { 'zh-TW': '快速抽一籤', en: 'Quick Draw', ja: 'クイック占い' },
   // 這顆按鈕只是進到抽棋頁（選面向、選棋數，按下去才抽），所以不寫「直接抽取」。
@@ -547,6 +549,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'library.hexSelf': { 'zh-TW': '{name}（即本卦）', en: '{name} (the same hexagram)', ja: '{name}（本卦と同じ）' },
   // 卦辭與大象（Session 81）：經文三語皆印原文，這裡只有標籤
   'zhouyi.judgment': { 'zh-TW': '卦辭', en: 'Judgment', ja: '卦辞' },
+  'library.hexAllMovingNote': { 'zh-TW': '用九、用六只有乾坤兩卦有，是六爻全部變動時讀的辭。本 App 起卦一次只取一個動爻，占卜時不會遇到這一句。', en: 'Only Qian and Kun have this line; it is read when all six lines change. This app casts a single moving line, so a reading never lands on it.', ja: '用九・用六は乾と坤の二卦だけにあり、六爻すべてが変わるときに読む辞です。このアプリは動爻を一つだけ取るため、占いでこの句に当たることはありません。' },
   'zhouyi.image': { 'zh-TW': '大象', en: 'Great Image', ja: '大象' },
   'zhouyi.source': { 'zh-TW': '《周易》原文（依維基文庫，並對過《周易正義》）', en: 'Zhouyi original (from Wikisource, checked against the Zhouyi Zhengyi)', ja: '『周易』原文（ウィキソース所収、『周易正義』と照合済み）' },
   'liuyao.primaryJudgment': { 'zh-TW': '本卦卦辭（{name}）', en: 'Judgment of the primary hexagram ({name})', ja: '本卦の卦辞（{name}）' },
@@ -630,6 +633,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'almanac.lunarNumeric': { 'zh-TW': '{month}月{day}日', en: 'month {month}, day {day}', ja: '{month}月{day}日' },
   'almanac.lunarLeapNumeric': { 'zh-TW': '閏{month}月{day}日', en: 'leap month {month}, day {day}', ja: '閏{month}月{day}日' },
   'almanac.moon': { 'zh-TW': '月相 {phase} · 亮面約 {pct}%', en: 'Moon: {phase} · about {pct}% lit', ja: '月相 {phase} · 輝面 約 {pct}%' },
+  'almanac.moonNextFull': { 'zh-TW': '下一個望 {date}（{n} 天後）', en: 'Next full moon: {date} (in {n} days)', ja: '次の望 {date}（{n} 日後）' },
   'almanac.moonNew': { 'zh-TW': '朔（新月）', en: 'new moon', ja: '朔（新月）' },
   'almanac.moonWaxingCrescent': { 'zh-TW': '眉月', en: 'waxing crescent', ja: '三日月' },
   'almanac.moonFirstQuarter': { 'zh-TW': '上弦月', en: 'first quarter', ja: '上弦の月' },

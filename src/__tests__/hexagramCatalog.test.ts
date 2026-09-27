@@ -197,3 +197,29 @@ describe('hexagramMatchesSearch', () => {
     expect(hits('不存在的句子')).toEqual([]);
   });
 });
+
+describe('卦典：用九／用六', () => {
+  test('只有乾、坤有，乾是用九、坤是用六', () => {
+    const withIt = HEXAGRAM_CATALOG.filter(e => e.allMoving).map(e => e.poemId);
+    expect(withIt).toEqual([1, 2]);
+    expect(hexagramEntry(1)!.allMoving).toBe('用九：見羣龍无首，吉。');
+    expect(hexagramEntry(2)!.allMoving).toBe('用六：利永貞。');
+  });
+
+  /** 不在六條爻辭裡：爻辭表只存六爻，用九／用六混進去會讓「第幾爻」對錯位 */
+  test('不混進六條爻辭', () => {
+    for (const id of [1, 2]) {
+      const entry = hexagramEntry(id)!;
+      expect(entry.yaoTexts).toHaveLength(6);
+      expect(entry.yaoTexts!.some(y => y.startsWith('用'))).toBe(false);
+    }
+  });
+
+  test('搜得到', () => {
+    const hits = (q: string) => HEXAGRAM_CATALOG.filter(e => hexagramMatchesSearch(e, q)).map(e => e.poemId);
+    expect(hits('羣龍无首')).toEqual([1]);
+    expect(hits('用六')).toEqual([2]);
+    // 「利永貞」艮初六也有——兩卦都命中才對
+    expect(hits('利永貞')).toEqual([2, 52]);
+  });
+});

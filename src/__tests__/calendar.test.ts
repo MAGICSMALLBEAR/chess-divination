@@ -5,7 +5,7 @@
 
 import {
   lunarDate, lunarDayName, lunarMonthName, lunarYearGanZhi, solarTermOn, todayAlmanac,
-  moonElongation, moonIllumination, moonOn, moonLitPercent,
+  moonElongation, moonIllumination, moonOn, moonLitPercent, nextFullMoon,
 } from '../services/calendar';
 import { monthBranchContext, SOLAR_TERM_NAMES, EARTHLY_BRANCHES, seasonOf, SEASON_ELEMENT } from '../services/date';
 import { sexagenaryDay } from '../services/sexagenary';
@@ -199,5 +199,35 @@ describe('月相', () => {
       if (lunar.day === 15 || lunar.day === 16) { expect(lit).toBeGreaterThan(0.9); checked++; }
     }
     expect(checked).toBeGreaterThanOrEqual(30);
+  });
+});
+
+describe('下一個望', () => {
+  test('找到的那天用同一條規則也叫望，中間沒有別的望，而且不含今天', () => {
+    for (let i = 0; i < 60; i++) {
+      const today = d(2025, 5, 1 + i);
+      const next = nextFullMoon(today)!;
+      expect(next).not.toBeNull();
+      expect(next.days).toBeGreaterThanOrEqual(1);
+      expect(next.days).toBeLessThanOrEqual(30);
+      expect(moonOn(next.date).phase).toBe('full');
+      for (let k = 1; k < next.days; k++) {
+        expect(moonOn(d(2025, 5, 1 + i + k)).phase).not.toBe('full');
+      }
+    }
+  });
+
+  test('今天就是望：說的是下一個（約一個朔望月後），不是今天', () => {
+    let today: Date | null = null;
+    for (let i = 0; i < 31 && !today; i++) if (moonOn(d(2025, 8, 1 + i)).phase === 'full') today = d(2025, 8, 1 + i);
+    const next = nextFullMoon(today!)!;
+    expect(next.days).toBeGreaterThanOrEqual(29);
+    expect(next.days).toBeLessThanOrEqual(30);
+  });
+
+  test('跨月、跨年照樣算（日期用當地日曆加天數，不用毫秒相加）', () => {
+    const next = nextFullMoon(d(2025, 12, 20))!;
+    expect(next.date.getFullYear()).toBe(2026);
+    expect(moonOn(next.date).phase).toBe('full');
   });
 });

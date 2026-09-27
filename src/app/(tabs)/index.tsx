@@ -17,6 +17,8 @@ import { getLevelColor } from '@/data/poems';
 import { shareNative, shareToTarget, type ShareTarget } from '@/services/socialShare';
 import ShareTargetSheet from '@/components/ShareTargetSheet';
 import TodayAlmanacCard from '@/components/TodayAlmanacCard';
+import { getLearningState, dueReviews, DECK_TITLE_KEYS, type DeckId } from '@/services/learning';
+import { todayString } from '@/services/date';
 import { todayAlmanac, type TodayAlmanac } from '@/services/calendar';
 import { notify } from '@/services/dialog';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -38,6 +40,7 @@ export default function HomeScreen() {
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const [pending, setPending] = useState<DivinationRecord[]>([]);
   const [almanac, setAlmanac] = useState<TodayAlmanac | null>(null);
+  const [reviews, setReviews] = useState<{ total: number; decks: { deck: DeckId; due: number }[] }>({ total: 0, decks: [] });
 
   useEffect(() => {
     loadDaily();
@@ -52,6 +55,14 @@ export default function HomeScreen() {
   // 今日曆法也在 focus 時算：不能在 render 裡取 new Date()——預渲染與 hydration 各取一次，
   // 跨午夜兩邊對不上（S66 的 #418）；放在 focus 也讓隔夜切回首頁時換成新的一天
   useFocusEffect(useCallback(() => { setAlmanac(todayAlmanac()); }, []));
+  // 「八卦 3、六十四卦 2」：哪幾副牌到期，點進去之前就知道要練什麼
+  const reviewDecksText = reviews.decks
+    .map(d => t('home.reviewsDeck', { deck: t(DECK_TITLE_KEYS[d.deck]), n: d.due }))
+    .join(t('learn.listSeparator'));
+  // 待複習同樣在 focus 時重讀：從學習頁答完回來、或隔天切回首頁，數字都要是新的
+  useFocusEffect(useCallback(() => {
+    void getLearningState().then(state => setReviews(dueReviews(state, todayString())));
+  }, []));
 
   async function loadStreak() { setStreak(await getStreak()); }
 
@@ -211,6 +222,29 @@ export default function HomeScreen() {
               {t('home.pendingLatest', {
                 title: recordTitle(pending[0]), days: daysSince(pending[0].timestamp),
               })}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* 易經學習的待複習。間隔重複的效果靠「到期那天真的複習」，漏掉就等於間隔被拉長；
+            只數排到今天的複習（不含新卡），沒在學的人看不到這張卡 */}
+        {reviews.total > 0 && (
+          <TouchableOpacity
+            testID="due-reviews"
+            style={[styles.pendingCard, { backgroundColor: theme.bgDark, borderColor: theme.gold }]}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('home.reviews', { n: reviews.total })}。${reviewDecksText}`}
+            onPress={() => router.push('/learn')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.iconRow}>
+              <Icon name="graduation" size={16} color={theme.gold} />
+              <Text style={[styles.pendingTitle, { color: theme.textGold }]}>
+                {' '}{t('home.reviews', { n: reviews.total })}
+              </Text>
+            </View>
+            <Text style={[styles.pendingHint, { color: theme.textSecondary }]} numberOfLines={1}>
+              {reviewDecksText}
             </Text>
           </TouchableOpacity>
         )}

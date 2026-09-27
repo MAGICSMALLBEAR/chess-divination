@@ -28,6 +28,22 @@ test.describe('卦典', () => {
     await expect(card.getByTestId('hexagram-relation-reversed')).toContainText('山水蒙');
   });
 
+  test('乾、坤另有用九／用六，並說明占卜時不會遇到；其他卦沒有', async ({ page }) => {
+    await page.goto('/library');
+    await page.getByTestId('library-tab-hexagrams').click();
+    const qian = page.getByTestId('hexagram-card-1');
+    await qian.click();
+    await expect(qian.getByTestId('hexagram-all-moving')).toContainText('用九：見羣龍无首，吉。');
+    await expect(qian.getByTestId('hexagram-all-moving')).toContainText('一次只取一個動爻');
+    const kun = page.getByTestId('hexagram-card-2');
+    await kun.click();
+    await expect(kun.getByTestId('hexagram-all-moving')).toContainText('用六：利永貞。');
+    const zhun = page.getByTestId('hexagram-card-3');
+    await zhun.click();
+    await expect(zhun.getByTestId('hexagram-yao-texts')).toBeVisible();
+    await expect(zhun.getByTestId('hexagram-all-moving')).toHaveCount(0);
+  });
+
   test('點錯卦跳到那一卦：目標展開、來源收起、目標捲進畫面', async ({ page }) => {
     await page.goto('/library');
     await page.getByTestId('library-tab-hexagrams').click();

@@ -556,6 +556,13 @@ function HexagramCard({ entry, expanded, onPress, onLayout, onJump, onOpenPoem, 
               {entry.yaoTexts.map((text, i) => (
                 <Text key={i} style={[styles.yaoLine, { color: theme.textSecondary }]}>{text}</Text>
               ))}
+              {/* 用九／用六只有乾坤有；本 App 一次只取一個動爻，占卜時不會遇到，所以要說明它什麼時候讀 */}
+              {entry.allMoving && (
+                <View testID="hexagram-all-moving">
+                  <Text style={[styles.yaoLine, { color: theme.textSecondary }]}>{entry.allMoving}</Text>
+                  <Text style={[styles.storyText, { color: theme.textMuted }]}>{t('library.hexAllMovingNote')}</Text>
+                </View>
+              )}
               <Text style={[styles.storyText, { color: theme.textMuted }]}>{t('liuyao.yaoSource')}</Text>
             </View>
           )}

@@ -197,6 +197,26 @@ export function moonOn(date: Date): MoonInfo {
   return { phase, illumination: moonIllumination(noon) };
 }
 
+export interface NextFullMoon {
+  /** 當地日曆日（當天 0 時） */
+  date: Date;
+  /** 距今天幾天 */
+  days: number;
+}
+
+/**
+ * 下一個望（不含今天）。逐日往後問 moonOn——與「今天是不是望」用同一條規則定名，
+ * 所以這裡說 10/26 是望，到了 10/26 卡片上也一定寫望，兩處不會各說各話。
+ * 朔望月最長約 29.8 天，往後找 31 天必定找得到。
+ */
+export function nextFullMoon(date: Date): NextFullMoon | null {
+  for (let days = 1; days <= 31; days++) {
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+    if (moonOn(day).phase === 'full') return { date: day, days };
+  }
+  return null;
+}
+
 /**
  * 亮面的百分比（畫面用）。望的前一天亮面約 99.6%，四捨五入成 100% 就會印出「盈凸月 · 100%」
  * 這種自相矛盾的句子——所以只有望可以是 100%、只有朔可以是 0%，其他日子夾在 1–99。
@@ -221,6 +241,7 @@ export interface TodayAlmanac {
   /** 日柱（如「甲子」）：旬空與六神由它推 */
   dayPillar: string;
   moon: MoonInfo;
+  nextFullMoon: NextFullMoon | null;
 }
 
 export function todayAlmanac(date: Date = new Date()): TodayAlmanac {
@@ -235,5 +256,6 @@ export function todayAlmanac(date: Date = new Date()): TodayAlmanac {
     seasonElement: SEASON_ELEMENT[season],
     dayPillar: sexagenaryDay(date).name,
     moon: moonOn(date),
+    nextFullMoon: nextFullMoon(date),
   };
 }

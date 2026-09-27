@@ -50,13 +50,17 @@ test.describe('今日曆法', () => {
     await page.clock.install({ time: new Date('2024-01-25T20:00:00+08:00') });
     await page.goto('/');
     await expect(page.getByTestId('almanac-moon')).toHaveText(/^月相 盈凸月 · 亮面約 9\d%$/, { timeout: 30_000 });
+    await expect(page.getByTestId('almanac-next-full')).toHaveText('下一個望 1/26（1 天後）');
     await page.clock.setSystemTime(new Date('2024-01-26T20:00:00+08:00'));
     await page.reload();
     await expect(page.getByTestId('almanac-moon')).toHaveText(/^月相 望（滿月） · 亮面約 (99|100)%$/, { timeout: 30_000 });
+    // 「下一個望」不含今天：2024-02-24 12:30 UTC 望＝台北 2/24
+    await expect(page.getByTestId('almanac-next-full')).toHaveText('下一個望 2/24（29 天後）');
     // 月相緊跟在農曆下面
     const ids = await page.getByTestId('today-almanac').locator('[data-testid^="almanac-"]')
       .evaluateAll(els => els.map(e => e.getAttribute('data-testid')));
     expect(ids.indexOf('almanac-moon')).toBe(ids.indexOf('almanac-lunar') + 1);
+    expect(ids.indexOf('almanac-next-full')).toBe(ids.indexOf('almanac-moon') + 1);
   });
 
   test('「月建是什麼」連到詞典', async ({ page }) => {
@@ -75,5 +79,6 @@ test.describe('今日曆法', () => {
     await expect(page.getByTestId('almanac-lunar')).toHaveText('Lunar calendar: month 8, day 15 (丙午 year)', { timeout: 30_000 });
     expect(await page.getByTestId('almanac-note').innerText()).not.toMatch(/[一-鿿]/);
     expect(await page.getByTestId('almanac-moon').innerText()).toMatch(/^Moon: [a-z ]+ · about \d+% lit$/);
+    expect(await page.getByTestId('almanac-next-full').innerText()).toMatch(/^Next full moon: \d+\/\d+ \(in \d+ days\)$/);
   });
 });

@@ -7,6 +7,11 @@
  *   周易 大象頁   …?title=周易/大象&action=raw          ← 大象取這裡（標點體例一致）
  *   周易正義      …?title=周易正義/01屯&action=raw      ← 十三經注疏本，只拿來對照
  *
+ * 來源固定在 SOURCE_AS_OF 那一刻的修訂版（維基 API 取「該時間點之前最新的一版」），不抓現行版：
+ * 維基文庫會被編修——2026-09-27 就有一批逐卦頁被改成另一個版本（艮「列其夤，厲薰心」→「裂其夤，厲閽心」、
+ * 萃拿掉起首的「亨」、革「巳日」→「已日」），而那是 S81 查核之後的事。固定版本才能重現，
+ * 已查核過的經文也才不會跟著來源悄悄變。要換成較新的版本時，改 SOURCE_AS_OF 並重新查核。
+ *
  * 用法：
  *   node scripts/build-zhouyi-texts.mjs [快取目錄]
  * 給了快取目錄就先讀目錄裡的檔案、沒有才上網抓並存進去（共 130 頁），重跑不必再抓。
@@ -14,7 +19,7 @@
  * 逐卦頁的版式：
  *   [[周易]]　第三卦                                   ← 文王卦序
  *   **<span …>'''屯'''：元亨，利貞。…</span>           ← 卦辭（後半部的頁面沒有 span）
- *   *#<span …>初九：磐桓，…</span>                     ← 爻辭（乾坤另有用九／用六）
+ *   *#<span …>初九：磐桓，…</span>                     ← 爻辭（乾坤另有用九／用六，一併收進 allMoving）
  *   *'''彖曰：''' … *'''象曰：''' …                    ← 傳，爻辭段到此為止
  *
  * 三道查核，任一不過就不寫檔：
@@ -22,8 +27,11 @@
  *      取的是同一個版本。已知逐卦頁有兩卦的爻辭帶轉錄瑕疵（否的爻名後用逗號、
  *      豐的「觌」是簡體），384 條當初已更正；這兩卦列在 YAO_KNOWN_DEFECTS，不算失敗。
  *   2. 大象頁與逐卦頁的大象，去掉標點並對過異體字後一字不差；唯一例外列在 IMAGE_OVERRIDES。
- *   3. 卦辭與大象，去掉標點並對過異體字後，字序原樣出現在《周易正義》的經文裡——
+ *   3. 卦辭、大象與用九／用六，去掉標點並對過異體字後，字序原樣出現在《周易正義》的經文裡——
  *      跨版本印證；正義本身的轉錄瑕疵列在 ZHENGYI_KNOWN_DEFECTS。
+ *   4. 已經在 zhouyiTexts.ts 裡的卦辭與大象，重產後一字不差——改了腳本或 SOURCE_AS_OF 卻動到已查核的
+ *      經文，就是出錯了（要改經文得先刪掉那一卦、明白地重新查核）。
+ *   另外斷言用九／用六只出現在乾、坤兩卦，各一條——多或少都代表解析抓錯了行。
  *
  * 異體字表 VARIANTS 只用在查核的比對，**不改寫收進來的字**：畫面上印的是來源原字。
  * 字句逐字照收；只拿掉維基標記（-{无}- 的繁簡轉換保護、span、粗體）與多餘空白。
@@ -44,6 +52,8 @@ const cacheDir = process.argv[2];
 const VARIANTS = {
   无: '無', 于: '於', 恆: '恒', 衆: '眾', 荐: '薦', 甯: '寧', 辯: '辨',
   鄉: '嚮', 遁: '遯', 曆: '歷', 脩: '修',
+  // 乾用九「見羣龍无首」：逐卦頁作羣、周易正義作群（同一版本的渙卦逐卦頁作群）
+  羣: '群',
   // 革卦「巳日乃孚」：正義的經文作「己日」，但同頁王弼注與孔疏都引作「巳日」，
   // 逐卦頁的卦辭與彖傳也作「巳日」。己／巳是《易》學上著名的異文，兩說並存
   己: '巳',
@@ -70,15 +80,26 @@ const ZHENGYI_KNOWN_DEFECTS = {
   48: '卦辭：王弼注「巳來至而未出井也」混進經文、沒有包進注的標記',
 };
 
-const rawUrl = title =>
-  `https://zh.wikisource.org/w/index.php?title=${encodeURIComponent(title)}&action=raw`;
+/** 來源版本：取這個時間點之前最新的修訂版（S81 查核時的版本；隔天就有一批逐卦頁被改寫） */
+const SOURCE_AS_OF = '2026-09-27T00:00:00Z';
+
+const revisionUrl = title =>
+  'https://zh.wikisource.org/w/api.php?action=query&format=json&formatversion=2&prop=revisions'
+  + `&titles=${encodeURIComponent(title)}&rvlimit=1&rvdir=older&rvstart=${SOURCE_AS_OF}`
+  + '&rvprop=content|ids|timestamp&rvslots=main';
+
+// 維基媒體要求腳本帶可識別的 User-Agent，預設的會被限流（429）
+const USER_AGENT = 'chess-divination-build/1.0 (https://github.com/MAGICSMALLBEAR/chess-divination)';
 
 async function fetchRaw(title) {
   const cacheFile = cacheDir && join(cacheDir, `${title.replace(/\//g, '_')}.txt`);
   if (cacheFile && existsSync(cacheFile)) return readFileSync(cacheFile, 'utf8');
-  const res = await fetch(rawUrl(title));
+  await new Promise(r => setTimeout(r, 500));
+  const res = await fetch(revisionUrl(title), { headers: { 'User-Agent': USER_AGENT } });
   if (!res.ok) throw new Error(`抓取失敗 ${res.status}：${title}`);
-  const text = await res.text();
+  const rev = (await res.json()).query?.pages?.[0]?.revisions?.[0];
+  if (!rev) throw new Error(`${title}：${SOURCE_AS_OF} 之前沒有修訂版`);
+  const text = rev.slots.main.content;
   if (cacheFile) {
     mkdirSync(cacheDir, { recursive: true });
     writeFileSync(cacheFile, text);
@@ -152,7 +173,10 @@ function parsePage(title, raw) {
   if (!xiangLine) throw new Error(`${title}：象曰之後沒有大象`);
   const pageImage = clean(xiangLine.slice(2));
 
-  return { order, name, judgment, pageImage, yao };
+  // 用九／用六：六爻皆變時讀的辭，只有乾坤有。與六爻同在爻辭段
+  const allMoving = yao.filter(y => /^用[九六]：/.test(y));
+
+  return { order, name, judgment, pageImage, yao, allMoving };
 }
 
 async function main() {
@@ -188,6 +212,13 @@ async function main() {
     else for (const y of bad) problems.push(`#${p.order} ${p.name}：爻辭對不上既有校對「${y}」`);
   }
 
+  // 用九／用六只屬乾坤，各一條，而且乾是用九、坤是用六
+  for (const p of pages) {
+    const want = p.order === 1 ? '用九：' : p.order === 2 ? '用六：' : null;
+    const ok = want ? p.allMoving.length === 1 && p.allMoving[0].startsWith(want) : p.allMoving.length === 0;
+    if (!ok) problems.push(`#${p.order} ${p.name}：用九／用六應為 ${want ?? '無'}，實得 ${JSON.stringify(p.allMoving)}`);
+  }
+
   // 查核二：大象頁與逐卦頁一致（去標點、異體歸一）
   for (const p of pages) {
     if (comparable(p.image) === comparable(p.pageImage)) continue;
@@ -201,7 +232,8 @@ async function main() {
   if (zyTitles.length !== 64) throw new Error(`周易正義應有 64 卦頁，實得 ${zyTitles.length}`);
   for (const p of pages) {
     const zy = zhengyiText(await fetchRaw(`周易正義/${zyTitles[p.order - 1]}`));
-    for (const [label, text] of [['卦辭', p.judgment], ['大象', p.image]]) {
+    const texts = [['卦辭', p.judgment], ['大象', p.image], ...p.allMoving.map(y => ['用九用六', y])];
+    for (const [label, text] of texts) {
       if (zy.includes(comparable(text))) continue;
       if (ZHENGYI_KNOWN_DEFECTS[p.order]?.startsWith(label)) used.zhengyi.add(p.order);
       else problems.push(`#${p.order} ${p.name}：${label}在周易正義找不到「${text}」`);
@@ -219,18 +251,34 @@ async function main() {
     }
   }
 
+  // 查核四：已提交的卦辭與大象一字不差
+  if (existsSync(OUT)) {
+    const committed = new Map([...readFileSync(OUT, 'utf8')
+      .matchAll(/^ {2}(\d+): \{ name: '([^']*)', judgment: '([^']*)', image: '([^']*)'/gm)]
+      .map(m => [Number(m[1]), m.slice(2, 5).join('|')]));
+    if (committed.size !== 64) problems.push(`讀已提交版本：應有 64 卦，實得 ${committed.size}`);
+    for (const p of pages) {
+      const now = [p.name, p.judgment, p.image].join('|');
+      if (committed.has(p.order) && committed.get(p.order) !== now) {
+        problems.push(`#${p.order} ${p.name}：與已提交版本不同「${committed.get(p.order)}」→「${now}」`);
+      }
+    }
+  }
+
   if (problems.length) {
     console.error(problems.join('\n'));
     throw new Error(`查核未過 ${problems.length} 處，不寫檔`);
   }
 
   const entries = pages.map(p =>
-    `  ${p.order}: { name: '${p.name}', judgment: '${p.judgment}', image: '${p.image}' },`);
+    `  ${p.order}: { name: '${p.name}', judgment: '${p.judgment}', image: '${p.image}'${
+      p.allMoving.length ? `, allMoving: '${p.allMoving[0]}'` : ''} },`);
   writeFileSync(OUT, `// 由 scripts/build-zhouyi-texts.mjs 自維基文庫《周易》產生，請勿手改——改腳本後重跑。
 //
 // 六十四卦的卦辭（文王）與大象傳（《象》解全卦的那一句）。Key 為文王卦序。
 // 卦辭取逐卦頁（與 yaoReading.ts 的 384 條爻辭同一頁、同一版本）；大象取「周易/大象」頁。
-// 產生時已查核：兩頁大象互相一致，卦辭與大象逐字對過《周易正義》（十三經注疏本），
+// 乾坤另收用九／用六（逐卦頁）。來源固定在腳本的 SOURCE_AS_OF 修訂版。
+// 產生時已查核：兩頁大象互相一致，卦辭、大象與用九／用六逐字對過《周易正義》（十三經注疏本），
 // 版本異文與已裁定的例外列在腳本裡。經文三語皆印原文，不翻譯。
 
 export interface ZhouyiText {
@@ -240,13 +288,18 @@ export interface ZhouyiText {
   judgment: string;
   /** 大象傳 */
   image: string;
+  /**
+   * 用九／用六（只有乾、坤有）：六爻皆變時讀的辭，整句照原文、含「用九：」。
+   * 本 App 起卦只有單一動爻，揭曉頁不會遇到六爻皆變——這一句只在卦典裡讀得到
+   */
+  allMoving?: string;
 }
 
 export const ZHOUYI_TEXTS: Readonly<Record<number, ZhouyiText>> = {
 ${entries.join('\n')}
 };
 `);
-  console.log(`已寫出 ${OUT}（64 卦）`);
+  console.log(`已寫出 ${OUT}（64 卦；${pages[0].allMoving[0]}／${pages[1].allMoving[0]}）`);
 }
 
 main().catch(err => {

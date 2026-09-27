@@ -14,7 +14,7 @@ import HexagramLines from '@/components/HexagramLines';
 import ChessPiece from '@/components/ChessPiece';
 import { ALL_PIECES, type PieceType, type PieceColor } from '@/data/pieces';
 import {
-  DECKS, LEITNER_INTERVALS, NEW_PER_SESSION, trigramLabel, trigramLinesOf,
+  DECKS, DECK_TITLE_KEYS, LEITNER_INTERVALS, NEW_PER_SESSION, trigramLabel, trigramLinesOf,
   buildQuestion, deckSummary, sessionQueue, getLearningState, recordAnswer,
   type Card, type DeckId, type LearningState, type Question,
 } from '@/services/learning';
@@ -24,11 +24,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { Spacing, FontSize, Layout } from '@/constants/theme';
 
-/** 牌組名稱與說明的譯文鍵。寫成字面量對照表，理由同詞典頁的 GROUP_TITLE_KEYS */
-const DECK_TITLE_KEYS: Record<DeckId, string> = {
-  trigram: 'learn.deckTrigram', trigramElement: 'learn.deckElement', hexagram: 'learn.deckHexagram',
-  piece: 'learn.deckPiece',
-};
+/** 牌組說明的譯文鍵。寫成字面量對照表，理由同詞典頁的 GROUP_TITLE_KEYS（名稱的對照表在 learning.ts，首頁也用） */
 const DECK_DESC_KEYS: Record<DeckId, string> = {
   trigram: 'learn.deckTrigramDesc', trigramElement: 'learn.deckElementDesc', hexagram: 'learn.deckHexagramDesc',
   piece: 'learn.deckPieceDesc',

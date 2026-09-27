@@ -57,6 +57,11 @@ export default function TodayAlmanacCard({ almanac }: Props) {
         phase: t(MOON_PHASE_KEYS[almanac.moon.phase]), pct: moonLitPercent(almanac.moon),
       }),
     },
+    // 下一個望獨立一列：接在月相後面會讓手機上的那一列折行，而且折在括號中間
+    ...(almanac.nextFullMoon ? [{
+      key: 'next-full',
+      text: t('almanac.moonNextFull', { date: shortDate(almanac.nextFullMoon.date), n: almanac.nextFullMoon.days }),
+    }] : []),
     ...(term ? [{
       key: 'term',
       text: t('almanac.term', {

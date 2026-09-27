@@ -31,6 +31,15 @@ export type DeckId = 'trigram' | 'trigramElement' | 'hexagram' | 'piece';
  */
 export const DECKS: readonly DeckId[] = ['trigram', 'trigramElement', 'hexagram', 'piece'] as const;
 
+/**
+ * 牌組名稱的譯文鍵。寫成字面量對照表（翻譯鍵反向覆蓋認得字面量）；
+ * 學習頁與首頁的待複習提示共用，放在這裡而不是某一頁裡
+ */
+export const DECK_TITLE_KEYS: Record<DeckId, string> = {
+  trigram: 'learn.deckTrigram', trigramElement: 'learn.deckElement', hexagram: 'learn.deckHexagram',
+  piece: 'learn.deckPiece',
+};
+
 export interface Card {
   /** `${deck}:${index}`，存進進度表的鍵 */
   id: string;
@@ -261,6 +270,19 @@ export function deckSummary(deck: DeckId, state: LearningState, today: string): 
     mastered: seen.filter(c => state[c.id].box >= MAX_BOX).length,
     due: seen.filter(c => state[c.id].due <= today).length,
   };
+}
+
+/**
+ * 今天到期的複習（不含新卡），逐牌組列出、沒有到期的牌組不列。
+ *
+ * 給首頁的提示用：只數「排到今天的複習」，所以從沒用過學習模式的人永遠是 0、看不到提示——
+ * 提醒的是已經在學的人別讓間隔斷掉，不是對所有人推銷這一頁（S78 說「先看有沒有人用」的顧慮）。
+ */
+export function dueReviews(state: LearningState, today: string): { total: number; decks: { deck: DeckId; due: number }[] } {
+  const decks = DECKS
+    .map(deck => ({ deck, due: deckSummary(deck, state, today).due }))
+    .filter(d => d.due > 0);
+  return { total: decks.reduce((sum, d) => sum + d.due, 0), decks };
 }
 
 // ====== 儲存 ======
