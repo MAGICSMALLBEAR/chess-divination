@@ -15,7 +15,7 @@ import {
 } from '@/services/verification';
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
-import { backupData, restoreData } from '@/services/backup';
+import { BACKUP_KEY_LABELS, backupData, restoreData } from '@/services/backup';
 import { confirmAction, notify } from '@/services/dialog';
 import { clearHistory } from '@/services/storage';
 import CustomCategoriesSection from '@/components/CustomCategoriesSection';
@@ -83,15 +83,30 @@ export default function SettingsScreen() {
     setSettings(updated);
   }
 
+  /**
+   * 缺漏的備份鍵 → 使用者看得懂的清單。
+   *
+   * `skippedKeys` 存的是內部鍵（`@chess_divination_learning`），直接印
+   * 等於沒說；名稱對照表在 backup.ts，與還原端共用同一句訊息。
+   */
+  function missingItemsText(keys: string[]): string {
+    return keys.map(key => t(BACKUP_KEY_LABELS[key])).join(t('learn.listSeparator'));
+  }
+
   async function handleBackup() {
     const result = await backupData();
     if (!result) { notify(t('settings.backupFail'), t('settings.backupFailDesc')); return; }
     // 三種通道下一步該做的事完全不同：下載已落到硬碟、分享已交給系統
     // 表單、剪貼簿還得使用者自己貼到某處才算數
-    const desc = result === 'copied' ? t('settings.backupOkClipboard')
-      : result === 'shared' ? t('settings.backupOkShared')
+    const desc = result.channel === 'copied' ? t('settings.backupOkClipboard')
+      : result.channel === 'shared' ? t('settings.backupOkShared')
       : t('settings.backupOkDesc');
-    notify(t('settings.backupOk'), desc);
+    // 少了資料的備份檔要當下說：多數人是「換機前備份、然後清掉舊裝置」，
+    // 等到還原才發現少一類，舊裝置已經不在了。
+    const missing = result.skippedKeys.length > 0
+      ? ` ${t('settings.backupMissingItems', { items: missingItemsText(result.skippedKeys) })}`
+      : '';
+    notify(t('settings.backupOk'), desc + missing);
   }
 
   async function checkReminder() {
@@ -152,11 +167,23 @@ export default function SettingsScreen() {
     const result = await restoreData();
     // 取消是使用者的正常操作，不跳任何提示——報「還原失敗」
     // 只會讓人以為自己把東西弄壞了
-    if (result === 'canceled') return;
-    if (result === 'ok') { notify(t('settings.restoreOk')); loadSettings(); return; }
+    if (result.status === 'canceled') return;
+    if (result.status === 'ok') {
+      // 備份檔自己記著「產生這份備份時，哪些資料已經讀不到」——不讀它，
+      // 資料整整少一類的人看到的仍是「還原成功」，他會以為東西都在。
+      // 名稱走 BACKUP_KEY_LABELS：內部鍵（@chess_divination_…）印給
+      // 使用者看等於沒說。
+      if (result.skippedKeys.length > 0) {
+        notify(t('settings.restoreOkPartial'), t('settings.backupMissingItems', { items: missingItemsText(result.skippedKeys) }));
+      } else {
+        notify(t('settings.restoreOk'));
+      }
+      loadSettings();
+      return;
+    }
     notify(
       t('settings.restoreFail'),
-      result === 'invalid' ? t('settings.restoreFailDesc') : t('settings.restoreFailRead'),
+      result.status === 'invalid' ? t('settings.restoreFailDesc') : t('settings.restoreFailRead'),
     );
   }
 

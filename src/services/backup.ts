@@ -11,7 +11,7 @@ import * as Clipboard from 'expo-clipboard';
 import { toLocalDateString } from './date';
 import { t } from './i18n';
 
-const BACKUP_KEYS = [
+export const BACKUP_KEYS = [
   '@chess_divination_history',
   '@chess_divination_favorites',
   '@chess_divination_settings',
@@ -23,6 +23,25 @@ const BACKUP_KEYS = [
   '@chess_divination_draw_tally',
 ] as const;
 
+/**
+ * 備份鍵 → 使用者看得懂的翻譯鍵。
+ *
+ * `skippedKeys`（產生這份備份時讀不到的鍵）會出現在還原結果的訊息裡，
+ * 直接印 `@chess_divination_learning` 給使用者看等於沒說——與「使用者
+ * 看得到的訊息裡不出現環境變數名稱」同一條規矩。
+ *
+ * 每個 `BACKUP_KEYS` 都必須有一條，`backup.test.ts` 對著清單核對；
+ * 沒有一條的話新資料類別會靜靜地變成沒人看得懂的缺漏訊息。
+ */
+export const BACKUP_KEY_LABELS: Record<string, string> = {
+  '@chess_divination_history': 'collection.history',
+  '@chess_divination_favorites': 'collection.favorites',
+  '@chess_divination_settings': 'settings.title',
+  '@chess_divination_deleted': 'settings.backupKeyDeleted',
+  '@chess_divination_learning': 'learn.title',
+  '@chess_divination_draw_tally': 'stats.draw',
+};
+
 const BACKUP_VERSION = 1;
 
 export interface BackupFile {
@@ -31,6 +50,13 @@ export interface BackupFile {
   data: Record<string, unknown>;
   /** 無法解析而略過的鍵；沒有壞鍵時不出現，舊備份檔也不會有這個欄位 */
   skippedKeys?: string[];
+}
+
+/** 解析結果：可還原的內容，外加備份檔自己記下的缺漏 */
+export interface ParsedBackup {
+  restorable: Record<string, unknown>;
+  /** 產生這份備份時就讀不到、因此不在裡面的鍵；空陣列＝這份備份是完整的 */
+  skippedKeys: string[];
 }
 
 /**
@@ -123,6 +149,22 @@ const KEY_SHAPES: Record<(typeof BACKUP_KEYS)[number], (value: unknown) => boole
  * @returns 可還原的鍵值對；格式不符時回傳 null
  */
 export function parseBackup(json: string): Record<string, unknown> | null {
+  return parseBackupWithMeta(json)?.restorable ?? null;
+}
+
+/**
+ * 解析備份檔，連同它自己記下的缺漏一起回傳。
+ *
+ * `buildBackup` 會把「產生這份備份時就讀不到的鍵」寫進 `skippedKeys`，
+ * 註解寫的是「還原時才不會把缺漏誤認為原本就是空的」——但還原流程
+ * 一直只讀 `data`，那句話等於沒實現：備份少了學習進度，使用者看到的
+ * 仍是乾乾淨淨的「還原成功」。
+ *
+ * @returns `restorable` 為可還原的鍵值對、`skippedKeys` 為備份檔自己
+ *          記下的缺漏（只認得本 App 的鍵，不轉述檔案裡的任意字串）；
+ *          格式不符時回傳 null
+ */
+export function parseBackupWithMeta(json: string): ParsedBackup | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -152,7 +194,14 @@ export function parseBackup(json: string): Record<string, unknown> | null {
   }
 
   // 一個認得的鍵都沒有，視為不是本 App 的備份檔
-  return Object.keys(restorable).length > 0 ? restorable : null;
+  if (Object.keys(restorable).length === 0) return null;
+
+  const known = new Set<string>(BACKUP_KEYS);
+  const skippedKeys = Array.isArray(file.skippedKeys)
+    ? file.skippedKeys.filter((key): key is string => typeof key === 'string' && known.has(key))
+    : [];
+
+  return { restorable, skippedKeys };
 }
 
 /** 將解析後的備份寫回儲存 */
@@ -199,15 +248,30 @@ async function shareBackupFile(json: string): Promise<boolean> {
 }
 
 /**
+ * 備份結果。
+ *
+ * `channel` 是檔案去了哪裡——三者要做的事完全不同（下載已落到硬碟、
+ * 分享已交給系統表單、剪貼簿還得自己貼到某處）。
+ *
+ * `skippedKeys` 是產生這份備份時就讀不到的鍵，它們不在檔案裡。
+ * 這件事要當下就講：使用者往往是「換機前先備份、然後清掉舊裝置」，
+ * 等還原時才發現少了一類資料，舊裝置已經不在了。
+ */
+export interface BackupResult {
+  channel: 'downloaded' | 'shared' | 'copied';
+  skippedKeys: string[];
+}
+
+/**
  * 產生備份。
  *
- * @returns 'downloaded'（web 下載）／'shared'（原生分享表單）／
- *          'copied'（原生退回剪貼簿）／null（失敗）。
- *          設定頁依此顯示對應的後續指示——三者要做的事完全不同。
+ * @returns 結果（含 `skippedKeys`）／null（失敗）。
  */
-export async function backupData(): Promise<'downloaded' | 'shared' | 'copied' | null> {
+export async function backupData(): Promise<BackupResult | null> {
   try {
-    const json = JSON.stringify(await buildBackup(), null, 2);
+    const backup = await buildBackup();
+    const json = JSON.stringify(backup, null, 2);
+    const skippedKeys = backup.skippedKeys ?? [];
 
     // Web: download as file
     if (typeof document !== 'undefined') {
@@ -218,17 +282,17 @@ export async function backupData(): Promise<'downloaded' | 'shared' | 'copied' |
       a.download = backupFileName();
       a.click();
       URL.revokeObjectURL(url);
-      return 'downloaded';
+      return { channel: 'downloaded', skippedKeys };
     }
 
     // 原生：優先產出真正的檔案（可存到雲端、可跨裝置搬家）。
     // 之前這裡只回傳字串而沒有任何實際動作，設定頁卻因為 truthy 回傳值
     // 提示「備份成功」——使用者以為有備份，其實什麼都沒產生。
-    if (await shareBackupFile(json)) return 'shared';
+    if (await shareBackupFile(json)) return { channel: 'shared', skippedKeys };
 
     // 分享不可用（模擬器、部分 Android ROM）時的保底通道
     await Clipboard.setStringAsync(json);
-    return 'copied';
+    return { channel: 'copied', skippedKeys };
   } catch (e) {
     console.warn('備份失敗:', e);
     return null;
@@ -262,10 +326,10 @@ async function readFileText(uri: string): Promise<string> {
 
 /** 把一段文字當備份檔套用 */
 async function applyBackupText(text: string): Promise<RestoreResult> {
-  const restorable = parseBackup(text);
-  if (!restorable) return 'invalid';
-  await applyBackup(restorable);
-  return 'ok';
+  const parsed = parseBackupWithMeta(text);
+  if (!parsed) return { status: 'invalid' };
+  await applyBackup(parsed.restorable);
+  return { status: 'ok', skippedKeys: parsed.skippedKeys };
 }
 
 /**
@@ -274,8 +338,14 @@ async function applyBackupText(text: string): Promise<RestoreResult> {
  * 'canceled' 必須與 'invalid' 分開：使用者在選檔器按取消是正常操作，
  * 卻跳「還原失敗」等於把自己的動作說成錯誤——選檔器一取消就報錯，
  * 使用者只會以為 App 壞了。
+ *
+ * 成功那一支帶著 `skippedKeys`：備份檔自己記著「產生這份備份時，
+ * 哪些資料已經讀不到」。少了這一欄，資料整整少一類的使用者看到的
+ * 仍是「還原成功」——那句話會讓他以為東西都在。
  */
-export type RestoreResult = 'ok' | 'canceled' | 'invalid' | 'error';
+export type RestoreResult =
+  | { status: 'ok'; skippedKeys: string[] }
+  | { status: 'canceled' | 'invalid' | 'error' };
 
 /**
  * 還原備份。
@@ -295,10 +365,10 @@ export async function restoreData(): Promise<RestoreResult> {
         return await applyBackupText(await Clipboard.getStringAsync());
       } catch (err) {
         console.warn('讀取剪貼簿失敗:', err);
-        return 'error';
+        return { status: 'error' };
       }
     }
-    if (uri === null) return 'canceled';
+    if (uri === null) return { status: 'canceled' };
 
     // 檔案選到了卻讀不出來是「讀取失敗」，不是「選錯檔」。
     // 這裡再退回剪貼簿等於拿一份無關內容當作使用者的意圖。
@@ -307,7 +377,7 @@ export async function restoreData(): Promise<RestoreResult> {
       text = await readFileText(uri);
     } catch (e) {
       console.warn('讀取備份檔失敗:', e);
-      return 'error';
+      return { status: 'error' };
     }
     return applyBackupText(text);
   }
@@ -319,24 +389,24 @@ export async function restoreData(): Promise<RestoreResult> {
 
     // 使用者按取消時不會觸發 change，Promise 會一直懸著。
     // 監聽 cancel（支援的瀏覽器）讓流程能收尾。
-    input.oncancel = () => resolve('canceled');
+    input.oncancel = () => resolve({ status: 'canceled' });
 
     input.onchange = (e: Event) => {
       // 這裡刻意不是 async 函式：回呼內若拋錯，沒有人 catch，
       // resolve 不會被呼叫，還原流程就永遠不會結束。
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) { resolve('canceled'); return; }
+      if (!file) { resolve({ status: 'canceled' }); return; }
 
       file.text()
         .then(async (text) => {
-          const restorable = parseBackup(text);
-          if (!restorable) { resolve('invalid'); return; }
-          await applyBackup(restorable);
-          resolve('ok');
+          const parsed = parseBackupWithMeta(text);
+          if (!parsed) { resolve({ status: 'invalid' }); return; }
+          await applyBackup(parsed.restorable);
+          resolve({ status: 'ok', skippedKeys: parsed.skippedKeys });
         })
         .catch((err) => {
           console.warn('還原失敗:', err);
-          resolve('error');
+          resolve({ status: 'error' });
         });
     };
 

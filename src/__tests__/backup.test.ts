@@ -67,7 +67,8 @@ jest.mock('expo-document-picker', () => ({
   }),
 }));
 
-import { buildBackup, parseBackup, applyBackup, backupData, restoreData } from '../services/backup';
+import { buildBackup, parseBackup, parseBackupWithMeta, applyBackup, backupData, restoreData, BACKUP_KEYS, BACKUP_KEY_LABELS } from '../services/backup';
+import { t } from '../services/i18n';
 
 const HISTORY = '@chess_divination_history';
 const FAVORITES = '@chess_divination_favorites';
@@ -319,6 +320,64 @@ describe('解析備份檔', () => {
   });
 });
 
+/**
+ * `buildBackup` 把「產生這份備份時就讀不到的鍵」寫進 `skippedKeys`，
+ * 註解寫的是「還原時才不會把缺漏誤認為原本就是空的」——但還原流程
+ * 一直只讀 `data`，那句注解等於沒實現：備份少了學習進度的人，看到的
+ * 仍是乾乾淨淨的「還原成功」。證據要有人讀才算數。
+ */
+describe('備份缺漏的出口', () => {
+  const jsonWithSkipped = (skippedKeys: unknown) => JSON.stringify({
+    version: 1,
+    date: '2026-09-27T00:00:00.000Z',
+    data: { [HISTORY]: [{ id: 'a' }] },
+    skippedKeys,
+  });
+
+  test('parseBackupWithMeta 帶出備份檔記下的缺漏', () => {
+    expect(parseBackupWithMeta(jsonWithSkipped([LEARNING]))).toEqual({
+      restorable: { [HISTORY]: [{ id: 'a' }] },
+      skippedKeys: [LEARNING],
+    });
+  });
+
+  test('完整的備份檔回傳空的清單，不是 undefined', () => {
+    expect(parseBackupWithMeta(backupJson({ [HISTORY]: [{ id: 'a' }] }))!.skippedKeys).toEqual([]);
+  });
+
+  /** 外來檔案裡的字串不該被轉述到使用者眼前 */
+  test('缺漏清單只認得本 App 的鍵', () => {
+    expect(parseBackupWithMeta(jsonWithSkipped(['@someone_else', LEARNING, 42, null]))!.skippedKeys)
+      .toEqual([LEARNING]);
+  });
+
+  test('還原成功時把缺漏帶進結果', async () => {
+    mockFiles.set('file:///picked.json', jsonWithSkipped([LEARNING]));
+
+    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [LEARNING] });
+    // 缺漏不影響「能還原的部分還是要還原」
+    expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'a' }]);
+  });
+
+  /** 換機的順序常是「先備份、再清掉舊裝置」——等到還原才講就太晚了 */
+  test('產生備份的當下就回報缺漏', async () => {
+    mockStore.set(HISTORY, JSON.stringify([{ id: 'a' }]));
+    mockStore.set(LEARNING, '{壞掉的 JSON');
+
+    await expect(backupData()).resolves.toMatchObject({ channel: 'shared', skippedKeys: [LEARNING] });
+  });
+
+  /** 名稱對照表漏一條，訊息就會退回內部鍵名——等於沒說 */
+  test('每個備份鍵都有存在的中文名稱', () => {
+    for (const key of BACKUP_KEYS) {
+      const labelKey = BACKUP_KEY_LABELS[key];
+      expect(labelKey).toBeTruthy();
+      // t() 找不到鍵時原樣回傳鍵名，拿它當「這個鍵不存在」的訊號
+      expect(t(labelKey)).not.toBe(labelKey);
+    }
+  });
+});
+
 describe('套用備份', () => {
   test('寫回儲存後可讀出相同內容', async () => {
     await applyBackup({ [HISTORY]: [{ id: 'x' }] });
@@ -357,7 +416,7 @@ describe('原生備份通道', () => {
   test('分享可用時寫出檔案並交給系統分享表單', async () => {
     mockStore.set(HISTORY, JSON.stringify([{ id: 'a' }]));
 
-    await expect(backupData()).resolves.toBe('shared');
+    await expect(backupData()).resolves.toMatchObject({ channel: 'shared' });
 
     expect(mockSharing.shared).toHaveLength(1);
     // 送出的必須是剛寫好的那個檔，且內容是完整備份
@@ -376,14 +435,14 @@ describe('原生備份通道', () => {
     mockSharing.available = false;
     mockStore.set(HISTORY, JSON.stringify([{ id: 'b' }]));
 
-    await expect(backupData()).resolves.toBe('copied');
+    await expect(backupData()).resolves.toMatchObject({ channel: 'copied' });
     expect(parseBackup(mockClipboard.text)![HISTORY]).toEqual([{ id: 'b' }]);
   });
 
   test('分享中途拋錯也退回剪貼簿，不算失敗', async () => {
     mockSharing.throws = true;
 
-    await expect(backupData()).resolves.toBe('copied');
+    await expect(backupData()).resolves.toMatchObject({ channel: 'copied' });
     expect(mockClipboard.text).not.toBe('');
   });
 });
@@ -392,7 +451,7 @@ describe('原生還原通道', () => {
   test('選到合法備份檔即寫回儲存', async () => {
     mockFiles.set('file:///picked.json', backupJson({ [HISTORY]: [{ id: 'restored' }] }));
 
-    await expect(restoreData()).resolves.toBe('ok');
+    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [] });
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'restored' }]);
   });
 
@@ -404,7 +463,7 @@ describe('原生還原通道', () => {
     mockPicker.canceled = true;
     mockStore.set(HISTORY, JSON.stringify([{ id: '原本的' }]));
 
-    await expect(restoreData()).resolves.toBe('canceled');
+    await expect(restoreData()).resolves.toEqual({ status: 'canceled' });
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: '原本的' }]);
   });
 
@@ -412,13 +471,13 @@ describe('原生還原通道', () => {
     mockFiles.set('file:///picked.json', JSON.stringify({ data: { '@other_app': [1] } }));
     mockStore.set(HISTORY, JSON.stringify([{ id: '原本的' }]));
 
-    await expect(restoreData()).resolves.toBe('invalid');
+    await expect(restoreData()).resolves.toEqual({ status: 'invalid' });
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: '原本的' }]);
   });
 
   test('讀檔失敗回傳 error，不寫入任何東西', async () => {
     mockPicker.uri = 'file:///不存在.json';
-    await expect(restoreData()).resolves.toBe('error');
+    await expect(restoreData()).resolves.toEqual({ status: 'error' });
     expect(mockStore.size).toBe(0);
   });
 
@@ -427,7 +486,7 @@ describe('原生還原通道', () => {
     mockPicker.throws = true;
     mockClipboard.text = backupJson({ [SETTINGS]: { userName: '小熊' } });
 
-    await expect(restoreData()).resolves.toBe('ok');
+    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [] });
     expect(JSON.parse(mockStore.get(SETTINGS)!)).toEqual({ userName: '小熊' });
   });
 
@@ -435,7 +494,7 @@ describe('原生還原通道', () => {
     mockPicker.throws = true;
     mockClipboard.text = '隨手複製的一段字';
 
-    await expect(restoreData()).resolves.toBe('invalid');
+    await expect(restoreData()).resolves.toEqual({ status: 'invalid' });
     expect(mockStore.size).toBe(0);
   });
 });
@@ -455,7 +514,7 @@ describe('跨平台往返', () => {
 
     mockStore.clear();
     mockFiles.set('file:///picked.json', exported);
-    await expect(restoreData()).resolves.toBe('ok');
+    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [] });
 
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'a', poemTitle: '乾為天' }]);
     expect(JSON.parse(mockStore.get(SETTINGS)!)).toEqual({ themeMode: 'light' });

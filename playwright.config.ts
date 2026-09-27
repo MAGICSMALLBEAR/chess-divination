@@ -51,7 +51,18 @@ export default defineConfig({
   webServer: {
     command: `npx expo serve --port ${PORT}`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    // 一律自己起一個，不沿用 8099 上既有的事情。
+    //
+    // 原本是 `!process.env.CI`（本機沿用）：port 上只要有東西在回應，
+    // Playwright 就當作「伺服器已經好了」，測出來的就不是剛剛 build 的
+    // dist/。實測把一個「服務舊 dist」的伺服器放在 8099，整個 suite 會
+    // 卡住到逾時——紅得沒有理由，而更糟的是綠得沒有理由：換成別的
+    // 產物時，綠燈描述的是一個不存在的版本。`build:web` 之後測到的
+    // 必須就是那份 dist/，這件事不能取決於 port 上有沒有人。
+    //
+    // 代價：本機若自己開了 8099（例如邊改邊看），跑 e2e 前要先關掉，
+    // Playwright 會直接報「port 已被占用」而不是靜靜地測錯東西。
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

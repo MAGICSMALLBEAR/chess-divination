@@ -749,6 +749,13 @@ export const translations: Record<string, Record<Lang, string>> = {
   'settings.backupFailDesc': { 'zh-TW': '無法產生備份檔，請稍後再試。', en: 'Could not create the backup file. Please try again.', ja: 'バックアップファイルを作成できませんでした。後でもう一度お試しください。' },
   'settings.restoreConfirm': { 'zh-TW': '將覆蓋現有資料，確定要還原嗎？', en: 'This will overwrite your current data. Restore anyway?', ja: '現在のデータを上書きします。復元しますか？' },
   'settings.restoreOk': { 'zh-TW': '還原成功', en: 'Restore complete', ja: '復元完了' },
+  // 備份檔自己記著「產生這份備份時哪些資料已經讀不到」。只報「還原成功」
+  // 會讓少了一整類資料的人以為東西都在，所以缺漏要說出來、而且要用
+  // 使用者看得懂的名字（見 backup.ts 的 BACKUP_KEY_LABELS）。
+  'settings.restoreOkPartial': { 'zh-TW': '還原完成，但這份備份少了資料', en: 'Restored — but this backup was missing some data', ja: '復元しましたが、このバックアップには欠けているデータがあります' },
+  // 備份與還原兩邊共用同一句：同一個事實（這份檔案少了什麼）不該有兩種說法。
+  'settings.backupMissingItems': { 'zh-TW': '這份備份產生時，下列資料就已經讀不到，因此沒有包含在裡面：{items}。', en: 'When this backup was created, the following data could not be read and is not included: {items}.', ja: 'このバックアップを作成した時点で、次のデータは読み取れず、含まれていません：{items}。' },
+  'settings.backupKeyDeleted': { 'zh-TW': '已刪除記錄的標記', en: 'Marks for deleted records', ja: '削除済み記録のマーク' },
   'settings.restoreFail': { 'zh-TW': '還原失敗', en: 'Restore failed', ja: '復元に失敗しました' },
   'settings.restoreFailDesc': { 'zh-TW': '請選擇正確的備份檔案', en: 'Please choose a valid backup file', ja: '正しいバックアップファイルを選んでください' },
   'settings.restoreFailRead': { 'zh-TW': '無法讀取備份檔，請確認檔案完整後再試。', en: 'Could not read the backup file. Check that it is intact and try again.', ja: 'バックアップファイルを読み取れませんでした。ファイルが壊れていないか確認してください。' },
