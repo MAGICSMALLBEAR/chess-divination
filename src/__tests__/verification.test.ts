@@ -7,7 +7,7 @@ import {
   bestCategory, medianVerifyDelay,
   OUTCOME_LABELS, OUTCOME_STATUSES, VERIFY_REMINDER_DAYS, MIN_INSIGHT_SAMPLES,
   verifyReminderPolicy, VERIFY_REMINDER_CHOICES, VERIFY_REMINDER_OFF,
-  accuracyTrend,
+  accuracyTrend, VERIFY_PROMPT_WINDOW_DAYS,
 } from '../services/verification';
 import type {
   DivinationRecord, OutcomeStatus, DivinationOutcome,
@@ -114,6 +114,20 @@ describe('待回填清單', () => {
 
   test('空清單不拋錯', () => {
     expect(pendingVerification([], NOW)).toEqual([]);
+  });
+
+  /** 路線圖 #32：只有下限時，很久沒回填的人首頁掛著只增不減的數字 */
+  test('滿期超過 VERIFY_PROMPT_WINDOW_DAYS 天的不再算待回填（邊界包含）', () => {
+    const edge = rec({ timestamp: NOW - (VERIFY_REMINDER_DAYS + VERIFY_PROMPT_WINDOW_DAYS) * DAY });
+    const past = rec({ timestamp: NOW - (VERIFY_REMINDER_DAYS + VERIFY_PROMPT_WINDOW_DAYS + 1) * DAY });
+    const yearOld = rec({ timestamp: NOW - 400 * DAY });
+    expect(pendingVerification([edge, past, yearOld], NOW).map(r => r.id)).toEqual([edge.id]);
+  });
+
+  test('視窗從「滿期」起算：門檻 30 天時，占卜後 120 天仍算', () => {
+    const r = rec({ timestamp: NOW - (30 + VERIFY_PROMPT_WINDOW_DAYS) * DAY });
+    expect(pendingVerification([r], NOW, 30)).toHaveLength(1);
+    expect(pendingVerification([r], NOW, 7)).toHaveLength(0);
   });
 });
 

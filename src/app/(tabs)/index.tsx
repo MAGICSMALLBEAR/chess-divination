@@ -8,7 +8,7 @@ import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
 import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
 import { generateDailyFortune, dailyElementBasis } from '@/services/divination';
-import { getDailyFortune, saveDailyFortune, getHistory, getSettings, recordHasLevel, type DailyFortune, type DivinationRecord } from '@/services/storage';
+import { getDailyFortune, saveDailyFortune, getHistory, getSettings, recordHasLevel, HISTORY_LIMIT, HISTORY_WARN_AT, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
 import { recordTitle } from '@/services/poemList';
 import { recordLink } from '@/services/recordLink';
@@ -39,6 +39,7 @@ export default function HomeScreen() {
   const [streak, setStreak] = useState(0);
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const [pending, setPending] = useState<DivinationRecord[]>([]);
+  const [historyCount, setHistoryCount] = useState(0);
   const [userName, setUserName] = useState('');
   const [almanac, setAlmanac] = useState<TodayAlmanac | null>(null);
   const [reviews, setReviews] = useState<{ total: number; decks: { deck: DeckId; due: number }[] }>({ total: 0, decks: [] });
@@ -97,6 +98,7 @@ export default function HomeScreen() {
     // 關閉提醒的人，首頁也不該繼續頂著一張待回填卡片
     const policy = verifyReminderPolicy(settings.verifyReminderDays);
     setPending(policy.enabled ? pendingVerification(h, Date.now(), policy.days) : []);
+    setHistoryCount(h.length);
   }
 
   const dailyBasis = dailyElementBasis(dailyFortune?.luckyElement);
@@ -243,6 +245,30 @@ export default function HomeScreen() {
               {t('home.pendingLatest', {
                 title: recordTitle(pending[0]), days: daysSince(pending[0].timestamp),
               })}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* 記錄快滿了（路線圖 #31）。滿了之後 addHistory 會先刪最舊、沒有個人資料的記錄——
+            那是守住上限的最後手段，不能是使用者第一次知道有上限的時候。
+            點下去到設定頁：CSV 匯出與備份都在那裡。 */}
+        {historyCount >= HISTORY_WARN_AT && (
+          <TouchableOpacity
+            testID="history-capacity"
+            style={[styles.pendingCard, { backgroundColor: theme.bgDark, borderColor: theme.gold }]}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('home.capacity', { n: historyCount, max: HISTORY_LIMIT })}。${t('home.capacityHint')}`}
+            onPress={() => router.push('/settings')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.iconRow}>
+              <Icon name="save" size={16} color={theme.gold} />
+              <Text style={[styles.pendingTitle, { color: theme.textGold }]}>
+                {' '}{t('home.capacity', { n: historyCount, max: HISTORY_LIMIT })}
+              </Text>
+            </View>
+            <Text style={[styles.pendingHint, { color: theme.textSecondary }]}>
+              {t('home.capacityHint')}
             </Text>
           </TouchableOpacity>
         )}

@@ -292,6 +292,8 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 天數走 {days} 佔位而不是寫死：它每天都在變。
   'home.pending': { 'zh-TW': '{n} 筆占卜可以回填結果了', en: '{n} readings are ready to verify', ja: '{n} 件の占いが結果待ちです' },
   'home.reviews': { 'zh-TW': '今天有 {n} 張易經卡片該複習了', en: '{n} I Ching cards are due for review today', ja: '今日復習する易経カードが {n} 枚あります' },
+  'home.capacity': { 'zh-TW': '記錄已有 {n} 筆，上限 {max} 筆', en: '{n} of {max} records used', ja: '記録は {n} 件、上限は {max} 件です' },
+  'home.capacityHint': { 'zh-TW': '滿了之後會先刪最舊、沒有收藏／占驗／筆記的記錄。想留著全部的話，可先到設定匯出 CSV 或備份。', en: 'When full, the oldest records without a favorite, outcome or note are removed first. To keep everything, export a CSV or back up in Settings.', ja: '上限に達すると、お気に入り・結果・メモのない古い記録から削除されます。すべて残したい場合は、設定で CSV の書き出しかバックアップを。' },
   'home.reviewsDeck': { 'zh-TW': '{deck} {n}', en: '{deck}: {n}', ja: '{deck} {n}' },
   'home.pendingLatest': { 'zh-TW': '最近的是「{title}」，已過 {days} 天', en: 'Most recent: “{title}”, {days} days ago', ja: '直近は「{title}」（{days} 日前）' },
   'home.quickDraw': { 'zh-TW': '快速抽一籤', en: 'Quick Draw', ja: 'クイック占い' },

@@ -1,9 +1,10 @@
 // Upstash Redis backed cloud-sync endpoint. Connect Redis in Vercel Marketplace.
 import { byteLength, createRateLimiter } from '../src/services/rateLimit';
 
-// 雲端那份存的是兩台裝置的聯集（CLOUD_HISTORY_LIMIT = 1000 筆，
-// 單筆實測約 440–610 bytes），512KB 會讓滿載的使用者一同步就撞 413。
-// 1MB 容得下聯集，也仍在 Upstash REST 單次請求的限制之內。
+// 雲端那份存的是兩台裝置的聯集（CLOUD_HISTORY_LIMIT = 1000 筆）。
+// 「單筆約 440–610 bytes、1MB 容得下」只對抽棋記錄成立：棋盤記錄約 2.3KB（S91 實測），
+// 所以客戶端在上傳出口依 UPLOAD_BUDGET_BYTES（900KB）裁掉最舊的一截（cloudSync.ts 的
+// fitToBudget）；這裡的 413 只是最後一道防線。改這個數字要連同客戶端的預算一起改。
 const MAX_BODY_BYTES = 1024 * 1024;
 
 // 配對碼本身就是憑證，但**任何**格式正確的 48 位十六進位字串都能寫入一組新的

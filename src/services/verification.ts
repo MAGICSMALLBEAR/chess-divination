@@ -137,8 +137,21 @@ export function daysSince(timestamp: number, now: number = Date.now()): number {
 }
 
 /**
- * 適合提醒使用者回填的記錄：尚未回填、且已過建議等待天數。
+ * 滿期之後還算「待回填」的天數（路線圖 #32）。
+ *
+ * 原本只有下限沒有上限：很久沒回填的人，首頁掛著一個只增不減的「237 筆可以回填」，
+ * 提示變成噪音，連剛滿期、還記得住的那幾筆也一起被淹掉。滿期超過這個天數的記錄
+ * 不再算進提示——**資料不動**，打開那一筆照樣能回填，收藏頁「全部」也列得到。
+ * 應驗率本來就不受影響（未回填的不進分母）。
+ */
+export const VERIFY_PROMPT_WINDOW_DAYS = 90;
+
+/**
+ * 適合提醒使用者回填的記錄：尚未回填、已過建議等待天數，且滿期未超過
+ * `VERIFY_PROMPT_WINDOW_DAYS`。
  * 由近而遠排序——剛滿期的事使用者記得最清楚，回填品質最高。
+ *
+ * 首頁、統計頁與收藏頁的「待回填」篩選都走這裡，三處的數字才會一樣（S89）。
  */
 export function pendingVerification(
   records: DivinationRecord[],
@@ -146,7 +159,11 @@ export function pendingVerification(
   minDays: number = VERIFY_REMINDER_DAYS,
 ): DivinationRecord[] {
   return records
-    .filter(r => !isVerified(r) && daysSince(r.timestamp, now) >= minDays)
+    .filter(r => {
+      if (isVerified(r)) return false;
+      const d = daysSince(r.timestamp, now);
+      return d >= minDays && d <= minDays + VERIFY_PROMPT_WINDOW_DAYS;
+    })
     .sort((a, b) => b.timestamp - a.timestamp);
 }
 

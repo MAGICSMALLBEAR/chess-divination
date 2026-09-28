@@ -274,13 +274,70 @@ export async function getHistory(): Promise<DivinationRecord[]> {
   return normalizeRecords(raw);
 }
 
+/** 本機歷史的筆數上限（cloudSync 截本機那份時用同一個數字） */
+export const HISTORY_LIMIT = 500;
+/** 到這個筆數起，首頁提醒使用者快滿了（路線圖 #31） */
+export const HISTORY_WARN_AT = 450;
+
+/**
+ * 使用者在這筆記錄上留下過東西：收藏、占驗結果、筆記、決策日誌，或放進了資料夾。
+ * 問題文字不算——幾乎每一筆都有，算進去等於全部受保護。
+ */
+export function hasPersonalData(record: DivinationRecord, filedIds: ReadonlySet<string>): boolean {
+  return record.isFavorited
+    || record.outcome !== undefined
+    || !!record.note?.trim()
+    || record.decisionJournal !== undefined
+    || filedIds.has(record.id);
+}
+
+/**
+ * 超過上限時要丟哪幾筆（路線圖 #31）。
+ *
+ * 原本是 `slice(0, 500)`：第 501 筆起最舊那筆直接消失，連同上面的占驗、筆記、決策日誌，
+ * 應驗率的分母也跟著悄悄變小。現在**先從最舊往回丟沒有個人資料的**，不夠才丟最舊的
+ * 有資料者——上限仍然守得住，只是被犧牲的先是使用者沒碰過的那些。
+ *
+ * 「最舊」看陣列位置而不是 timestamp，與原本的 slice 同一個定義：歷史是 unshift 進來的、
+ * 同步合併後又依時間排過，位置就是存入的先後；timestamp 則會被調錯的裝置時鐘帶偏。
+ *
+ * `keepId`（剛存的那一筆）永遠不丟：否則其餘都有資料時，丟掉的會是剛占完的這一筆。
+ * 保留原本的順序。
+ */
+export function trimHistory(
+  history: DivinationRecord[],
+  filedIds: ReadonlySet<string>,
+  limit: number = HISTORY_LIMIT,
+  keepId?: string,
+): DivinationRecord[] {
+  const excess = history.length - limit;
+  if (excess <= 0) return history;
+  // 歷史由新到舊存放，越後面越舊
+  const oldestFirst = history.filter(r => r.id !== keepId).reverse();
+  const drop = new Set<DivinationRecord>();
+  for (const r of oldestFirst) {
+    if (drop.size >= excess) break;
+    if (!hasPersonalData(r, filedIds)) drop.add(r);
+  }
+  for (const r of oldestFirst) {
+    if (drop.size >= excess) break;
+    drop.add(r);
+  }
+  return history.filter(r => !drop.has(r));
+}
+
 export async function addHistory(record: Omit<DivinationRecord, 'id'>): Promise<DivinationRecord> {
   const newRecord: DivinationRecord = { ...record, id: generateId() };
   const history = await getHistory();
   history.unshift(newRecord);
-  // Keep last 500 records max
-  const trimmed = history.slice(0, 500);
-  await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(trimmed));
+  let kept = history;
+  if (history.length > HISTORY_LIMIT) {
+    // 只有要截的時候才讀設定（資料夾）：平常每占一次都多讀一次沒有必要
+    const settings = await getSettings().catch(() => DEFAULT_SETTINGS);
+    const filed = new Set((settings.folders ?? []).flatMap(f => Array.isArray(f.recordIds) ? f.recordIds : []));
+    kept = trimHistory(history, filed, HISTORY_LIMIT, newRecord.id);
+  }
+  await AsyncStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(kept));
   return newRecord;
 }
 

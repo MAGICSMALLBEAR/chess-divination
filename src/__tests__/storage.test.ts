@@ -128,6 +128,60 @@ describe('歷史記錄', () => {
     // 最舊的一筆（index 499）已被擠出
     expect(history.some(r => r.id === 'old-499')).toBe(false);
   });
+
+  /**
+   * 路線圖 #31：原本是 slice(0, 500)，最舊那筆連同占驗、筆記、決策日誌一起消失。
+   * 現在先犧牲最舊、沒有任何個人資料的記錄。
+   */
+  describe('滿 500 筆時先刪沒有個人資料的（#31）', () => {
+    const DAY = 86_400_000;
+    /** 500 筆由新到舊；index 越大越舊 */
+    function seedFull(annotate: (i: number) => Partial<DivinationRecord>) {
+      const full: DivinationRecord[] = Array.from({ length: 500 }, (_, i) => ({
+        ...makeRecord({ timestamp: Date.now() - (i + 1) * DAY, ...annotate(i) }),
+        id: `old-${i}`,
+      }));
+      mockStore.set('@chess_divination_history', JSON.stringify(full));
+    }
+    const ids = async () => new Set((await getHistory()).map(r => r.id));
+
+    test('最舊的有占驗、筆記、收藏、日誌：跳過它們，刪最舊的空白記錄', async () => {
+      seedFull(i => i === 499 ? { outcome: { status: 'accurate', verifiedAt: 1 } }
+        : i === 498 ? { note: '筆記' }
+        : i === 497 ? { isFavorited: true }
+        : i === 496 ? { decisionJournal: { expectation: '期待' } }
+        : {});
+      await addHistory(makeRecord());
+      const kept = await ids();
+      expect(kept.size).toBe(500);
+      for (const i of [499, 498, 497, 496]) expect(kept.has(`old-${i}`)).toBe(true);
+      expect(kept.has('old-495')).toBe(false);
+    });
+
+    test('放進資料夾的也算個人資料', async () => {
+      seedFull(() => ({}));
+      await saveSettings({ ...(await getSettings()), folders: [{ id: 'f', name: '工作', color: '#000', recordIds: ['old-499'] }] });
+      await addHistory(makeRecord());
+      const kept = await ids();
+      expect(kept.has('old-499')).toBe(true);
+      expect(kept.has('old-498')).toBe(false);
+    });
+
+    test('全部都有個人資料時仍守住上限（刪最舊的），且絕不刪剛存的那一筆', async () => {
+      seedFull(() => ({ note: '都有' }));
+      const fresh = await addHistory(makeRecord());
+      const kept = await ids();
+      expect(kept.size).toBe(500);
+      expect(kept.has(fresh.id)).toBe(true);
+      expect(kept.has('old-499')).toBe(false);
+    });
+
+    test('只寫了問題不算個人資料（幾乎每一筆都有，算進去等於全部受保護）', async () => {
+      seedFull(() => ({ questionText: '要不要換工作' }));
+      await addHistory(makeRecord());
+      expect((await ids()).has('old-499')).toBe(false);
+    });
+  });
 });
 
 describe('牌陣記錄', () => {

@@ -2,7 +2,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
-import { getHistory, getFavorites, getSettings, updateSettings, STORAGE_KEYS, type AppSettings, type CustomCategory, type DivinationRecord, type Folder } from './storage';
+import { getHistory, getFavorites, getSettings, updateSettings, STORAGE_KEYS, HISTORY_LIMIT, type AppSettings, type CustomCategory, type DivinationRecord, type Folder } from './storage';
+import { byteLength } from './rateLimit';
 
 // Web 端與部署同源，相對路徑即可；原生 fetch 不吃相對 URL，
 // 必須用絕對網址——預設值若維持 '/api/sync'，原生 build 的同步必掛。
@@ -12,7 +13,6 @@ const SYNC_URL = process.env.EXPO_PUBLIC_CLOUD_SYNC_URL
     : 'https://chess-divination-app.vercel.app/api/sync');
 const SYNC_KEY = 'chess-divination.sync-key.v1';
 const WEB_SYNC_KEY = '@chess_divination_sync_key';
-const HISTORY_LIMIT = 500;
 /**
  * 雲端保存的記錄上限，刻意高於單機的 500。
  *
@@ -20,11 +20,17 @@ const HISTORY_LIMIT = 500;
  * 雲端——雲端從不持有聯集，兩台永遠來回覆蓋，誰都拿不到對方的記錄。
  * 讓雲端存得下聯集，這條來回覆蓋的迴圈才會停。
  *
- * 上限取 1000 是對著 payload 大小定的：單筆記錄實測約 440–610 bytes，
- * 1000 筆約 500KB，在伺服器端 MAX_BODY_BYTES（1MB）之內；
- * 同時 v3 payload 不再重複夾帶 favorites，省下的正是這一半空間。
+ * 1000 是筆數上限，**不保證塞得進伺服器的 1MB**：原本的理由「單筆約 440–610 bytes、
+ * 1000 筆約 500KB」量的是抽棋記錄。S91 實測棋盤記錄約 2.3KB（positionSummary 很長），
+ * 約 440 筆棋盤就超過 1MB，連本機上限 500 筆全是棋盤都會超過。位元組上限另由
+ * UPLOAD_BUDGET_BYTES 在上傳出口把關（路線圖 #42）。
  */
 const CLOUD_HISTORY_LIMIT = 1000;
+/**
+ * 上傳 body 的位元組預算。伺服器的 MAX_BODY_BYTES（api/sync.ts）是 1MB，超過回 413；
+ * 留約 10% 給兩端量法以外的出入。量法與伺服器同一個 `byteLength`（UTF-8，一個漢字 3 bytes）。
+ */
+export const UPLOAD_BUDGET_BYTES = 900 * 1024;
 const DELETED_IDS_LIMIT = 1000;
 /** 資料夾／類別墓碑上限，與 storage.ts 的 DELETED_KEYS_LIMIT 一致 */
 const DELETED_KEYS_LIMIT = 200;
@@ -140,7 +146,38 @@ export async function buildCloudPayload(): Promise<CloudPayload> {
  * 本機儲存不受影響：收藏在 AsyncStorage 仍是完整副本。
  */
 function forUpload(payload: CloudPayload): CloudPayload {
-  return { ...payload, version: 3, favorites: [] };
+  return fitToBudget({ ...payload, version: 3, favorites: [] });
+}
+
+function timestampOf(record: unknown): number {
+  const ts = (record as { timestamp?: unknown } | null)?.timestamp;
+  return typeof ts === 'number' && Number.isFinite(ts) ? ts : -Infinity;
+}
+
+/**
+ * 把上傳的歷史裁到位元組預算內：由新到舊放，放不下的第一筆起全部不上傳（路線圖 #42）。
+ *
+ * 沒有這一步時，棋盤記錄一多（約 2.3KB／筆）就超過伺服器的 1MB，**之後每一次同步都
+ * 回 413**，而且 mergeFromCloud 已經先寫回本機——使用者唯一的出路是自己刪記錄。
+ *
+ * 只裁上傳、不碰本機：沒上傳的是最舊的那一截，它們仍在持有它們的裝置上
+ * （mergeHistories 截本機那份時保證不丟本機自己的記錄），不會因為這一步消失。
+ * 取「連續的最新一段」而不是跳過大的、塞小的：雲端保存的範圍才講得清楚——
+ * 「某一天以後的都在」，而不是東缺一筆西缺一筆。
+ */
+export function fitToBudget(payload: CloudPayload, budget: number = UPLOAD_BUDGET_BYTES): CloudPayload {
+  const history = Array.isArray(payload.history) ? payload.history : [];
+  let used = byteLength(JSON.stringify({ ...payload, history: [] }));
+  const newestFirst = [...history].sort((a, b) => timestampOf(b) - timestampOf(a));
+  const kept: unknown[] = [];
+  for (const record of newestFirst) {
+    // +1 是陣列元素之間的分隔符 ","
+    const size = byteLength(JSON.stringify(record)) + 1;
+    if (used + size > budget) break;
+    kept.push(record);
+    used += size;
+  }
+  return kept.length === history.length ? payload : { ...payload, history: kept };
 }
 
 /** HTTP 狀態碼 → 失敗原因。伺服器的錯誤碼定義見 api/sync.ts */

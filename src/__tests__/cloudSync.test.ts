@@ -20,8 +20,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+import fs from 'fs';
+import path from 'path';
 import {
   mergeHistories, mergeFromCloud, mergeSettings, syncWithCloud, uploadToCloud,
+  fitToBudget, UPLOAD_BUDGET_BYTES, type CloudPayload,
 } from '../services/cloudSync';
 import { STORAGE_KEYS, type AppSettings } from '../services/storage';
 
@@ -650,6 +653,50 @@ describe('同步失敗的原因回報', () => {
 
     expect(await syncWithCloud()).toBe('ok');
     expect(calls).toEqual(['GET', 'PUT']);
+  });
+
+  /**
+   * 路線圖 #42：CLOUD_HISTORY_LIMIT 的註解以抽棋記錄（約 0.5KB）估大小；棋盤記錄約 2.3KB，
+   * 約 440 筆就超過伺服器的 1MB，之後每一次同步都 413。
+   */
+  describe('上傳的位元組預算（#42）', () => {
+    const bytes = (s: string) => new TextEncoder().encode(s).length;
+    // 約 2.3KB：與 S91 在 Jest 裡量到的棋盤記錄同級（positionSummary 612 字）
+    const boardSized = (i: number) => ({ id: `b${i}`, timestamp: i, mode: 'board', positionSummary: '棋'.repeat(700) });
+    const payloadOf = (history: unknown[]): CloudPayload => ({
+      version: 3, timestamp: 0, history, favorites: [], settings: {}, dailyFortune: null, deletedIds: [],
+    });
+
+    test('600 筆棋盤大小的記錄：送出的 body 在預算內，留下的是連續的最新一段', async () => {
+      let body = '';
+      global.fetch = jest.fn((_url: unknown, init?: { method?: string; body?: string }) => {
+        if (init?.method === 'PUT') body = init.body!;
+        return Promise.resolve(Response.json({ ok: true }));
+      }) as unknown as typeof fetch;
+
+      const history = Array.from({ length: 600 }, (_, i) => boardSized(i));
+      // 先確認測試資料真的會撞上伺服器上限，否則這條測試是空過
+      expect(bytes(JSON.stringify(payloadOf(history)))).toBeGreaterThan(1024 * 1024);
+
+      expect(await uploadToCloud(payloadOf(history))).toBe('ok');
+      expect(bytes(body)).toBeLessThanOrEqual(UPLOAD_BUDGET_BYTES);
+      const sent: { timestamp: number }[] = JSON.parse(body).history;
+      expect(sent.length).toBeGreaterThan(300);
+      expect(sent.map(r => r.timestamp)).toEqual(Array.from({ length: sent.length }, (_, k) => 599 - k));
+    });
+
+    test('放得下時原樣上傳，一筆都不少', () => {
+      const payload = payloadOf([boardSized(1), boardSized(2)]);
+      expect(fitToBudget(payload)).toBe(payload);
+    });
+
+    test('預算小於伺服器的 MAX_BODY_BYTES（兩個數字在不同檔案，改一邊要記得另一邊）', () => {
+      const src = fs.readFileSync(path.join(__dirname, '../../api/sync.ts'), 'utf-8');
+      const m = src.match(/const MAX_BODY_BYTES = ([\d\s*]+);/);
+      expect(m).not.toBeNull();
+      const serverMax = m![1].split('*').map(Number).reduce((a, b) => a * b, 1);
+      expect(UPLOAD_BUDGET_BYTES).toBeLessThan(serverMax);
+    });
   });
 
   /** 上傳去掉冗餘的收藏副本，payload 才不會接近雙倍大 */
