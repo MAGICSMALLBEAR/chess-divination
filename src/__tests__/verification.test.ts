@@ -488,8 +488,9 @@ describe('待回填在畫面上要有出口', () => {
    * 關鍵的一半：點下去要到**那一筆**。只顯示數字等於把「現在就去回填」
    * 變成「自己去歷史裡找」——那正是統計頁原本的樣子。
    */
-  test('提示可按，且開的是最近滿期的那一筆', () => {
-    expect(homeSrc).toMatch(/router\.push\(recordLink\(pending\[0\]\)\)/);
+  test('提示可按：只有一筆時開那一筆，不只一筆時到收藏頁的待回填清單（S89 #27）', () => {
+    expect(homeSrc).toMatch(/pending\.length === 1\s*\?\s*recordLink\(pending\[0\]\)/);
+    expect(homeSrc).toMatch(/pathname: '\/collection', params: \{ filter: 'pending' \}/);
   });
 
   test('沒有待回填時不顯示提示', () => {

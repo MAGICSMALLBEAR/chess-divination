@@ -517,12 +517,18 @@ export const translations: Record<string, Record<Lang, string>> = {
   'collection.noHistoryDesc': { 'zh-TW': '開始占卜後記錄將顯示於此', en: 'Your readings will appear here', ja: '占いを始めると記録がここに表示されます' },
   'collection.noFavDesc': { 'zh-TW': '在占卜結果中點擊收藏即可加入', en: 'Tap the heart on any reading to save it here', ja: '占い結果でハートをタップすると保存されます' },
   'collection.records': { 'zh-TW': '{n} 筆', en: '{n}', ja: '{n} 件' },
+  // 篩選列。「待回填」帶筆數，與首頁／統計頁的「N 筆可以回填」同一個數字
+  'collection.filterAll': { 'zh-TW': '全部', en: 'All', ja: 'すべて' },
+  'collection.filterPending': { 'zh-TW': '待回填 {n}', en: 'To verify {n}', ja: '結果待ち {n}' },
+  'collection.filterVerified': { 'zh-TW': '已回填', en: 'Verified', ja: '記入済み' },
+  'collection.noMatchFilterDesc': { 'zh-TW': '目前的篩選條件下沒有記錄，點「全部」或取消模式看其他記錄', en: 'Nothing matches the current filter. Tap “All” or clear the mode to see other records.', ja: '現在の絞り込みに該当する記録はありません。「すべて」を押すか、モードを解除してください。' },
   'collection.modeDraw': { 'zh-TW': '抽棋', en: 'Draw', ja: '抽棋' },
   'collection.modeBoard': { 'zh-TW': '佈局', en: 'Board', ja: '配置' },
   'collection.modeLingqi': { 'zh-TW': '靈棋', en: 'Lingqi', ja: '靈棋' },
 
   // 成就
   'achievement.title': { 'zh-TW': '成就徽章', en: 'Achievements', ja: '実績バッジ' },
+  'achievement.progressCount': { 'zh-TW': '{current}／{target}', en: '{current}/{target}', ja: '{current}／{target}' },
   'achievement.progress': { 'zh-TW': '成就進度', en: 'Progress', ja: '進捗' },
   'achievement.unlocked': { 'zh-TW': '已解鎖', en: 'Unlocked', ja: '解除済み' },
   'achievement.locked': { 'zh-TW': '未解鎖', en: 'Locked', ja: '未解除' },

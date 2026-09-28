@@ -23,6 +23,7 @@ import path from 'path';
 import {
   ACHIEVEMENTS, ACHIEVEMENT_THRESHOLDS,
   getAchievements, checkAchievements, getStreak, recordUsage, syncAchievements,
+  achievementProgress, getAchievementProgress,
 } from '../services/achievements';
 import {
   saveSettings, getSettings, addHistory, toggleFavorite, setOutcome, linkRelatedRecord,
@@ -563,5 +564,48 @@ describe('學習、校準、複占連結的成就', () => {
     expect(await syncAchievements()).not.toContain('first_link');
     expect(await linkRelatedRecord(second.id, first.id)).toBe(true);
     expect(await syncAchievements()).toContain('first_link');
+  });
+});
+
+/**
+ * 成就逐項進度（S89 #28）。門檻與計數都要跟解鎖條件同一份，
+ * 否則畫面會出現「10／10 卻沒解鎖」或「解鎖了卻寫 9／10」。
+ */
+describe('achievementProgress', () => {
+  test('累積類三種模式一起數，與「累積 N 次占卜」的解鎖同一種數法', () => {
+    const p = achievementProgress({ ...EMPTY_STATS, totalDraws: 3, totalBoard: 2, totalLingqi: 2 }, 0);
+    expect(p.ten_draws).toEqual({ current: 7, target: ACHIEVEMENT_THRESHOLDS.ten_draws });
+    expect(p.fifty_draws).toEqual({ current: 7, target: ACHIEVEMENT_THRESHOLDS.fifty_draws });
+  });
+
+  test('超過門檻時夾在門檻（連續 12 天不印 12／7）', () => {
+    expect(achievementProgress(EMPTY_STATS, 12).week_streak).toEqual({ current: 7, target: 7 });
+  });
+
+  test('五種等級只數真的等級字面值，雜值與重複不算', () => {
+    const p = achievementProgress({ ...EMPTY_STATS, levels: [POEM_LEVELS[0], POEM_LEVELS[0], POEM_LEVELS[1], '', '神秘等級'] }, 0);
+    expect(p.all_levels).toEqual({ current: 2, target: POEM_LEVELS.length });
+  });
+
+  test('「第一次…」類不列進度', () => {
+    const p = achievementProgress(EMPTY_STATS, 0);
+    for (const id of ['first_draw', 'first_board', 'first_lingqi', 'first_favorite', 'both_modes', 'all_modes', 'first_verify', 'first_learn', 'first_intuition', 'first_link']) {
+      expect(p[id]).toBeUndefined();
+    }
+  });
+
+  test('每個有數字門檻的成就都有進度——新增門檻卻漏了進度時這裡會紅', () => {
+    const p = achievementProgress(EMPTY_STATS, 0);
+    for (const id of Object.keys(ACHIEVEMENT_THRESHOLDS)) expect(p[id]).toBeDefined();
+  });
+
+  test('從儲存算出的進度：解鎖的那一刻正好是 target／target', async () => {
+    for (let i = 0; i < ACHIEVEMENT_THRESHOLDS.ten_verify; i++) {
+      const r = await addHistory(makeRecord());
+      await setOutcome(r.id, 'accurate');
+    }
+    const p = await getAchievementProgress();
+    expect(p.ten_verify).toEqual({ current: 10, target: 10 });
+    expect(await syncAchievements()).toContain('ten_verify');
   });
 });

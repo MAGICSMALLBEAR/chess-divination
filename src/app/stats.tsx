@@ -273,7 +273,11 @@ export default function StatsScreen() {
             <TouchableOpacity
               testID="stats-pending"
               accessibilityRole="button"
-              onPress={() => router.push(recordLink(pending[0]))}
+              // 只有一筆就直接打開它；不只一筆時到收藏頁的「待回填」清單——原本一律只連到最近那一筆，
+              // 第二筆以後沒有任何出口，得自己去歷史裡翻（S88 盤點 #27）
+              onPress={() => router.push(pending.length === 1
+                ? recordLink(pending[0])
+                : { pathname: '/collection', params: { filter: 'pending' } })}
             >
               <Text style={[styles.pendingText, { color: theme.textGold }]}>
                 {t('stats.pending', { n: pending.length, days: pendingDays })}

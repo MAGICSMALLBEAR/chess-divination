@@ -6,7 +6,7 @@ import {
   TouchableOpacity, TextInput, RefreshControl,
   NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon, type IconName } from '@/components/icons';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
@@ -31,6 +31,8 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import { useGrid } from '@/hooks/useGrid';
 import { SPREAD_LABEL_KEYS } from '@/services/spreads';
+import { filterRecords, isFiltering, pendingIdsOf, NO_FILTER, type RecordFilter, type StatusFilter } from '@/services/recordFilter';
+import { verifyReminderPolicy } from '@/services/verification';
 
 type TabType = 'history' | 'favorites' | 'folders';
 const TAB_ORDER: TabType[] = ['history', 'favorites', 'folders'];
@@ -45,6 +47,10 @@ const MODE_ICONS: Record<DivinationMode, IconName> = {
 };
 const MODE_LABEL_KEYS: Record<DivinationMode, string> = {
   draw: 'collection.modeDraw', board: 'collection.modeBoard', lingqi: 'collection.modeLingqi',
+};
+const MODE_ORDER: DivinationMode[] = ['draw', 'board', 'lingqi'];
+const STATUS_LABEL_KEYS: Record<StatusFilter, string> = {
+  all: 'collection.filterAll', pending: 'collection.filterPending', verified: 'collection.filterVerified',
 };
 
 /** 純圖示按鈕的觸控外擴。14–18pt 的圖示加上這圈約可達 44pt 建議值 */
@@ -81,6 +87,10 @@ export default function CollectionScreen() {
   const [pickingFolderFor, setPickingFolderFor] = useState<string | null>(null); // record id
   const [refreshing, setRefreshing] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'best'>('newest');
+  const [filter, setFilter] = useState<RecordFilter>(NO_FILTER);
+  const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set());
+  // 首頁／統計頁「N 筆可以回填」帶著 ?filter=pending 進來
+  const params = useLocalSearchParams<{ filter?: string }>();
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const reportRef = useRef<ReportCardHandle>(null);
@@ -178,9 +188,13 @@ export default function CollectionScreen() {
     const h = await getHistory();
     const f = await getFavorites();
     const fl = await getFolders();
+    const settings = await getSettings();
     setHistory(h);
     setFavorites(f);
     setFolders(fl);
+    // 天數與首頁、統計頁同一個答案（verifyReminderPolicy）；關掉提醒時仍照預設天數，
+    // 理由同統計頁那一行：這是使用者主動來看的清單，不是打擾
+    setPendingIds(pendingIdsOf(h, Date.now(), verifyReminderPolicy(settings.verifyReminderDays).days));
   }
 
   async function handleAddFolder() {
@@ -260,8 +274,9 @@ export default function CollectionScreen() {
   const folderRecords = selectedFolder ? recordsInFolder(selectedFolder) : [];
 
   const levelRank: Record<string, number> = { '大吉': 5, '上吉': 4, '中吉': 3, '中平': 2, '下下': 1 };
-  function sortAndFilter(list: DivinationRecord[]): DivinationRecord[] {
-    const sorted = list.slice().sort((a, b) => {
+  function sortAndFilter(list: DivinationRecord[], applyFilter = true): DivinationRecord[] {
+    const base = applyFilter ? filterRecords(list, filter, pendingIds) : list;
+    const sorted = base.slice().sort((a, b) => {
       if (sortOrder === 'newest') return b.timestamp - a.timestamp;
       if (sortOrder === 'oldest') return a.timestamp - b.timestamp;
       return (levelRank[b.poemLevel] || 0) - (levelRank[a.poemLevel] || 0);
@@ -282,13 +297,15 @@ export default function CollectionScreen() {
    * 圖鑑早就分得清楚（`library.notFound`），收藏頁沒有跟上：又一次
    * 「同一件事只做到一半的頁面」。
    */
-  function renderEmpty(icon: IconName, titleKey: string, hintKey: string) {
+  function renderEmpty(icon: IconName, titleKey: string, hintKey: string, filtered = false) {
     const searching = search.trim().length > 0;
+    // 篩選掉的也要說清楚：否則選了「待回填」而全部都回填完的人，會讀到「你還沒有任何記錄」
+    const hint = searching ? 'collection.noMatchDesc' : filtered ? 'collection.noMatchFilterDesc' : hintKey;
     return (
-      <View style={styles.empty} testID={searching ? 'collection-no-match' : 'collection-empty'}>
+      <View style={styles.empty} testID={searching || filtered ? 'collection-no-match' : 'collection-empty'}>
         <Icon name={icon} size={40} color={theme.textMuted} />
-        <Text style={styles.emptyText}>{t(searching ? 'collection.noMatch' : titleKey)}</Text>
-        <Text style={styles.emptyHint}>{t(searching ? 'collection.noMatchDesc' : hintKey)}</Text>
+        <Text style={styles.emptyText}>{t(searching || filtered ? 'collection.noMatch' : titleKey)}</Text>
+        <Text style={styles.emptyHint}>{t(hint)}</Text>
       </View>
     );
   }
@@ -299,7 +316,10 @@ export default function CollectionScreen() {
   const favoritesData = sortAndFilter(favorites);
   // 資料夾內容也走同一套排序與搜尋：搜尋框在三個分頁都看得到，
   // 打了字卻只有前兩頁會篩，等於搜尋在這一頁壞掉
-  const folderRecordsData = sortAndFilter(folderRecords);
+  // 篩選列只出現在歷史與收藏兩頁，資料夾內不套篩選：看不到的條件靜靜藏掉記錄，
+  // 使用者只會以為資料夾裡的東西不見了
+  const folderRecordsData = sortAndFilter(folderRecords, false);
+  const filtering = isFiltering(filter);
   // 給排序/搜索欄用的 data（跟隨目前選中 tab）
   const data = tab === 'history' ? historyData : favoritesData;
 
@@ -352,6 +372,17 @@ export default function CollectionScreen() {
     const idx = TAB_ORDER.indexOf(next);
     horizScrollRef.current?.scrollTo({ x: idx * windowWidth, animated: true });
   }, [windowWidth]);
+
+  // 帶著 ?filter=pending 進來：切到歷史、套上「待回填」，然後把參數消掉。
+  // 不消的話參數一直掛在網址上：使用者手動改了篩選，再從首頁點一次同樣的連結，
+  // 參數沒變、這段不會再跑，看到的就不是「待回填」。收藏頁是常駐分頁，所以在 focus 時處理
+  useFocusEffect(useCallback(() => {
+    if (params.filter !== 'pending') return;
+    setFilter({ status: 'pending', mode: null });
+    setSearch('');
+    switchTab('history');
+    router.setParams({ filter: undefined });
+  }, [params.filter, switchTab]));
 
   function formatDate(timestamp: number): string {
     const d = new Date(timestamp);
@@ -575,6 +606,38 @@ export default function CollectionScreen() {
         </View>
       )}
 
+      {/* 篩選：占驗狀態＋模式。與排序列同樣只在歷史與收藏兩頁出現。
+          模式鈕再按一次取消（不另放「全部模式」）：三顆就夠清楚，多一顆在手機上會擠到換行 */}
+      {tab !== 'folders' && (
+        <View style={styles.filterRow} testID="collection-filters">
+          {(['all', 'pending', 'verified'] as const).map(status => (
+            <TouchableOpacity key={status}
+              testID={`filter-status-${status}`}
+              accessibilityRole="button"
+              aria-selected={filter.status === status}
+              style={[styles.sortBtn, filter.status === status && { borderColor: theme.gold }]}
+              onPress={() => setFilter({ ...filter, status })}>
+              <Text style={[styles.sortText, filter.status === status && { color: theme.textGold }]}>
+                {status === 'pending' ? t(STATUS_LABEL_KEYS[status], { n: pendingIds.size }) : t(STATUS_LABEL_KEYS[status])}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <View style={styles.filterDivider} />
+          {MODE_ORDER.map(mode => (
+            <TouchableOpacity key={mode}
+              testID={`filter-mode-${mode}`}
+              accessibilityRole="button"
+              aria-selected={filter.mode === mode}
+              style={[styles.sortBtn, filter.mode === mode && { borderColor: theme.gold }]}
+              onPress={() => setFilter({ ...filter, mode: filter.mode === mode ? null : mode })}>
+              <Text style={[styles.sortText, filter.mode === mode && { color: theme.textGold }]}>
+                {t(MODE_LABEL_KEYS[mode])}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {/* 搜尋 */}
       <TextInput
         style={styles.searchInput}
@@ -603,7 +666,7 @@ export default function CollectionScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}
           >
-            {historyData.length === 0 && renderEmpty('scroll', 'collection.noHistory', 'collection.noHistoryDesc')}
+            {historyData.length === 0 && renderEmpty('scroll', 'collection.noHistory', 'collection.noHistoryDesc', filtering && history.length > 0)}
             <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
               {historyData.map((record) => renderRecordCard(record))}
             </View>
@@ -617,7 +680,7 @@ export default function CollectionScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}
           >
-            {favoritesData.length === 0 && renderEmpty('scroll', 'collection.noFav', 'collection.noFavDesc')}
+            {favoritesData.length === 0 && renderEmpty('scroll', 'collection.noFav', 'collection.noFavDesc', filtering && favorites.length > 0)}
             <View testID="card-grid" style={styles.grid} onLayout={onGridLayout}>
               {favoritesData.map((record) => renderRecordCard(record))}
             </View>
@@ -777,6 +840,12 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     backgroundColor: t.bgCard, borderWidth: 1, borderColor: t.bgMedium,
   },
   sortText: { fontSize: 12, color: t.textMuted },
+  // 與排序列同款，但允許換行：英文與日文的標籤較長，六顆加分隔線在窄螢幕排不下一行
+  filterRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
+  filterDivider: { width: 1, alignSelf: 'stretch', backgroundColor: t.bgMedium, marginHorizontal: 2 },
   searchInput: {
     marginBottom: Spacing.sm,
     // 底色與邊框拉高對比：原本 bgDark 配 bgMedium 在墨色背景上幾乎看不見輸入框

@@ -103,6 +103,8 @@ export async function checkAchievements(stats: {
   hasIntuition?: boolean;
   totalCalibrated?: number;
   hasLink?: boolean;
+  /** 八卦牌裡複習間隔已達 trigram_mastery 天數的張數——只給成就頁的進度用，解鎖看的是 trigramMinInterval */
+  trigramReady?: number;
 }): Promise<string[]> {
   // 先算出「這次符合條件的成就有哪些」，實際的解鎖寫入放到 updateSettings
   // 的 updater 裡再依當下的清單決定。在這裡讀 unlockedAchievements 再寫回，
@@ -162,6 +164,17 @@ export async function checkAchievements(stats: {
  * 這裡把「讀資料→算統計→檢查」包成一步，讓呼叫端不必自己拼統計而漏算。
  */
 export async function syncAchievements(): Promise<string[]> {
+  return checkAchievements(await collectAchievementStats());
+}
+
+/** checkAchievements 收的那份統計 */
+export type AchievementStats = Parameters<typeof checkAchievements>[0];
+
+/**
+ * 讀資料、算出成就要看的統計。解鎖檢查與成就頁的進度共用這一份——
+ * 各算各的話，進度寫著 10／10 卻沒解鎖（或反過來）遲早會發生。
+ */
+async function collectAchievementStats(): Promise<AchievementStats> {
   const [history, favorites, learning] = await Promise.all([
     getHistory(), getFavorites(), getLearningState(),
   ]);
@@ -171,7 +184,7 @@ export async function syncAchievements(): Promise<string[]> {
   const trigramIntervals = deckCards('trigram')
     .map(c => learning[c.id] ? LEITNER_INTERVALS[learning[c.id].box - 1] : 0);
 
-  return checkAchievements({
+  return {
     totalDraws: history.filter(r => r.mode === 'draw').length,
     totalBoard: history.filter(r => r.mode === 'board').length,
     totalLingqi: history.filter(r => r.mode === 'lingqi').length,
@@ -190,7 +203,48 @@ export async function syncAchievements(): Promise<string[]> {
     hasIntuition: history.some(r => isIntuitionPct(r.intuition)),
     totalCalibrated: history.filter(r => isIntuitionPct(r.intuition) && isRealizedStatus(r.outcome?.realized)).length,
     hasLink: history.some(r => r.relatedTo !== undefined),
-  });
+    trigramReady: trigramIntervals.filter(days => days >= ACHIEVEMENT_THRESHOLDS.trigram_mastery).length,
+  };
+}
+
+/** 一個成就目前做到哪裡 */
+export interface AchievementProgress {
+  current: number;
+  target: number;
+}
+
+/**
+ * 有數字門檻的成就目前做到第幾（S88 盤點 #28）。
+ *
+ * 在此之前成就頁只有「已解鎖／未解鎖」：說明寫著「累積 10 次占卜」，使用者卻看不到
+ * 自己做到第 7 次還是第 2 次。門檻取自 ACHIEVEMENT_THRESHOLDS（與解鎖條件同一份），
+ * 計數取自 collectAchievementStats（與解鎖檢查同一份），進度與解鎖不會各說各話。
+ *
+ * 「第一次…」那一類不列：0／1 沒有比「未解鎖」多說任何事。
+ * current 夾在 target 以內：連續天數之類會先超過門檻、解鎖寫入稍後才發生，不印 12／7。
+ *
+ * @param streak 目前的連續天數（getStreak），連續成就用
+ */
+export function achievementProgress(stats: AchievementStats, streak: number): Record<string, AchievementProgress> {
+  const totalReadings = stats.totalDraws + stats.totalBoard + (stats.totalLingqi ?? 0);
+  const entry = (current: number, target: number): AchievementProgress =>
+    ({ current: Math.max(0, Math.min(current, target)), target });
+  return {
+    ten_draws: entry(totalReadings, ACHIEVEMENT_THRESHOLDS.ten_draws),
+    fifty_draws: entry(totalReadings, ACHIEVEMENT_THRESHOLDS.fifty_draws),
+    week_streak: entry(streak, ACHIEVEMENT_THRESHOLDS.week_streak),
+    // 與解鎖同一種數法：比對那五個等級的字面值，不是數相異字串
+    all_levels: entry(POEM_LEVELS.filter(level => stats.levels.includes(level)).length, POEM_LEVELS.length),
+    ten_verify: entry(stats.totalVerified ?? 0, ACHIEVEMENT_THRESHOLDS.ten_verify),
+    trigram_mastery: entry(stats.trigramReady ?? 0, deckCards('trigram').length),
+    ten_calibrated: entry(stats.totalCalibrated ?? 0, ACHIEVEMENT_THRESHOLDS.ten_calibrated),
+  };
+}
+
+/** 成就頁用：讀資料並算出各成就的進度 */
+export async function getAchievementProgress(): Promise<Record<string, AchievementProgress>> {
+  const [stats, streak] = await Promise.all([collectAchievementStats(), getStreak()]);
+  return achievementProgress(stats, streak);
 }
 
 // 連續使用天數

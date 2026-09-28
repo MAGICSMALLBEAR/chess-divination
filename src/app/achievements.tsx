@@ -10,7 +10,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useGrid } from '@/hooks/useGrid';
 import {
-  getAchievements, getStreak, syncAchievements, type Achievement,
+  getAchievements, getAchievementProgress, getStreak, syncAchievements, type Achievement, type AchievementProgress,
 } from '@/services/achievements';
 import { localizeAchievement } from '@/services/localize';
 import { getHistory } from '@/services/storage';
@@ -29,6 +29,7 @@ export default function AchievementsScreen() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [streak, setStreak] = useState(0);
   const [totalDraws, setTotalDraws] = useState(0);
+  const [progress, setProgress] = useState<Record<string, AchievementProgress>>({});
 
   useEffect(() => { loadData(); }, []);
   async function loadData() {
@@ -36,10 +37,11 @@ export default function AchievementsScreen() {
     // 但因為過去從未有畫面呼叫檢查，那些成就一直沒被解鎖。
     await syncAchievements().catch(e => console.warn(t('achievement.checkFailed'), e));
 
-    const [ach, strk, hist] = await Promise.all([
-      getAchievements(), getStreak(), getHistory(),
+    const [ach, strk, hist, prog] = await Promise.all([
+      getAchievements(), getStreak(), getHistory(), getAchievementProgress(),
     ]);
     setAchievements(ach);
+    setProgress(prog);
     setStreak(strk);
     setTotalDraws(hist.length);
   }
@@ -110,10 +112,15 @@ export default function AchievementsScreen() {
 
         {/* 成就列表。寬螢幕改為多欄，每張成就自成一卡 */}
         <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
-          {achievements.map(ach => { const a = localizeAchievement(ach); return (
+          {achievements.map(ach => {
+            const a = localizeAchievement(ach);
+            // 只有還沒解鎖、而且有數字門檻的才印進度；解鎖了就不必再數
+            const prog = a.unlocked ? undefined : progress[a.id];
+            const progText = prog ? t('achievement.progressCount', { current: prog.current, target: prog.target }) : '';
+            return (
             <View key={a.id} testID={`achievement-${a.id}`}
               // 解鎖與否只靠顏色與鎖頭圖示分辨，讀屏與 e2e 都看不到；補一個說得出來的狀態
-              aria-label={`${a.title}：${t(a.unlocked ? 'achievement.unlocked' : 'achievement.locked')}`}
+              aria-label={`${a.title}：${t(a.unlocked ? 'achievement.unlocked' : 'achievement.locked')}${progText ? `，${progText}` : ''}`}
               style={[
               styles.achRow,
               { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
@@ -130,6 +137,16 @@ export default function AchievementsScreen() {
                 <Text style={[styles.achDesc, { color: theme.textMuted }]}>
                   {a.desc}
                 </Text>
+                {prog && (
+                  <View style={styles.progRow}>
+                    <View style={[styles.progTrack, { backgroundColor: theme.bgMedium }]}>
+                      <View style={[styles.progFill, { backgroundColor: theme.gold, width: `${(prog.current / prog.target) * 100}%` }]} />
+                    </View>
+                    <Text testID={`achievement-progress-${a.id}`} style={[styles.progText, { color: theme.textSecondary }]}>
+                      {progText}
+                    </Text>
+                  </View>
+                )}
               </View>
               <View style={[styles.achStatus, a.unlocked && { backgroundColor: theme.gold + '30' }]}>
                 <Icon name={a.unlocked ? 'check' : 'lock'} size={14} color={a.unlocked ? theme.gold : theme.textMuted} />
@@ -197,6 +214,10 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   achInfo: { flex: 1, marginLeft: Spacing.sm },
   achTitle: { fontSize: FontSize.body, fontWeight: '600' },
   achDesc: { fontSize: FontSize.small, marginTop: 2 },
+  progRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 6 },
+  progTrack: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' },
+  progFill: { height: '100%', borderRadius: 2 },
+  progText: { fontSize: FontSize.caption, fontVariant: ['tabular-nums'] },
   achStatus: {
     width: 32, height: 32, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
