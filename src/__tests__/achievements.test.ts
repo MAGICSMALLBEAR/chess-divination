@@ -41,6 +41,7 @@ const EMPTY_STATS = {
   hasDraw: false,
   hasBoard: false,
   levels: [] as string[],
+  streak: 0,
 };
 
 beforeEach(() => {
@@ -573,29 +574,29 @@ describe('學習、校準、複占連結的成就', () => {
  */
 describe('achievementProgress', () => {
   test('累積類三種模式一起數，與「累積 N 次占卜」的解鎖同一種數法', () => {
-    const p = achievementProgress({ ...EMPTY_STATS, totalDraws: 3, totalBoard: 2, totalLingqi: 2 }, 0);
+    const p = achievementProgress({ ...EMPTY_STATS, totalDraws: 3, totalBoard: 2, totalLingqi: 2 });
     expect(p.ten_draws).toEqual({ current: 7, target: ACHIEVEMENT_THRESHOLDS.ten_draws });
     expect(p.fifty_draws).toEqual({ current: 7, target: ACHIEVEMENT_THRESHOLDS.fifty_draws });
   });
 
   test('超過門檻時夾在門檻（連續 12 天不印 12／7）', () => {
-    expect(achievementProgress(EMPTY_STATS, 12).week_streak).toEqual({ current: 7, target: 7 });
+    expect(achievementProgress({ ...EMPTY_STATS, streak: 12 }).week_streak).toEqual({ current: 7, target: 7 });
   });
 
   test('五種等級只數真的等級字面值，雜值與重複不算', () => {
-    const p = achievementProgress({ ...EMPTY_STATS, levels: [POEM_LEVELS[0], POEM_LEVELS[0], POEM_LEVELS[1], '', '神秘等級'] }, 0);
+    const p = achievementProgress({ ...EMPTY_STATS, levels: [POEM_LEVELS[0], POEM_LEVELS[0], POEM_LEVELS[1], '', '神秘等級'] });
     expect(p.all_levels).toEqual({ current: 2, target: POEM_LEVELS.length });
   });
 
   test('「第一次…」類不列進度', () => {
-    const p = achievementProgress(EMPTY_STATS, 0);
+    const p = achievementProgress(EMPTY_STATS);
     for (const id of ['first_draw', 'first_board', 'first_lingqi', 'first_favorite', 'both_modes', 'all_modes', 'first_verify', 'first_learn', 'first_intuition', 'first_link']) {
       expect(p[id]).toBeUndefined();
     }
   });
 
   test('每個有數字門檻的成就都有進度——新增門檻卻漏了進度時這裡會紅', () => {
-    const p = achievementProgress(EMPTY_STATS, 0);
+    const p = achievementProgress(EMPTY_STATS);
     for (const id of Object.keys(ACHIEVEMENT_THRESHOLDS)) expect(p[id]).toBeDefined();
   });
 
@@ -607,5 +608,30 @@ describe('achievementProgress', () => {
     const p = await getAchievementProgress();
     expect(p.ten_verify).toEqual({ current: 10, target: 10 });
     expect(await syncAchievements()).toContain('ten_verify');
+  });
+
+  /**
+   * 進度走到 target 的成就，一定要是解鎖的。這一條釘住整個家族，
+   * 而它抓到的那一格是連續天數：
+   *
+   * `getStreak()` 把「昨天用過」算成今天也用了（隔天回傳 streak+1，
+   * 上面的測試釘著這個行為），但七日成就原本只在 `recordUsage()` 裡解鎖
+   * ——成就頁走的是 `syncAchievements()`。於是第 7 天先打開成就頁的人
+   * 看到的是「七日問道：未解鎖」配一條滿的 7／7，隔天占卜完才自己跳成
+   * 解鎖。進度與解鎖各說各話，正是這一節開頭說要防的那件事。
+   */
+  test('進度走到 target 就是解鎖——不能出現 7／7 配一把鎖', async () => {
+    // 昨天以前連續 6 天、今天還沒占卜：getStreak() 回 7（隔天 +1）
+    await saveSettings({ usageDates: [yesterdayString()], currentStreak: 6 });
+    await syncAchievements();
+
+    const unlocked = new Set((await getAchievements()).filter(a => a.unlocked).map(a => a.id));
+    const progress = await getAchievementProgress();
+    const atTarget = Object.entries(progress).filter(([, p]) => p.current === p.target).map(([id]) => id);
+
+    // 先確認這一輪真的有東西走到 target，否則下面的斷言是空過
+    expect(atTarget).toContain('week_streak');
+    expect(progress.week_streak).toEqual({ current: 7, target: 7 });
+    expect(atTarget.filter(id => !unlocked.has(id))).toEqual([]);
   });
 });

@@ -105,6 +105,14 @@ export async function checkAchievements(stats: {
   hasLink?: boolean;
   /** 八卦牌裡複習間隔已達 trigram_mastery 天數的張數——只給成就頁的進度用，解鎖看的是 trigramMinInterval */
   trigramReady?: number;
+  /**
+   * 目前的連續使用天數（`getStreak()`）。S89 補上：在此之前七日成就只在
+   * `recordUsage()` 裡解鎖，而成就頁走的是這一條——`getStreak()` 會把
+   * 「昨天用過」算成今天也用了（隔天回傳 streak+1，見 achievements.test.ts），
+   * 於是第 7 天還沒占卜就打開成就頁，畫面上是「7／7」配一把鎖，
+   * 進度與解鎖各說各話。兩者現在數的是同一個 streak
+   */
+  streak?: number;
 }): Promise<string[]> {
   // 先算出「這次符合條件的成就有哪些」，實際的解鎖寫入放到 updateSettings
   // 的 updater 裡再依當下的清單決定。在這裡讀 unlockedAchievements 再寫回，
@@ -134,6 +142,10 @@ export async function checkAchievements(stats: {
   // 日後新增的等級）就會解鎖「五種等級都抽過」，但使用者其實沒抽齊。
   tryUnlock('all_levels', POEM_LEVELS.every(level => stats.levels.includes(level)));
   tryUnlock('first_verify', (stats.totalVerified ?? 0) >= 1);
+  // 七日成就與成就頁上的進度條看同一個 streak；`recordUsage()` 那一份寫入
+  // 仍然留著（天數與解鎖放同一次寫入，見該處註解），這裡補的是它蓋不到的
+  // 那一格——使用者第 7 天先打開成就頁、還沒占卜
+  tryUnlock('week_streak', (stats.streak ?? 0) >= ACHIEVEMENT_THRESHOLDS.week_streak);
   tryUnlock('ten_verify', (stats.totalVerified ?? 0) >= ACHIEVEMENT_THRESHOLDS.ten_verify);
   tryUnlock('first_learn', stats.hasLearnCorrect === true);
   tryUnlock('trigram_mastery', (stats.trigramMinInterval ?? 0) >= ACHIEVEMENT_THRESHOLDS.trigram_mastery);
@@ -175,8 +187,8 @@ export type AchievementStats = Parameters<typeof checkAchievements>[0];
  * 各算各的話，進度寫著 10／10 卻沒解鎖（或反過來）遲早會發生。
  */
 async function collectAchievementStats(): Promise<AchievementStats> {
-  const [history, favorites, learning] = await Promise.all([
-    getHistory(), getFavorites(), getLearningState(),
+  const [history, favorites, learning, streak] = await Promise.all([
+    getHistory(), getFavorites(), getLearningState(), getStreak(),
   ]);
   const progress = Object.values(learning);
   // 答對過至少一次＝作答次數多於答錯次數。不能看格數：第一次就答對與答錯都落在第一格
@@ -204,6 +216,7 @@ async function collectAchievementStats(): Promise<AchievementStats> {
     totalCalibrated: history.filter(r => isIntuitionPct(r.intuition) && isRealizedStatus(r.outcome?.realized)).length,
     hasLink: history.some(r => r.relatedTo !== undefined),
     trigramReady: trigramIntervals.filter(days => days >= ACHIEVEMENT_THRESHOLDS.trigram_mastery).length,
+    streak,
   };
 }
 
@@ -223,16 +236,17 @@ export interface AchievementProgress {
  * 「第一次…」那一類不列：0／1 沒有比「未解鎖」多說任何事。
  * current 夾在 target 以內：連續天數之類會先超過門檻、解鎖寫入稍後才發生，不印 12／7。
  *
- * @param streak 目前的連續天數（getStreak），連續成就用
+ * 連續天數取自 `stats.streak`（＝`collectAchievementStats()` 讀的那一份），
+ * 不另外呼叫 `getStreak()`：同一個數讀兩次，就是兩個答案的開始。
  */
-export function achievementProgress(stats: AchievementStats, streak: number): Record<string, AchievementProgress> {
+export function achievementProgress(stats: AchievementStats): Record<string, AchievementProgress> {
   const totalReadings = stats.totalDraws + stats.totalBoard + (stats.totalLingqi ?? 0);
   const entry = (current: number, target: number): AchievementProgress =>
     ({ current: Math.max(0, Math.min(current, target)), target });
   return {
     ten_draws: entry(totalReadings, ACHIEVEMENT_THRESHOLDS.ten_draws),
     fifty_draws: entry(totalReadings, ACHIEVEMENT_THRESHOLDS.fifty_draws),
-    week_streak: entry(streak, ACHIEVEMENT_THRESHOLDS.week_streak),
+    week_streak: entry(stats.streak ?? 0, ACHIEVEMENT_THRESHOLDS.week_streak),
     // 與解鎖同一種數法：比對那五個等級的字面值，不是數相異字串
     all_levels: entry(POEM_LEVELS.filter(level => stats.levels.includes(level)).length, POEM_LEVELS.length),
     ten_verify: entry(stats.totalVerified ?? 0, ACHIEVEMENT_THRESHOLDS.ten_verify),
@@ -243,8 +257,7 @@ export function achievementProgress(stats: AchievementStats, streak: number): Re
 
 /** 成就頁用：讀資料並算出各成就的進度 */
 export async function getAchievementProgress(): Promise<Record<string, AchievementProgress>> {
-  const [stats, streak] = await Promise.all([collectAchievementStats(), getStreak()]);
-  return achievementProgress(stats, streak);
+  return achievementProgress(await collectAchievementStats());
 }
 
 // 連續使用天數
