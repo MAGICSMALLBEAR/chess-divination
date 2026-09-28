@@ -90,6 +90,9 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+/** 還原前的確認一律同意（只驗確認的測試另外給） */
+const acceptAll = jest.fn(async () => true);
+
 /** 造一份合法備份檔的 JSON 字串 */
 function backupJson(data: Record<string, unknown>): string {
   return JSON.stringify({ version: 1, date: '2026-08-23T00:00:00.000Z', data });
@@ -338,6 +341,7 @@ describe('備份缺漏的出口', () => {
     expect(parseBackupWithMeta(jsonWithSkipped([LEARNING]))).toEqual({
       restorable: { [HISTORY]: [{ id: 'a' }] },
       skippedKeys: [LEARNING],
+      createdAt: new Date('2026-09-27T00:00:00.000Z'),
     });
   });
 
@@ -354,7 +358,7 @@ describe('備份缺漏的出口', () => {
   test('還原成功時把缺漏帶進結果', async () => {
     mockFiles.set('file:///picked.json', jsonWithSkipped([LEARNING]));
 
-    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [LEARNING] });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'ok', skippedKeys: [LEARNING] });
     // 缺漏不影響「能還原的部分還是要還原」
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'a' }]);
   });
@@ -451,7 +455,7 @@ describe('原生還原通道', () => {
   test('選到合法備份檔即寫回儲存', async () => {
     mockFiles.set('file:///picked.json', backupJson({ [HISTORY]: [{ id: 'restored' }] }));
 
-    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [] });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'ok', skippedKeys: [] });
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'restored' }]);
   });
 
@@ -463,7 +467,7 @@ describe('原生還原通道', () => {
     mockPicker.canceled = true;
     mockStore.set(HISTORY, JSON.stringify([{ id: '原本的' }]));
 
-    await expect(restoreData()).resolves.toEqual({ status: 'canceled' });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'canceled' });
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: '原本的' }]);
   });
 
@@ -471,13 +475,13 @@ describe('原生還原通道', () => {
     mockFiles.set('file:///picked.json', JSON.stringify({ data: { '@other_app': [1] } }));
     mockStore.set(HISTORY, JSON.stringify([{ id: '原本的' }]));
 
-    await expect(restoreData()).resolves.toEqual({ status: 'invalid' });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'invalid' });
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: '原本的' }]);
   });
 
   test('讀檔失敗回傳 error，不寫入任何東西', async () => {
     mockPicker.uri = 'file:///不存在.json';
-    await expect(restoreData()).resolves.toEqual({ status: 'error' });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'error' });
     expect(mockStore.size).toBe(0);
   });
 
@@ -486,7 +490,7 @@ describe('原生還原通道', () => {
     mockPicker.throws = true;
     mockClipboard.text = backupJson({ [SETTINGS]: { userName: '小熊' } });
 
-    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [] });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'ok', skippedKeys: [] });
     expect(JSON.parse(mockStore.get(SETTINGS)!)).toEqual({ userName: '小熊' });
   });
 
@@ -494,7 +498,7 @@ describe('原生還原通道', () => {
     mockPicker.throws = true;
     mockClipboard.text = '隨手複製的一段字';
 
-    await expect(restoreData()).resolves.toEqual({ status: 'invalid' });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'invalid' });
     expect(mockStore.size).toBe(0);
   });
 });
@@ -514,10 +518,59 @@ describe('跨平台往返', () => {
 
     mockStore.clear();
     mockFiles.set('file:///picked.json', exported);
-    await expect(restoreData()).resolves.toEqual({ status: 'ok', skippedKeys: [] });
+    await expect(restoreData(acceptAll)).resolves.toEqual({ status: 'ok', skippedKeys: [] });
 
     expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: 'a', poemTitle: '乾為天' }]);
     expect(JSON.parse(mockStore.get(SETTINGS)!)).toEqual({ themeMode: 'light' });
     expect(JSON.parse(mockStore.get(DELETED)!)).toEqual(['gone']);
+  });
+});
+
+/**
+ * 還原前的確認要在讀完檔案之後，並且帶著備份產生的日期。
+ *
+ * `BackupFile.date` 每份都寫，在此之前沒有任何讀取端；而確認原本在選檔之前問，
+ * 使用者同意「覆蓋」時還不知道要拿哪一天的資料來蓋。
+ */
+describe('還原前確認帶著備份日期', () => {
+  const LOCAL = new Date('2026-09-20T06:30:00.000Z');
+
+  test('確認拿到的是檔案裡的日期', async () => {
+    mockFiles.set('file:///picked.json', JSON.stringify({ version: 1, date: LOCAL.toISOString(), data: { [HISTORY]: [{ id: 'a' }] } }));
+    const confirm = jest.fn(async () => true);
+
+    await expect(restoreData(confirm)).resolves.toEqual({ status: 'ok', skippedKeys: [] });
+    expect(confirm).toHaveBeenCalledWith({ createdAt: LOCAL });
+  });
+
+  test('看了日期按取消：回 canceled，既有資料一個字都不動', async () => {
+    mockFiles.set('file:///picked.json', backupJson({ [HISTORY]: [{ id: '備份裡的' }] }));
+    mockStore.set(HISTORY, JSON.stringify([{ id: '原本的' }]));
+
+    await expect(restoreData(async () => false)).resolves.toEqual({ status: 'canceled' });
+    expect(JSON.parse(mockStore.get(HISTORY)!)).toEqual([{ id: '原本的' }]);
+  });
+
+  test('不是備份檔時不問確認：沒有東西可以同意', async () => {
+    mockFiles.set('file:///picked.json', '隨手的一段字');
+    const confirm = jest.fn(async () => true);
+
+    await expect(restoreData(confirm)).resolves.toEqual({ status: 'invalid' });
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  test('選檔時取消也不問確認', async () => {
+    mockPicker.canceled = true;
+    const confirm = jest.fn(async () => true);
+
+    await expect(restoreData(confirm)).resolves.toEqual({ status: 'canceled' });
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  test('日期缺欄位或壞掉：仍可還原，只是說不出日期（null）', () => {
+    const data = { [HISTORY]: [{ id: 'a' }] };
+    expect(parseBackupWithMeta(JSON.stringify({ version: 1, data }))!.createdAt).toBeNull();
+    expect(parseBackupWithMeta(JSON.stringify({ version: 1, date: '昨天', data }))!.createdAt).toBeNull();
+    expect(parseBackupWithMeta(JSON.stringify({ version: 1, date: 12345, data }))!.createdAt).toBeNull();
   });
 });

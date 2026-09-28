@@ -192,6 +192,21 @@ const ELEMENT_NUMBERS: Record<string, number[]> = {
   水: [1, 6], 火: [2, 7], 木: [3, 8], 金: [4, 9], 土: [5, 10],
 };
 
+/**
+ * 當日主氣五行 → 另外三個欄位的推法，給卡片說明用。
+ *
+ * 幸運色／吉方／幸運數三格都是從主氣推出來的（比和、生我、河圖數），
+ * 但主氣本身算好、存好之後從沒被讀過——三個數字列在卡片上，看起來像
+ * 各自抽的，而那正是 generateDailyFortune 註解裡說要修掉的「互不相干」。
+ * 推法與 generateDailyFortune 共用同一份對照表，說明不會和實際算法分岔。
+ *
+ * @returns 不認得的五行（舊記錄沒有這欄、或被手改）回傳 null，卡片整行不出現
+ */
+export function dailyElementBasis(element: string | undefined): { element: string; support: string } | null {
+  if (!element || !GENERATED_BY[element]) return null;
+  return { element, support: GENERATED_BY[element] };
+}
+
 export interface DailyFortuneResult {
   date: string;
   luckyPiece: string;

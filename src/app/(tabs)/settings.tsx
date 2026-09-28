@@ -16,6 +16,7 @@ import {
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import { BACKUP_KEY_LABELS, backupData, restoreData } from '@/services/backup';
+import { toLocalDateString } from '@/services/date';
 import { confirmAction, notify } from '@/services/dialog';
 import { clearHistory } from '@/services/storage';
 import CustomCategoriesSection from '@/components/CustomCategoriesSection';
@@ -155,16 +156,20 @@ export default function SettingsScreen() {
   }
 
   async function handleRestore() {
-    const confirmed = await confirmAction({
+    // 確認在選好檔案、讀出內容之後才問（restoreData 呼叫它），並且說出這份備份
+    // 是什麼時候的：原本先問再選檔，同意覆蓋的當下還不知道拿哪一天的資料來蓋。
+    // 日期帶到分鐘——同一天備份好幾次的人，只給日期分不出哪一份
+    const result = await restoreData(({ createdAt }) => confirmAction({
       title: t('settings.restore'),
-      message: t('settings.restoreConfirm'),
+      message: createdAt
+        ? t('settings.restoreConfirmDated', {
+          date: `${toLocalDateString(createdAt)} ${String(createdAt.getHours()).padStart(2, '0')}:${String(createdAt.getMinutes()).padStart(2, '0')}`,
+        })
+        : t('settings.restoreConfirm'),
       confirmLabel: t('common.confirm'),
       cancelLabel: t('common.cancel'),
       destructive: true,
-    });
-    if (!confirmed) return;
-
-    const result = await restoreData();
+    }));
     // 取消是使用者的正常操作，不跳任何提示——報「還原失敗」
     // 只會讓人以為自己把東西弄壞了
     if (result.status === 'canceled') return;
@@ -270,6 +275,8 @@ export default function SettingsScreen() {
               <Text style={{ color: theme.textPrimary }}>{settings.userName || t('settings.nameUnset')}</Text>
             </TouchableOpacity>
           )}
+          {/* 說出名字用在哪裡：在此之前這格存得進去、卻沒有任何地方讀它 */}
+          <Text testID="settings-name-hint" style={[styles.hint, { color: theme.textMuted }]}>{t('settings.userNameHint')}</Text>
           {/* 占者性別：只用於感情問事的用神取法，男女相反 */}
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.gender')}</Text>

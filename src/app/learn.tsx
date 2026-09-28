@@ -46,6 +46,11 @@ interface Session {
   question: Question;
   picked: string | null;
   correct: number;
+  /**
+   * 這張卡在這一題之前答錯過幾次。出題當下就取下來：答完之後 state 會更新，
+   * 直接讀 state 的話答錯的那一刻數字會自己加一，像是在數落剛剛那一次
+   */
+  priorLapses: number;
 }
 
 export default function LearnScreen() {
@@ -83,7 +88,10 @@ export default function LearnScreen() {
     const queue = sessionQueue(deck, state, today);
     if (queue.length === 0) return;
     setFinished(null);
-    setSession({ deck, queue, position: 0, question: buildQuestion(queue[0]), picked: null, correct: 0 });
+    setSession({
+      deck, queue, position: 0, question: buildQuestion(queue[0]), picked: null, correct: 0,
+      priorLapses: state[queue[0].id]?.lapses ?? 0,
+    });
   }
 
   async function pick(option: string) {
@@ -101,7 +109,10 @@ export default function LearnScreen() {
       setSession(null);
       return;
     }
-    setSession({ ...session, position, question: buildQuestion(session.queue[position]), picked: null });
+    setSession({
+      ...session, position, question: buildQuestion(session.queue[position]), picked: null,
+      priorLapses: state[session.queue[position].id]?.lapses ?? 0,
+    });
   }
 
   const summaries = useMemo(
@@ -175,6 +186,13 @@ export default function LearnScreen() {
                 <Text testID="learn-progress" style={[styles.summary, { color: theme.textMuted }]}>
                   {t(DECK_TITLE_KEYS[session.deck])} · {t('learn.progress', { n: session.position + 1, total: session.queue.length })}
                 </Text>
+                {/* `lapses` 一直在存、只有一個成就讀它：答錯三次的卡和第一次見的卡長得一模一樣。
+                    不另開檢視（學習模式刻意做得輕），只在這張卡出現時說一聲；沒錯過就不出現 */}
+                {session.priorLapses > 0 && (
+                  <Text testID="learn-lapses" style={[styles.summary, { color: theme.textGold }]}>
+                    {t('learn.lapses', { n: session.priorLapses })}
+                  </Text>
+                )}
                 <Text style={[styles.prompt, { color: theme.textSecondary }]}>{t(DECK_PROMPT_KEYS[session.deck])}</Text>
 
                 <View testID="learn-prompt" style={styles.promptBox}>

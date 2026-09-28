@@ -281,6 +281,11 @@ export const translations: Record<string, Record<Lang, string>> = {
   'home.todayFortune': { 'zh-TW': '今日運勢', en: "Today's Fortune", ja: '今日の運勢' },
   'home.luckyNum': { 'zh-TW': '幸運數字', en: 'Lucky Number', ja: 'ラッキーナンバー' },
   'home.luckyColor': { 'zh-TW': '幸運色', en: 'Lucky Color', ja: 'ラッキーカラー' },
+  // 每日運勢的主氣五行。五行保留漢字（S38 術語政策），連接文走翻譯。
+  // 講的是三格怎麼推出來，不是再多一格「幸運元素」：少了這句，三個數字看起來像各自抽的
+  'home.dailyElement': { 'zh-TW': '當日主氣 {element}：幸運色與{element}同氣，吉方取生{element}的{support}方位，幸運數取{element}的河圖數', en: 'Ruling element today: {element}. The lucky color shares {element}, the lucky direction is that of {support} (which feeds {element}), and the lucky number is a He Tu number of {element}.', ja: '本日の主気 {element}：ラッキーカラーは{element}と同気、吉方は{element}を生む{support}の方位、ラッキーナンバーは{element}の河図数' },
+  'home.dailyElementLabel': { 'zh-TW': '當日主氣', en: 'Ruling element', ja: '本日の主気' },
+  'home.greeting': { 'zh-TW': '{name}，今天想問什麼？', en: 'Welcome back, {name}. What would you like to ask today?', ja: '{name}さん、今日は何を占いますか？' },
   'home.recent': { 'zh-TW': '最近占卜', en: 'Recent Divinations', ja: '最近の占い' },
   // 首頁的待回填提示。標題講「有幾筆」，副標指名最近滿期的那一筆——
   // 只說數字的話，使用者還是得自己去找是哪些（統計頁原本就只說數字）。
@@ -680,6 +685,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'learn.start': { 'zh-TW': '開始練習（{n} 題）', en: 'Practise ({n})', ja: '練習する（{n} 問）' },
   'learn.nothingDue': { 'zh-TW': '今天沒有要練的，明天再來。', en: 'Nothing to practise today. Come back tomorrow.', ja: '今日の練習はありません。また明日。' },
   'learn.progress': { 'zh-TW': '第 {n}／{total} 題', en: 'Question {n} of {total}', ja: '{n}／{total} 問目' },
+  'learn.lapses': { 'zh-TW': '這張之前答錯過 {n} 次', en: 'Missed {n}× before', ja: 'このカードはこれまでに {n} 回間違えています' },
   'learn.promptTrigram': { 'zh-TW': '這是哪一卦？（由下往上讀）', en: 'Which trigram is this? (read from the bottom up)', ja: 'これはどの卦？（下から上へ読む）' },
   'learn.promptElement': { 'zh-TW': '這一卦的五行是？', en: 'Which element is this trigram?', ja: 'この卦の五行は？' },
   'learn.promptHexagram': { 'zh-TW': '這是哪一卦？（由下往上讀）', en: 'Which hexagram is this? (read from the bottom up)', ja: 'これはどの卦？（下から上へ読む）' },
@@ -723,6 +729,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 設定（擴充）
   'settings.namePlaceholder': { 'zh-TW': '輸入您的名字', en: 'Enter your name', ja: 'お名前を入力' },
   'settings.pieces': { 'zh-TW': '{n} 顆', en: '{n}', ja: '{n} 枚' },
+  'settings.userNameHint': { 'zh-TW': '首頁會用這個名字向你問候；不填就不顯示。', en: 'The home screen greets you by this name. Leave it empty to hide the greeting.', ja: 'ホーム画面でこの名前であいさつします。空欄なら表示しません。' },
   'settings.nameUnset': { 'zh-TW': '點擊設定', en: 'Tap to set', ja: 'タップして設定' },
   'settings.themeDark': { 'zh-TW': '墨色', en: 'Ink', ja: '墨色' },
   'settings.themeLight': { 'zh-TW': '宣紙', en: 'Paper', ja: '宣紙' },
@@ -748,6 +755,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'settings.backupFail': { 'zh-TW': '備份失敗', en: 'Backup failed', ja: 'バックアップに失敗しました' },
   'settings.backupFailDesc': { 'zh-TW': '無法產生備份檔，請稍後再試。', en: 'Could not create the backup file. Please try again.', ja: 'バックアップファイルを作成できませんでした。後でもう一度お試しください。' },
   'settings.restoreConfirm': { 'zh-TW': '將覆蓋現有資料，確定要還原嗎？', en: 'This will overwrite your current data. Restore anyway?', ja: '現在のデータを上書きします。復元しますか？' },
+  'settings.restoreConfirmDated': { 'zh-TW': '這份備份產生於 {date}。還原會覆蓋現有資料，確定要還原嗎？', en: 'This backup was made on {date}. Restoring will overwrite your current data. Restore anyway?', ja: 'このバックアップは {date} に作成されました。復元すると現在のデータを上書きします。復元しますか？' },
   'settings.restoreOk': { 'zh-TW': '還原成功', en: 'Restore complete', ja: '復元完了' },
   // 備份檔自己記著「產生這份備份時哪些資料已經讀不到」。只報「還原成功」
   // 會讓少了一整類資料的人以為東西都在，所以缺漏要說出來、而且要用

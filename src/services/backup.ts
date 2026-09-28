@@ -57,6 +57,11 @@ export interface ParsedBackup {
   restorable: Record<string, unknown>;
   /** 產生這份備份時就讀不到、因此不在裡面的鍵；空陣列＝這份備份是完整的 */
   skippedKeys: string[];
+  /**
+   * 這份備份產生的時間（`BackupFile.date`）。缺欄位或不是有效時間時為 null——
+   * 手改或別處轉存的檔案不該因此被拒絕，只是確認時說不出日期。
+   */
+  createdAt: Date | null;
 }
 
 /**
@@ -201,7 +206,13 @@ export function parseBackupWithMeta(json: string): ParsedBackup | null {
     ? file.skippedKeys.filter((key): key is string => typeof key === 'string' && known.has(key))
     : [];
 
-  return { restorable, skippedKeys };
+  // `date` 每份備份都寫，在此之前卻沒有任何讀取端。選檔器不一定顯示檔名，
+  // 它是「這是不是我要的那一份」唯一可靠的線索，還原前的確認要用它
+  const createdAt = typeof file.date === 'string' && Number.isFinite(Date.parse(file.date))
+    ? new Date(file.date)
+    : null;
+
+  return { restorable, skippedKeys, createdAt };
 }
 
 /** 將解析後的備份寫回儲存 */
@@ -324,10 +335,20 @@ async function readFileText(uri: string): Promise<string> {
   return await new File(uri).text();
 }
 
+/**
+ * 還原前的確認：拿到的是「這份備份產生於何時」，回傳使用者是否同意覆蓋。
+ *
+ * 確認放在讀完檔案**之後**，不是按下還原鈕的當下：先問再選檔時，
+ * 使用者同意的是「覆蓋」這件事，卻還不知道要拿哪一天的資料來蓋——
+ * 選錯一份舊備份，這幾週的記錄就沒了，而那道確認什麼都沒幫上。
+ */
+export type ConfirmRestore = (info: { createdAt: Date | null }) => Promise<boolean>;
+
 /** 把一段文字當備份檔套用 */
-async function applyBackupText(text: string): Promise<RestoreResult> {
+async function applyBackupText(text: string, confirm: ConfirmRestore): Promise<RestoreResult> {
   const parsed = parseBackupWithMeta(text);
   if (!parsed) return { status: 'invalid' };
+  if (!(await confirm({ createdAt: parsed.createdAt }))) return { status: 'canceled' };
   await applyBackup(parsed.restorable);
   return { status: 'ok', skippedKeys: parsed.skippedKeys };
 }
@@ -353,7 +374,7 @@ export type RestoreResult =
  * 原生端先走選檔；選檔管道整個不可用時（模組缺失）才讀剪貼簿——
  * 使用者主動取消不會觸發後備，取消就是取消。
  */
-export async function restoreData(): Promise<RestoreResult> {
+export async function restoreData(confirm: ConfirmRestore): Promise<RestoreResult> {
   if (typeof document === 'undefined') {
     let uri: string | null;
     try {
@@ -362,7 +383,7 @@ export async function restoreData(): Promise<RestoreResult> {
       // 只有選檔管道本身不可用才退回剪貼簿
       console.warn('選檔還原不可用，改讀剪貼簿:', e);
       try {
-        return await applyBackupText(await Clipboard.getStringAsync());
+        return await applyBackupText(await Clipboard.getStringAsync(), confirm);
       } catch (err) {
         console.warn('讀取剪貼簿失敗:', err);
         return { status: 'error' };
@@ -379,7 +400,7 @@ export async function restoreData(): Promise<RestoreResult> {
       console.warn('讀取備份檔失敗:', e);
       return { status: 'error' };
     }
-    return applyBackupText(text);
+    return applyBackupText(text, confirm);
   }
 
   return new Promise<RestoreResult>((resolve) => {
@@ -399,10 +420,7 @@ export async function restoreData(): Promise<RestoreResult> {
 
       file.text()
         .then(async (text) => {
-          const parsed = parseBackupWithMeta(text);
-          if (!parsed) { resolve({ status: 'invalid' }); return; }
-          await applyBackup(parsed.restorable);
-          resolve({ status: 'ok', skippedKeys: parsed.skippedKeys });
+          resolve(await applyBackupText(text, confirm));
         })
         .catch((err) => {
           console.warn('還原失敗:', err);

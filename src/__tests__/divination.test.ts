@@ -1,4 +1,4 @@
-import { drawPieces, computeHexagramIndex, selectPoem, generateDailyFortune, mulberry32 } from '../services/divination';
+import { drawPieces, computeHexagramIndex, selectPoem, generateDailyFortune, dailyElementBasis, mulberry32 } from '../services/divination';
 import { ALL_PIECES } from '../data/pieces';
 
 describe('Divination Logic', () => {
@@ -66,6 +66,28 @@ describe('Divination Logic', () => {
     const a = generateDailyFortune();
     const b = generateDailyFortune();
     expect(a).toEqual(b); // Same day → same fortune
+  });
+});
+
+describe('dailyElementBasis（每日運勢的主氣說明）', () => {
+  test('當日運勢的主氣認得出來：卡片那一行一定出現', () => {
+    const fortune = generateDailyFortune();
+    expect(dailyElementBasis(fortune.luckyElement)).not.toBeNull();
+  });
+
+  test('生我者與 generateDailyFortune 用的是同一張表', () => {
+    // 吉方＝生我之方：主氣為金時吉方取土的方位
+    expect(dailyElementBasis('金')).toEqual({ element: '金', support: '土' });
+    expect(dailyElementBasis('木')).toEqual({ element: '木', support: '水' });
+    expect(dailyElementBasis('水')).toEqual({ element: '水', support: '金' });
+    expect(dailyElementBasis('火')).toEqual({ element: '火', support: '木' });
+    expect(dailyElementBasis('土')).toEqual({ element: '土', support: '火' });
+  });
+
+  test('舊記錄沒有這欄或值不認得：回 null，整行不出現而不是印出 undefined', () => {
+    expect(dailyElementBasis(undefined)).toBeNull();
+    expect(dailyElementBasis('')).toBeNull();
+    expect(dailyElementBasis('風')).toBeNull();
   });
 });
 

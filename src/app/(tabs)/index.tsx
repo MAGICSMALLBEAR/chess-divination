@@ -7,7 +7,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import ModeSelector from '@/components/ModeSelector';
 import { Icon, PieceIcon, PIECE_CHINESE_NAMES } from '@/components/icons';
-import { generateDailyFortune } from '@/services/divination';
+import { generateDailyFortune, dailyElementBasis } from '@/services/divination';
 import { getDailyFortune, saveDailyFortune, getHistory, getSettings, recordHasLevel, type DailyFortune, type DivinationRecord } from '@/services/storage';
 import { getStreak } from '@/services/achievements';
 import { recordTitle } from '@/services/poemList';
@@ -39,6 +39,7 @@ export default function HomeScreen() {
   const [streak, setStreak] = useState(0);
   const [pendingShareText, setPendingShareText] = useState<string | null>(null);
   const [pending, setPending] = useState<DivinationRecord[]>([]);
+  const [userName, setUserName] = useState('');
   const [almanac, setAlmanac] = useState<TodayAlmanac | null>(null);
   const [reviews, setReviews] = useState<{ total: number; decks: { deck: DeckId; due: number }[] }>({ total: 0, decks: [] });
 
@@ -89,12 +90,16 @@ export default function HomeScreen() {
   async function loadRecent() {
     const [h, settings] = await Promise.all([getHistory(), getSettings()]);
     setRecentRecords(h.slice(0, 3));
+    // 名字也在 focus 時讀：到設定頁改了名字再切回來，問候要跟著換
+    setUserName(settings.userName.trim());
     // 與最近記錄共用同一次讀取：待回填要看的是完整歷史，不是前三筆。
     // 天數與開關走 verifyReminderPolicy——與通知排程、統計頁是同一個答案；
     // 關閉提醒的人，首頁也不該繼續頂著一張待回填卡片
     const policy = verifyReminderPolicy(settings.verifyReminderDays);
     setPending(policy.enabled ? pendingVerification(h, Date.now(), policy.days) : []);
   }
+
+  const dailyBasis = dailyElementBasis(dailyFortune?.luckyElement);
 
   function handleSelectMode(mode: 'draw' | 'board') {
     if (mode === 'draw') {
@@ -112,6 +117,12 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <Text style={styles.appName}>{t('home.title')}</Text>
           <Text style={styles.tagline}>{t('home.tagline')}</Text>
+          {/* 設定頁問了名字，在此之前 App 卻從沒這樣叫過使用者。沒設就不出現，不寫「訪客」 */}
+          {userName !== '' && (
+            <Text testID="home-greeting" style={[styles.greeting, { color: theme.textGold }]}>
+              {t('home.greeting', { name: userName })}
+            </Text>
+          )}
           {streak > 1 && (
             <View style={styles.iconRow}>
               <Icon name="flame" size={14} color={theme.gold} />
@@ -144,7 +155,7 @@ export default function HomeScreen() {
                 hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}
                 onPress={() => {
                 if (!dailyFortune) return;
-                const text = `${t('home.daily')}：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n${t('home.luckyPiece')}：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n${t('home.luckyDir')}：${dailyFortune.luckyDirection}\n${t('home.luckyNum')}：${dailyFortune.luckyNumber}\n${t('home.luckyColor')}：${dailyFortune.luckyColor}\n\nchess-divination-app.vercel.app`;
+                const text = `${t('home.daily')}：${dailyFortune.fortuneLevel}\n\n${dailyFortune.fortuneText}\n\n${t('home.luckyPiece')}：${PIECE_CHINESE_NAMES[dailyFortune.luckyPiece]}\n${t('home.luckyDir')}：${dailyFortune.luckyDirection}\n${t('home.luckyNum')}：${dailyFortune.luckyNumber}\n${t('home.luckyColor')}：${dailyFortune.luckyColor}${dailyBasis ? `\n${t('home.dailyElementLabel')}：${dailyBasis.element}` : ''}\n\nchess-divination-app.vercel.app`;
                 // 原生與 Web 共用同一條分享鏈（與 reveal 頁一致）：
                 // 之前直接取 navigator.share/clipboard，原生端兩者皆無，
                 // 且未 await 的 share 被取消時 rejection 無人接
@@ -188,6 +199,12 @@ export default function HomeScreen() {
                   <Text style={styles.detailValue}>{dailyFortune.luckyColor}</Text>
                 </View>
               </View>
+              {/* 三格的共同理由。舊版存下的當日運勢沒有這欄（型別是 optional），整行不出現 */}
+              {dailyBasis && (
+                <Text testID="daily-element" style={[styles.dailyBasis, { color: theme.textMuted }]}>
+                  {t('home.dailyElement', dailyBasis)}
+                </Text>
+              )}
             </View>
           </TouchableOpacity>
         )}
@@ -340,6 +357,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     letterSpacing: 4, marginBottom: Spacing.xs,
   },
   tagline: { fontSize: FontSize.body, color: t.textSecondary, letterSpacing: 2 },
+  greeting: { fontSize: FontSize.small, marginTop: Spacing.xs },
   streakText: { fontSize: FontSize.small, fontWeight: '600', marginTop: 4 },
   dailyCard: {
     marginHorizontal: Spacing.md,
@@ -369,6 +387,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
     gap: Spacing.sm,
   },
+  dailyBasis: { fontSize: FontSize.caption, lineHeight: 18, textAlign: 'center' },
   detailItem: {
     alignItems: 'center',
     backgroundColor: t.bgCard, borderRadius: 10,
