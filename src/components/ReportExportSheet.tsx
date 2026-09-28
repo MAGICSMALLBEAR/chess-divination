@@ -18,9 +18,16 @@ interface Props {
   count?: number;
   onConfirm: (includePersonalText: boolean) => void;
   onDismiss: () => void;
+  /**
+   * CSV 匯出借用同一個隱私開關（設定頁）。三個字串不給就是報告的版本；
+   * 開關本身與預設值不變——兩種匯出問的是同一件事，只是收進去的欄位多寡不同。
+   */
+  title?: string;
+  confirmLabel?: string;
+  personalHint?: string;
 }
 
-export default function ReportExportSheet({ visible, count, onConfirm, onDismiss }: Props) {
+export default function ReportExportSheet({ visible, count, onConfirm, onDismiss, title, confirmLabel, personalHint }: Props) {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
@@ -48,13 +55,13 @@ export default function ReportExportSheet({ visible, count, onConfirm, onDismiss
           onPress={() => {}}
         >
           <Text style={[styles.title, { color: theme.textGold }]}>
-            {count ? t('report.exportTitleBatch', { n: count }) : t('report.exportTitle')}
+            {title ?? (count ? t('report.exportTitleBatch', { n: count }) : t('report.exportTitle'))}
           </Text>
 
           <View style={[styles.toggleRow, { borderColor: theme.bgMedium }]}>
             <View style={styles.toggleText}>
               <Text style={[styles.toggleLabel, { color: theme.textPrimary }]}>{t('report.includePersonal')}</Text>
-              <Text style={[styles.toggleHint, { color: theme.textMuted }]}>{t('report.includePersonalHint')}</Text>
+              <Text style={[styles.toggleHint, { color: theme.textMuted }]}>{personalHint ?? t('report.includePersonalHint')}</Text>
             </View>
             <Switch value={includePersonal} onValueChange={setIncludePersonal}
               trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
@@ -66,7 +73,7 @@ export default function ReportExportSheet({ visible, count, onConfirm, onDismiss
             accessibilityRole="button"
             onPress={() => onConfirm(includePersonal)}
           >
-            <Text style={styles.confirmText}>{t('report.export')}</Text>
+            <Text style={styles.confirmText}>{confirmLabel ?? t('report.export')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

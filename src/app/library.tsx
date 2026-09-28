@@ -7,12 +7,12 @@
 // 卦典與籤詩同是六十四卦、同一個文王卦序，卻另開分頁：籤詩卡片讀的是
 // 本 App 撰寫的七言詩與白話，卦典讀的是《周易》原文的六條爻辭與卦際關係。
 // 揭曉頁只印得出動爻那一條爻辭，其餘 383 條原本無處可讀。
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import { Icon, TrigramGlyph } from '@/components/icons';
 import HexagramLines from '@/components/HexagramLines';
@@ -29,6 +29,9 @@ import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface, Layout } from '@/constants/theme';
 import { parseHexagramName, TRIGRAM_ELEMENTS } from '@/services/hexagram';
 import { trigramLabel } from '@/services/liuyao';
+import { getHistory } from '@/services/storage';
+import { drawnMarks, type DrawnMark, type DrawnMarks } from '@/services/drawnMarks';
+import { recordLink } from '@/services/recordLink';
 import {
   HEXAGRAM_CATALOG, hexagramMatchesSearch,
   type HexagramEntry, type HexagramRef,
@@ -94,6 +97,20 @@ export default function LibraryScreen() {
    * 而靈棋的識別是 `上-中-下` 卦目鍵值，與籤詩編號不同型。
    */
   const cardOffsets = useRef(new Map<string, number>());
+
+  /**
+   * 「我抽過」標記（路線圖 #29）。在 focus 時讀：從這裡點「看最近一次」、回填或刪掉
+   * 記錄再返回，標記要跟著變（S77 收藏頁只在掛載時讀的同一個坑）。
+   */
+  const [drawn, setDrawn] = useState<DrawnMarks | null>(null);
+  useFocusEffect(useCallback(() => {
+    let alive = true;
+    getHistory().then(h => { if (alive) setDrawn(drawnMarks(h)); }).catch(() => {});
+    return () => { alive = false; };
+  }, []));
+  function openRecord(mark: DrawnMark) {
+    router.push(recordLink(mark.latest));
+  }
 
   /**
    * 隨機展開一首籤詩，並捲到它的位置。
@@ -319,6 +336,7 @@ export default function LibraryScreen() {
         <View testID="card-grid" style={styles.grid} onLayout={onLayout}>
         {tab === 'poems' && filtered.map(poem => { const p = localizePoem(poem); return (
           <TouchableOpacity key={p.id}
+            testID={`poem-card-${p.id}`}
             style={[
               styles.card,
               { backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
@@ -336,6 +354,7 @@ export default function LibraryScreen() {
               </View>
               <Text style={[styles.cardNum, { color: theme.textMuted }]}>#{p.number}</Text>
               <Text style={[styles.cardHex, { color: theme.textSecondary }]}>{p.hexagramName}</Text>
+              <DrawnTag mark={drawn?.poems.get(p.id)} theme={theme} styles={styles} t={t} />
             </View>
             <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{p.title}</Text>
             {p.content.split('\n').map((line, i) => (
@@ -347,6 +366,9 @@ export default function LibraryScreen() {
                 <Text style={[styles.detailText, { color: theme.textSecondary }]}>{p.vernacular}</Text>
                 <Text style={[styles.storyText, { color: theme.textMuted }]}>{p.story}</Text>
               </View>
+            )}
+            {expandedId === poem.id && (
+              <OpenLatest mark={drawn?.poems.get(p.id)} onOpen={openRecord} theme={theme} styles={styles} t={t} />
             )}
             {expandedId === poem.id && (
               <TouchableOpacity
@@ -371,6 +393,8 @@ export default function LibraryScreen() {
             onPress={() => setExpandedKey(expandedKey === oracle.key ? null : oracle.key)}
             onLayout={y => recordOffset(cardKey(oracle.key), y)}
             onDivine={() => router.push('/lingqi')}
+            drawn={drawn?.lingqi.get(oracle.key)}
+            onOpenDrawn={openRecord}
             width={cardWidth}
             theme={theme}
             styles={styles}
@@ -387,6 +411,8 @@ export default function LibraryScreen() {
             onLayout={y => recordOffset(hexKey(entry.poemId), y)}
             onJump={jumpToHexagram}
             onOpenPoem={() => openPoemOf(entry.poemId)}
+            drawn={drawn?.hexagrams.get(entry.poemId)}
+            onOpenDrawn={openRecord}
             width={cardWidth}
             theme={theme}
             styles={styles}
@@ -414,8 +440,10 @@ export default function LibraryScreen() {
  * 卦名、卦目、象曰、詩曰一律漢字原文，三語皆然——原典逐字保留不翻譯，
  * 理由見 data/lingqiOracles.ts 的檔頭。此處只有標籤走 t()。
  */
-function LingqiCard({ oracle, expanded, onPress, onLayout, onDivine, width, theme, styles, t }: {
+function LingqiCard({ oracle, expanded, onPress, onLayout, onDivine, drawn, onOpenDrawn, width, theme, styles, t }: {
   oracle: LingqiOracle;
+  drawn: DrawnMark | undefined;
+  onOpenDrawn: (mark: DrawnMark) => void;
   expanded: boolean;
   onPress: () => void;
   onLayout: (y: number) => void;
@@ -440,6 +468,7 @@ function LingqiCard({ oracle, expanded, onPress, onLayout, onDivine, width, them
       <View style={styles.cardHeader}>
         <Text style={[styles.cardNum, { color: theme.textMuted }]}>{oracle.notation}</Text>
         <Text style={[styles.cardHex, { color: theme.textSecondary }]}>{oracle.image}</Text>
+        <DrawnTag mark={drawn} theme={theme} styles={styles} t={t} />
       </View>
       <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{oracle.name}</Text>
       {oracle.shi.map((line, i) => (
@@ -463,6 +492,7 @@ function LingqiCard({ oracle, expanded, onPress, onLayout, onDivine, width, them
             <LibraryVerse label={t('lingqi.shiAlt')} lines={oracle.shiAlt} theme={theme} styles={styles} />
           )}
           <Text style={[styles.storyText, { color: theme.textMuted }]}>{t('lingqi.source')}</Text>
+          <OpenLatest mark={drawn} onOpen={onOpenDrawn} theme={theme} styles={styles} t={t} />
           <TouchableOpacity style={[styles.drawBtn, { borderColor: theme.gold }]} onPress={onDivine}>
             <Icon name="lingqi" size={16} color={theme.gold} />
             <Text style={[styles.drawBtnText, { color: theme.textGold }]}> {t('library.divineWithLingqi')}</Text>
@@ -473,6 +503,41 @@ function LingqiCard({ oracle, expanded, onPress, onLayout, onDivine, width, them
       <Text style={[styles.expandHint, { color: theme.textMuted }]}>
         {expanded ? `▲ ${t('library.collapse')}` : `▼ ${t('library.expand')}`}
       </Text>
+    </TouchableOpacity>
+  );
+}
+
+type CardChrome = {
+  theme: ThemeColors;
+  styles: ReturnType<typeof makeStyles>;
+  t: (key: string, params?: Record<string, string | number>) => string;
+};
+
+/** 卡片標題列右側的「抽過 N 次」。沒抽過就什麼都不印——不印「未抽過」，那是在點名缺哪幾張 */
+function DrawnTag({ mark, theme, styles, t }: CardChrome & { mark: DrawnMark | undefined }) {
+  if (!mark) return null;
+  return (
+    <Text testID="drawn-tag" style={[styles.drawnTag, { color: theme.textGold, borderColor: theme.gold }]}>
+      {t('library.drawnCount', { n: mark.count })}
+    </Text>
+  );
+}
+
+/** 展開後的「看最近一次」：開的是那一筆記錄本身，走 recordLink（靈棋記錄開靈棋頁） */
+function OpenLatest({ mark, onOpen, theme, styles, t }: CardChrome & {
+  mark: DrawnMark | undefined;
+  onOpen: (mark: DrawnMark) => void;
+}) {
+  if (!mark) return null;
+  return (
+    <TouchableOpacity
+      testID="drawn-open-latest"
+      accessibilityRole="link"
+      style={[styles.drawBtn, { borderColor: theme.gold }]}
+      onPress={() => onOpen(mark)}
+    >
+      <Icon name="scroll" size={16} color={theme.gold} />
+      <Text style={[styles.drawBtnText, { color: theme.textGold }]}> {t('library.drawnOpenLatest')}</Text>
     </TouchableOpacity>
   );
 }
@@ -499,8 +564,10 @@ const TAB_NOT_FOUND: Record<LibraryTab, string> = {
  * 爻辭由初爻到上爻、由上往下列：這是經文的書寫順序，與卦形「上爻在最上」
  * 的畫法相反，但每一條都自帶爻名（初九、六二…），對得起來。
  */
-function HexagramCard({ entry, expanded, onPress, onLayout, onJump, onOpenPoem, width, theme, styles, t }: {
+function HexagramCard({ entry, expanded, onPress, onLayout, onJump, onOpenPoem, drawn, onOpenDrawn, width, theme, styles, t }: {
   entry: HexagramEntry;
+  drawn: DrawnMark | undefined;
+  onOpenDrawn: (mark: DrawnMark) => void;
   expanded: boolean;
   onPress: () => void;
   onLayout: (y: number) => void;
@@ -533,6 +600,7 @@ function HexagramCard({ entry, expanded, onPress, onLayout, onJump, onOpenPoem, 
         <Text style={[styles.cardHex, { color: theme.textSecondary }]}>
           {t('library.hexTrigrams', { upper: trigramLabel(entry.upper), lower: trigramLabel(entry.lower) })}
         </Text>
+        <DrawnTag mark={drawn} theme={theme} styles={styles} t={t} />
       </View>
       <View style={styles.hexRow}>
         <HexagramLines lines={entry.lines} width={40} accessibilityLabel={entry.name} />
@@ -589,6 +657,7 @@ function HexagramCard({ entry, expanded, onPress, onLayout, onJump, onOpenPoem, 
             );
           })}
 
+          <OpenLatest mark={drawn} onOpen={onOpenDrawn} theme={theme} styles={styles} t={t} />
           <TouchableOpacity
             testID="hexagram-open-poem"
             style={[styles.drawBtn, { borderColor: theme.gold }]}
@@ -713,5 +782,9 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     marginTop: 8, gap: 4,
   },
   drawBtnText: { fontSize: 14, fontWeight: '600' },
+  drawnTag: {
+    marginLeft: 'auto', fontSize: FontSize.small, fontWeight: '600',
+    borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1,
+  },
   empty: { textAlign: 'center', marginTop: Spacing.xxl, fontSize: FontSize.body },
 });

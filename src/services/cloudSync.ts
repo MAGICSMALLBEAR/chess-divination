@@ -28,6 +28,8 @@ const CLOUD_HISTORY_LIMIT = 1000;
 const DELETED_IDS_LIMIT = 1000;
 /** 資料夾／類別墓碑上限，與 storage.ts 的 DELETED_KEYS_LIMIT 一致 */
 const DELETED_KEYS_LIMIT = 200;
+/** 這一版看得懂的最新 payload 版本。雲端那份比它新就整份不碰（見 isCloudPayload） */
+const CLOUD_PAYLOAD_VERSION = 3;
 
 export interface CloudPayload {
   /**
@@ -62,6 +64,7 @@ export type SyncFailure =
   | 'invalid-key'      // 配對碼格式不對（401）
   | 'too-large'        // payload 超過伺服器上限（413）
   | 'rate-limited'     // 短時間內同步太多次（429）
+  | 'newer-version'    // 雲端資料是較新版 App 寫的，這一版不合併也不上傳
   | 'server-error';    // 其餘非 2xx 或回傳格式不對
 
 export type SyncOutcome = 'ok' | SyncFailure;
@@ -70,7 +73,9 @@ interface SyncRecord { id: string; timestamp: number; isFavorited?: boolean; }
 function isSyncRecord(v: unknown): v is SyncRecord {
   if (!v || typeof v !== 'object') return false;
   const r = v as Partial<SyncRecord>;
-  return typeof r.id === 'string' && typeof r.timestamp === 'number';
+  // NaN 也是 number：放行的話 mergeHistories 的排序比較全數失效，
+  // 截斷時留下哪幾筆就變成看陣列原本的順序
+  return typeof r.id === 'string' && Number.isFinite(r.timestamp);
 }
 
 /** 產生 192-bit 配對碼；遺失後不可從伺服器找回。 */
@@ -124,7 +129,7 @@ export async function buildCloudPayload(): Promise<CloudPayload> {
   let deletedIds: string[] = [];
   try { deletedIds = deletedRaw ? JSON.parse(deletedRaw) : []; } catch { /* 同上 */ }
   if (!Array.isArray(deletedIds)) deletedIds = [];
-  return { version: 3, timestamp: Date.now(), history, favorites, settings, dailyFortune, deletedIds };
+  return { version: CLOUD_PAYLOAD_VERSION, timestamp: Date.now(), history, favorites, settings, dailyFortune, deletedIds };
 }
 
 /**
@@ -176,6 +181,11 @@ export async function downloadFromCloud(): Promise<DownloadResult> {
     if (r.status === 404) return { status: 'empty' };
     if (!r.ok) return { status: 'error', reason: failureFromStatus(r.status) };
     const data: unknown = await r.json();
+    // 較新版 App 寫的 payload 可能多了這一版不認得的欄位或換了意思：
+    // 照舊合併再上傳，等於用舊格式把新資料整份蓋掉。與備份的
+    // parseBackupWithMeta 同一條規則（比本版新就整份拒絕），但要分開回報，
+    // 使用者該做的是更新 App，不是等伺服器恢復。
+    if (isNewerPayload(data)) return { status: 'error', reason: 'newer-version' };
     // 連得上但內容不是我們認得的格式：當成錯誤而非「雲端是空的」，
     // 否則下一步會拿本機資料整個蓋掉雲端那份看不懂的東西
     return isCloudPayload(data)
@@ -186,9 +196,17 @@ export async function downloadFromCloud(): Promise<DownloadResult> {
     return { status: 'error', reason: 'offline' };
   }
 }
+/** version 是數字且比本版新。缺 version 的是早期 payload，當作看得懂 */
+function isNewerPayload(value: unknown): boolean {
+  const v = (value as { version?: unknown } | null)?.version;
+  return typeof v === 'number' && v > CLOUD_PAYLOAD_VERSION;
+}
 function isCloudPayload(value: unknown): value is CloudPayload {
   if (!value || typeof value !== 'object') return false;
-  const p = value as Partial<CloudPayload>;
+  const p = value as Partial<CloudPayload> & { version?: unknown };
+  // version 不是有限數字（字串、NaN）就不是我們寫的東西
+  if (p.version !== undefined && !Number.isFinite(p.version)) return false;
+  if (isNewerPayload(p)) return false;
   return Array.isArray(p.history) && Array.isArray(p.favorites) && !!p.settings;
 }
 /** 同 id 衝突時選哪一版：有占驗結果者勝（都有的話取較新的 verifiedAt）。

@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { toLocalDateString } from './date';
 import { t } from './i18n';
+import { deliverTextFile, type ExportChannel } from './fileExport';
 
 export const BACKUP_KEYS = [
   '@chess_divination_history',
@@ -228,37 +229,6 @@ function backupFileName(): string {
 }
 
 /**
- * 原生端：把備份寫進 cache 再交給系統分享表單。
- *
- * 用 cache 而非 document 目錄——這份檔案的歸宿是使用者選的位置
- * （檔案 App、雲端硬碟、傳給自己），留在 App 內部只是中繼，
- * 系統要回收空間時可以清掉。
- *
- * @returns 成功分享回傳 true；分享不可用或失敗回傳 false（由呼叫端退回剪貼簿）
- */
-async function shareBackupFile(json: string): Promise<boolean> {
-  try {
-    const Sharing = require('expo-sharing') as typeof import('expo-sharing');
-    if (!(await Sharing.isAvailableAsync())) return false;
-
-    const { File, Paths } = require('expo-file-system') as typeof import('expo-file-system');
-    const file = new File(Paths.cache, backupFileName());
-    file.create({ overwrite: true });
-    file.write(json);
-
-    await Sharing.shareAsync(file.uri, {
-      mimeType: 'application/json',
-      UTI: 'public.json',
-      dialogTitle: t('settings.backup'),
-    });
-    return true;
-  } catch (e) {
-    console.warn('備份分享失敗，改用剪貼簿:', e);
-    return false;
-  }
-}
-
-/**
  * 備份結果。
  *
  * `channel` 是檔案去了哪裡——三者要做的事完全不同（下載已落到硬碟、
@@ -269,7 +239,7 @@ async function shareBackupFile(json: string): Promise<boolean> {
  * 等還原時才發現少了一類資料，舊裝置已經不在了。
  */
 export interface BackupResult {
-  channel: 'downloaded' | 'shared' | 'copied';
+  channel: ExportChannel;
   skippedKeys: string[];
 }
 
@@ -284,26 +254,13 @@ export async function backupData(): Promise<BackupResult | null> {
     const json = JSON.stringify(backup, null, 2);
     const skippedKeys = backup.skippedKeys ?? [];
 
-    // Web: download as file
-    if (typeof document !== 'undefined') {
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = backupFileName();
-      a.click();
-      URL.revokeObjectURL(url);
-      return { channel: 'downloaded', skippedKeys };
-    }
-
-    // 原生：優先產出真正的檔案（可存到雲端、可跨裝置搬家）。
-    // 之前這裡只回傳字串而沒有任何實際動作，設定頁卻因為 truthy 回傳值
-    // 提示「備份成功」——使用者以為有備份，其實什麼都沒產生。
-    if (await shareBackupFile(json)) return { channel: 'shared', skippedKeys };
-
-    // 分享不可用（模擬器、部分 Android ROM）時的保底通道
-    await Clipboard.setStringAsync(json);
-    return { channel: 'copied', skippedKeys };
+    // 原生端之前只回傳字串而沒有任何實際動作，設定頁卻因為 truthy 回傳值
+    // 提示「備份成功」——使用者以為有備份，其實什麼都沒產生。通道的取捨見 fileExport.ts。
+    const channel = await deliverTextFile({
+      fileName: backupFileName(), content: json,
+      mimeType: 'application/json', uti: 'public.json', dialogTitle: t('settings.backup'),
+    });
+    return { channel, skippedKeys };
   } catch (e) {
     console.warn('備份失敗:', e);
     return null;

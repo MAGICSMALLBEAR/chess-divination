@@ -16,6 +16,8 @@ import {
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import { BACKUP_KEY_LABELS, backupData, restoreData } from '@/services/backup';
+import { exportHistoryCsv } from '@/services/csvExport';
+import ReportExportSheet from '@/components/ReportExportSheet';
 import { toLocalDateString } from '@/services/date';
 import { confirmAction, notify } from '@/services/dialog';
 import { clearHistory } from '@/services/storage';
@@ -110,6 +112,26 @@ export default function SettingsScreen() {
     notify(t('settings.backupOk'), desc + missing);
   }
 
+  /**
+   * CSV 匯出（路線圖 #30）：先問隱私開關再讀記錄。讀在確認之後——
+   * 對話框開著時可能又多一筆（另一個分頁、背景同步），匯出的應是按下當下的那份。
+   */
+  const [csvCount, setCsvCount] = useState<number | null>(null);
+  async function handleCsvOpen() {
+    const n = (await getHistory()).length;
+    if (n === 0) { notify(t('settings.exportCsv'), t('settings.exportCsvEmpty')); return; }
+    setCsvCount(n);
+  }
+  async function handleCsvConfirm(includePersonalText: boolean) {
+    setCsvCount(null);
+    const channel = await exportHistoryCsv(await getHistory(), { includePersonalText });
+    if (!channel) { notify(t('settings.exportCsv'), t('settings.exportCsvFail')); return; }
+    notify(t('settings.exportCsvOk'),
+      channel === 'copied' ? t('settings.exportCsvOkClipboard')
+        : channel === 'shared' ? t('settings.exportCsvOkShared')
+        : t('settings.exportCsvOkDesc'));
+  }
+
   async function checkReminder() {
     const on = await isReminderScheduled();
     setReminderOn(on);
@@ -202,6 +224,7 @@ export default function SettingsScreen() {
     'rate-limited': 'settings.syncRateLimited',
     'invalid-key': 'settings.syncInvalidKey',
     'server-error': 'settings.syncServerError',
+    'newer-version': 'settings.syncNewerVersion',
   };
 
   async function handleCloudSync() {
@@ -491,6 +514,20 @@ export default function SettingsScreen() {
               <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.backup')}</Text>
             </View>
           </TouchableOpacity>
+          <TouchableOpacity testID="settings-export-csv" accessibilityRole="button" style={styles.row} onPress={handleCsvOpen}>
+            <View style={styles.optionInner}>
+              <Icon name="scroll" size={16} color={theme.textSecondary} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}> {t('settings.exportCsv')}</Text>
+            </View>
+          </TouchableOpacity>
+          <ReportExportSheet
+            visible={csvCount !== null}
+            title={t('settings.exportCsvTitle', { n: csvCount ?? 0 })}
+            confirmLabel={t('settings.exportCsvConfirm')}
+            personalHint={t('settings.exportCsvPersonalHint')}
+            onConfirm={handleCsvConfirm}
+            onDismiss={() => setCsvCount(null)}
+          />
           <TouchableOpacity
             style={[styles.row, syncing && { opacity: 0.5 }]}
             onPress={handleCloudSync}

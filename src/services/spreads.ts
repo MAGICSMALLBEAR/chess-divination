@@ -68,6 +68,10 @@ export interface SpreadSlot {
    * 會變成「Next: 過去」這種混語，故 UI 一律走這個鍵。
    */
   labelKey: string;
+  /**
+   * 角色說明（中文）。與 label 一樣寫進 positionSummary——解讀文字與 AI 提示詞
+   * 都讀得到它，不是介面副本，別跟牌陣層級的說明一起刪。
+   */
   description: string;
   col: number;
   row: number;
@@ -75,9 +79,10 @@ export interface SpreadSlot {
 
 export interface SpreadDefinition {
   id: SpreadId;
+  /** 中文牌陣名，與 SpreadSlot.label 同理寫進記錄；介面走 SPREAD_LABEL_KEYS */
   name: string;
-  description: string;
-  questionHint: string;
+  // 牌陣說明與提問提示只有介面一份（SPREAD_DESC_KEYS／SPREAD_HINT_KEYS）。
+  // 這裡曾各有一份中文副本、沒有任何讀取端，已與介面那份悄悄分岔（路線圖 #41）。
   slots: readonly SpreadSlot[];
   /**
    * 牌陣要求的落子數。固定角色牌陣由 slots 長度決定，此欄位留給
@@ -90,15 +95,11 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   free: {
     id: 'free',
     name: '自由佈局',
-    description: '依直覺在棋盤任意落子，保留完整的方位解讀。',
-    questionHint: '適合開放式問題與整體趨勢。',
     slots: [],
   },
   timeline: {
     id: 'timeline',
     name: '三才時間陣',
-    description: '以過去、當下、下一步串連事情的演變。',
-    questionHint: '適合問事件的背景與近期走向。',
     slots: [
       { id: 'past', label: '過去', labelKey: 'board.slotTimelinePast', description: '形成目前局面的背景與慣性。', col: 4, row: 8 },
       { id: 'present', label: '當下', labelKey: 'board.slotTimelinePresent', description: '此刻最需要看見的核心。', col: 4, row: 4 },
@@ -108,8 +109,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   choice: {
     id: 'choice',
     name: '兩難抉擇陣',
-    description: '把兩個選項與自身條件並列，協助比較取捨。',
-    questionHint: '請在問題中寫清楚選項 A 與 B。',
     slots: [
       { id: 'option-a', label: '選項 A', labelKey: 'board.slotChoiceOptionA', description: '選擇 A 的主要條件與趨勢。', col: 2, row: 3 },
       { id: 'self', label: '我方', labelKey: 'board.slotChoiceSelf', description: '自己目前可動用的資源與限制。', col: 4, row: 5 },
@@ -119,8 +118,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   relationship: {
     id: 'relationship',
     name: '關係互動陣',
-    description: '從我方、關係核心、對方三個角度觀察互動。',
-    questionHint: '適合感情、合作或人際溝通問題。',
     slots: [
       { id: 'self', label: '我方', labelKey: 'board.slotRelationshipSelf', description: '自己的需求、立場與可調整之處。', col: 2, row: 5 },
       { id: 'bond', label: '關係核心', labelKey: 'board.slotRelationshipBond', description: '雙方目前真正牽動的議題。', col: 4, row: 4 },
@@ -130,8 +127,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   strategy: {
     id: 'strategy',
     name: '行動策略陣',
-    description: '辨識可用資源、主要阻礙與可執行的一著。',
-    questionHint: '適合工作、計畫與決策推進。',
     slots: [
       { id: 'resource', label: '可用資源', labelKey: 'board.slotStrategyResource', description: '目前已擁有、值得善用的力量。', col: 2, row: 7 },
       { id: 'obstacle', label: '主要阻礙', labelKey: 'board.slotStrategyObstacle', description: '需要正視或繞開的關卡。', col: 4, row: 3 },
@@ -145,8 +140,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   formation: {
     id: 'formation',
     name: '兩軍對壘陣',
-    description: '紅黑雙方各在己方半場布三子，紅方為上卦、黑方為下卦，動爻取雙方子力差。',
-    questionHint: '適合對立、競爭、比較兩造的處境。',
     slots: [],
     maxPieces: 6,
   },
@@ -154,8 +147,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   wealth: {
     id: 'wealth',
     name: '財運陣',
-    description: '從財源、守成與耗損三方觀察財務全局。',
-    questionHint: '適合詢問收入、理財與消費決策。',
     slots: [
       { id: 'source', label: '財源', labelKey: 'board.slotWealthSource', description: '目前主要的收入或機會來源。', col: 4, row: 1 },
       { id: 'keep', label: '守成', labelKey: 'board.slotWealthKeep', description: '已經穩固、值得續抱的資產或根基。', col: 2, row: 7 },
@@ -166,8 +157,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   health: {
     id: 'health',
     name: '健康陣',
-    description: '從成因、現狀與調養之道三方觀察身心狀態。',
-    questionHint: '提供身心步調的參考，非醫療診斷或治療建議。',
     slots: [
       { id: 'cause', label: '成因', labelKey: 'board.slotHealthCause', description: '影響身心狀態的主要因素或習慣。', col: 2, row: 4 },
       { id: 'state', label: '現狀', labelKey: 'board.slotHealthState', description: '此刻身心最需要留意之處。', col: 4, row: 4 },
@@ -178,8 +167,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   study: {
     id: 'study',
     name: '學業陣',
-    description: '從根基、卡關之處與臨場發揮三方觀察學習歷程。',
-    questionHint: '適合詢問考試、進修與學習規劃。',
     slots: [
       { id: 'foundation', label: '根基', labelKey: 'board.slotStudyFoundation', description: '目前已經打穩、熟悉的基礎。', col: 2, row: 1 },
       { id: 'bottleneck', label: '卡關之處', labelKey: 'board.slotStudyBottleneck', description: '尚未弄懂、容易失分的關卡。', col: 4, row: 5 },
@@ -190,8 +177,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   travel: {
     id: 'travel',
     name: '出行陣',
-    description: '從啟程、途中與落腳之地三方觀察行程走向。',
-    questionHint: '適合詢問旅行、搬遷與異地發展。',
     slots: [
       { id: 'depart', label: '啟程', labelKey: 'board.slotTravelDepart', description: '出發前的準備與心態。', col: 2, row: 2 },
       { id: 'transit', label: '途中', labelKey: 'board.slotTravelTransit', description: '旅途中可能遇到的變數。', col: 6, row: 5 },
@@ -202,8 +187,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   lawsuit: {
     id: 'lawsuit',
     name: '官司陣',
-    description: '從己方立場、爭議焦點與裁決走向三方觀察訴訟或糾紛。',
-    questionHint: '適合詢問官司、訴訟與正式糾紛的處理方向。',
     slots: [
       { id: 'stance', label: '己方立場', labelKey: 'board.slotLawsuitStance', description: '自己目前的理據與可主張之處。', col: 2, row: 6 },
       { id: 'dispute', label: '爭議焦點', labelKey: 'board.slotLawsuitDispute', description: '雙方真正僵持不下的關鍵。', col: 4, row: 2 },
@@ -214,8 +197,6 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
   lostItem: {
     id: 'lostItem',
     name: '尋物陣',
-    description: '從遺失之因、藏匿之處與尋獲契機三方觀察遺失物的下落。',
-    questionHint: '適合詢問遺失物品或失物能否尋回。',
     slots: [
       { id: 'cause', label: '遺失之因', labelKey: 'board.slotLostItemCause', description: '物品是如何、為何離手的。', col: 2, row: 3 },
       { id: 'hidden', label: '藏匿之處', labelKey: 'board.slotLostItemHidden', description: '物品此刻可能所在的位置。', col: 4, row: 7 },

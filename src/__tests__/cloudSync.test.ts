@@ -40,6 +40,12 @@ const settings = (overrides: Partial<AppSettings> = {}): AppSettings => ({
 });
 
 describe('合併歷史記錄', () => {
+  /** NaN 也是 number；放行的話排序比較失效，截斷時留下哪幾筆就看陣列原本順序 */
+  test('timestamp 不是有限數字的記錄不收（路線圖 #40）', () => {
+    const merged = mergeHistories([rec('ok', 1), { id: 'nan', timestamp: NaN }], [{ id: 'inf', timestamp: Infinity }]);
+    expect(merged.map(r => r.id)).toEqual(['ok']);
+  });
+
   test('兩邊都空時得到空陣列', () => {
     expect(mergeHistories([], [])).toEqual([]);
   });
@@ -600,6 +606,50 @@ describe('同步失敗的原因回報', () => {
 
     expect(await syncWithCloud()).toBe('server-error');
     expect(calls).toEqual(['GET']);
+  });
+
+  /**
+   * 路線圖 #40：雲端 payload 沒有版本閘門。今天沒有 v4，但未來版本的資料不能被
+   * 這一版當成 v3 合併再上傳——那等於用舊格式整份蓋掉新資料。
+   */
+  test('雲端 payload 版本比本版新：回報 newer-version，且不上傳', async () => {
+    const calls: string[] = [];
+    global.fetch = jest.fn((_url: unknown, init?: { method?: string }) => {
+      calls.push(init?.method ?? 'GET');
+      return Promise.resolve(Response.json({
+        version: 4, timestamp: 1, history: [], favorites: [], settings: {}, dailyFortune: null,
+      }));
+    }) as unknown as typeof fetch;
+
+    expect(await syncWithCloud()).toBe('newer-version');
+    expect(calls).toEqual(['GET']);
+  });
+
+  test('version 不是有限數字的 payload 不認，不上傳', async () => {
+    const calls: string[] = [];
+    global.fetch = jest.fn((_url: unknown, init?: { method?: string }) => {
+      calls.push(init?.method ?? 'GET');
+      return Promise.resolve(Response.json({
+        version: '3', timestamp: 1, history: [], favorites: [], settings: {}, dailyFortune: null,
+      }));
+    }) as unknown as typeof fetch;
+
+    expect(await syncWithCloud()).toBe('server-error');
+    expect(calls).toEqual(['GET']);
+  });
+
+  test.each([[2], [3], [undefined]])('version %s 的 payload 照常合併上傳', async (version) => {
+    const calls: string[] = [];
+    global.fetch = jest.fn((_url: unknown, init?: { method?: string }) => {
+      const method = init?.method ?? 'GET';
+      calls.push(method);
+      return Promise.resolve(method === 'GET'
+        ? Response.json({ version, timestamp: 1, history: [], favorites: [], settings: {}, dailyFortune: null })
+        : Response.json({ ok: true }));
+    }) as unknown as typeof fetch;
+
+    expect(await syncWithCloud()).toBe('ok');
+    expect(calls).toEqual(['GET', 'PUT']);
   });
 
   /** 上傳去掉冗餘的收藏副本，payload 才不會接近雙倍大 */
