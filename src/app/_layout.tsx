@@ -2,6 +2,7 @@
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect } from 'react';
+import { AppState } from 'react-native';
 import 'react-native-reanimated';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThemeProvider } from '@/hooks/useAppTheme';
@@ -10,7 +11,7 @@ import { setLang } from '@/services/i18n';
 import { setSoundEnabled } from '@/services/sound';
 import { setHapticEnabled } from '@/services/haptics';
 import {
-  setupNotificationHandler, subscribeToNotificationTaps, type NotificationTarget,
+  setupNotificationHandler, subscribeToNotificationTaps, reconcileVerificationReminders, type NotificationTarget,
 } from '@/services/notifications';
 import { recordLink } from '@/services/recordLink';
 
@@ -81,6 +82,20 @@ export default function RootLayout() {
     // 等於把「現在就去回填那一筆」變成「自己去歷史裡找那一筆」。
     return subscribeToNotificationTaps(target => { void openNotificationTarget(target); });
   }, [router, openNotificationTarget]);
+
+  useEffect(() => {
+    // 占驗提醒有名額上限（iOS 只留 64 則，見 VERIFICATION_REMINDER_SLOTS）：排不下的要等前面的
+    // 響過、名額空出來才補得上，所以在啟動與每次回到前景時對一次帳（路線圖 #43）。
+    // 還原備份、雲端同步帶進來的記錄也靠這一步才有提醒。web 端在服務裡直接略過。
+    const reconcile = () => {
+      getHistory()
+        .then(h => reconcileVerificationReminders(h))
+        .catch(e => console.warn('占驗提醒對帳失敗:', e));
+    };
+    reconcile();
+    const sub = AppState.addEventListener('change', state => { if (state === 'active') reconcile(); });
+    return () => sub.remove();
+  }, []);
 
   return (
     <ThemeProvider>

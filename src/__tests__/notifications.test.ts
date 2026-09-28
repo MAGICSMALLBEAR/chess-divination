@@ -15,6 +15,8 @@ import {
   cancelVerificationReminder,
   cancelAllVerificationReminders,
   rescheduleVerificationReminders,
+  reconcileVerificationReminders,
+  VERIFICATION_REMINDER_SLOTS,
   scheduleDailyReminder,
   cancelDailyReminder,
   isReminderScheduled,
@@ -673,6 +675,77 @@ describe('rescheduleVerificationReminders', () => {
     await rescheduleVerificationReminders([overdue] as never, verifyReminderPolicy(7));
 
     expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 路線圖 #43：iOS 只保留最近要響的 64 則本地通知，超過的靜靜不排。
+ * 占驗提醒一筆一則，設定 30 天時每天占 2 次多就會碰到。
+ */
+describe('占驗提醒的名額（#43）', () => {
+  const DAY = 86_400_000;
+  const ids = () => mocked.scheduleNotificationAsync.mock.calls.map(c => String(c[0].identifier).replace('verification-reminder-', ''));
+  /** n 筆由舊到新的未回填記錄，r0 最早到期 */
+  const many = (n: number) => Array.from({ length: n }, (_, i) => makeRecord(Date.now() - 5 * DAY + i * 60_000, { id: `r${i}` }));
+  function withScheduled(recordIds: string[]) {
+    mocked.getAllScheduledNotificationsAsync.mockResolvedValue(
+      recordIds.map(id => ({ identifier: `verification-reminder-${id}` })) as never,
+    );
+  }
+
+  test('名額小於 iOS 的 64，留位置給每日提醒', () => {
+    expect(VERIFICATION_REMINDER_SLOTS).toBeLessThan(64);
+  });
+
+  test('100 筆待提醒：只排最早到期的那幾筆，數量等於名額', async () => {
+    await reconcileVerificationReminders(many(100) as never, verifyReminderPolicy(30));
+    const got = ids();
+    expect(got).toHaveLength(VERIFICATION_REMINDER_SLOTS);
+    expect(new Set(got)).toEqual(new Set(Array.from({ length: VERIFICATION_REMINDER_SLOTS }, (_, i) => `r${i}`)));
+  });
+
+  test('整批重排（改天數）也受名額限制', async () => {
+    withScheduled([]);
+    await rescheduleVerificationReminders(many(100) as never, verifyReminderPolicy(30));
+    expect(ids()).toHaveLength(VERIFICATION_REMINDER_SLOTS);
+  });
+
+  test('前面的響過、名額空出來：回前景對帳時補上下一筆，已排的不重排', async () => {
+    const recs = many(100);
+    // 原本排的是 r0..r59；r0 響過之後排程裡剩 r1..r59
+    withScheduled(Array.from({ length: VERIFICATION_REMINDER_SLOTS - 1 }, (_, i) => `r${i + 1}`));
+    await reconcileVerificationReminders(recs.slice(1) as never, verifyReminderPolicy(30));
+    expect(ids()).toEqual([`r${VERIFICATION_REMINDER_SLOTS}`]);
+    expect(mocked.cancelScheduledNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('已回填或已刪的取消；更早到期的記錄（例如還原備份帶進來的）擠掉最晚的那則', async () => {
+    const recs = many(VERIFICATION_REMINDER_SLOTS);
+    withScheduled([...recs.map(r => r.id), 'deleted']);
+    const earlier = makeRecord(Date.now() - 6 * DAY, { id: 'restored' });
+    await reconcileVerificationReminders([earlier, ...recs] as never, verifyReminderPolicy(30));
+    expect(ids()).toEqual(['restored']);
+    const cancelled = mocked.cancelScheduledNotificationAsync.mock.calls.map(c => c[0]).sort();
+    expect(cancelled).toEqual(['verification-reminder-deleted', `verification-reminder-r${VERIFICATION_REMINDER_SLOTS - 1}`].sort());
+  });
+
+  test('占完新的一筆時名額已滿：不排（它一定比已排的都晚到期）', async () => {
+    withScheduled(Array.from({ length: VERIFICATION_REMINDER_SLOTS }, (_, i) => `r${i}`));
+    await expect(scheduleVerificationReminder(makeRecord(Date.now(), { id: 'new' }) as never)).resolves.toBe(false);
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('提醒關閉時對帳只清不排', async () => {
+    withScheduled(['r0']);
+    await reconcileVerificationReminders(many(3) as never, verifyReminderPolicy(0));
+    expect(mocked.cancelScheduledNotificationAsync).toHaveBeenCalledWith('verification-reminder-r0');
+    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  test('_layout 在啟動與回到前景時對帳（靜態守門）', () => {
+    const layoutSrc = fs.readFileSync(path.join(__dirname, '..', 'app', '_layout.tsx'), 'utf-8');
+    expect(layoutSrc).toMatch(/reconcileVerificationReminders\(/);
+    expect(layoutSrc).toMatch(/AppState\.addEventListener\('change'/);
   });
 });
 

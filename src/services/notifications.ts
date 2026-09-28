@@ -183,16 +183,88 @@ export async function scheduleVerificationReminder(
     await getSettings().then(s => s.verifyReminderDays).catch(() => undefined),
   );
   if (!resolved.enabled || !(await hasNotificationPermission())) return false;
-  const trigger = new Date(record.timestamp + resolved.days * 86_400_000);
-  if (trigger.getTime() <= Date.now()) return false;
+  if (reminderTrigger(record, resolved) === null) return false;
+  // 名額滿了就不排：剛占完的這一筆，提醒時間一定比已排好的都晚，
+  // 輪到它時由 reconcileVerificationReminders 補上（見 VERIFICATION_REMINDER_SLOTS）
+  if ((await scheduledVerificationIds()).size >= VERIFICATION_REMINDER_SLOTS) return false;
+  return scheduleOne(record, resolved);
+}
+
+/**
+ * 占驗提醒最多同時排幾則（路線圖 #43）。
+ *
+ * iOS 只保留最近要響的 64 則本地通知，超過的**靜靜不排**、也不報錯。一筆記錄一則，
+ * 設定 30 天時每天占 2 次多就會碰到。留 4 則給每日提醒與餘裕。
+ * 排不下的不是丟掉：App 回到前景時 reconcileVerificationReminders 會依到期先後補排。
+ */
+export const VERIFICATION_REMINDER_SLOTS = 60;
+
+function reminderTrigger(record: DivinationRecord, policy: VerifyReminderPolicy, now: number = Date.now()): Date | null {
+  if (record.outcome || !Number.isFinite(record.timestamp)) return null;
+  const trigger = new Date(record.timestamp + policy.days * 86_400_000);
+  return trigger.getTime() > now ? trigger : null;
+}
+
+async function scheduleOne(record: DivinationRecord, policy: VerifyReminderPolicy): Promise<boolean> {
+  const trigger = reminderTrigger(record, policy);
+  if (!trigger) return false;
   try {
     await Notifications.scheduleNotificationAsync({
       identifier: verificationReminderId(record.id),
-      content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: recordTitle(record), days: resolved.days }), data: { screen: '/stats', recordId: record.id } },
+      content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: recordTitle(record), days: policy.days }), data: { screen: '/stats', recordId: record.id } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger },
     });
     return true;
   } catch (e) { console.warn('占驗提醒排程失敗:', e); return false; }
+}
+
+/** 目前已排的占驗提醒的記錄 id */
+async function scheduledVerificationIds(): Promise<Set<string>> {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    return new Set(scheduled
+      .map(n => n.identifier)
+      .filter((id): id is string => typeof id === 'string' && id.startsWith(VERIFICATION_REMINDER_PREFIX))
+      .map(id => id.slice(VERIFICATION_REMINDER_PREFIX.length)));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * 讓已排的占驗提醒剛好是「最近到期的 VERIFICATION_REMINDER_SLOTS 則」（路線圖 #43）。
+ *
+ * 不在名單裡的取消（已回填、已刪、或被更早到期的擠出名額），名單裡還沒排的補上。
+ * 由 _layout 在啟動與回到前景時呼叫：前面的提醒響過、名額空出來，後面的才有機會排上。
+ * 還原備份或雲端同步帶進來的記錄也是靠這一步才有提醒。
+ */
+export async function reconcileVerificationReminders(
+  records: DivinationRecord[],
+  policy?: VerifyReminderPolicy,
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const resolved = policy ?? verifyReminderPolicy(
+    await getSettings().then(s => s.verifyReminderDays).catch(() => undefined),
+  );
+  if (!resolved.enabled) { await cancelAllVerificationReminders(); return; }
+  if (!(await hasNotificationPermission())) return;
+
+  const now = Date.now();
+  const wanted = records
+    .map(r => ({ r, at: reminderTrigger(r, resolved, now) }))
+    .filter((x): x is { r: DivinationRecord; at: Date } => x.at !== null)
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .slice(0, VERIFICATION_REMINDER_SLOTS)
+    .map(x => x.r);
+  const wantedIds = new Set(wanted.map(r => r.id));
+  const scheduled = await scheduledVerificationIds();
+
+  await Promise.all([...scheduled]
+    .filter(id => !wantedIds.has(id))
+    .map(id => cancelVerificationReminder(id)));
+  await Promise.all(wanted
+    .filter(r => !scheduled.has(r.id))
+    .map(r => scheduleOne(r, resolved)));
 }
 
 export async function cancelVerificationReminder(recordId: string): Promise<void> {
@@ -234,7 +306,8 @@ export async function rescheduleVerificationReminders(
 ): Promise<void> {
   await cancelAllVerificationReminders();
   if (!policy.enabled) return;
-  await Promise.all(records.filter(r => !r.outcome).map(r => scheduleVerificationReminder(r, policy)));
+  // 整批重排也受名額限制：一次排上幾百則，iOS 會靜靜只留 64 則
+  await reconcileVerificationReminders(records, policy);
 }
 
 /** 排程每日占卜提醒（每天上午 9:00） */
