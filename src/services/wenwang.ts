@@ -23,7 +23,7 @@ import type { UseGodSubject } from './useGod';
 import { advanceOrRetreat, detectTriads, darkMovingLines } from './conditions';
 import { strengthState, type StrengthState } from './liuyao';
 import { monthBranchContext, seasonOf, SEASON_ELEMENT } from './date';
-import { localizeProse } from './localize';
+import { localizeProse } from './localizeProse';
 
 const GENERATES: Readonly<Record<string, string>> = {
   金: '水', 水: '木', 木: '火', 火: '土', 土: '金',

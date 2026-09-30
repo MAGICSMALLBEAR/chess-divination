@@ -18,7 +18,7 @@ import { Icon, TrigramGlyph } from '@/components/icons';
 import HexagramLines from '@/components/HexagramLines';
 import { ALL_POEMS, getLevelColor, POEM_LEVELS } from '@/data/poems';
 import { LINGQI_ORACLES, type LingqiOracle } from '@/data/lingqiOracles';
-import { localizePoem } from '@/services/localize';
+import { localizePoem } from '@/services/localizePoem';
 import { poemMatchesSearch, lingqiMatchesSearch } from '@/services/poemList';
 import { readableTextOn } from '@/services/contrast';
 import { useAppTheme } from '@/hooks/useAppTheme';

@@ -8,9 +8,13 @@
 import fs from 'fs';
 import path from 'path';
 import { getPoemById } from '../data/poems';
+import { poemTranslations } from '../data/translations/poems';
+import { seedPoemTranslationsForTests } from '../services/localizePoem';
 import { setLang } from '../services/i18n';
 import { poemMatchesSearch, localizedPoemTitle, recordMatchesSearch, lingqiMatchesSearch } from '../services/poemList';
 import { LINGQI_ORACLES } from '../data/lingqiOracles';
+
+beforeAll(() => seedPoemTranslationsForTests(poemTranslations));
 
 const poem1 = getPoemById(1); // 乾為天 / Dragon Soars the Heavens / 龍 九霄に騰がる
 

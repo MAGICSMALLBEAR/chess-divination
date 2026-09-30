@@ -281,7 +281,11 @@ describe('categoryLabel', () => {
 // ── localizePoem / localizePiece / localizeAchievement ──
 
 import { localizePoem, localizePiece, localizeAchievement } from '../services/localize';
+import { seedPoemTranslationsForTests } from '../services/localizePoem';
+import { poemTranslations } from '../data/translations/poems';
 import { getPoemById, type Poem } from '../data/poems';
+
+beforeAll(() => seedPoemTranslationsForTests(poemTranslations));
 import { ALL_PIECES, type ChessPiece } from '../data/pieces';
 import { ACHIEVEMENTS, type Achievement } from '../services/achievements';
 

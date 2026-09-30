@@ -17,7 +17,7 @@ import {
   monthBranchContext, monthBranchName, seasonOf, SEASON_ELEMENT,
   type Season,
 } from './date';
-import { localizeProse } from './localize';
+import { localizeProse } from './localizeProse';
 
 // ====== 型別 ======
 

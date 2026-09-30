@@ -3,7 +3,7 @@
 // 經文採《周易》原典；六十四卦均已逐條校對。
 
 import type { BodyUseReading } from './liuyao';
-import { localizeProse } from './localize';
+import { localizeProse } from './localizeProse';
 
 export interface MovingLineGuidance {
   /** 本卦與動爻對應的《周易》原文；尚未校對時為 null。 */

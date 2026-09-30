@@ -22,6 +22,8 @@ import {
   isReminderScheduled,
 } from '../services/notifications';
 import { setLang } from '../services/i18n';
+import { seedPoemTranslationsForTests } from '../services/localizePoem';
+import { poemTranslations } from '../data/translations/poems';
 import { getSettings } from '../services/storage';
 import { verifyReminderPolicy } from '../services/verification';
 
@@ -44,6 +46,8 @@ const mockedGetSettings = getSettings as jest.MockedFunction<typeof getSettings>
 
 const mocked = Notifications as jest.Mocked<typeof Notifications>;
 const originalOS = Platform.OS;
+
+beforeAll(() => seedPoemTranslationsForTests(poemTranslations));
 
 function setPlatform(os: 'web' | 'ios' | 'android') {
   (Platform as { OS: string }).OS = os;

@@ -9,7 +9,7 @@ import type { Poem } from '@/data/poems';
 import { getPoemById } from '@/data/poems';
 import type { LingqiOracle } from '@/data/lingqiOracles';
 import type { Lang } from './i18n';
-import { localizePoem } from './localize';
+import { localizePoem } from './localizePoem';
 
 /**
  * 籤詩是否命中搜尋字串。

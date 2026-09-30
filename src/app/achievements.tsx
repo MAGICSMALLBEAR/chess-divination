@@ -12,7 +12,7 @@ import { useGrid } from '@/hooks/useGrid';
 import {
   getAchievements, getAchievementProgress, getStreak, syncAchievements, type Achievement, type AchievementProgress,
 } from '@/services/achievements';
-import { localizeAchievement } from '@/services/localize';
+import { localizeAchievement } from '@/services/localizeAchievement';
 import { getHistory } from '@/services/storage';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, Layout } from '@/constants/theme';

@@ -11,7 +11,7 @@
 // 不編造卦辭沒有的話。
 
 import type { LingqiOracle } from '@/data/lingqiOracles';
-import { localizeProse } from './localize';
+import { localizeProse } from './localizeProse';
 import { questionCategoryDomain } from './questionCategories';
 
 export interface LingqiInterpretation {

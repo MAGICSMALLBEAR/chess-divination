@@ -12,7 +12,7 @@
 // 未設定性別時寧可不出斷語——猜錯就等於把用神取反，比不斷更糟。
 
 import type { SixRelative } from './najja';
-import { localizeProse } from './localize';
+import { localizeProse } from './localizeProse';
 import { questionCategoryDomain } from './questionCategories';
 
 /** 用神取法：指定六親，或以世爻（問卜者本人）為用神 */

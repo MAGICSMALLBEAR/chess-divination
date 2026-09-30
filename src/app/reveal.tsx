@@ -42,7 +42,7 @@ import { buildReportSection, type ReportSection } from '@/services/report';
 import ShareTargetSheet from '@/components/ShareTargetSheet';
 import { notify } from '@/services/dialog';
 import { useI18n } from '@/hooks/useI18n';
-import { localizePoem } from '@/services/localize';
+import { localizePoem } from '@/services/localizePoem';
 import { recordUsage, syncAchievements } from '@/services/achievements';
 import type { ThemeColors } from '@/constants/theme';
 import { Spacing, FontSize, PaperSurface } from '@/constants/theme';

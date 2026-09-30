@@ -10,7 +10,7 @@
 
 import type { DivinationRecord, DivinationOutcome } from './storage';
 import { getPoemById, type Poem } from '@/data/poems';
-import { localizePoem } from './localize';
+import { localizePoem } from './localizePoem';
 import { trigramsFromIndex } from './hexagram';
 import { buildLiuYaoReading, type LiuYaoReading } from './liuyao';
 import { buildInterpretation } from './interpretation';

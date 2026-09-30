@@ -963,6 +963,18 @@ export function setLang(lang: Lang) {
   currentLang = lang;
   syncDocumentLang(lang);
   listeners.forEach(fn => fn());
+
+  // 中文原文不需要大型籤詩譯文。其他語言先更新介面，譯文下載完再通知一次，
+  // 讓目前可見的籤詩從原文無縫換成對應語言，且不阻塞設定頁的操作。
+  // Jest 的 VM 不支援 import()；測試會在 setup 時注入同一份資料。
+  if (lang !== 'zh-TW' && !(typeof process !== 'undefined' && process.env?.JEST_WORKER_ID)) {
+    void import('./localizePoem')
+      .then(({ preloadPoemTranslations }) => preloadPoemTranslations(lang))
+      .then(() => {
+        if (currentLang === lang) listeners.forEach(fn => fn());
+      })
+      .catch(e => console.warn('籤詩譯文載入失敗，暫時顯示原文:', e));
+  }
 }
 
 export function getLang(): Lang {

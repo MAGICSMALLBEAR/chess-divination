@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import type { Poem } from '@/data/poems';
 import { getLevelColor } from '@/data/poems';
-import { localizePoem } from '@/services/localize';
+import { localizePoem } from '@/services/localizePoem';
 import { poemFacetForCategory } from '@/services/questionCategories';
 import { Icon } from '@/components/icons';
 import type { IconName } from '@/components/icons/Icon';

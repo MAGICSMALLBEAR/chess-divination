@@ -1,6 +1,6 @@
-// 象棋占卜 Service Worker v2 — 離線完整支援
+// 象棋占卜 Service Worker v3 — 離線完整支援
 // 網路優先策略：先嘗試網路，失敗時回退到快取，確保內容最新
-const CACHE_NAME = 'chess-divination-v2';
+const CACHE_NAME = 'chess-divination-v3';
 
 const STATIC_ROUTES = [
   '/',
@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ROUTES))
   );
-  (self as any).skipWaiting();
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -29,11 +29,11 @@ self.addEventListener('activate', (event) => {
       Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
     )
   );
-  (self as any).clients.claim();
+  self.clients.claim();
 });
 
 // 網路優先：成功時更新快取，失敗時從快取回應
-self.addEventListener('fetch', (event: any) => {
+self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(

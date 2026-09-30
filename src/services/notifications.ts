@@ -5,7 +5,8 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { t } from './i18n';
+import { getLang, t } from './i18n';
+import { preloadPoemTranslations } from './localizePoem';
 import { recordTitle } from './poemList';
 import { verifyReminderPolicy, type VerifyReminderPolicy } from './verification';
 import { getSettings, type DivinationRecord } from './storage';
@@ -209,6 +210,8 @@ async function scheduleOne(record: DivinationRecord, policy: VerifyReminderPolic
   const trigger = reminderTrigger(record, policy);
   if (!trigger) return false;
   try {
+    // 通知在背景才顯示，不能讓剛切語言時尚未下載的譯文永久落成中文。
+    if (getLang() !== 'zh-TW') await preloadPoemTranslations(getLang());
     await Notifications.scheduleNotificationAsync({
       identifier: verificationReminderId(record.id),
       content: { title: t('notify.verifyTitle'), body: t('notify.verifyBody', { title: recordTitle(record), days: policy.days }), data: { screen: '/stats', recordId: record.id } },
