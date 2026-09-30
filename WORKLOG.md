@@ -11,7 +11,7 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 131 個（`src` 的 .ts/.tsx，不含測試） |
-| Git Commits | 186 次 ※ |
+| Git Commits | 187 次 ※ |
 | Jest 測試 | 1552 個 ※ · 71 套件 · 全部通過 |
 | E2E 測試 | 438 個 ※ · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
