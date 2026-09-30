@@ -861,6 +861,17 @@ export const translations: Record<string, Record<Lang, string>> = {
 
   // 錯誤與找不到頁面
   'error.saveFailed': { 'zh-TW': '儲存失敗', en: 'Save failed', ja: '保存に失敗しました' },
+  'collection.rename': { 'zh-TW': '改名', en: 'Rename', ja: '名前を変更' },
+  'collection.renameFolder': { 'zh-TW': '資料夾改名', en: 'Rename folder', ja: 'フォルダ名を変更' },
+  'question.edit': { 'zh-TW': '修改', en: 'Edit', ja: '編集' },
+  'question.editA11y': { 'zh-TW': '修改問題與問事類別', en: 'Edit the question and category', ja: '質問と相談の種類を編集' },
+  'question.none': { 'zh-TW': '這次沒有寫下問題', en: 'No question was written for this reading', ja: '今回は質問が書かれていません' },
+  'question.category': { 'zh-TW': '問事類別：{name}', en: 'Category: {name}', ja: '相談の種類：{name}' },
+  'question.categoryLabel': { 'zh-TW': '問事類別', en: 'Category', ja: '相談の種類' },
+  'question.categoryChanged': { 'zh-TW': '類別於 {date} 改過，下面的解讀依新類別', en: 'Category changed on {date}; the reading below uses the new one', ja: '種類は {date} に変更済み。以下の読みは新しい種類に基づきます' },
+  'question.categoryWarning': { 'zh-TW': '用神依問事類別而取：改了類別，這一卦的用神與斷語會跟著變，分類的應驗率也會改算。', en: 'The use-god follows the category: changing it changes the use-god and verdict of this reading, and the per-category accuracy.', ja: '用神は相談の種類で決まります。変更すると、この卦の用神と判断、種類別の的中率も変わります。' },
+  'question.save': { 'zh-TW': '儲存', en: 'Save', ja: '保存' },
+  'question.saveFailed': { 'zh-TW': '問題沒有存進去，請再試一次。', en: 'The question could not be saved. Please try again.', ja: '質問を保存できませんでした。もう一度お試しください。' },
   'error.saveRecordFailed': { 'zh-TW': '這次占卜沒能存進記錄，請確認裝置儲存空間後再試一次。', en: 'This reading could not be saved. Check your device storage and try again.', ja: '今回の占いを保存できませんでした。端末の空き容量を確認して再試行してください。' },
   'error.saveOutcomeFailed': { 'zh-TW': '占驗結果沒能存起來，請再試一次。', en: 'The outcome could not be saved. Please try again.', ja: '占験の結果を保存できませんでした。もう一度お試しください。' },
   'error.saveFavoriteFailed': { 'zh-TW': '收藏狀態沒能存起來，請再試一次。', en: 'The favorite status could not be saved. Please try again.', ja: 'お気に入りの状態を保存できませんでした。もう一度お試しください。' },

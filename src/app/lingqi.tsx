@@ -7,6 +7,7 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import InkBackground from '@/components/InkBackground';
 import OutcomeMarker from '@/components/OutcomeMarker';
+import RecordQuestionBox from '@/components/RecordQuestionBox';
 import DecisionJournalForm, { DecisionJournalView } from '@/components/DecisionJournalForm';
 import AccuracyHint from '@/components/AccuracyHint';
 import RelatedReadings from '@/components/RelatedReadings';
@@ -331,11 +332,8 @@ export default function LingqiScreen() {
 
             {/* 問題回顯。與 reveal 頁同一個位置與鍵值——占卜結果要能對回當初問的事，
                 尤其是從歷史記錄點回來時，光看卦辭想不起來這是問什麼的 */}
-            {record?.questionText ? (
-              <View style={styles.questionBox}>
-                <Text style={styles.questionLabel}>{t('reveal.question')}</Text>
-                <Text style={styles.questionTextValue}>{record.questionText}</Text>
-              </View>
+            {record ? (
+              <RecordQuestionBox record={record} onSaved={() => refreshRecord(record.id)} />
             ) : null}
 
             <Verse label={t('lingqi.xiang')} lines={oracle.xiang} styles={styles} />
@@ -506,9 +504,6 @@ const makeStyles = (theme: ThemeColors) => StyleSheet.create({
   oracleImage: { fontSize: FontSize.heading, color: theme.textPrimary },
   oracleStance: { fontSize: FontSize.small, color: theme.textSecondary },
   countLine: { fontSize: FontSize.caption, color: theme.textMuted, marginTop: Spacing.sm },
-  questionBox: { borderWidth: 1, borderRadius: 12, padding: Spacing.md, backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
-  questionLabel: { fontSize: FontSize.caption, fontWeight: '600', color: theme.textGold, marginBottom: 4 },
-  questionTextValue: { fontSize: FontSize.body, lineHeight: 24, fontStyle: 'italic', color: theme.textSecondary },
   verse: { borderWidth: 1, borderRadius: 16, padding: Spacing.lg, gap: 4, backgroundColor: theme.bgDark, borderColor: theme.bgMedium },
   verseLabel: { fontSize: FontSize.small, fontWeight: '700', color: theme.textGold, marginBottom: Spacing.sm },
   verseLine: { fontSize: FontSize.body, lineHeight: 28, color: theme.textPrimary, textAlign: 'center' },

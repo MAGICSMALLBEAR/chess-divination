@@ -49,7 +49,10 @@ describe('空白名稱不再靜默無反應', () => {
   test('三個名稱輸入框都有長度上限', () => {
     // 沒有上限的話，超長名稱會把卡片與列撐破
     expect(stripComments(read('app', '(tabs)', 'settings.tsx'))).toMatch(/maxLength=\{\d+\}/);
-    expect(stripComments(read('app', '(tabs)', 'collection.tsx'))).toMatch(/maxLength=\{\d+\}/);
+    // 資料夾名稱的上限改成 storage 匯出的常數（新增與改名共用一個數字，#36）；
+    // 兩個輸入框都要有，不能只剩一個
+    const collection = stripComments(read('app', '(tabs)', 'collection.tsx'));
+    expect(collection.match(/maxLength=\{(\d+|FOLDER_NAME_MAX)\}/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(stripComments(read('components', 'CustomCategoriesSection.tsx'))).toMatch(/maxLength=\{\d+\}/);
   });
 });

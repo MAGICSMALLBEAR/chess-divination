@@ -15,6 +15,7 @@ import ReportExportSheet from '@/components/ReportExportSheet';
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
 import OutcomeMarker from '@/components/OutcomeMarker';
+import RecordQuestionBox from '@/components/RecordQuestionBox';
 import { DecisionJournalView } from '@/components/DecisionJournalForm';
 import AccuracyHint from '@/components/AccuracyHint';
 import RelatedReadings from '@/components/RelatedReadings';
@@ -128,6 +129,12 @@ export default function RevealScreen() {
     // 除了「七日問道」之外的成就對所有使用者永遠是鎖住的。
     syncAchievements().catch(e => console.warn(t('achievement.checkFailed'), e));
   }, [recordId]);
+
+  /** 只重讀記錄、不重播墨滴轉場（loadRecord 會）：改問題或類別之後用 */
+  async function refreshRecord() {
+    const found = (await getHistory()).find(r => r.id === recordId);
+    if (found) setRecord(found);
+  }
 
   async function loadRecord() {
     const history = await getHistory();
@@ -441,13 +448,8 @@ export default function RevealScreen() {
           </View>
         ) : null}
 
-        {/* 用戶問題 */}
-        {record.questionText ? (
-          <View style={styles.questionBox}>
-            <Text style={styles.questionLabel}>{t('reveal.question')}</Text>
-            <Text style={styles.questionText}>{record.questionText}</Text>
-          </View>
-        ) : null}
+        {/* 用戶問題與問事類別，可事後修正（#34、#35）。沒寫問題的記錄也顯示，才補得上 */}
+        <RecordQuestionBox record={record} onSaved={refreshRecord} />
 
         {/* 棋盤位置解讀 */}
         {record.positionSummary ? (
@@ -646,20 +648,6 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   title: { fontSize: FontSize.heading, fontWeight: '700', color: t.textPrimary },
   piecesRow: {
     flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md, marginBottom: Spacing.md,
-  },
-  questionBox: {
-    width: '100%',
-    backgroundColor: t.bgDark, borderRadius: 12,
-    borderWidth: 1, borderColor: t.bgMedium,
-    padding: Spacing.md, marginBottom: Spacing.lg,
-  },
-  questionLabel: {
-    fontSize: FontSize.caption, color: t.textGold,
-    marginBottom: 4, fontWeight: '600',
-  },
-  questionText: {
-    fontSize: FontSize.body, color: t.textSecondary,
-    fontStyle: 'italic', lineHeight: 24,
   },
   legacyBox: {
     width: '100%',

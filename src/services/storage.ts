@@ -38,6 +38,14 @@ export interface DivinationRecord {
   drawnPieceChars: string[];      // display chars
   mode: DivinationMode;
   questionCategory?: string;
+  /**
+   * 問事類別最後一次被**事後修改**的時間（路線圖 #34）。占卜當下選的不算，沒改過就沒有這個欄位。
+   *
+   * 類別不只是標籤：六爻盤的用神依類別取，分類應驗率、準確度提示、AI 提示詞也都在顯示時讀它。
+   * 所以改了類別，這一卦的斷語會跟著變——留下這個時間，畫面才能如實說「類別於某日改過」，
+   * 而不是讓人以為當初就是這樣解的。
+   */
+  categoryChangedAt?: number;
   questionText?: string;         // user's written question
   /**
    * 問卜前留下的決策日誌（選填）。跟著這筆記錄走——備份、以及開了雲端同步時的同步都會帶上，
@@ -490,6 +498,41 @@ export async function setRecordNote(id: string, note: string): Promise<void> {
   });
 }
 
+/** 問題文字的長度上限，與三個占卜頁的輸入框同一個數字 */
+export const QUESTION_TEXT_MAX = 200;
+
+/**
+ * 事後修正問題文字與問事類別（路線圖 #34、#35）。
+ *
+ * - 問題：去頭尾空白、截到 QUESTION_TEXT_MAX；清成空白就拿掉這個欄位（與筆記同一個規則）。
+ *   不留舊版本：問題文字不是用來量「占卜前怎麼想」的，與直覺、決策日誌不同（那兩個刻意不給改）。
+ * - 類別：真的換了才寫 `categoryChangedAt`，選回同一個不算改過。
+ *
+ * 已知限制（與筆記相同，見 S76）：雲端同步是整筆記錄選一版，另一台沒改過的副本可能蓋掉這次修改。
+ */
+export async function updateRecordQuestion(
+  id: string,
+  changes: { questionText?: string; questionCategory?: string },
+  now: number = Date.now(),
+): Promise<void> {
+  await patchRecord(id, r => {
+    let next: DivinationRecord = r;
+    if (changes.questionText !== undefined) {
+      const text = changes.questionText.trim().slice(0, QUESTION_TEXT_MAX);
+      if (text) next = { ...next, questionText: text };
+      else {
+        const { questionText: _q, ...rest } = next;
+        next = rest;
+      }
+    }
+    const category = changes.questionCategory?.trim();
+    if (category && category !== r.questionCategory) {
+      next = { ...next, questionCategory: category, categoryChangedAt: now };
+    }
+    return next;
+  });
+}
+
 /**
  * 把一筆占卜連結到「同一件事的前一次」。成功回傳 true。
  *
@@ -628,6 +671,27 @@ export async function addFolder(name: string): Promise<Folder> {
     return { folders: [...folders, folder] };
   });
   return folder;
+}
+
+/** 資料夾名稱的長度上限，與新增資料夾的輸入框同一個數字 */
+export const FOLDER_NAME_MAX = 20;
+
+/**
+ * 資料夾改名（路線圖 #36）。原本只能刪掉重建，而刪資料夾會連裡面的歸檔一起丟掉。
+ * 空白名稱不改、回傳 false。走 updateSettings 的佇列，理由同 addFolder。
+ * 同步時名稱依 mergeSettings 的「本地優先」，資料夾以 id 對齊，改名不影響歸檔。
+ */
+export async function renameFolder(id: string, name: string): Promise<boolean> {
+  const trimmed = name.trim().slice(0, FOLDER_NAME_MAX);
+  if (!trimmed) return false;
+  let found = false;
+  await updateSettings(current => {
+    const folders = current.folders || [];
+    found = folders.some(f => f.id === id);
+    if (!found) return {};
+    return { folders: folders.map(f => (f.id === id ? { ...f, name: trimmed } : f)) };
+  });
+  return found;
 }
 
 /** 墓碑清單上限，比照記錄墓碑的作法夾住無限成長 */

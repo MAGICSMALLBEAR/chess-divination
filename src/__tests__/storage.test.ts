@@ -29,6 +29,7 @@ import {
   linkRelatedRecord, unlinkRelatedRecord,
   recordFromDivination, recordFromLingqi, STORAGE_KEYS,
   normalizeDecisionJournal, DECISION_JOURNAL_MAX,
+  updateRecordQuestion, QUESTION_TEXT_MAX, renameFolder, FOLDER_NAME_MAX,
   type DivinationRecord, type DailyFortune,
 } from '../services/storage';
 import { todayString } from '../services/date';
@@ -919,3 +920,61 @@ describe('同一件事的連結（relatedTo）', () => {
   });
 });
 
+/** 路線圖 #34、#35：問題文字與問事類別事後可以改 */
+describe('事後修正問題與類別', () => {
+  test('改問題：去空白、存進歷史與收藏兩份', async () => {
+    const r = await addHistory(makeRecord({ questionText: '換工作?', isFavorited: false }));
+    await toggleFavorite({ ...r });
+    await updateRecordQuestion(r.id, { questionText: '  要不要換工作？  ' });
+    expect((await getHistory())[0].questionText).toBe('要不要換工作？');
+    expect((await getFavorites())[0].questionText).toBe('要不要換工作？');
+  });
+
+  test('問題清成空白就拿掉欄位；過長的截斷', async () => {
+    const r = await addHistory(makeRecord({ questionText: '舊問題' }));
+    await updateRecordQuestion(r.id, { questionText: '   ' });
+    expect('questionText' in (await getHistory())[0]).toBe(false);
+    await updateRecordQuestion(r.id, { questionText: '問'.repeat(QUESTION_TEXT_MAX + 50) });
+    expect((await getHistory())[0].questionText).toHaveLength(QUESTION_TEXT_MAX);
+  });
+
+  test('換了類別才記 categoryChangedAt；選回同一個不算改過', async () => {
+    const r = await addHistory(makeRecord({ questionCategory: 'career' }));
+    await updateRecordQuestion(r.id, { questionCategory: 'career' }, 1000);
+    expect((await getHistory())[0].categoryChangedAt).toBeUndefined();
+    await updateRecordQuestion(r.id, { questionCategory: 'wealth' }, 2000);
+    const after = (await getHistory())[0];
+    expect(after.questionCategory).toBe('wealth');
+    expect(after.categoryChangedAt).toBe(2000);
+  });
+
+  test('只改問題不動類別與其他欄位', async () => {
+    const r = await addHistory(makeRecord({ questionCategory: 'career', note: '筆記', intuition: 70 }));
+    await updateRecordQuestion(r.id, { questionText: '新問題' });
+    const after = (await getHistory())[0];
+    expect(after.questionCategory).toBe('career');
+    expect(after.categoryChangedAt).toBeUndefined();
+    expect(after.note).toBe('筆記');
+    expect(after.intuition).toBe(70);
+  });
+});
+
+/** 路線圖 #36：資料夾改名，歸檔不動 */
+describe('資料夾改名', () => {
+  test('改名保留 id 與歸檔', async () => {
+    const f = await addFolder('工作');
+    await addToFolder(f.id, 'rec-1');
+    expect(await renameFolder(f.id, '  職涯  ')).toBe(true);
+    const [after] = await getFolders();
+    expect(after).toMatchObject({ id: f.id, name: '職涯', recordIds: ['rec-1'] });
+  });
+
+  test('空白名稱不改；找不到的資料夾回 false；過長截斷', async () => {
+    const f = await addFolder('工作');
+    expect(await renameFolder(f.id, '   ')).toBe(false);
+    expect((await getFolders())[0].name).toBe('工作');
+    expect(await renameFolder('nope', '別的')).toBe(false);
+    await renameFolder(f.id, '名'.repeat(FOLDER_NAME_MAX + 5));
+    expect((await getFolders())[0].name).toHaveLength(FOLDER_NAME_MAX);
+  });
+});

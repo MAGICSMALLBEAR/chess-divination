@@ -12,7 +12,7 @@ import { Icon, type IconName } from '@/components/icons';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
 import ReportExportSheet from '@/components/ReportExportSheet';
 import type { DivinationMode, DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
-import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, deleteFolder, addToFolder, removeFromFolder, recordHasLevel, getSettings } from '@/services/storage';
+import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, renameFolder, FOLDER_NAME_MAX, deleteFolder, addToFolder, removeFromFolder, recordHasLevel, getSettings } from '@/services/storage';
 import { buildReportSections, REPORT_BATCH_LIMIT, type ReportSection } from '@/services/report';
 import type { DivinerGender } from '@/services/useGod';
 import { recordMatchesSearch, recordTitle } from '@/services/poemList';
@@ -82,6 +82,8 @@ export default function CollectionScreen() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [search, setSearch] = useState('');
   const [newFolderName, setNewFolderName] = useState('');
+  /** 正在改名的資料夾名稱草稿；null＝沒在改名（#36） */
+  const [renameDraft, setRenameDraft] = useState<string | null>(null);
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [pickingFolderFor, setPickingFolderFor] = useState<string | null>(null); // record id
@@ -195,6 +197,18 @@ export default function CollectionScreen() {
     // 天數與首頁、統計頁同一個答案（verifyReminderPolicy）；關掉提醒時仍照預設天數，
     // 理由同統計頁那一行：這是使用者主動來看的清單，不是打擾
     setPendingIds(pendingIdsOf(h, Date.now(), verifyReminderPolicy(settings.verifyReminderDays).days));
+  }
+
+  async function handleRenameFolder() {
+    if (!selectedFolderId || renameDraft === null || !renameDraft.trim()) return;
+    try {
+      await renameFolder(selectedFolderId, renameDraft);
+      setRenameDraft(null);
+      await loadData();
+    } catch (e) {
+      console.warn('資料夾改名失敗:', e);
+      notify(t('error.saveFailed'), t('collection.saveFailed'));
+    }
   }
 
   async function handleAddFolder() {
@@ -696,12 +710,50 @@ export default function CollectionScreen() {
                 testID="folder-back"
                 accessibilityRole="button"
                 hitSlop={ICON_HIT_SLOP}
-                onPress={() => setSelectedFolderId(null)}>
+                onPress={() => { setRenameDraft(null); setSelectedFolderId(null); }}>
                 <Text style={[styles.folderBackText, { color: theme.textGold }]}>← {t('collection.backToFolders')}</Text>
               </TouchableOpacity>
               <View style={[styles.folderDot, { backgroundColor: selectedFolder.color }]} />
-              <Text style={[styles.folderName, { color: theme.textPrimary }]} numberOfLines={1}>{selectedFolder.name}</Text>
-              <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: folderRecords.length })}</Text>
+              {renameDraft === null ? (
+                <>
+                  <Text style={[styles.folderName, { color: theme.textPrimary }]} numberOfLines={1}>{selectedFolder.name}</Text>
+                  <Text style={[styles.folderCount, { color: theme.textMuted }]}>{t('collection.records', { n: folderRecords.length })}</Text>
+                  {/* 改名（#36）：原本只能刪掉重建，刪資料夾會連裡面的歸檔一起丟掉 */}
+                  <TouchableOpacity
+                    testID="folder-rename"
+                    accessibilityRole="button"
+                    accessibilityLabel={t('collection.renameFolder')}
+                    hitSlop={ICON_HIT_SLOP}
+                    onPress={() => setRenameDraft(selectedFolder.name)}>
+                    <Text style={{ color: theme.textGold, fontSize: FontSize.caption, fontWeight: '600' }}>{t('collection.rename')}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    testID="folder-rename-input"
+                    style={[styles.folderInput, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium, color: theme.textPrimary }]}
+                    value={renameDraft}
+                    onChangeText={setRenameDraft}
+                    maxLength={FOLDER_NAME_MAX}
+                    autoFocus
+                    accessibilityLabel={t('collection.folderName')}
+                  />
+                  <TouchableOpacity
+                    testID="folder-rename-save"
+                    style={[styles.folderBtn, !renameDraft.trim() && styles.folderBtnDisabled]}
+                    onPress={handleRenameFolder}
+                    disabled={!renameDraft.trim()}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !renameDraft.trim() }}
+                  >
+                    <Text style={{ color: theme.textGold, fontWeight: '600' }}>{t('question.save')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity testID="folder-rename-cancel" accessibilityRole="button" onPress={() => setRenameDraft(null)}>
+                    <Text style={{ color: theme.textMuted }}>{t('common.cancel')}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
             {folderRecordsData.length === 0 && renderEmpty('folder', 'collection.folderEmpty', 'collection.folderEmptyDesc')}
             <View testID="folder-grid" style={styles.grid} onLayout={onGridLayout}>
@@ -718,7 +770,7 @@ export default function CollectionScreen() {
                   placeholderTextColor={theme.textMuted}
                   value={newFolderName}
                   onChangeText={setNewFolderName}
-                  maxLength={20}
+                  maxLength={FOLDER_NAME_MAX}
                   autoFocus
                 />
                 {/* 名稱為空時，handleAddFolder 只是 return——按鈕看起來壞掉。
