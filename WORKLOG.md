@@ -11,9 +11,9 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 131 個（`src` 的 .ts/.tsx，不含測試） |
-| Git Commits | 185 次 ※ |
+| Git Commits | 186 次 ※ |
 | Jest 測試 | 1552 個 ※ · 71 套件 · 全部通過 |
-| E2E 測試 | 436 個 ※ · Playwright · mobile + desktop |
+| E2E 測試 | 438 個 ※ · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
 | 頁面 | 17 個 |
 | 元件 | 33 個 |
@@ -4709,7 +4709,14 @@ Vercel 設定、母語校閱者、後端與法務決策。
   已存英文設定重開 App、同一 session 在設定頁切日文後由 App 內連結進圖鑑，第一首都要是譯文籤題。
   反證：把 `setLang` 的譯文載入關掉 → 兩條都紅，症狀為「英文介面（▼ Expand）配中文籤詩」。
   Jest 裡譯文是注入的，碰不到動態 `import()`，這條路只有 E2E 守得到。
-- 已知邊緣：圖鑑搜尋的 `useMemo` 只依 `lang` 重算，譯文載完前就打字搜尋的人要再改一次搜尋字才會比對到譯文。
+- 修正：圖鑑搜尋的 `useMemo` 原本只依 `lang` 重算，譯文載完前就打字搜尋的人要再改一次搜尋字
+  才會比對到譯文。`useI18n` 新增 `i18nRevision`（每次通知都遞增，含語言沒變、只是譯文載完），
+  圖鑑篩選改依它重算。新增 e2e「譯文 chunk 被拖慢」：攔住 chunk、先打日文字（0 筆）、放行後
+  必須自己出現結果。反證：相依拿掉 → 只紅這條。**Service Worker 代抓的請求不經過 `page.route`**，
+  這條要 `serviceWorkers: 'block'` 才攔得住（第一次寫沒封鎖，攔截落空、譯文照樣先到）。
+- 既有不穩（非本輪造成）：`glossary.spec.ts:48`、`hexagrams.spec.ts:103`（皆為「從揭曉頁進另一頁」）
+  在整套負載下偶爾逾時、重試即過；單獨重複 20 次全過，退回 `a2dba03` 也是同兩條 flaky。
+  疑與 asyncRoutes 讓目的頁多一次 chunk 下載有關，未驗證。
 
 ### 後續追蹤
 

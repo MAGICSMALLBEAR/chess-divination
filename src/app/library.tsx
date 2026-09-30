@@ -68,7 +68,7 @@ export default function LibraryScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
-  const { t, lang } = useI18n();
+  const { t, lang, i18nRevision } = useI18n();
   const { onLayout, cardWidth } = useGrid();
   // 揭曉頁的「在卦典查看」連過來時帶著分頁與卦序
   const params = useLocalSearchParams<{ tab?: string; hex?: string }>();
@@ -216,8 +216,9 @@ export default function LibraryScreen() {
     const q = search.trim();
     if (q) poems = poems.filter(p => poemMatchesSearch(p, q, lang));
     return poems;
-    // lang 列入相依：切換語言後篩選結果必須跟著重算
-  }, [search, levelFilter, elementFilter, lang]);
+    // lang 列入相依：切換語言後篩選結果必須跟著重算；i18nRevision 則涵蓋
+    // 「語言已切、籤詩譯文稍後才載完」——先打字搜尋的人不必再改一次搜尋字
+  }, [search, levelFilter, elementFilter, lang, i18nRevision]);
 
   // 靈棋不吃等級與五行篩選：原典沒有等級，卦目也不對應八卦五行。
   // 搜尋不帶 lang——原典三語都顯示漢字原文（見 lingqiMatchesSearch）

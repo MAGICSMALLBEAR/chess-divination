@@ -28,11 +28,12 @@ export function useI18n() {
   // 預渲染時拋錯（minified error #419），整頁退回客戶端渲染——畫面最終還是
   // 出得來，但 hydration 已經失敗，且 DOM 會短暫留在 0×0 的狀態。
   const snap = useSyncExternalStore(subscribeToLang, getSnapshot, getSnapshot);
-  void snap; // suppress unused warning
-
   return {
     t,
     lang: getLang(),
     setLang,
+    // 每次通知都遞增，包括語言沒變、只是譯文 chunk 載完的那一次。
+    // 以翻譯後文字為輸入的 useMemo 要依它重算，只依 lang 會卡在載入前的結果。
+    i18nRevision: snap,
   };
 }

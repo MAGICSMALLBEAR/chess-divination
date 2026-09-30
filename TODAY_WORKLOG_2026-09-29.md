@@ -23,6 +23,9 @@
 - `npm run typecheck`、`node --check public/sw.js`、`git diff --check` 全數通過。
 - Jest：71 個套件、1,552 個測試全綠。Playwright E2E 436 項全綠（新增 `lazyTranslations.spec.ts`
   兩條，已反證：關掉譯文載入會紅，症狀是英文介面配中文籤詩）。
+- 追修：圖鑑在譯文載完前先打字搜尋，載完後結果不更新 → `useI18n` 加 `i18nRevision`，E2E 438 項
+  （新增「譯文 chunk 被拖慢」一條，已反證）。既有 flaky 兩條（揭曉頁 → 詞典／卦典）重試即過，
+  退回上一個 commit 同樣出現，待另查。
 
 ### 本日完成／整理
 
