@@ -64,6 +64,15 @@ describe('buildHistoryCsv（路線圖 #30）', () => {
     expect(row['回填時間']).toBe('2026-10-01 20:00');
   });
 
+  test('自訂類別印名字：記錄只存 key，名字由呼叫端帶進來', () => {
+    const csv = (opts: Parameters<typeof buildHistoryCsv>[1]) => {
+      const rows = table(buildHistoryCsv([rec({ questionCategory: 'custom-42' })], opts));
+      return rows[1][rows[0].indexOf('問事類別')];
+    };
+    expect(csv({ includePersonalText: true, customCategories: [{ key: 'custom-42', label: '搬家' }] })).toBe('搬家');
+    expect(csv({ includePersonalText: true })).not.toContain('custom-');
+  });
+
   test('隱私開關關掉時，個人欄位留空但欄位還在', () => {
     const r = rec({
       questionText: '要不要換工作', note: '筆記', intuition: 70,

@@ -327,6 +327,11 @@ describe('入口接線', () => {
   });
 
   it('入口不放在 LiuYaoPanel 裡——它同時被離屏的報告截圖使用，連結會連累匯出的長圖', () => {
-    expect(read('components', 'LiuYaoPanel.tsx')).not.toContain('glossary');
+    // 原本斷言整個檔案不出現 glossary 字樣。長按速查（P4）之後 LiuYaoPanel 會 import
+    // GlossaryTerm 與詞條查找，但它沒有 Provider 時原樣回傳 children（glossaryPeek.test 釘住
+    // 報告長圖不掛 Provider）。這裡守的仍是原本那件事：盤面上沒有導向詞典的連結。
+    const panel = read('components', 'LiuYaoPanel.tsx');
+    expect(panel).not.toMatch(/['"`]\/glossary/);
+    expect(panel).not.toMatch(/useRouter|router\.push/);
   });
 });

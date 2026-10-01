@@ -14,6 +14,8 @@ import { buildNaJiaReading, transformedLineRelation, type NaJiaLine } from '@/se
 import { useGodForCategory, type DivinerGender } from '@/services/useGod';
 import { questionCategoryDomain } from '@/services/questionCategories';
 import { judgeUseGod } from '@/services/wenwang';
+import { glossaryKeyForRelative } from '@/services/glossary';
+import { GlossaryTerm } from './GlossaryPeek';
 
 interface Props {
   reading: LiuYaoReading;
@@ -85,11 +87,26 @@ export default function LiuYaoPanel({
       ? line.isWorld
       : !!useGod?.relatives.includes(line.relative);
 
-  const columns: { info: HexagramInfo; caption: string; hint: string; moving?: number }[] = [
-    { info: primary, caption: t('liuyao.primary'), hint: t('liuyao.primaryHint'), moving: movingLine },
-    { info: nuclear, caption: t('liuyao.nuclear'), hint: t('liuyao.nuclearHint') },
-    { info: changed, caption: t('liuyao.changed'), hint: t('liuyao.changedHint') },
+  const columns: { info: HexagramInfo; caption: string; hint: string; moving?: number; term: string }[] = [
+    { info: primary, caption: t('liuyao.primary'), hint: t('liuyao.primaryHint'), moving: movingLine, term: 'primary' },
+    { info: nuclear, caption: t('liuyao.nuclear'), hint: t('liuyao.nuclearHint'), term: 'nuclear' },
+    { info: changed, caption: t('liuyao.changed'), hint: t('liuyao.changedHint'), term: 'changed' },
   ];
+
+  // 長按速查（GlossaryTerm）：每一塊列出它實際印著的詞。納甲盤的一爻依該爻的標記決定——
+  // 只列這一爻真的有的（有「空」才列旬空），不然速查表會變成把整本詞典再印一次
+  function rowTerms(line: NaJiaLine): string[] {
+    const relative = glossaryKeyForRelative(line.relative);
+    return [
+      'sixSpirits',
+      ...(relative ? ['sixRelatives', relative] : []),
+      ...(line.isWorld || line.isResponding ? ['worldResponding'] : []),
+      ...(marksUseGod(line) ? ['useGod'] : []),
+      ...(line.isVoid ? ['void'] : []),
+      ...(line.isMonthBroken ? ['monthBroken'] : []),
+      ...(line.isDayClashed ? ['dayClash'] : []),
+    ];
+  }
 
   return (
     <View style={[styles.box, { backgroundColor: theme.bgDark, borderColor: theme.bgMedium }]}>
@@ -104,8 +121,9 @@ export default function LiuYaoPanel({
 
       {/* 三卦並列 */}
       <View style={styles.columns}>
-        {columns.map(({ info, caption, hint, moving }) => (
+        {columns.map(({ info, caption, hint, moving, term }) => (
           <View key={caption} style={styles.column}>
+            <GlossaryTerm terms={[term]} style={styles.columnInner} testID={`liuyao-term-${term}`}>
             <Text style={[styles.caption, { color: theme.textMuted }]}>{caption}</Text>
             {/* 印出爻名（初九／六二…）：動爻那一列在文字段落裡是以爻名稱呼的
                 （「九三爻動」），圖上沒有爻名的話讀者對不起來是哪一條。
@@ -113,6 +131,7 @@ export default function LiuYaoPanel({
             <HexagramLines lines={info.lines} movingLine={moving} width={44} showLabels />
             <Text style={[styles.hexName, { color: theme.textPrimary }]}>{info.name}</Text>
             <Text style={[styles.hint, { color: theme.textMuted }]}>{hint}</Text>
+            </GlossaryTerm>
           </View>
         ))}
       </View>
@@ -133,6 +152,7 @@ export default function LiuYaoPanel({
 
       {/* 動爻 */}
       <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
+      <GlossaryTerm terms={['movingLine']} testID="liuyao-term-movingLine">
       <Text style={[styles.movingText, { color: theme.textSecondary }]}> 
         {t('liuyao.moving', { name: movingLineName, n: movingLine })}
       </Text>
@@ -151,17 +171,22 @@ export default function LiuYaoPanel({
         <Text style={[styles.yaoPlain, { color: theme.textSecondary }]}>{movingGuidance.plainLanguage}</Text>
         <Text style={[styles.yaoAction, { color: theme.success }]}>◎ {movingGuidance.action}</Text>
       </View>
+      </GlossaryTerm>
 
       {naJia && (
         <View style={[styles.najjaBox, { borderColor: theme.bgMedium, backgroundColor: theme.bgInk }]}>
+          <GlossaryTerm terms={['najia', 'palace', 'wuxing', 'dayBranch', 'monthBranch', 'void']} testID="liuyao-term-najia">
           <Text style={[styles.yaoLabel, { color: theme.textGold }]}>{t('liuyao.najjaTitle')}</Text>
           <Text style={[styles.sourceNote, { color: theme.textMuted }]}>
             {t('liuyao.najjaMeta', { palace: naJia.palace, element: naJia.palaceElement, generation: naJia.generation, day: naJia.dayStemBranch, month: naJia.monthBranch, xun: naJia.xun, void: naJia.voidBranches.join('') })}
           </Text>
+          </GlossaryTerm>
           {useGod && (
+            <GlossaryTerm terms={['useGod', 'favorableTaboo']} testID="liuyao-term-useGod">
             <Text style={[styles.useGodText, { color: theme.warning }]}>
               {useGod.description}
             </Text>
+            </GlossaryTerm>
           )}
           {needsGender && (
             <Text style={[styles.useGodText, { color: theme.textMuted }]}>
@@ -169,7 +194,8 @@ export default function LiuYaoPanel({
             </Text>
           )}
           {naJia.lines.slice().reverse().map(line => (
-            <View key={line.position} style={styles.najjaRow}>
+            <GlossaryTerm key={line.position} terms={rowTerms(line)} testID={`liuyao-term-row-${line.position}`}>
+            <View style={styles.najjaRow}>
               <Text style={[styles.najjaPosition, { color: theme.textMuted }]}>{line.name}</Text>
               <Text style={[styles.najjaText, { color: theme.textSecondary }]}>{line.spirit}　{line.relative}　{line.stemBranch} {line.element}</Text>
               <Text style={[styles.najjaMarker, { color: theme.success }]}> 
@@ -182,8 +208,10 @@ export default function LiuYaoPanel({
                 ].join('')}
               </Text>
             </View>
+            </GlossaryTerm>
           ))}
           {primaryMovingNaJia && changedMovingNaJia && changingRelation && (
+            <GlossaryTerm terms={['transform', 'returning']} testID="liuyao-term-transform">
             <View style={[styles.transformBox, { borderColor: theme.bgMedium }]}>
               <Text style={[styles.transformTitle, { color: theme.textGold }]}>{t('liuyao.transformTitle')}</Text>
               <Text style={[styles.transformText, { color: theme.textSecondary }]}>
@@ -194,9 +222,11 @@ export default function LiuYaoPanel({
                 })}
               </Text>
             </View>
+            </GlossaryTerm>
           )}
           {/* 伏神：卦中不現的六親，用神不上卦時的唯一依據 */}
           {naJia.hidden.length > 0 && (
+            <GlossaryTerm terms={['hidden']} testID="liuyao-term-hidden">
             <View style={[styles.transformBox, { borderColor: theme.bgMedium }]}>
               <Text style={[styles.transformTitle, { color: theme.textGold }]}>{t('liuyao.hiddenTitle')}</Text>
               {naJia.hidden.map(h => (
@@ -218,10 +248,12 @@ export default function LiuYaoPanel({
               ))}
               <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.hiddenNote')}</Text>
             </View>
+            </GlossaryTerm>
           )}
 
           {/* 用神斷語：把整張盤收斂成「所問之事如何」 */}
           {verdict && (
+            <GlossaryTerm terms={['verdict', 'useGod', 'favorableTaboo']} testID="liuyao-term-verdict">
             <View style={[styles.transformBox, { borderColor: theme.goldFaint }]}>
               <Text style={[styles.transformTitle, { color: theme.textGold }]}>{t('liuyao.verdictTitle')}</Text>
               <Text style={[styles.verdictLine, { color: colorFor(LEVEL_TONE[verdict.verdict] || 'neutral') }]}>
@@ -244,6 +276,7 @@ export default function LiuYaoPanel({
               ))}
               <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.verdictNote')}</Text>
             </View>
+            </GlossaryTerm>
           )}
 
           <Text style={[styles.sourceNote, { color: theme.textMuted }]}>{t('liuyao.najjaNote')}</Text>
@@ -252,6 +285,7 @@ export default function LiuYaoPanel({
 
       {/* 體用 */}
       <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
+      <GlossaryTerm terms={['bodyUse', 'wuxing']} testID="liuyao-term-bodyUse">
       <View style={styles.bodyUseRow}>
         <Text style={[styles.bodyUseLabel, { color: theme.textMuted }]}>
           {t('liuyao.bodyUse', {
@@ -266,9 +300,11 @@ export default function LiuYaoPanel({
         </View>
       </View>
       <Text style={[styles.bodyUseText, { color: theme.textSecondary }]}>{bodyUse.text}</Text>
+      </GlossaryTerm>
 
       {/* 月建旺衰：體卦五行在起卦當月是否得時 */}
       <View style={[styles.divider, { backgroundColor: theme.bgMedium }]} />
+      <GlossaryTerm terms={['strength', 'ruling', 'monthBranch']} testID="liuyao-term-strength">
       <View style={styles.bodyUseRow}>
         <Text style={[styles.bodyUseLabel, { color: theme.textMuted }]}>
           {t('liuyao.season', {
@@ -289,6 +325,7 @@ export default function LiuYaoPanel({
           {t('liuyao.adjusted', { from: bodyUse.level, to: finalLevel })}
         </Text>
       )}
+      </GlossaryTerm>
     </View>
   );
 }
@@ -306,6 +343,8 @@ const styles = StyleSheet.create({
   hour: { fontSize: FontSize.caption },
   columns: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm },
   column: { flex: 1, alignItems: 'center' },
+  // 有速查 Provider 時包在欄內的 Pressable：撐滿欄寬並維持置中，版面與沒包時相同
+  columnInner: { alignSelf: 'stretch', alignItems: 'center' },
   caption: { fontSize: FontSize.caption, marginBottom: Spacing.sm },
   hexName: {
     fontSize: FontSize.small, fontWeight: '600',

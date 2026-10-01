@@ -68,6 +68,11 @@ interface ShareCardViewProps {
   changedName?: string;
   /** 體用關係文字 */
   bodyUseRelation?: string;
+  /**
+   * 署名（已 trim 的名字，見 storage 的 cardSignature）；不給就不印。
+   * 接在日期同一行而不另起一行：卡片固定 680 高、超出會被裁掉，長籤詩時底部只剩二十幾 px
+   */
+  signature?: string;
 }
 
 export interface ShareCardHandle { share: () => Promise<boolean>; }
@@ -223,7 +228,9 @@ const ShareCardView = forwardRef<ShareCardHandle, ShareCardViewProps>(
                 {props.spreadName ? ` · ${props.spreadName}` : ''}
               </Text>
             </View>
-            <Text style={styles.footerDate}>{dateStr}</Text>
+            <Text style={styles.footerDate} testID="share-card-date">
+              {dateStr}{props.signature ? ` · ${t('card.signature', { name: props.signature })}` : ''}
+            </Text>
             <Text style={styles.footerUrl}>chess-divination-app.vercel.app</Text>
             <Text style={styles.footerTagline}>{t('home.tagline')}</Text>
           </View>

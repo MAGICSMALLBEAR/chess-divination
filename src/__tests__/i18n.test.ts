@@ -272,9 +272,22 @@ describe('categoryLabel', () => {
     }
   });
 
-  test('自訂類別的 key 原樣回傳', () => {
-    // 使用者自己取的名字沒有譯文，硬套 t() 只會顯示出那串 key
-    expect(categoryLabel('custom-1699999999')).toBe('custom-1699999999');
+  // 這一條原本斷言「自訂類別的 key 原樣回傳」——當時以為 key 就是使用者取的名字，
+  // 實際上記錄存的是 `custom-<timestamp>`，畫面因此印出內部代號。名字要從設定裡查。
+  test('自訂類別印使用者取的名字，不印內部代號', () => {
+    setLang('zh-TW');
+    const custom = [{ key: 'custom-1699999999', label: '搬家' }];
+    expect(categoryLabel('custom-1699999999', custom)).toBe('搬家');
+  });
+
+  test('自訂類別已刪除：印「已刪除的自訂類別」而非 custom-…', () => {
+    setLang('zh-TW');
+    expect(categoryLabel('custom-1699999999')).toBe('已刪除的自訂類別');
+    expect(categoryLabel('custom-1699999999', [])).not.toContain('custom-');
+  });
+
+  test('不是自訂前綴的未知值原樣回傳（舊資料至少看得到當時存的字）', () => {
+    expect(categoryLabel('考試運')).toBe('考試運');
   });
 });
 

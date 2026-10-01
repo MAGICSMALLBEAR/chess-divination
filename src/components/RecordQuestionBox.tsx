@@ -75,7 +75,7 @@ export default function RecordQuestionBox({ record, onSaved }: Props) {
           ? <Text style={styles.text}>{record.questionText}</Text>
           : <Text style={styles.empty}>{t('question.none')}</Text>}
         <Text testID="record-question-category" style={styles.meta}>
-          {t('question.category', { name: categoryLabel(current) })}
+          {t('question.category', { name: categoryLabel(current, categories) })}
         </Text>
         {record.categoryChangedAt !== undefined && Number.isFinite(record.categoryChangedAt) && (
           <Text testID="record-question-changed" style={styles.meta}>

@@ -124,8 +124,12 @@ test.describe('卦典', () => {
     await expect(link).toContainText('火水未濟');
     await link.click();
 
+    // 點下去之後等的是一次路由 chunk 下載（Web 開了 asyncRoutes，目的頁不在首載裡），
+    // 與首次載入同性質，等待照首次載入的 30 秒。10/1 實測（CPU 降速 6 倍）：揭曉頁→詞典
+    // 4.4 秒（關掉 asyncRoutes 2.2 秒）、→卦典 8.5 秒（5.5 秒），後者離預設 10 秒只剩一截，
+    // 整套平行跑時偶發逾時就是這個。
     const card = page.getByTestId('hexagram-card-64');
-    await expect(card.getByTestId('hexagram-yao-texts')).toContainText('濡其尾');
+    await expect(card.getByTestId('hexagram-yao-texts')).toContainText('濡其尾', { timeout: 30_000 });
     await expect(card).toBeInViewport({ timeout: 5_000 });
   });
 });

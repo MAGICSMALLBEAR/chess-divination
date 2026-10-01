@@ -55,7 +55,8 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "screenshots": "playwright test --config playwright.screenshots.config.ts",
-    "verify": "npm run typecheck && npm test && npm run build:web && npm run e2e"
+    "budget": "node scripts/bundle-budget.mjs",
+    "verify": "npm run typecheck && npm test && npm run build:web && npm run budget && npm run e2e"
   },
   "jest": {
     "preset": "jest-expo",

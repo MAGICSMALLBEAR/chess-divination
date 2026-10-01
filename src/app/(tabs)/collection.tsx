@@ -11,6 +11,7 @@ import InkBackground from '@/components/InkBackground';
 import { Icon, type IconName } from '@/components/icons';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
 import ReportExportSheet from '@/components/ReportExportSheet';
+import { useCardSignature } from '@/hooks/useCardSignature';
 import type { DivinationMode, DivinationRecord, Folder, OutcomeStatus } from '@/services/storage';
 import { getHistory, getFavorites, removeHistory, toggleFavorite, getFolders, addFolder, renameFolder, FOLDER_NAME_MAX, deleteFolder, addToFolder, removeFromFolder, recordHasLevel, getSettings } from '@/services/storage';
 import { buildReportSections, REPORT_BATCH_LIMIT, type ReportSection } from '@/services/report';
@@ -31,7 +32,9 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useLayout } from '@/hooks/useLayout';
 import { useGrid } from '@/hooks/useGrid';
 import { SPREAD_LABEL_KEYS } from '@/services/spreads';
-import { filterRecords, isFiltering, pendingIdsOf, NO_FILTER, type RecordFilter, type StatusFilter } from '@/services/recordFilter';
+import { categoryFilterOptions, filterRecords, isFiltering, pendingIdsOf, NO_FILTER, type RecordFilter, type StatusFilter } from '@/services/recordFilter';
+import { categoryLabel } from '@/services/i18n';
+import { useQuestionCategories } from '@/hooks/useQuestionCategories';
 import { verifyReminderPolicy } from '@/services/verification';
 
 type TabType = 'history' | 'favorites' | 'folders';
@@ -91,6 +94,7 @@ export default function CollectionScreen() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'best'>('newest');
   const [filter, setFilter] = useState<RecordFilter>(NO_FILTER);
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set());
+  const categories = useQuestionCategories();
   // 首頁／統計頁「N 筆可以回填」帶著 ?filter=pending 進來
   const params = useLocalSearchParams<{ filter?: string }>();
   const [selectMode, setSelectMode] = useState(false);
@@ -98,6 +102,9 @@ export default function CollectionScreen() {
   const reportRef = useRef<ReportCardHandle>(null);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
   const [reportSections, setReportSections] = useState<ReportSection[]>([]);
+  // 署名（P4）：分享卡依設定，報告依確認框上的開關（初始值同設定）
+  const signature = useCardSignature();
+  const [reportSignature, setReportSignature] = useState<string | undefined>(undefined);
   const [reportDivinerGender, setReportDivinerGender] = useState<DivinerGender | undefined>(undefined);
   const [pendingReportCapture, setPendingReportCapture] = useState(false);
 
@@ -159,10 +166,11 @@ export default function CollectionScreen() {
     setReportSheetVisible(true);
   }
 
-  async function handleReportConfirm(includePersonalText: boolean) {
+  async function handleReportConfirm(includePersonalText: boolean, includeSignature: boolean) {
     setReportSheetVisible(false);
     const records = history.filter(r => selectedIds.has(r.id));
     if (records.length === 0) return;
+    setReportSignature(signature.reportSignature(includeSignature));
     const settings = await getSettings();
     setReportDivinerGender(settings.divinerGender);
     // 連結要對完整歷史查：前一次不一定也被勾選進這份報告
@@ -334,6 +342,14 @@ export default function CollectionScreen() {
   // 使用者只會以為資料夾裡的東西不見了
   const folderRecordsData = sortAndFilter(folderRecords, false);
   const filtering = isFiltering(filter);
+  // 類別篩選只列記錄裡出現過的主類別。歷史與收藏一起算：收藏是副本，
+  // 但歷史被裁掉之後收藏仍在，只看歷史會讓那幾筆的類別按不到
+  const categoryOptions = useMemo(() => {
+    const options = categoryFilterOptions([...history, ...favorites], categories.map(c => c.key));
+    // 選中的類別即使已經沒有記錄（剛刪掉最後一筆）也留著，否則取消不了
+    return filter.category !== null && !options.includes(filter.category)
+      ? [...options, filter.category] : options;
+  }, [history, favorites, categories, filter.category]);
   // 給排序/搜索欄用的 data（跟隨目前選中 tab）
   const data = tab === 'history' ? historyData : favoritesData;
 
@@ -392,7 +408,7 @@ export default function CollectionScreen() {
   // 參數沒變、這段不會再跑，看到的就不是「待回填」。收藏頁是常駐分頁，所以在 focus 時處理
   useFocusEffect(useCallback(() => {
     if (params.filter !== 'pending') return;
-    setFilter({ status: 'pending', mode: null });
+    setFilter({ ...NO_FILTER, status: 'pending' });
     setSearch('');
     switchTab('history');
     router.setParams({ filter: undefined });
@@ -652,6 +668,27 @@ export default function CollectionScreen() {
         </View>
       )}
 
+      {/* 類別篩選：自成一列、可橫向捲動——類別可能有十幾個（含自訂），換行會把清單往下推好幾行。
+          只有一種類別時不出現：按下去與「全部」一樣，只是多一顆沒作用的按鈕 */}
+      {tab !== 'folders' && categoryOptions.length >= 2 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          style={styles.categoryScroll} contentContainerStyle={styles.categoryRow}
+          testID="collection-category-filters">
+          {categoryOptions.map(key => (
+            <TouchableOpacity key={key}
+              testID={`filter-category-${key}`}
+              accessibilityRole="button"
+              aria-selected={filter.category === key}
+              style={[styles.sortBtn, filter.category === key && { borderColor: theme.gold }]}
+              onPress={() => setFilter({ ...filter, category: filter.category === key ? null : key })}>
+              <Text style={[styles.sortText, filter.category === key && { color: theme.textGold }]}>
+                {categoryLabel(key, categories)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       {/* 搜尋 */}
       <TextInput
         style={styles.searchInput}
@@ -852,13 +889,14 @@ export default function CollectionScreen() {
 
       {/* 隱藏的報告卡片，理由同 reveal.tsx */}
       <View style={styles.reportHidden} aria-hidden>
-        <ReportCardView ref={reportRef} sections={reportSections} divinerGender={reportDivinerGender} />
+        <ReportCardView ref={reportRef} sections={reportSections} divinerGender={reportDivinerGender} signature={reportSignature} />
       </View>
       <ReportExportSheet
         visible={reportSheetVisible}
         count={selectedIds.size}
         onConfirm={handleReportConfirm}
         onDismiss={() => setReportSheetVisible(false)}
+        {...signature.sheetProps}
       />
     </SafeAreaView>
   );
@@ -897,6 +935,11 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8,
     width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
   },
+  categoryScroll: {
+    flexGrow: 0, marginBottom: 8,
+    width: '100%', maxWidth: Layout.maxGrid, alignSelf: 'center',
+  },
+  categoryRow: { flexDirection: 'row', gap: 6 },
   filterDivider: { width: 1, alignSelf: 'stretch', backgroundColor: t.bgMedium, marginHorizontal: 2 },
   searchInput: {
     marginBottom: Spacing.sm,

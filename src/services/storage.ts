@@ -231,6 +231,11 @@ export interface AppSettings {
    * 解析一律走 `verifyReminderPolicy()`，不要在別處直接比對這個欄位。
    */
   verifyReminderDays?: number;
+  /**
+   * 分享卡與閱讀報告要不要印上名字（userName）。未設定＝要（P4 使用者決定「要印署名」）；
+   * 沒填名字時什麼都不印。解析一律走 `cardSignature()`，不要在別處自己判斷。
+   */
+  signCards?: boolean;
 }
 
 /** 使用者自訂問事類別 */
@@ -600,6 +605,18 @@ async function patchRecord(
 }
 
 // ====== Settings ======
+
+/**
+ * 分享卡與閱讀報告上要印的名字；不印時回 undefined。
+ *
+ * 一個設定、三個消費者（揭曉頁、靈棋頁、收藏頁批次報告）——各自判斷的話，
+ * 總有一頁會忘了 trim 或忘了看開關，於是只填了空白的人印出一個空的「占者：」。
+ */
+export function cardSignature(settings: Pick<AppSettings, 'userName' | 'signCards'>): string | undefined {
+  if (settings.signCards === false) return undefined;
+  const name = (settings.userName ?? '').trim();
+  return name === '' ? undefined : name;
+}
 
 export async function getSettings(): Promise<AppSettings> {
   const raw = await AsyncStorage.getItem(STORAGE_KEYS.SETTINGS);

@@ -34,6 +34,9 @@ jobs:
       - name: Web 建置
         run: npm run build:web
 
+      - name: 首載效能預算（Brotli 大小）
+        run: npm run budget
+
       # E2E 需要這份產物，避免在下個 job 重跑一次建置
       - name: 上傳 web 產物
         uses: actions/upload-artifact@v4

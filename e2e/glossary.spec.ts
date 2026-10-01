@@ -62,7 +62,11 @@ test.describe('術語詞典', () => {
     await expect(link).toBeVisible({ timeout: 30_000 });
     await link.click();
 
-    await expect(page.getByTestId('glossary-title')).toBeVisible();
+    // 點下去之後等的是一次路由 chunk 下載（Web 開了 asyncRoutes，目的頁不在首載裡），
+    // 與首次載入同性質，等待照首次載入的 30 秒。10/1 實測（CPU 降速 6 倍）：揭曉頁→詞典
+    // 4.4 秒（關掉 asyncRoutes 2.2 秒）、→卦典 8.5 秒（5.5 秒），後者離預設 10 秒只剩一截，
+    // 整套平行跑時偶發逾時就是這個。
+    await expect(page.getByTestId('glossary-title')).toBeVisible({ timeout: 30_000 });
     await page.getByText('返回').filter({ visible: true }).first().click();
     await expect(page.getByTestId('reveal-glossary-link')).toBeVisible();
   });

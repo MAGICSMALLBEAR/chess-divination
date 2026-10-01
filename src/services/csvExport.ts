@@ -18,6 +18,8 @@ import { deliverTextFile, type ExportChannel } from './fileExport';
 export interface CsvOptions {
   /** 與報告匯出同義：問題、直覺、占驗自述、筆記、決策日誌 */
   includePersonalText: boolean;
+  /** 自訂類別的名字（設定裡的 customCategories）；記錄只存 key，沒給就印不出名字 */
+  customCategories?: readonly { key: string; label: string }[];
 }
 
 const MODE_KEYS: Record<DivinationRecord['mode'], string> = {
@@ -28,11 +30,11 @@ const OUTCOME_KEYS = {
 } as const;
 
 /** 欄位順序即輸出順序；personal 為 true 的欄位受隱私開關控制 */
-const COLUMNS: readonly { key: string; personal?: boolean; value: (r: DivinationRecord) => string | number | undefined }[] = [
+const COLUMNS: readonly { key: string; personal?: boolean; value: (r: DivinationRecord, options: CsvOptions) => string | number | undefined }[] = [
   { key: 'csv.date', value: r => localDateTime(r.timestamp) },
   { key: 'csv.mode', value: r => t(MODE_KEYS[r.mode] ?? r.mode) },
   { key: 'csv.spread', value: r => r.mode === 'board' && r.spreadId && SPREAD_LABEL_KEYS[r.spreadId] ? t(SPREAD_LABEL_KEYS[r.spreadId]) : undefined },
-  { key: 'csv.category', value: r => r.questionCategory ? categoryLabel(r.questionCategory) : undefined },
+  { key: 'csv.category', value: (r, o) => r.questionCategory ? categoryLabel(r.questionCategory, o.customCategories) : undefined },
   { key: 'csv.title', value: r => recordTitle(r) },
   { key: 'csv.level', value: r => r.poemLevel || undefined },
   // v1 舊記錄的卦象與籤詩對不上（isLegacyRecord），寧可留空也不要讓試算表拿錯卦去統計；
@@ -84,7 +86,7 @@ export function buildHistoryCsv(history: readonly DivinationRecord[], options: C
   const rows = [...history]
     .filter(r => r && typeof r.id === 'string')
     .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-    .map(r => cols.map(c => csvCell(c.personal && !options.includePersonalText ? undefined : c.value(r))).join(','));
+    .map(r => cols.map(c => csvCell(c.personal && !options.includePersonalText ? undefined : c.value(r, options))).join(','));
   const header = cols.map(c => csvCell(t(c.key))).join(',');
   return '\uFEFF' + [header, ...rows].join('\r\n') + '\r\n';
 }

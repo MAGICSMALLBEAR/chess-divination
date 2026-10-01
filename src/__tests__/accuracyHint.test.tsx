@@ -6,9 +6,11 @@
 // 才能比對到；樣本足夠時文案要帶對三個數字。
 
 const mockGetHistory = jest.fn();
+const mockGetSettings = jest.fn();
 jest.mock('@/services/storage', () => ({
   __esModule: true,
   getHistory: () => mockGetHistory(),
+  getSettings: () => mockGetSettings(),
 }));
 
 import React from 'react';
@@ -42,8 +44,8 @@ function renderHint(category?: string) {
 /** 元件的 getHistory().then() 要等一輪微任務才會 setState，測試裡要 flush */
 async function flush() {
   await act(async () => {
-    await Promise.resolve();
-    await Promise.resolve();
+    // Promise.all 多一層，多等幾輪
+    for (let i = 0; i < 5; i++) await Promise.resolve();
   });
 }
 
@@ -51,6 +53,8 @@ describe('AccuracyHint', () => {
   beforeEach(() => {
     seq = 0;
     mockGetHistory.mockReset();
+    mockGetSettings.mockReset();
+    mockGetSettings.mockResolvedValue({ customCategories: [] });
   });
 
   test('樣本不足（少於 5 則已驗）時不渲染', async () => {
@@ -94,6 +98,16 @@ describe('AccuracyHint', () => {
     const tree = renderHint('relationship');
     await flush();
     expect(tree.toJSON()).not.toBeNull();
+  });
+
+  test('自訂類別印使用者取的名字，不印 custom-…（名字在設定裡，記錄只存 key）', async () => {
+    mockGetSettings.mockResolvedValue({ customCategories: [{ key: 'custom-9', label: '搬家', icon: 'star' }] });
+    mockGetHistory.mockResolvedValue(Array.from({ length: 5 }, () => record('custom-9', 'accurate')));
+    const tree = renderHint('custom-9');
+    await flush();
+    const text = JSON.stringify(tree.toJSON());
+    expect(text).toContain('搬家');
+    expect(text).not.toContain('custom-9');
   });
 
   test('沒有分類（general）且樣本不足時不渲染', async () => {

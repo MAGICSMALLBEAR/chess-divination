@@ -17,6 +17,12 @@ export const QUESTION_CATEGORY_DOMAINS: Readonly<Record<string, string>> = {
   relocation: 'travel',
 };
 
+/** 自訂類別 key 的前綴（`CustomCategoriesSection` 以它加時間戳產生 key） */
+export const CUSTOM_CATEGORY_PREFIX = 'custom-';
+
+/** 記錄指向一個已刪除的自訂類別時顯示的譯文鍵（見 i18n 的 categoryLabel） */
+export const REMOVED_CUSTOM_CATEGORY_KEY = 'category.removed';
+
 /** 供規則式解讀、AI 標籤與用神取法共用的主類別。 */
 export function questionCategoryDomain(category?: string): string {
   if (!category) return 'general';

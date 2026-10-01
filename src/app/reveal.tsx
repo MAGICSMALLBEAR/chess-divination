@@ -12,8 +12,10 @@ import PieceEntryFlyIn from '@/components/PieceEntryFlyIn';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
 import ReportExportSheet from '@/components/ReportExportSheet';
+import { useCardSignature } from '@/hooks/useCardSignature';
 import PoemCard from '@/components/PoemCard';
 import LiuYaoPanel from '@/components/LiuYaoPanel';
+import { GlossaryPeekProvider } from '@/components/GlossaryPeek';
 import OutcomeMarker from '@/components/OutcomeMarker';
 import RecordQuestionBox from '@/components/RecordQuestionBox';
 import { DecisionJournalView } from '@/components/DecisionJournalForm';
@@ -85,6 +87,9 @@ export default function RevealScreen() {
   const reportRef = useRef<ReportCardHandle>(null);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
   const [reportSections, setReportSections] = useState<ReportSection[]>([]);
+  // 署名（P4）：分享卡依設定，報告依確認框上的開關（初始值同設定）
+  const signature = useCardSignature();
+  const [reportSignature, setReportSignature] = useState<string | undefined>(undefined);
   /** 非 null 時代表「離屏報告卡剛換過內容，下一輪 render 後要截圖分享」 */
   const [pendingReportCapture, setPendingReportCapture] = useState(false);
 
@@ -298,9 +303,10 @@ export default function RevealScreen() {
   }
 
   /** 使用者在匯出報告的確認框選了要不要帶上問題與筆記 */
-  async function handleReportConfirm(includePersonalText: boolean) {
+  async function handleReportConfirm(includePersonalText: boolean, includeSignature: boolean) {
     setReportSheetVisible(false);
     if (!record) return;
+    setReportSignature(signature.reportSignature(includeSignature));
     // 帶上完整歷史，報告才查得到「同一件事」的前一次與之後又占過幾次
     setReportSections([buildReportSection(record, { includePersonalText }, await getHistory())]);
     setPendingReportCapture(true);
@@ -407,16 +413,22 @@ export default function RevealScreen() {
         {/* 卦例推演：本卦／互卦／變卦 + 體用 */}
         {reading ? (
           <View style={styles.panelWrap}>
-            <LiuYaoPanel
-              reading={reading}
-              hourBranch={record.hourBranch}
-              castAt={new Date(record.timestamp)}
-              questionCategory={record.questionCategory}
-              divinerGender={divinerGender}
-            />
+            {/* 長按速查只在這裡開：報告長圖也用 LiuYaoPanel，但沒有 Provider，版面不受影響 */}
+            <GlossaryPeekProvider>
+              <LiuYaoPanel
+                reading={reading}
+                hourBranch={record.hourBranch}
+                castAt={new Date(record.timestamp)}
+                questionCategory={record.questionCategory}
+                divinerGender={divinerGender}
+              />
+            </GlossaryPeekProvider>
             {/* 術語詞典的入口放在這裡而不是 LiuYaoPanel 裡：那個元件同時被離屏的
                 報告截圖使用，加上可按的連結會連累匯出的長圖 */}
             <View style={styles.panelLinks}>
+            <Text testID="reveal-glossary-peek-tip" style={[styles.peekTip, { color: theme.textMuted }]}>
+              {t('reveal.glossaryPeekTip')}
+            </Text>
             <TouchableOpacity
               testID="reveal-glossary-link"
               accessibilityRole="link"
@@ -609,12 +621,13 @@ export default function RevealScreen() {
           movingLine={record.movingLine}
           changedName={reading?.changed.name}
           bodyUseRelation={reading ? `${reading.bodyUse.relation} · ${reading.finalLevel}` : undefined}
+          signature={signature.shareSignature}
         />
       </View>
 
       {/* 隱藏的報告卡片，理由同上——離屏定位而非 opacity: 0 */}
       <View style={styles.shareHidden} aria-hidden>
-        <ReportCardView ref={reportRef} sections={reportSections} divinerGender={divinerGender} />
+        <ReportCardView ref={reportRef} sections={reportSections} divinerGender={divinerGender} signature={reportSignature} />
       </View>
 
       <ShareTargetSheet
@@ -626,6 +639,7 @@ export default function RevealScreen() {
         visible={reportSheetVisible}
         onConfirm={handleReportConfirm}
         onDismiss={() => setReportSheetVisible(false)}
+        {...signature.sheetProps}
       />
     </SafeAreaView>
   );
@@ -668,6 +682,7 @@ const makeStyles = (t: ThemeColors) => StyleSheet.create({
   glossaryLinkText: {
     fontSize: FontSize.caption, fontWeight: '600',
   },
+  peekTip: { fontSize: FontSize.overline, lineHeight: 16 },
   hexBox: {
     width: '100%',
     borderRadius: 12, borderWidth: 1,

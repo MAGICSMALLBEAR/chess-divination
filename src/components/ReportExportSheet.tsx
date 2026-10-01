@@ -4,7 +4,7 @@
 // 預設收（true）——報告是給自己保存的，這兩欄位往往是最有參考價值的部分；
 // 使用者要分享給別人看時可以自己關掉，見 report.ts 檔頭。
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Switch } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
@@ -16,7 +16,7 @@ interface Props {
   visible: boolean;
   /** 這次要匯出幾筆；單筆匯出時不顯示筆數 */
   count?: number;
-  onConfirm: (includePersonalText: boolean) => void;
+  onConfirm: (includePersonalText: boolean, includeSignature: boolean) => void;
   onDismiss: () => void;
   /**
    * CSV 匯出借用同一個隱私開關（設定頁）。三個字串不給就是報告的版本；
@@ -25,13 +25,22 @@ interface Props {
   title?: string;
   confirmLabel?: string;
   personalHint?: string;
+  /**
+   * 署名（P4）：使用者填過的名字。有給才出現這個開關——沒填名字時開關沒有東西可印，
+   * 出現只會讓人以為報告上會有名字。CSV 不給（試算表不需要署名）。
+   */
+  signatureName?: string;
+  /** 開關的初始值＝設定頁的「分享卡與報告署名」；每次打開都重設，單次關掉不會變成預設 */
+  signByDefault?: boolean;
 }
 
-export default function ReportExportSheet({ visible, count, onConfirm, onDismiss, title, confirmLabel, personalHint }: Props) {
+export default function ReportExportSheet({ visible, count, onConfirm, onDismiss, title, confirmLabel, personalHint, signatureName, signByDefault = true }: Props) {
   const { theme } = useAppTheme();
   const styles = useThemedStyles(makeStyles);
   const { t } = useI18n();
   const [includePersonal, setIncludePersonal] = useState(true);
+  const [includeSignature, setIncludeSignature] = useState(signByDefault);
+  useEffect(() => { if (visible) setIncludeSignature(signByDefault); }, [visible, signByDefault]);
 
   // 與 settings.tsx 同一個理由：react-native-web 的 Switch 開啟態讀
   // activeThumbColor，只給 thumbColor 會在 web 上留下內建的青綠滑塊。
@@ -67,11 +76,22 @@ export default function ReportExportSheet({ visible, count, onConfirm, onDismiss
               trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
           </View>
 
+          {signatureName !== undefined && (
+            <View style={[styles.toggleRow, { borderColor: theme.bgMedium }]}>
+              <View style={styles.toggleText}>
+                <Text style={[styles.toggleLabel, { color: theme.textPrimary }]}>{t('report.includeSignature', { name: signatureName })}</Text>
+                <Text style={[styles.toggleHint, { color: theme.textMuted }]}>{t('report.includeSignatureHint')}</Text>
+              </View>
+              <Switch testID="report-export-signature" value={includeSignature} onValueChange={setIncludeSignature}
+                trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
+            </View>
+          )}
+
           <TouchableOpacity
             testID="report-export-confirm"
             style={[styles.confirmBtn, { backgroundColor: theme.gold }]}
             accessibilityRole="button"
-            onPress={() => onConfirm(includePersonal)}
+            onPress={() => onConfirm(includePersonal, signatureName !== undefined && includeSignature)}
           >
             <Text style={styles.confirmText}>{confirmLabel ?? t('report.export')}</Text>
           </TouchableOpacity>

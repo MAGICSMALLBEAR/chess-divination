@@ -17,7 +17,7 @@ import { Icon } from './icons';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { getHistory } from '@/services/storage';
+import { getHistory, getSettings } from '@/services/storage';
 import { accuracyByCategory, type AccuracyBreakdown } from '@/services/verification';
 import { questionCategoryDomain } from '@/services/questionCategories';
 import { categoryLabel } from '@/services/i18n';
@@ -38,9 +38,10 @@ export default function AccuracyHint({ category }: Props) {
   useEffect(() => {
     let cancelled = false;
     const domain = questionCategoryDomain(category);
-    getHistory().then(records => {
+    Promise.all([getHistory(), getSettings()]).then(([records, settings]) => {
       if (cancelled) return;
-      const match = accuracyByCategory(records, categoryLabel).find(b => b.key === domain);
+      const custom = settings.customCategories;
+      const match = accuracyByCategory(records, key => categoryLabel(key, custom)).find(b => b.key === domain);
       setBreakdown(match?.enoughSamples ? match : null);
     });
     return () => { cancelled = true; };

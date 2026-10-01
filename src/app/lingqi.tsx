@@ -14,6 +14,7 @@ import RelatedReadings from '@/components/RelatedReadings';
 import ShareCardView, { type ShareCardHandle } from '@/components/ShareCardView';
 import ReportCardView, { type ReportCardHandle } from '@/components/ReportCardView';
 import ReportExportSheet from '@/components/ReportExportSheet';
+import { useCardSignature } from '@/hooks/useCardSignature';
 import QuestionPrompts from '@/components/QuestionPrompts';
 import type { RealizedStatus } from '@/services/calibration';
 import IntuitionPicker from '@/components/IntuitionPicker';
@@ -57,6 +58,9 @@ export default function LingqiScreen() {
   const reportRef = useRef<ReportCardHandle>(null);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
   const [reportSections, setReportSections] = useState<ReportSection[]>([]);
+  // 署名（P4）：分享卡依設定，報告依確認框上的開關（初始值同設定）
+  const signature = useCardSignature();
+  const [reportSignature, setReportSignature] = useState<string | undefined>(undefined);
   const [pendingReportCapture, setPendingReportCapture] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('general');
   /** 待分享的文字。非 null 時分享去處選單就是開著的（同 reveal.tsx） */
@@ -213,9 +217,10 @@ export default function LingqiScreen() {
   }
 
   /** 使用者在匯出報告的確認框選了要不要帶上問題與筆記（同 reveal.tsx） */
-  async function handleReportConfirm(includePersonalText: boolean) {
+  async function handleReportConfirm(includePersonalText: boolean, includeSignature: boolean) {
     setReportSheetVisible(false);
     if (!record) return;
+    setReportSignature(signature.reportSignature(includeSignature));
     // 帶上完整歷史，報告才查得到「同一件事」的前一次與之後又占過幾次
     setReportSections([buildReportSection(record, { includePersonalText }, await getHistory())]);
     setPendingReportCapture(true);
@@ -443,13 +448,14 @@ export default function LingqiScreen() {
             pieceColors={[]}
             mode={record.mode}
             timestamp={record.timestamp}
+            signature={signature.shareSignature}
           />
         </View>
       )}
 
       {/* 隱藏的報告卡片，理由同上 */}
       <View style={styles.shareHidden} aria-hidden>
-        <ReportCardView ref={reportRef} sections={reportSections} />
+        <ReportCardView ref={reportRef} sections={reportSections} signature={reportSignature} />
       </View>
 
       <ShareTargetSheet
@@ -461,6 +467,7 @@ export default function LingqiScreen() {
         visible={reportSheetVisible}
         onConfirm={handleReportConfirm}
         onDismiss={() => setReportSheetVisible(false)}
+        {...signature.sheetProps}
       />
     </SafeAreaView>
   );

@@ -978,3 +978,22 @@ describe('資料夾改名', () => {
     expect((await getFolders())[0].name).toHaveLength(FOLDER_NAME_MAX);
   });
 });
+
+describe('cardSignature（分享卡與報告署名，P4）', () => {
+  const { cardSignature } = jest.requireActual('../services/storage') as typeof import('../services/storage');
+
+  test('預設要印：沒設過開關、有名字就印', () => {
+    expect(cardSignature({ userName: 'Alex' })).toBe('Alex');
+  });
+
+  test('印的是 trim 過的名字；只有空白等於沒填，什麼都不印', () => {
+    expect(cardSignature({ userName: '  Alex  ' })).toBe('Alex');
+    expect(cardSignature({ userName: '   ' })).toBeUndefined();
+    expect(cardSignature({ userName: '' })).toBeUndefined();
+  });
+
+  test('關掉就不印，即使有名字', () => {
+    expect(cardSignature({ userName: 'Alex', signCards: false })).toBeUndefined();
+    expect(cardSignature({ userName: 'Alex', signCards: true })).toBe('Alex');
+  });
+});

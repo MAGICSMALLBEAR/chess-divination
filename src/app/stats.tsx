@@ -15,7 +15,7 @@ import { getDrawTally, randomnessReport, type DrawTally } from '@/services/drawT
 import { computeCalibration } from '@/services/calibration';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { getHistory, getSettings, recordHasLevel, type DivinationRecord } from '@/services/storage';
+import { getHistory, getSettings, recordHasLevel, type CustomCategory, type DivinationRecord } from '@/services/storage';
 import { startOfLocalWeek, startOfLocalMonth } from '@/services/date';
 import {
   computeAccuracy, accuracyByLevel, accuracyByCategory,
@@ -44,6 +44,7 @@ export default function StatsScreen() {
   const { t, lang } = useI18n();
   const [records, setRecords] = useState<DivinationRecord[]>([]);
   const [reminderSetting, setReminderSetting] = useState<number | undefined>(undefined);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [tally, setTally] = useState<DrawTally | null>(null);
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month'>('all');
 
@@ -53,6 +54,7 @@ export default function StatsScreen() {
     setRecords(h);
     setTally(drawTally);
     setReminderSetting(settings.verifyReminderDays);
+    setCustomCategories(settings.customCategories ?? []);
   }
 
   // 依日期篩選。
@@ -106,10 +108,11 @@ export default function StatsScreen() {
   const bySeason = React.useMemo(
     () => accuracyBySeason(filtered, season => t(`stats.season${season}`)), [filtered, t]);
   // 類別標籤依語言而定，故 lang 必須是依賴之一，否則切換語言後仍是舊譯文
+  // 自訂類別的名字在設定裡，記錄只存 key（見 categoryLabel）
   const byCategory = React.useMemo(
-    () => accuracyByCategory(filtered, categoryLabel), [filtered, lang]);
+    () => accuracyByCategory(filtered, key => categoryLabel(key, customCategories)), [filtered, lang, customCategories]);
   const best = React.useMemo(
-    () => bestCategory(filtered, undefined, categoryLabel), [filtered, lang]);
+    () => bestCategory(filtered, undefined, key => categoryLabel(key, customCategories)), [filtered, lang, customCategories]);
   const medianDelay = React.useMemo(() => medianVerifyDelay(filtered), [filtered]);
   const bySpread = React.useMemo(
     () => accuracyBySpread(filtered, id => t(SPREAD_LABEL_KEYS[id as SpreadId])), [filtered, t, lang]);

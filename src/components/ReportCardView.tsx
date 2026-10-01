@@ -35,12 +35,14 @@ const OUTCOME_TONE: Record<OutcomeStatus, string> = {
 interface ReportCardViewProps {
   sections: ReportSection[];
   divinerGender?: DivinerGender;
+  /** 署名（已 trim 的名字）；不給就不印。是否要印由呼叫端依設定與匯出時的開關決定 */
+  signature?: string;
 }
 
 export interface ReportCardHandle { share: () => Promise<boolean>; }
 
 const ReportCardView = forwardRef<ReportCardHandle, ReportCardViewProps>(
-  function ReportCardView({ sections, divinerGender }, ref) {
+  function ReportCardView({ sections, divinerGender, signature }, ref) {
     const viewShotRef = useRef<any>(null);
     const { t } = useI18n();
 
@@ -108,6 +110,9 @@ const ReportCardView = forwardRef<ReportCardHandle, ReportCardViewProps>(
           ))}
 
           <View style={styles.footer}>
+            {signature ? (
+              <Text testID="report-signature" style={styles.footerSignature}>{t('card.signature', { name: signature })}</Text>
+            ) : null}
             <Text style={styles.footerUrl}>chess-divination-app.vercel.app</Text>
             <Text style={styles.footerTagline}>{t('home.tagline')}</Text>
           </View>
@@ -343,6 +348,7 @@ const styles = StyleSheet.create({
   outcomeBadgeText: { fontSize: 12, fontWeight: '700' },
   outcomeDelay: { fontSize: 11, color: P.inkMuted },
   footer: { alignItems: 'center', marginTop: 20 },
+  footerSignature: { fontSize: 12, color: P.ink, marginBottom: 6, letterSpacing: 1 },
   footerUrl: { fontSize: 10, color: P.goldLight },
   footerTagline: { fontSize: 12, color: P.gold, marginTop: 4, letterSpacing: 2, fontWeight: '600' },
 });

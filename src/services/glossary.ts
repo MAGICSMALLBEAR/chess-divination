@@ -34,3 +34,25 @@ export function searchGlossary(query: string, lang: Lang): GlossarySection[] {
     .map(group => ({ group, entries: hits.filter(entry => entry.group === group) }))
     .filter(section => section.entries.length > 0);
 }
+
+/**
+ * 長按盤面某一塊時要列出的詞條：依給定順序、去重。
+ * 不認得的 key 直接丟掉——盤面上寫錯一個 key 不該讓整張速查表打不開；
+ * 寫錯由 glossaryPeek.test.ts 掃 LiuYaoPanel 的原始碼抓出來。
+ */
+export function glossaryEntriesFor(keys: readonly string[]): GlossaryEntry[] {
+  const seen = new Set<string>();
+  const out: GlossaryEntry[] = [];
+  for (const key of keys) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const entry = GLOSSARY.find(e => e.key === key);
+    if (entry) out.push(entry);
+  }
+  return out;
+}
+
+/** 六親（盤面上印的漢字，如「妻財」）對應的詞條 key；不是六親回 undefined */
+export function glossaryKeyForRelative(relative: string): string | undefined {
+  return GLOSSARY.find(e => e.group === 'relative' && e.key !== 'sixRelatives' && e.term === relative)?.key;
+}

@@ -7,6 +7,8 @@
 //
 // 佔位符以 `{name}` 標記，見 t() 的說明。
 
+import { CUSTOM_CATEGORY_PREFIX, REMOVED_CUSTOM_CATEGORY_KEY } from './questionCategories';
+
 export type Lang = 'zh-TW' | 'en' | 'ja';
 
 /**
@@ -244,6 +246,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'common.save': { 'zh-TW': '儲存', en: 'Save', ja: '保存' },
   'common.delete': { 'zh-TW': '刪除', en: 'Delete', ja: '削除' },
   'common.cancel': { 'zh-TW': '取消', en: 'Cancel', ja: 'キャンセル' },
+  'common.close': { 'zh-TW': '關閉', en: 'Close', ja: '閉じる' },
   'common.confirm': { 'zh-TW': '確認', en: 'Confirm', ja: '確認' },
   'common.share': { 'zh-TW': '分享', en: 'Share', ja: '共有' },
   'common.favorite': { 'zh-TW': '收藏', en: 'Favorite', ja: 'お気に入り' },
@@ -571,6 +574,10 @@ export const translations: Record<string, Record<Lang, string>> = {
   'library.hexOpenPoem': { 'zh-TW': '看這一卦的籤詩', en: "See this hexagram's poem", ja: 'この卦の籤詩を見る' },
 
   // ── 命理術語詞典（app/glossary.tsx） ──
+  'glossaryPeek.hint': { 'zh-TW': '長按查看這一塊用到的術語', en: 'Long-press to see the terms used here', ja: '長押しでここに使われている用語を表示' },
+  'glossaryPeek.action': { 'zh-TW': '查看術語說明', en: 'Explain terms', ja: '用語の説明を見る' },
+  'glossaryPeek.openGlossary': { 'zh-TW': '在術語詞典看全部', en: 'See all in the glossary', ja: '用語辞典ですべて見る' },
+  'reveal.glossaryPeekTip': { 'zh-TW': '長按盤面上的任何一塊，可直接看那一塊的術語說明。', en: 'Long-press any part of the chart to see what its terms mean.', ja: '盤面のどこかを長押しすると、その部分の用語説明が見られます。' },
   'glossary.title': { 'zh-TW': '命理術語詞典', en: 'Divination Glossary', ja: '占術用語辞典' },
   'glossary.search': { 'zh-TW': '搜尋術語，例如：用神、月破…', en: 'Search terms, e.g. use-god, void…', ja: '用語を検索（例：用神、月破…）' },
   'glossary.intro': { 'zh-TW': '盤面上印著的術語，依「由看得見的卦到怎麼算」的順序整理。每一條分兩段：這個詞在命理裡的意思，以及本 App 在盤面上怎麼用它。', en: 'The terms printed on the chart, ordered from what you can see to how it is worked out. Each entry has two parts: what the term means in divination, and how this app uses it on the chart.', ja: '盤面に印字されている用語を、見える卦から計算の仕組みへという順に整理しました。各項目は、占術での意味と、このアプリが盤面でどう使うかの二段構成です。' },
@@ -739,7 +746,13 @@ export const translations: Record<string, Record<Lang, string>> = {
   // 設定（擴充）
   'settings.namePlaceholder': { 'zh-TW': '輸入您的名字', en: 'Enter your name', ja: 'お名前を入力' },
   'settings.pieces': { 'zh-TW': '{n} 顆', en: '{n}', ja: '{n} 枚' },
-  'settings.userNameHint': { 'zh-TW': '首頁會用這個名字向你問候；不填就不顯示。', en: 'The home screen greets you by this name. Leave it empty to hide the greeting.', ja: 'ホーム画面でこの名前であいさつします。空欄なら表示しません。' },
+  'settings.userNameHint': { 'zh-TW': '首頁會用這個名字向你問候；開啟下方的署名時，也會印在分享卡與閱讀報告上。不填就都不顯示。', en: 'The home screen greets you by this name. With signing on (below), it is also printed on share cards and reading reports. Leave it empty to show it nowhere.', ja: 'ホーム画面でこの名前であいさつします。下の署名をオンにすると、シェアカードと鑑定レポートにも印字されます。空欄ならどこにも表示しません。' },
+  'settings.signCards': { 'zh-TW': '分享卡與報告署名', en: 'Sign share cards & reports', ja: 'カードとレポートに署名' },
+  'settings.signCardsHint': { 'zh-TW': '在分享出去的圖片與匯出的報告印上「占者：{name}」。圖片送出去就收不回來，不想讓別人看到名字就關掉；匯出報告時也可以單次關閉。', en: 'Prints "By {name}" on shared images and exported reports. Images cannot be taken back once sent — turn this off if you do not want others to see your name. You can also turn it off for a single report export.', ja: 'シェアする画像と書き出すレポートに「占者：{name}」と印字します。画像は送ると取り消せません。名前を見られたくなければオフにしてください。レポートの書き出し時に一回だけオフにすることもできます。' },
+  'settings.signCardsNoName': { 'zh-TW': '還沒填名字，所以目前不會印任何署名。', en: 'No name set yet, so nothing is printed.', ja: '名前が未設定なので、署名は印字されません。' },
+  'card.signature': { 'zh-TW': '占者：{name}', en: 'By {name}', ja: '占者：{name}' },
+  'report.includeSignature': { 'zh-TW': '署名：{name}', en: 'Sign as {name}', ja: '署名：{name}' },
+  'report.includeSignatureHint': { 'zh-TW': '在報告上印出你的名字。預設值在設定頁「個人資訊」。', en: 'Prints your name on the report. The default is under Settings → Personal Info.', ja: 'レポートに名前を印字します。既定値は設定の「個人情報」で変えられます。' },
   'settings.nameUnset': { 'zh-TW': '點擊設定', en: 'Tap to set', ja: 'タップして設定' },
   'settings.themeDark': { 'zh-TW': '墨色', en: 'Ink', ja: '墨色' },
   'settings.themeLight': { 'zh-TW': '宣紙', en: 'Paper', ja: '宣紙' },
@@ -846,6 +859,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   'category.add': { 'zh-TW': '新增類別', en: 'Add Type', ja: '分類を追加' },
   'category.edit': { 'zh-TW': '編輯類別', en: 'Edit Type', ja: '分類を編集' },
   'category.namePlaceholder': { 'zh-TW': '類別名稱', en: 'Type name', ja: '分類名' },
+  'category.removed': { 'zh-TW': '已刪除的自訂類別', en: 'Deleted custom type', ja: '削除したカスタム分類' },
   'category.deleteTitle': { 'zh-TW': '刪除類別', en: 'Delete Type', ja: '分類を削除' },
   'category.deleteDesc': { 'zh-TW': '確定要刪除「{name}」嗎？', en: 'Delete "{name}"?', ja: '「{name}」を削除しますか？' },
 
@@ -1036,12 +1050,24 @@ const CATEGORY_KEYS: Record<string, string> = {
 
 /**
  * 問事類別的顯示名稱。
- * 自訂類別的 key（`custom-<timestamp>`）不在表內，原樣回傳——
- * 使用者自己取的名字沒有譯文可言，硬套 t() 只會顯示出那串 key。
+ *
+ * 自訂類別存進記錄的是 key（`custom-<timestamp>`），不是名字——名字在設定的
+ * `customCategories` 裡，所以要由呼叫端把那份清單帶進來。原本這裡寫著「原樣回傳
+ * key 就是使用者取的名字」，於是記錄頁、統計頁與 CSV 印出的都是 `custom-1727…`。
+ *
+ * - 內建類別：走譯文
+ * - 自訂類別：查 `custom`；查不到（類別已刪）印「已刪除的自訂類別」，不印內部代號
+ * - 其他：原樣回傳（舊記錄或匯入的資料，至少看得到當時存的字）
  */
-export function categoryLabel(key: string): string {
+export function categoryLabel(
+  key: string,
+  custom?: readonly { key: string; label: string }[],
+): string {
   const translationKey = CATEGORY_KEYS[key];
-  return translationKey ? t(translationKey) : key;
+  if (translationKey) return t(translationKey);
+  const named = custom?.find(c => c.key === key);
+  if (named) return named.label;
+  return key.startsWith(CUSTOM_CATEGORY_PREFIX) ? t(REMOVED_CUSTOM_CATEGORY_KEY) : key;
 }
 
 /**

@@ -9,7 +9,7 @@ import InkBackground from '@/components/InkBackground';
 import { Icon } from '@/components/icons';
 import type { AppSettings } from '@/services/storage';
 import type { DivinerGender } from '@/services/useGod';
-import { getSettings, saveSettings, getHistory } from '@/services/storage';
+import { cardSignature, getSettings, saveSettings, getHistory } from '@/services/storage';
 import {
   verifyReminderPolicy, VERIFY_REMINDER_CHOICES, VERIFY_REMINDER_OFF,
 } from '@/services/verification';
@@ -124,7 +124,9 @@ export default function SettingsScreen() {
   }
   async function handleCsvConfirm(includePersonalText: boolean) {
     setCsvCount(null);
-    const channel = await exportHistoryCsv(await getHistory(), { includePersonalText });
+    // 自訂類別當下再讀一次：CustomCategoriesSection 自己管那份清單，這頁的 settings 可能是舊的
+    const { customCategories } = await getSettings();
+    const channel = await exportHistoryCsv(await getHistory(), { includePersonalText, customCategories });
     if (!channel) { notify(t('settings.exportCsv'), t('settings.exportCsvFail')); return; }
     notify(t('settings.exportCsvOk'),
       channel === 'copied' ? t('settings.exportCsvOkClipboard')
@@ -300,6 +302,18 @@ export default function SettingsScreen() {
           )}
           {/* 說出名字用在哪裡：在此之前這格存得進去、卻沒有任何地方讀它 */}
           <Text testID="settings-name-hint" style={[styles.hint, { color: theme.textMuted }]}>{t('settings.userNameHint')}</Text>
+          {/* 署名（P4）：名字會印在送出去的圖片上——說清楚印在哪裡、怎麼關 */}
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.signCards')}</Text>
+            <Switch testID="settings-sign-cards" value={settings.signCards !== false}
+              onValueChange={(v) => update('signCards', v)}
+              trackColor={{ false: theme.bgMedium, true: theme.gold }} {...switchThumb} />
+          </View>
+          <Text testID="settings-sign-hint" style={[styles.hint, { color: theme.textMuted }]}>
+            {cardSignature({ userName: settings.userName, signCards: true }) === undefined
+              ? t('settings.signCardsNoName')
+              : t('settings.signCardsHint', { name: settings.userName.trim() })}
+          </Text>
           {/* 占者性別：只用於感情問事的用神取法，男女相反 */}
           <View style={styles.row}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t('settings.gender')}</Text>

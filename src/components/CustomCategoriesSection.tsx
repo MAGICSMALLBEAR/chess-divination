@@ -12,6 +12,7 @@ import type { IconName } from '@/components/icons/Icon';
 import type { CustomCategory } from '@/services/storage';
 import { getSettings, updateSettings, deleteCustomCategory } from '@/services/storage';
 import { confirmAction } from '@/services/dialog';
+import { CUSTOM_CATEGORY_PREFIX } from '@/services/questionCategories';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useI18n } from '@/hooks/useI18n';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -72,7 +73,7 @@ export default function CustomCategoriesSection({ onChanged }: Props) {
 
   async function handleSave() {
     if (!editLabel.trim()) return;
-    const key = `custom-${Date.now()}`;
+    const key = `${CUSTOM_CATEGORY_PREFIX}${Date.now()}`;
     const entry: CustomCategory = {
       key: editingIndex !== null ? categories[editingIndex].key : key,
       label: editLabel.trim(),
