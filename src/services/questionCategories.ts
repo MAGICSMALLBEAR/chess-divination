@@ -20,6 +20,23 @@ export const QUESTION_CATEGORY_DOMAINS: Readonly<Record<string, string>> = {
 /** 自訂類別 key 的前綴（`CustomCategoriesSection` 以它加時間戳產生 key） */
 export const CUSTOM_CATEGORY_PREFIX = 'custom-';
 
+/** 是不是自訂類別的 key */
+export function isCustomCategory(key: string | undefined): boolean {
+  return !!key && key.startsWith(CUSTOM_CATEGORY_PREFIX);
+}
+
+/**
+ * 自訂類別的名字；不是自訂類別、或類別已刪除時回 undefined。
+ * 給 AI 提示詞用——那裡寧可不提類別，也不要送出「已刪除的自訂類別」或內部代號。
+ */
+export function customCategoryName(
+  key: string | undefined,
+  custom: readonly { key: string; label: string }[] | undefined,
+): string | undefined {
+  if (!isCustomCategory(key)) return undefined;
+  return custom?.find(c => c.key === key)?.label;
+}
+
 /** 記錄指向一個已刪除的自訂類別時顯示的譯文鍵（見 i18n 的 categoryLabel） */
 export const REMOVED_CUSTOM_CATEGORY_KEY = 'category.removed';
 

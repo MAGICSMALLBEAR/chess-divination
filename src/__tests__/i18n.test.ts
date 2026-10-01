@@ -566,3 +566,19 @@ describe('引導頁介紹所有占卜模式', () => {
     expect(translations['onboarding.step2desc']['zh-TW']).toContain('靈棋十二子');
   });
 });
+
+describe('customCategoryName（AI 提示詞用的自訂類別名稱）', () => {
+  const { customCategoryName } = jest.requireActual('../services/questionCategories') as typeof import('../services/questionCategories');
+  const custom = [{ key: 'custom-1', label: '搬家' }];
+
+  test('自訂類別回名字', () => {
+    expect(customCategoryName('custom-1', custom)).toBe('搬家');
+  });
+
+  test('已刪除、內建類別、沒有類別：一律 undefined（不送「已刪除」也不送代號）', () => {
+    expect(customCategoryName('custom-2', custom)).toBeUndefined();
+    expect(customCategoryName('custom-1', undefined)).toBeUndefined();
+    expect(customCategoryName('career', custom)).toBeUndefined();
+    expect(customCategoryName(undefined, custom)).toBeUndefined();
+  });
+});

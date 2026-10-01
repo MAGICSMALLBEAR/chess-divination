@@ -64,7 +64,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // 防止單一欄位將模型 context 與費用放大；整體大小已在上方限制。
   if ([
-    body.question, body.questionCategory,
+    body.question, body.questionCategory, body.questionCategoryLabel,
     body.poem.title, body.poem.content, body.poem.vernacular,
     // 盤面裡的選項名稱是使用者輸入，和 question 同樣是外部字串，
     // 漏掉這裡等於留一條沒有上限的路把 context 撐大。

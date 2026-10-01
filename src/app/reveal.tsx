@@ -38,6 +38,7 @@ import { cancelVerificationReminder } from '@/services/notifications';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { buildInterpretation } from '@/services/interpretation';
 import { fetchAiInterpretation } from '@/services/aiInterpretation';
+import { customCategoryName } from '@/services/questionCategories';
 import { getSpread, spreadBriefFromSummary, SPREAD_LABEL_KEYS } from '@/services/spreads';
 import { shareNative, shareToTarget, formatDivinationShareText, type ShareTarget } from '@/services/socialShare';
 import { buildReportSection, type ReportSection } from '@/services/report';
@@ -161,6 +162,8 @@ export default function RevealScreen() {
   async function handleAiInterpret() {
     if (!poem) return;
     setAiState({ kind: 'loading' });
+    // 自訂類別送名字（伺服器拿不到使用者設定），送出當下再讀，設定頁剛改的名字也算數
+    const { customCategories } = await getSettings();
 
     const result = await fetchAiInterpretation({
       poem: {
@@ -172,6 +175,7 @@ export default function RevealScreen() {
       },
       question: record?.questionText,
       questionCategory: record?.questionCategory,
+      questionCategoryLabel: customCategoryName(record?.questionCategory, customCategories),
       hexagram: reading
         ? {
             primaryName: reading.primary.name,

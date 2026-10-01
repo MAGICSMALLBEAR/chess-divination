@@ -216,3 +216,39 @@ test.describe('分享卡與報告署名（P4）', () => {
       .toBe(false);
   });
 });
+
+test.describe('AI 提示詞的自訂類別（S97）', () => {
+  /** 攔下揭曉頁送給 /api/interpret 的請求本體 */
+  async function interpretPayload(page: Page): Promise<Record<string, unknown>> {
+    let payload: Record<string, unknown> | null = null;
+    await page.route('**/api/interpret', route => {
+      payload = route.request().postDataJSON();
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ interpretation: '解讀' }) });
+    });
+    await page.getByText('請 AI 解讀此卦').click({ timeout: 30_000 });
+    await expect.poll(() => payload).not.toBeNull();
+    return payload!;
+  }
+
+  test('自訂類別：送出使用者取的名字', async ({ page }) => {
+    await seed(page, [record('target', CUSTOM.key)], { customCategories: [CUSTOM] });
+    await page.goto('/reveal?recordId=target&mode=draw');
+    const body = await interpretPayload(page);
+    expect(body.questionCategory).toBe(CUSTOM.key);
+    expect(body.questionCategoryLabel).toBe('搬家');
+  });
+
+  test('自訂類別已刪除：不送名字（伺服器端就整行省略）', async ({ page }) => {
+    await seed(page, [record('target', CUSTOM.key)]);
+    await page.goto('/reveal?recordId=target&mode=draw');
+    const body = await interpretPayload(page);
+    expect(body.questionCategoryLabel).toBeUndefined();
+  });
+
+  test('內建類別不帶名字欄位', async ({ page }) => {
+    await seed(page, [record('target', 'career')], { customCategories: [CUSTOM] });
+    await page.goto('/reveal?recordId=target&mode=draw');
+    const body = await interpretPayload(page);
+    expect(body.questionCategoryLabel).toBeUndefined();
+  });
+});

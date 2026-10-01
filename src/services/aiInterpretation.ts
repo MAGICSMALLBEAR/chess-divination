@@ -40,6 +40,11 @@ export interface AiInterpretationInput {
   };
   question?: string;
   questionCategory?: string;
+  /**
+   * 自訂類別的名字（使用者自己取的）。只在 questionCategory 是自訂類別時帶：
+   * 記錄存的是 `custom-<時間戳>`，名字在使用者的設定裡，伺服器拿不到。
+   */
+  questionCategoryLabel?: string;
   hexagram?: {
     primaryName: string;
     changedName?: string;

@@ -7,7 +7,7 @@
 //
 // 佔位符以 `{name}` 標記，見 t() 的說明。
 
-import { CUSTOM_CATEGORY_PREFIX, REMOVED_CUSTOM_CATEGORY_KEY } from './questionCategories';
+import { isCustomCategory, REMOVED_CUSTOM_CATEGORY_KEY } from './questionCategories';
 
 export type Lang = 'zh-TW' | 'en' | 'ja';
 
@@ -1067,7 +1067,7 @@ export function categoryLabel(
   if (translationKey) return t(translationKey);
   const named = custom?.find(c => c.key === key);
   if (named) return named.label;
-  return key.startsWith(CUSTOM_CATEGORY_PREFIX) ? t(REMOVED_CUSTOM_CATEGORY_KEY) : key;
+  return isCustomCategory(key) ? t(REMOVED_CUSTOM_CATEGORY_KEY) : key;
 }
 
 /**
