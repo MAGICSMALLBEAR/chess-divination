@@ -30,7 +30,7 @@
 ### 查到的：依賴版本落差（→ 維護 #51）
 啟動時 Expo 提示有新版，`npx expo install --check` 列出 25 個套件：
 
-| 套件 | 目前 | SDK 57 期望 | 性質 |
+| 套件 | 對齊前 | SDK 57 期望（已對齊） | 性質 |
 |---|---|---|---|
 | `@react-native-async-storage/async-storage` | 3.1.1 | 2.2.0 | **主版本超前** |
 | `react-native-gesture-handler` | 3.1.0 | ~2.32.0 | **主版本超前** |
