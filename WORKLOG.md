@@ -11,7 +11,7 @@
 | 項目 | 數值 |
 |------|------|
 | 原始碼檔案 | 133 個（`src` 的 .ts/.tsx，不含測試） |
-| Git Commits | 190 次 ※ |
+| Git Commits | 192 次 ※ |
 | Jest 測試 | 1578 個 ※ · 72 套件 · 全部通過 |
 | E2E 測試 | 468 個 ※ · Playwright · mobile + desktop |
 | TypeScript | 零錯誤 |
@@ -4685,7 +4685,7 @@ Vercel 設定、母語校閱者、後端與法務決策。
 
 ---
 
-## Session 98 — 待辦盤點、啟動開發伺服器、查出依賴版本落差（10/5–10/6，程式碼未動）
+## Session 98 — 待辦盤點、啟動開發伺服器、依賴版本對齊 SDK 57：路線圖 #51，做完（10/5–10/6）
 
 使用者：「目前專案還有哪些功能還沒有製作」→「幫我啟動程式」→「整理今日的工作日誌和未來的功能代辦」。
 
@@ -4708,8 +4708,23 @@ Vercel 設定、母語校閱者、後端與法務決策。
   開始前要先處理**，否則實機上看到的錯可能不是 App 的錯。**未在手機上驗證會不會壞**，這裡只陳述版本不符。
 - 兩個套件從 7/27 MVP 起就是這個版本，前面 97 輪沒有一處記錄過——web／Jest／E2E 全綠不代表原生端對得上。
 
-### 沒做的
-- 沒升級：要動 25 個套件、牽涉原生端，要先問使用者，升完要跑完整 `npm run verify`。
+### #51 做完（使用者同意後）
+- `npx expo install --fix` 寫好了 `package.json`，但 npm 回 ERESOLVE：它把 dependencies 與 devDependencies
+  **分兩次裝**，第一次裝 react-native 0.86.3 時，舊的 jest-expo 57.0.2 還把 `@react-native/jest-preset` 鎖在 0.86.0。
+  jest-expo 57.0.5 又把 jest-preset 改成 **peer**（要專案自己提供），所以要一次裝齊：
+  `npm install --save-dev jest-expo@~57.0.5 @types/jest@29.5.14 @react-native/jest-preset@~0.86.3`。
+  之後 `expo install --check` 回 "Dependencies are up to date"。
+- **AsyncStorage 3 → 2 的資料相容**：查了 3.1.1 的原始碼，`export default` 是 `getLegacyStorage()`——
+  web 上就是 v2 那套 `window.localStorage`、鍵名不加前綴（IndexedDB 只給 `createAsyncStorage()` 用，本專案沒用）。
+  **線上 PWA 使用者的資料降版後照讀得到**。原生端尚未上架，沒有既有資料。程式只用 `getItem`／`setItem`，兩版都有。
+- **Jest 7 個套件紅**：2.x 在 Jest 找不到原生模組時 import 就丟錯（3.x 不會），間接引用 storage、
+  自己沒 mock 的套件全跑不起來。加 `jest.setup.js` 掛官方記憶體 mock（`setupFiles`），測試檔自己的 `jest.mock` 照樣覆蓋。
+  反證：加之前 7 套件紅、加之後全綠。
+- Gesture Handler 在 `src` 沒有直接引用（由 expo-router／screens 間接用），2.32 對齊即可。
+
+### 驗證
+- **tsc 零錯誤 · Jest 1578 個（72 套件）· E2E 468 條不重試全綠 · 首載預算 585.2 / 615 KB**。
+- 實機上仍未驗證——這輪只保證 JS 端與 Expo Go 原生端版本對得上。
 
 ---
 
@@ -6515,7 +6530,7 @@ curl -s -w '\nHTTP %{http_code}\n' \
 | ~~47~~ | ~~**AI 提示詞的自訂類別送代號**~~ ✅ S97 | — | 用戶端送名稱（`questionCategoryLabel`），伺服器端只對自訂類別採用、限 20 字、沒名字整行省略 |
 | 48 | **PWA 實機離線回歸** | **需要手機** | Chrome 與手機各驗首次安裝、離線重啟、`chess-divination-v3` 汰換舊快取、英日譯文 chunk 是否被快取 |
 | 49 | **首次互動時間基準** | **需要穩定的量測環境** | 尺寸預算已有；互動時間要固定機器或實機數據。低階手機首次進非首頁路由多 2–3 秒，看實機回報再決定是否預抓 |
-| 51 | **依賴版本與 SDK 57 期望值不符**（S98 新找到） | **需要使用者同意升級**；`npx expo install --check` 列 25 個。主版本超前的兩個：AsyncStorage 3.1.1（期望 2.2.0）、Gesture Handler 3.1.0（期望 ~2.32.0）。Expo Go 的原生端是期望版，web／Jest 測不出落差，**實機上未驗證** | `npx expo install --fix` 對齊（AsyncStorage 降到 2.x 要先確認 3.x 專屬 API 有沒有被用到），跑完整 `npm run verify`；**排在實機測試 #3 之前** |
+| ~~51~~ | ~~**依賴版本與 SDK 57 期望值不符**~~ ✅ S98 | — | 25 個套件對齊 SDK 57（AsyncStorage 3.1.1→2.2.0、Gesture Handler 3.1.0→2.32.0 等）；web 資料相容已查證；Jest 加全域 AsyncStorage mock。下次升 SDK 先跑 `npx expo install --check` |
 
 **查過但判定「不是缺陷」的**（S86 查證後不予列入，避免下一輪重查同樣的東西）：
 
@@ -6838,4 +6853,4 @@ Session 49 走的是同一份清單的下一層——見下方註。
 | Session 95 | 修復 Service Worker 的 JavaScript 語法、Web Router async routes；翻譯 service 依用途拆分，英／日 64 首詩籤譯文改為語言各自的非同步 chunk。共用 Web chunk 約 2.2MB → 1.9MB；Jest 1552、typecheck、build 全綠；本輪未重跑 E2E（缺 Chromium） | 9/30 |
 | Session 96 | P3：兩條 flaky E2E 查因（重跑 1,752 次不重現，改量測：asyncRoutes 讓揭曉頁→卦典在 6 倍降速下 8.5 秒、離 10 秒門檻只剩一截；改等待條件）、首載 Brotli 預算腳本進 verify 與 CI、日文譯文量完不重構；P4：收藏頁類別篩選（依主類別）、結果頁長按術語速查（以區塊為單位、報告長圖不受影響）、分享卡與報告署名（預設開、可單次關）；順帶修掉自訂類別印成 custom-…；實機清單 44 → 46 項（測試 1571、E2E 462） | 10/1 |
 | Session 97 | AI 提示詞的自訂類別：用戶端送使用者取的名字（`questionCategoryLabel`），伺服器端只對自訂類別採用、包成使用者輸入並限 20 字，沒有名字就整行省略，不再送 custom-… 代號（測試 1578、E2E 468） | 10/1 |
-| Session 98 | 待辦盤點（沒有未做的已定案功能）、啟動開發伺服器（`CI=1` 會關熱更新、背景指令 2 小時上限）；查出 25 個套件與 SDK 57 期望版本不符，其中 AsyncStorage 3.x 與 Gesture Handler 3.x 是主版本超前，列為維護 #51、須在實機測試前處理；程式碼未動 | 10/6 |
+| Session 98 | 待辦盤點（沒有未做的已定案功能）、啟動開發伺服器（`CI=1` 會關熱更新、背景指令 2 小時上限）；查出 25 個套件與 SDK 57 期望版本不符，其中 AsyncStorage 3.x 與 Gesture Handler 3.x 是主版本超前，列為維護 #51 並做完：一次裝齊 jest-expo 57.0.5 與其 peer jest-preset 0.86.3 解 ERESOLVE；AsyncStorage 3.x 的預設匯出在 web 本來就是 v2 的 localStorage，降版不掉資料；2.x 在 Jest 會丟錯，加 `jest.setup.js` 全域 mock（測試 1578、E2E 468） | 10/6 |
